@@ -44,7 +44,9 @@ class RenderPipeline:
         self.compute_fps     = 0.0
         self.last_frame_time = time.perf_counter()
         self.dirty_flag_skips = 0
+        self.compute_shader_skips = 0  # Track how many frames we skip compute shader
         self.needs_texture_update = True
+        self.texture_needs_readback = True  # Flag for draw_texture to know if readback is needed
         self.last_mouse_pos = [0.5, 0.5]
         self.last_click_value = 0.0
         self.last_scroll_value = 0.0
@@ -248,6 +250,10 @@ class RenderPipeline:
         
         # CRITICAL: Recreate texture if size changed
         if old_region_size != self.region_size and self.output_texture:
+            # Clear the Blender texture wrapper first
+            if self.blender_texture:
+                self.blender_texture = None
+            
             if self._safe_release_moderngl_object(self.output_texture):
                 self.texture_size = self.region_size
                 self.output_texture = self.mgl_context.texture(
@@ -311,8 +317,16 @@ class RenderPipeline:
                 if self.debug_counter % 120 == 0:
                     debug_data = self.debug_buffer.read()
                     debug_floats = np.frombuffer(debug_data, dtype=np.float32)
-                    skip_percentage = (self.dirty_flag_skips / max(1, self.debug_counter)) * 100
-                    print(f"FPS: {self.compute_fps:.1f} | Texture skips: {self.dirty_flag_skips}/{self.debug_counter} ({skip_percentage:.1f}%)")
+                    
+                    # Calculate skip percentages
+                    texture_skip_pct = (self.dirty_flag_skips / max(1, self.debug_counter)) * 100
+                    compute_skip_pct = (self.compute_shader_skips / max(1, self.debug_counter)) * 100
+                    
+                    print(f"=== PERFORMANCE STATS ===")
+                    print(f"Frame FPS: {self.compute_fps:.1f}")
+                    print(f"Compute shader skipped: {self.compute_shader_skips}/{self.debug_counter} ({compute_skip_pct:.1f}%)")
+                    print(f"Texture readback skipped: {self.dirty_flag_skips}/{self.debug_counter} ({texture_skip_pct:.1f}%)")
+                    print(f"========================")
         except Exception as e:
             print(f"Error reading debug buffer: {e}")
     def update_fps(self):
@@ -327,7 +341,9 @@ class RenderPipeline:
         if len(self.frame_times) > 0:
             avg_frame_time = sum(self.frame_times) / len(self.frame_times)
             self.compute_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0.0
-    def has_texture_changed(self):
+    
+    def check_if_changed(self):
+        """Check if texture needs updating and update state. Called from modal loop."""
         changed = False
         
         # Check mouse position changes
@@ -354,16 +370,22 @@ class RenderPipeline:
         
         if not changed:
             self.dirty_flag_skips += 1
-            
+        
+        # Store result for draw_texture to use
+        self.texture_needs_readback = changed
+        
         return changed
+    
+    def has_texture_changed(self):
+        """Check if texture needs readback. Called from draw_texture."""
+        # Use the state set by check_if_changed()
+        return self.texture_needs_readback
     def run_compute_shader(self):
         if not (self.compute_shader and self.mouse_buffer and self.container_buffer and 
                 self.viewport_buffer and self.output_texture):
             return False
             
         try:
-            self.update_fps()
-            
             self.mouse_buffer.bind_to_storage_buffer(0)
             self.container_buffer.bind_to_storage_buffer(1)
             self.viewport_buffer.bind_to_storage_buffer(2)
@@ -434,11 +456,12 @@ class RenderPipeline:
             return
             
         try:
-            # Check if texture has actually changed
+            # PERFORMANCE OPTIMIZATION:
+            # Check if texture has actually changed before doing expensive GPU->CPU readback
             if not self.has_texture_changed():
                 # Texture hasn't changed, we can skip expensive recreation
                 if self.blender_texture:
-                    # Just redraw with existing texture
+                    # Just redraw with existing texture - this is VERY cheap
                     gpu.state.blend_set('ALPHA')
                     gpu.state.depth_test_set('NONE')
                     
@@ -456,7 +479,9 @@ class RenderPipeline:
                     gpu.state.depth_test_set('LESS_EQUAL')
                 return
             
-            # Texture has changed, read fresh data from GPU
+            # Texture has changed - we need to update it
+            # Unfortunately Blender doesn't support direct OpenGL texture sharing,
+            # so we do need the GPU->CPU readback, but ONLY when something changed
             texture_data = self.output_texture.read()
             
             # Convert bytes to float array - NO GAMMA CORRECTION
@@ -485,12 +510,10 @@ class RenderPipeline:
             self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
             self.gpu_shader.uniform_float("opacity", 1.0)
             
-            # REMOVE ALL SCALING - texture now matches viewport exactly
+            # Draw fullscreen quad with 1:1 mapping
             gpu.matrix.push()
             gpu.matrix.load_identity()
-            # NO scaling applied - 1:1 mapping
             
-            # Draw fullscreen quad
             self.batch.draw(self.gpu_shader)
             gpu.matrix.pop()
             
@@ -500,6 +523,7 @@ class RenderPipeline:
             
         except Exception as e:
             print(f"Error drawing texture: {e}")
+    
     def cleanup(self):
         self.running = False
         
@@ -724,17 +748,29 @@ class XWZ_OT_start_ui(Operator):
             region = context.region
             
             if area and region:
+                # Update FPS counter on every timer tick (not just when compute shader runs)
+                _render_data.update_fps()
+                
                 _render_data.update_region_size(region.width, region.height)
 
-                from .hit_op import _container_data
-                if _container_data:
-                    _render_data.update_container_buffer_full(_container_data)
-
-                _render_data.run_compute_shader()
+                # PERFORMANCE OPTIMIZATION:
+                # Check if anything changed and run compute shader only when needed
+                texture_changed = _render_data.check_if_changed()
+                if texture_changed:
+                    # Only update container buffer when texture is changing
+                    # This avoids rebuilding the entire buffer every frame
+                    from .hit_op import _container_data
+                    if _container_data:
+                        _render_data.update_container_buffer_full(_container_data)
+                    
+                    _render_data.run_compute_shader()
+                else:
+                    # Count skipped frames for debugging
+                    _render_data.compute_shader_skips += 1
                 
-                # Periodic garbage collection for ModernGL resources
-                # This ensures resources are cleaned up during rendering
-                if _render_data.mgl_context:
+                # Periodic garbage collection for ModernGL resources (only every 120 frames = ~2 seconds)
+                # Running this every frame causes unnecessary overhead
+                if _render_data.mgl_context and _render_data.debug_counter % 120 == 0:
                     try:
                         _render_data.mgl_context.gc()
                     except AttributeError as e:
@@ -746,6 +782,8 @@ class XWZ_OT_start_ui(Operator):
                     except Exception as e:
                         print(f"Warning: Unexpected error during ModernGL cleanup: {e}")
             
+            # Always redraw to display the texture (even if unchanged)
+            # This is cheap since we're just displaying the existing texture
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
                     area.tag_redraw()
