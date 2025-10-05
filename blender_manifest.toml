@@ -1,0 +1,46 @@
+schema_version = "1.0.0"
+
+id         = "xwz_shader_ui"
+version    = "1.0.0"
+name       = "XWZ Shader UI"
+tagline    = "XWZ Shader UI"
+maintainer = "Nicolai Prodromov"
+type       = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = [
+  "MIT",
+]
+
+platforms = ["windows-x64", "macos-arm64", "macos-x64"]
+
+wheels = [
+  "./src/wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
+  "./src/wheels/moderngl-5.12.0-cp311-cp311-macosx_11_0_arm64.whl", 
+  "./src/wheels/moderngl-5.12.0-cp311-cp311-macosx_10_9_x86_64.whl",
+  "./src/wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
+  "./src/wheels/glcontext-3.0.0-cp311-cp311-macosx_11_0_arm64.whl",
+  "./src/wheels/glcontext-2.5.0-cp311-cp311-macosx_10_9_x86_64.whl",
+  "./src/wheels/toml-0.10.2-py2.py3-none-any.whl",
+  "./src/wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
+  "./src/wheels/stretchable-1.1.7-cp38-abi3-macosx_11_0_arm64.whl",
+  "./src/wheels/stretchable-1.0.0-cp38-abi3-macosx_10_7_x86_64.whl",
+  "./src/wheels/attrs-25.3.0-py3-none-any.whl",
+  "./src/wheels/tinycss2-1.4.0-py3-none-any.whl",
+  "./src/wheels/webencodings-0.5.1-py2.py3-none-any.whl",
+  "./src/wheels/textual-6.2.1-py3-none-any.whl",
+  "./src/wheels/rich-14.1.0-py3-none-any.whl",
+  "./src/wheels/pygments-2.19.2-py3-none-any.whl",
+  "./src/wheels/markdown_it_py-4.0.0-py3-none-any.whl",
+  "./src/wheels/mdurl-0.1.2-py3-none-any.whl",
+  "./src/wheels/typing_extensions-4.15.0-py3-none-any.whl"
+]
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  ".*",
+  "*.zip",
+  "*.pyc",
+]
