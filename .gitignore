@@ -7,3 +7,7 @@
 *.rar
 *.7z
 *.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

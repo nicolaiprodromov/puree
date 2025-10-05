@@ -43,7 +43,8 @@ wheels = [
 [build]
 paths_exclude_pattern = [
   "__pycache__/",
-  ".*",
   "*.zip",
   "*.pyc",
+  "docs/",
+  "dist"
 ]
