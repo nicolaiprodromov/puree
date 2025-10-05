@@ -76,7 +76,7 @@ class RenderPipeline:
     def load_container_data(self):
         try:  
             wm = bpy.context.window_manager
-            bpy.ops.xwz.parse_app_ui(conf_path=wm.xwz_ui_conf_path, style_path=wm.xwz_ui_style_path)
+            bpy.ops.xwz.parse_app_ui(conf_path=wm.xwz_ui_conf_path)
             self.container_data = parser_op._container_json_data
             return True
         except Exception as e:

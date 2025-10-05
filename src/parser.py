@@ -1,4 +1,5 @@
 import toml
+import os
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
 from stretchable import Edge
@@ -89,16 +90,17 @@ class Styles():
 
 class Theme():
     def __init__(self):
-        self.name    = ""
-        self.author  = ""
-        self.version = ""
-        self.scripts = []
-        self.palette = {}
-        self.styles  = Styles()
-        self.root    = Container()
-
+        self.name        = ""
+        self.author      = ""
+        self.version     = ""
+        self.scripts     = []
+        self.style_files = []
+        self.palette     = {}
+        self.styles      = Styles()
+        self.root        = Container()
+        
 class UI():
-    def __init__(self, path=None, path_style=None, canvas_size=(800, 600)):
+    def __init__(self, path=None, canvas_size=(800, 600)):
         self.selected_theme = "xwz_default"
         self.settings       = Settings()
         self.theme          = Theme()
@@ -106,7 +108,7 @@ class UI():
         self.abs_json_data  = []
 
         self.parse_toml(path)
-        self.parse_css(path_style)
+        self.parse_css()
         self.create_node_tree(canvas_size)
         self.flatten_node_tree()
 
@@ -130,11 +132,13 @@ class UI():
                 self.theme_index = theme.index(_theme_)
                 break
 
-        root    = ui_data['theme'][self.theme_index]['root']
-        self.theme.name    = theme[self.theme_index]['name']
-        self.theme.author  = theme[self.theme_index]['author']
-        self.theme.version = theme[self.theme_index]['version']
-        self.theme.scripts = theme[self.theme_index]['scripts']
+        root = ui_data['theme'][self.theme_index]['root']
+
+        self.theme.name        = theme[self.theme_index]['name']
+        self.theme.author      = theme[self.theme_index]['author']
+        self.theme.version     = theme[self.theme_index]['version']
+        self.theme.scripts     = theme[self.theme_index]['scripts']
+        self.theme.style_files = theme[self.theme_index]['styles']
 
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
@@ -158,13 +162,19 @@ class UI():
         load_container(root, self.theme.root)
         #print(self.theme.root.children[0].id)
             
-    def parse_css(self, path_style=None):
-        if path_style is None:
-            return
+    def parse_css(self):
+
+        addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        static_dir = os.path.join(addon_dir, "static")
         
-        with open(path_style, 'r') as f:
-            css_string = f.read()
-        
+        style_str = ""
+        for _style_file in self.theme.style_files:
+            if _style_file.endswith('.css'):
+                with open(os.path.join(static_dir, _style_file), 'r') as f:
+                    style_str += f.read()
+
+        css_string = style_str
+
         parser = CSSParser()
         styles = parser.parse(css_string)
         
