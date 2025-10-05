@@ -1,0 +1,22 @@
+[ui]
+    selected_theme = "xwz_default"
+    default_theme  = "xwz_default"
+[ui.settings]
+    scroll_speed = 100
+[[ui.theme]]
+    name    = "xwz_default"
+    author  = "xwz"
+    version = "1.0.0"
+    scripts = ["script.py"]
+    [ui.theme.root]
+        style = "root"
+        [ui.theme.root.bg]
+            style = "bg"
+            [ui.theme.root.bg.test1]
+                style = "test1"
+            [ui.theme.root.bg.test2]
+                style = "test2"
+                [ui.theme.root.bg.test2.test3]
+                    style = "test3"
+                    text = "TEST"
+                    font= "NeueMontreal-Bold"
