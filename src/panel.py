@@ -18,8 +18,16 @@ class XWZ_PT_panel(Panel):
             box = layout.box()
             col = box.column(align=True)
             col.separator()
-            col.label(text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
-            col.label(text=f"Compute FPS: {render._render_data.compute_fps:.1f}")
+            col.label(text=f"Resolution: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
+            col.label(text=f"FPS: {render._render_data.compute_fps:.1f}")
+            
+            total_frames = max(1, render._render_data.debug_counter)
+            compute_skip_pct = (render._render_data.compute_shader_skips / total_frames) * 100
+            texture_skip_pct = (render._render_data.dirty_flag_skips / total_frames) * 100
+            
+            col.separator()
+            col.label(text=f"Compute: {100-compute_skip_pct:.0f}% active")
+            col.label(text=f"Readback: {100-texture_skip_pct:.0f}% active")
             
             layout.separator()
             layout.operator("xwz.stop_ui", icon='PAUSE')

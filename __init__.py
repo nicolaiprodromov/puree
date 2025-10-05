@@ -1,3 +1,4 @@
+import bpy
 from .src import register as xwz_ui_register, unregister as xwz_ui_unregister
 
 bl_info = {
@@ -9,9 +10,6 @@ bl_info = {
     "description": "XWZ Shader UI",
     "category"   : "3D View",
 }
-
-
-import bpy
 
 def register():
     xwz_ui_register()

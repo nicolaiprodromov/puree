@@ -6,14 +6,6 @@ from mathutils import Matrix
 
 _image_instances = []
 _draw_handle = None
-_timer_handle = None
-
-def trigger_image_redraw():
-    if _image_instances:
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                area.tag_redraw()
-    return 0.016
 
 class ImageManager:
     _instance = None
@@ -246,7 +238,7 @@ class DrawImageOP(bpy.types.Operator):
     aspect_ratio: bpy.props.BoolProperty(name="Keep Aspect Ratio", default=True)
     
     def execute(self, context):
-        global _draw_handle, _image_instances, _timer_handle
+        global _draw_handle, _image_instances
         
         mask = None
         if self.mask_width > 0 and self.mask_height > 0:
@@ -265,9 +257,6 @@ class DrawImageOP(bpy.types.Operator):
         if _draw_handle is None:
             _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
                 draw_all_images, (), 'WINDOW', 'POST_PIXEL')
-        
-        if _timer_handle is None:
-            _timer_handle = bpy.app.timers.register(trigger_image_redraw)
         
         context.area.tag_redraw()
         self.report({'INFO'}, f"Added image instance #{new_instance.id} with image {self.image_name}")
@@ -303,17 +292,13 @@ class ClearImageOP(bpy.types.Operator):
     bl_label = "Clear All Images"
     
     def execute(self, context):
-        global _draw_handle, _image_instances, _timer_handle
+        global _draw_handle, _image_instances
         
         _image_instances.clear()
         
         if _draw_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
-        
-        if _timer_handle is not None and bpy.app.timers.is_registered(trigger_image_redraw):
-            bpy.app.timers.unregister(trigger_image_redraw)
-            _timer_handle = None
         
         context.area.tag_redraw()
         return {'FINISHED'}
@@ -414,7 +399,7 @@ def register():
     bpy.utils.register_class(UpdateImageOP)
 
 def unregister():
-    global _draw_handle, _timer_handle, _image_instances
+    global _draw_handle, _image_instances
     
     # Force clear all image instances
     _image_instances.clear()
@@ -422,9 +407,6 @@ def unregister():
     if _draw_handle is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
-    if _timer_handle is not None and bpy.app.timers.is_registered(trigger_image_redraw):
-        bpy.app.timers.unregister(trigger_image_redraw)
-        _timer_handle = None
     
     image_manager.unload_images()
     

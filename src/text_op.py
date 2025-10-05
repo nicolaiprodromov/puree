@@ -4,14 +4,6 @@ import os
 
 _text_instances = []
 _draw_handle = None
-_timer_handle = None
-
-def trigger_text_redraw():
-    if _text_instances:
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                area.tag_redraw()
-    return 0.016
 
 class FontManager:
     _instance = None
@@ -161,7 +153,7 @@ class DrawTextOP(bpy.types.Operator):
     mask_height: bpy.props.IntProperty(name="Mask Height", default=0)
     
     def execute(self, context):
-        global _draw_handle, _text_instances, _timer_handle
+        global _draw_handle, _text_instances
         
         mask = None
         if self.mask_width > 0 and self.mask_height > 0:
@@ -181,9 +173,6 @@ class DrawTextOP(bpy.types.Operator):
         if _draw_handle is None:
             _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
                 draw_all_text, (), 'WINDOW', 'POST_PIXEL')
-        
-        if _timer_handle is None:
-            _timer_handle = bpy.app.timers.register(trigger_text_redraw)
         
         context.area.tag_redraw()
         self.report({'INFO'}, f"Added text instance #{new_instance.id} with font {self.font_name}")
@@ -219,17 +208,13 @@ class ClearTextOP(bpy.types.Operator):
     bl_label = "Clear All Text"
     
     def execute(self, context):
-        global _draw_handle, _text_instances, _timer_handle
+        global _draw_handle, _text_instances
         
         _text_instances.clear()
         
         if _draw_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
-        
-        if _timer_handle is not None and bpy.app.timers.is_registered(trigger_text_redraw):
-            bpy.app.timers.unregister(trigger_text_redraw)
-            _timer_handle = None
         
         context.area.tag_redraw()
         return {'FINISHED'}
@@ -322,7 +307,7 @@ def register():
     bpy.utils.register_class(UpdateTextOP)
 
 def unregister():
-    global _draw_handle, _timer_handle, _text_instances
+    global _draw_handle, _text_instances
     
     # Force clear all text instances
     _text_instances.clear()
@@ -330,9 +315,6 @@ def unregister():
     if _draw_handle is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
-    if _timer_handle is not None and bpy.app.timers.is_registered(trigger_text_redraw):
-        bpy.app.timers.unregister(trigger_text_redraw)
-        _timer_handle = None
     
     font_manager.unload_fonts()
     
