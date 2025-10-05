@@ -11,11 +11,6 @@ def register():
         description = "Path to the configuration file for XWZ UI",
         default     = "index.toml"
     )
-    bpy.types.WindowManager.xwz_ui_style_path = bpy.props.StringProperty(
-        name        = "XWZ UI Style Path",
-        description = "Path to the configuration file for XWZ UI styles",
-        default     = "style.css"
-    )
     
     render_register()
     txt_register()
@@ -38,7 +33,6 @@ def unregister():
         print(f"Warning: Error during forced cleanup: {e}")
     
     del bpy.types.WindowManager.xwz_ui_conf_path
-    del bpy.types.WindowManager.xwz_ui_style_path
 
     hit_unregister()
     panel_unregister()

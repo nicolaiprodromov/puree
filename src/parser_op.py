@@ -20,11 +20,6 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         description = "Path to the configuration file for the UI layout",
         default     = "//index.toml"
     )
-    style_path : bpy.props.StringProperty(
-        name        = "UI Style File Path",
-        description = "Path to the configuration file for the UI styles",
-        default     = "//style.css"
-    )
 
     def print_ui_struct(self):
         def find_children(children):
@@ -87,11 +82,6 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         global _container_json_data
         self.container_json_data = self.ui.abs_json_data
         _container_json_data = self.container_json_data
-        # # DEBUG: Print actual container data
-        # print("=== CONTAINER DEBUG ===")
-        # for i, container in enumerate(self.container_json_data):
-        #     print(f"Container {i}: {container}")
-        # print("=====================")
         return
     
     def execute(self, context):
@@ -108,7 +98,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         static_dir = os.path.join(addon_dir, "static")
 
-        self.ui              = UI(os.path.join(static_dir, self.conf_path), os.path.join(static_dir, self.style_path), canvas_size=region_size)
+        self.ui              = UI(os.path.join(static_dir, self.conf_path), canvas_size=region_size)
         self.compiler        = Compiler(self.ui)
         self.ui              = self.compiler.compile()
         

@@ -15,7 +15,6 @@ def register():
     xwz_ui_register()
     wm = bpy.context.window_manager
     wm.xwz_ui_conf_path  = "index.toml"
-    wm.xwz_ui_style_path = "style.css"
 
 def unregister():
     xwz_ui_unregister()

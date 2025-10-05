@@ -8,6 +8,7 @@
     author  = "xwz"
     version = "1.0.0"
     scripts = ["script.py"]
+    styles  = ["style.css"]
     [ui.theme.root]
         style = "root"
         [ui.theme.root.bg]
