@@ -1,16 +1,27 @@
 .PHONY: build install uninstall deploy
 
+ifeq ($(OS),Windows_NT)
+PYTHON := python
+TIMEOUT := timeout /t 1 /nobreak
+BUILD := build
+else
+PYTHON := python3
+TIMEOUT := sleep 1
+BUILD := ./build.sh
+endif
+
 build:
-	@cd dist && build
+	@cd dist && $(BUILD)
 
 install:
-	@cd dist && python install.py install
+	@cd dist && $(PYTHON) install.py install
 
 uninstall:
-	@cd dist && python install.py uninstall
+	@cd dist && $(PYTHON) install.py uninstall
 
 deploy:
-# 	black .
-	@cd dist && build
-	timeout /t 2 /nobreak
-	@cd dist && python install.py
+	make build
+	@$(TIMEOUT)
+	make uninstall
+	@$(TIMEOUT)
+	make install
