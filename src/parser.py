@@ -252,12 +252,11 @@ class UI():
     def parse_css(self):
 
         addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        static_dir = os.path.join(addon_dir, "static")
         
         style_str = ""
         for _style_file in self.theme.style_files:
             if _style_file.endswith('.css'):
-                with open(os.path.join(static_dir, _style_file), 'r') as f:
+                with open(os.path.join(addon_dir, _style_file), 'r') as f:
                     style_str += f.read()
 
         css_string = style_str
