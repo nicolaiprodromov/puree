@@ -1,10 +1,12 @@
 root{
-    display         : flex;
-    position        : absolute;
-    width           : 100%;
-    height          : 100%;
-    padding         : 250px;
-    background-color: rgba(0, 0, 0, 0);
+    display     : flex;
+    position    : absolute;
+    width       : 100%;
+    height      : 100%;
+    --bg_col    : #121212;
+    --header_col: #40d2b2;
+    --text_col  : #FFFFFF;
+    --accent_col: #BB86FC;
 }
 
 bg{
@@ -12,47 +14,54 @@ bg{
     flex-direction  : column;
     width           : 100%;
     height          : 100%;
-    background-color: #121212;
+    background-color: var(--bg_col);
 }
 
-test1{
-    display         : flex;
-    width           : 100%;
-    height          : 50px;
-    background-color: #303030;
-    hover-color     : #000000;
-    click-color     : #4aff36;
+header{
+    display        : flex;
+    flex-direction : row;
+    justify-content: space-between;
+    align-items    : center;
+    width          : 100%;
+    height         : 10%;
+    color          : var(--header_col);
+    padding        : 10px;
 }
 
-test1{
-    display         : flex;
-    width           : 100%;
-    height          : 50px;
-    background-color: #303030;
-    hover-color     : #000000;
-    click-color     : #4aff36;
+header_text{
+    height    : 100%;
+    width     : auto;
+    text-color: var(--text_col);
+    text-x    : 0px;
+    text-y    : 0px;
+    text_scale: 24px;
 }
 
-test2{
-    display         : flex;
-    width           : 100%;
-    height          : 100%;
-    background-color: #321a1a;
-    hover-color     : #000000;
-    click-color     : #4aff36;
-    padding         : 50px;
+header_logoh{
+    color : rgba(0,0,0,0);
+    width : 50px;
+    height: 50px;
 }
 
-test3{
-    display         : flex;
-    width           : 100%;
-    height          : 100%;
-    background-color: #1a1a32;
-    hover-color     : #000000;
-    click-color     : #4aff36;
-    text-scale      : 50px;
-    text-x          : 100px;
-    text-y          : 100px;
-    border-radius   : 40px;
+body{
+    height         : 90%;
+    width          : 100%;
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    padding        : 20px;
+    color          : var(--bg_col);
 }
 
+card1{
+    width          : 300px;
+    height         : 200px;
+    color          : var(--header_col);
+    border-radius  : 15px;
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    margin         : 10px;
+}
