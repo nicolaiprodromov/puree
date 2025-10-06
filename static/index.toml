@@ -7,8 +7,8 @@
     name    = "xwz_default"
     author  = "xwz"
     version = "1.0.0"
-    scripts = ["script.py"]
-    styles  = ["style.css"]
+    scripts = ["static/script.py"]
+    styles  = ["static/style.css"]
     [app.theme.root]
         style = "root"
         [app.theme.root.bg]

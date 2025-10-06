@@ -14,7 +14,7 @@ bl_info = {
 def register():
     xwz_ui_register()
     wm = bpy.context.window_manager
-    wm.xwz_ui_conf_path  = "index.toml"
+    wm.xwz_ui_conf_path  = "static/index.toml"
 
 def unregister():
     xwz_ui_unregister()
