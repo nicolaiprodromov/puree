@@ -109,7 +109,33 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         image_blocks          = self.image_extractor.image_blocks
         image_blocks_relative = self.image_extractor.image_blocks_relative
 
-        XWZ_UI = self.ui
+        XWZ_UI = self.ui  # Store UI instance globally for layout recomputation
         self.dump_ui_struct()
         return {'FINISHED'}
+
+def recompute_layout(canvas_size):
+    """
+    Recompute layout with new canvas size and update global container data.
+    Returns the updated container data.
+    """
+    global XWZ_UI, _container_json_data, text_blocks, image_blocks, image_blocks_relative
+    
+    if XWZ_UI is None:
+        return None
+    
+    # Recompute layout with new canvas size
+    updated_data = XWZ_UI.recompute_layout(canvas_size)
+    
+    # Update global container data
+    _container_json_data = updated_data
+    
+    # Update text and image blocks with new layout
+    text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    
+    text_blocks = text_extractor.text_blocks
+    image_blocks = image_extractor.image_blocks
+    image_blocks_relative = image_extractor.image_blocks_relative
+    
+    return _container_json_data
     

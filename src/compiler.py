@@ -19,7 +19,7 @@ class Compiler():
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 if hasattr(module, 'main'):
-                    self.ui = module.main(self.ui)
+                    self.ui = module.main(self, self.ui)
                 sleep(0.1)
             except (ImportError, FileNotFoundError) as e:
                 print(f"Failed to import {module_name}: {e}")

@@ -1,23 +1,27 @@
-[ui]
+[app]
     selected_theme = "xwz_default"
     default_theme  = "xwz_default"
-[ui.settings]
+[app.settings]
     scroll_speed = 100
-[[ui.theme]]
+[[app.theme]]
     name    = "xwz_default"
     author  = "xwz"
     version = "1.0.0"
     scripts = ["script.py"]
     styles  = ["style.css"]
-    [ui.theme.root]
+    [app.theme.root]
         style = "root"
-        [ui.theme.root.bg]
+        [app.theme.root.bg]
             style = "bg"
-            [ui.theme.root.bg.test1]
-                style = "test1"
-            [ui.theme.root.bg.test2]
-                style = "test2"
-                [ui.theme.root.bg.test2.test3]
-                    style = "test3"
-                    text = "TEST"
-                    font= "NeueMontreal-Bold"
+            [app.theme.root.bg.header]
+                style = "header"
+                [app.theme.root.bg.header.text]
+                    style = "header_text"
+                    text  = "Slippers UI KIT"
+                [app.theme.root.bg.header.logoh]
+                    style = "header_logoh"
+                    img   = "loggoui2"
+            [app.theme.root.bg.body]
+                style = "body"
+                [app.theme.root.bg.body.card1]
+                    style = "card1"

@@ -23,6 +23,12 @@ class XWZ_OT_hit(bpy.types.Operator):
 
         return {'RUNNING_MODAL'}
     
+    def sync_container_data(self):
+        """Sync container data from parser_op when layout is recomputed"""
+        global _container_data
+        if parser_op._container_json_data:
+            _container_data = parser_op._container_json_data
+    
     def modal(self, context, event):
         global hit_modal_running
         

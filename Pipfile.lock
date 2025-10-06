@@ -1,0 +1,168 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "computed_from_pipfile"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.11"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "attrs": {
+            "hashes": [
+                "sha256:427318ce031701fea540783410126f03899a97ffc6f61596ad581ac2e40e3bc3",
+                "sha256:99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1"
+            ],
+            "version": "==25.3.0",
+            "files": [
+                "attrs-25.3.0-py3-none-any.whl",
+                "attrs-23.2.0-py3-none-any.whl"
+            ]
+        },
+        "glcontext": {
+            "hashes": [
+                "sha256:ef4b4ec35e2b720f4cd250bb92cf6417add445490bf780345596da5a796a0e6f",
+                "sha256:7d50c62fae0af1b19daa95571d52a5c56f3f1537483f105b4d092be5eb160c9d",
+                "sha256:a0484308af75e04b0e56066dc2324a8fb9f1443b76ddb98833439982322b2a39",
+                "sha256:7fa413f4420abff2bbb5aa5770a3e1deffcdc13e0ef2f459b145fa79c36909e7",
+                "sha256:798bc74604e306386f858be11aa1fe47c88296ac6fb9b5718a1c5a4cfb24416c"
+            ],
+            "version": "==3.0.0",
+            "files": [
+                "glcontext-3.0.0-cp311-cp311-win_amd64.whl",
+                "glcontext-2.5.0-cp311-cp311-win_amd64.whl",
+                "glcontext-3.0.0-cp311-cp311-macosx_11_0_arm64.whl",
+                "glcontext-3.0.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+                "glcontext-2.5.0-cp311-cp311-macosx_10_9_x86_64.whl"
+            ],
+            "markers": "python_version >= '3.11'"
+        },
+        "markdown-it-py": {
+            "hashes": [
+                "sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147"
+            ],
+            "version": "==4.0.0",
+            "files": [
+                "markdown_it_py-4.0.0-py3-none-any.whl"
+            ]
+        },
+        "mdurl": {
+            "hashes": [
+                "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
+            ],
+            "version": "==0.1.2",
+            "files": [
+                "mdurl-0.1.2-py3-none-any.whl"
+            ]
+        },
+        "moderngl": {
+            "hashes": [
+                "sha256:dad93893e3fcb2410bfd31e854f20e1370b4fbafa07a737f1046f5fbd29ba0f4",
+                "sha256:7fc0f8788bc84433d2124e9a4893adbe40f93c7d213abb8ad7b909540cb0161f",
+                "sha256:0c210e8d52a60025f6586ca015c39feb1e57e6dc792c3ff44800f6493a541b1a",
+                "sha256:28cdba5dcf2d03c89bb25dc3b2f5770ac4104470ed5bbe680a15494fa52a537d"
+            ],
+            "version": "==5.12.0",
+            "files": [
+                "moderngl-5.12.0-cp311-cp311-macosx_11_0_arm64.whl",
+                "moderngl-5.12.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+                "moderngl-5.12.0-cp311-cp311-win_amd64.whl",
+                "moderngl-5.12.0-cp311-cp311-macosx_10_9_x86_64.whl"
+            ],
+            "markers": "python_version >= '3.11'"
+        },
+        "pygments": {
+            "hashes": [
+                "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"
+            ],
+            "version": "==2.19.2",
+            "files": [
+                "pygments-2.19.2-py3-none-any.whl"
+            ]
+        },
+        "rich": {
+            "hashes": [
+                "sha256:536f5f1785986d6dbdea3c75205c473f970777b4a0d6c6dd1b696aa05a3fa04f"
+            ],
+            "version": "==14.1.0",
+            "files": [
+                "rich-14.1.0-py3-none-any.whl"
+            ]
+        },
+        "stretchable": {
+            "hashes": [
+                "sha256:7608739adcd3db4ac7323d1da8b5630329f6152b57b53834323d9084b2afb076",
+                "sha256:262db09cb216f788d88611459d1112ce5a38d72f35571dd4215eef00b44d3bfb",
+                "sha256:59788c98def14e2b7035cdab25b133aa064fb23d58f1e7526f3f5ecef1d9ed1d",
+                "sha256:754455bc4b032df51387eb48ea52aaab84049afa3fa05af51e7da7d9f683ee5c"
+            ],
+            "version": "==1.1.7",
+            "files": [
+                "stretchable-1.1.7-cp38-abi3-win_amd64.whl",
+                "stretchable-1.1.7-cp38-abi3-macosx_11_0_arm64.whl",
+                "stretchable-1.0.0-cp38-abi3-macosx_10_7_x86_64.whl",
+                "stretchable-1.1.7-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+            ],
+            "markers": "python_version >= '3.8'"
+        },
+        "textual": {
+            "hashes": [
+                "sha256:3c7190633cd4d8bfe6049ae66808b98da91ded2edb85cef54e82bf77b03d2a54"
+            ],
+            "version": "==6.2.1",
+            "files": [
+                "textual-6.2.1-py3-none-any.whl"
+            ]
+        },
+        "tinycss2": {
+            "hashes": [
+                "sha256:3a49cf47b7675da0b15d0c6e1df8df4ebd96e9394bb905a5775adb0d884c5289"
+            ],
+            "version": "==1.4.0",
+            "files": [
+                "tinycss2-1.4.0-py3-none-any.whl"
+            ]
+        },
+        "toml": {
+            "hashes": [
+                "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"
+            ],
+            "version": "==0.10.2",
+            "files": [
+                "toml-0.10.2-py2.py3-none-any.whl"
+            ]
+        },
+        "typing-extensions": {
+            "hashes": [
+                "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"
+            ],
+            "version": "==4.15.0",
+            "files": [
+                "typing_extensions-4.15.0-py3-none-any.whl"
+            ]
+        },
+        "webencodings": {
+            "hashes": [
+                "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78"
+            ],
+            "version": "==0.5.1",
+            "files": [
+                "webencodings-0.5.1-py2.py3-none-any.whl"
+            ]
+        },
+        "numpy": {
+            "hashes": [],
+            "version": ">=1.20.0",
+            "markers": "python_version >= '3.11'"
+        }
+    },
+    "develop": {}
+}

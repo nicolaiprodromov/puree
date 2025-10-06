@@ -12,12 +12,42 @@ from stretchable.style.geometry.length import LengthPointsPercent
 from tinycss2 import ast
 from tinycss2 import parse_stylesheet, parse_declaration_list
 from textual.color import Color
+import math
 
 from .components.container import Container
 from .components.style import Style
 
 node_flat = {}
 node_flat_abs = {}
+
+def srgb_to_linear(value):
+    """
+    Convert sRGB color value (0-1 range) to linear color space.
+    This is the standard sRGB to linear conversion formula used by Blender.
+    
+    Blender's rendering pipeline works in linear color space for physically accurate lighting,
+    but UI color pickers and CSS colors are in sRGB space (what humans perceive as uniform).
+    
+    References:
+    - https://en.wikipedia.org/wiki/SRGB#Transformation
+    - Blender API: bpy.types.ColorManagedInputColorspaceSettings
+    """
+    if value <= 0.04045:
+        return value / 12.92
+    else:
+        return math.pow((value + 0.055) / 1.055, 2.4)
+
+def convert_srgb_to_linear_color(r, g, b, a):
+    """
+    Convert RGBA color from sRGB to linear color space.
+    Alpha channel is not converted as it's not affected by gamma.
+    """
+    return [
+        srgb_to_linear(r),
+        srgb_to_linear(g),
+        srgb_to_linear(b),
+        a  # Alpha is linear already
+    ]
 
 class CSSParser:
     def __init__(self):
@@ -106,6 +136,8 @@ class UI():
         self.theme          = Theme()
         self.json_data      = []
         self.abs_json_data  = []
+        self.root_node      = None  # Expose root node for recomputation
+        self.canvas_size    = canvas_size  # Store current canvas size
 
         self.parse_toml(path)
         self.parse_css()
@@ -119,18 +151,27 @@ class UI():
     
     def parse_toml(self, path=None):
         data     = self.load_conf_file(path)
-        ui_data  = data.get('ui', {})
+        ui_data  = data.get('app', {})
         settings = ui_data['settings']
         theme    = ui_data['theme']
 
         self.selected_theme        = ui_data['selected_theme']
-        self.settings.scroll_speed = settings['scroll_speed']
+        self.default_theme         = ui_data['default_theme']
+        # self.settings.scroll_speed = settings['scroll_speed']
 
-        self.theme_index = 0
+        self.theme_index = -1
         for _theme_ in theme:
             if _theme_['name'] == self.selected_theme:
                 self.theme_index = theme.index(_theme_)
                 break
+        if self.theme_index == -1:
+            for _theme_ in theme:
+                if _theme_['name'] == self.default_theme:
+                    self.theme_index = theme.index(_theme_)
+                    break
+        if self.theme_index == -1:
+            self.theme_index   = 0
+            self.default_theme = theme[0]['name']
 
         root = ui_data['theme'][self.theme_index]['root']
 
@@ -161,7 +202,53 @@ class UI():
         self.theme.root.id = "root"
         load_container(root, self.theme.root)
         #print(self.theme.root.children[0].id)
-            
+
+    def parse_container_props_from_style(self, attr_name, attr_value):
+        attr_name = attr_name.replace('-', '_')
+
+        if attr_name.startswith('__'):
+                    attr_name = attr_name[1:]
+
+        attr_name = attr_name.replace('background_color', 'color')
+
+        color_props = [
+            'color', 'color_1',
+            'hover_color', 'hover_color_1',
+            'click_color', 'click_color_1',
+            'border_color', 'border_color_1',
+            'text_color', 'text_color_1',
+            'box_shadow_color'
+            ]
+        
+        float_props = [
+            'border_radius', 'border_width',
+            'text_scale', 'text_x', 'text_y',
+            'box_shadow_blur'
+            ]
+
+        rotation_props = [
+            'color_gradient_rot',
+            'hover_color_gradient_rot',
+            'click_color_gradient_rot',
+            'border_color_gradient_rot',
+            'text_color_gradient_rot'
+            ]
+
+        if attr_name in color_props:
+            value_color = Color.parse(attr_value)
+            # Convert from sRGB (0-255) to linear color space (0-1)
+            # First normalize to 0-1, then convert to linear space
+            srgb_normalized = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0, value_color.a]
+            attr_value = convert_srgb_to_linear_color(*srgb_normalized)
+
+        elif attr_name in float_props:
+            attr_value = float(attr_value.replace('px', '').strip())
+
+        elif attr_name in rotation_props:
+            attr_value = float(attr_value.replace('deg', '').strip())
+
+        return attr_name, attr_value
+
     def parse_css(self):
 
         addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -182,27 +269,9 @@ class UI():
             style_obj = Style()
             style_obj.id = selector
             for prop, value in declarations.items():
-                attr_name = prop.replace('-', '_')
-                attr_name = attr_name.replace('background_color', 'color')
-
-                if attr_name.startswith('__'):
-                    attr_name = attr_name[1:]
-
-                if 'color' in attr_name:
-                    value_color = Color.parse(value)
-                    value = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0,value_color.a]
-
-                if attr_name == 'border_radius':
-                    value = float(value.replace('px', '').strip())
-
-                if attr_name in ['text_scale', 'text_x', 'text_y']:
-                    value = float(value.replace('px', '').strip())
-
-                setattr(style_obj, attr_name, value)
-                print(attr_name, value)
-
+                attr_name, attr_value = self.parse_container_props_from_style(prop, value)
+                setattr(style_obj, attr_name, attr_value)
             self.theme.styles.__dict__[selector] = style_obj
-
         def apply_styles_to_containers(container):
             if hasattr(container, 'style') and container.style:
                 style_name = container.style
@@ -217,7 +286,6 @@ class UI():
                         container.style = default_style
             for child in container.children:
                 apply_styles_to_containers(child)
-
         apply_styles_to_containers(self.theme.root)
 
     def create_node_tree(self, canvas_size=(800, 600)):
@@ -245,19 +313,13 @@ class UI():
                 'width'  : edge_used_abs.width,
                 'height' : edge_used_abs.height
             }
-
-            print(f"Border Box: {border_box}")
-            print(f"Content Box: {content_box}")
-            print(f"Padding Box: {padding_box}")
-            print(f"Margin Box: {margin_box}")
-            print(f"Children: {len(node)}")
             
             for i, _container in enumerate(container.children):
                 get_all_nodes(_container, node[i])
 
             return
         def parse_css_value(value_str):
-            value_str = value_str.lower()
+            value_str = str(value_str).lower()
             if 'px' in value_str and 'calc(' not in value_str:
                 return LengthPointsPercent.from_any(int(value_str.replace('px', '')) * PT)
             if '%' in value_str and 'calc(' not in value_str:
@@ -380,8 +442,8 @@ class UI():
             position_val = Position.RELATIVE
             display_val  = Display.FLEX
 
-            width_val    = container.style.width.lower()
-            height_val   = container.style.height.lower()
+            width_val    = container.style.width
+            height_val   = container.style.height
             width_pct    = 0
             height_pct   = 0
             
@@ -478,7 +540,58 @@ class UI():
 
         self.root_node = create_node(self.theme.root)
         self.root_node.compute_layout(canvas_size)
+        self.canvas_size = canvas_size  # Update stored canvas size
         get_all_nodes(self.theme.root, self.root_node)
+
+    def recompute_layout(self, canvas_size):
+        """Recompute layout with new canvas size and regenerate flattened data"""
+        global node_flat, node_flat_abs
+        
+        # Clear previous layout data
+        node_flat.clear()
+        node_flat_abs.clear()
+        
+        # Recompute layout with new canvas size
+        self.root_node.compute_layout(canvas_size)
+        self.canvas_size = canvas_size
+        
+        # Regenerate flattened node data
+        def get_all_nodes(container, node):
+            border_box     = node.get_box(Edge.BORDER, relative=True)
+            border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            content_box    = node.get_box(Edge.CONTENT, relative=True)
+            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
+            padding_box    = node.get_box(Edge.PADDING, relative=True)
+            margin_box     = node.get_box(Edge.MARGIN, relative=True)
+            margin_box_abs = node.get_box(Edge.MARGIN, relative=False)
+            
+            edge_used, edge_used_abs = border_box, border_box_abs
+
+            node_flat[container.id] = {
+                'x'      : edge_used.x,
+                'y'      : edge_used.y,
+                'width'  : edge_used.width,
+                'height' : edge_used.height
+            }
+
+            node_flat_abs[container.id] = {
+                'x'      : edge_used_abs.x,
+                'y'      : edge_used_abs.y,
+                'width'  : edge_used_abs.width,
+                'height' : edge_used_abs.height
+            }
+            
+            for i, _container in enumerate(container.children):
+                get_all_nodes(_container, node[i])
+        
+        get_all_nodes(self.theme.root, self.root_node)
+        
+        # Regenerate flattened container data
+        self.json_data = []
+        self.abs_json_data = []
+        self.flatten_node_tree()
+        
+        return self.abs_json_data
 
     def flatten_node_tree(self):
         container_id_to_index = {}
