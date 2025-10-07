@@ -14,10 +14,12 @@ bl_info = {
 def register():
     xwz_ui_register()
     wm = bpy.context.window_manager
-    wm.xwz_ui_conf_path  = "static/index.toml"
+    wm.xwz_ui_conf_path = "static/index.toml"
+    wm.xwz_debug_panel  = True
+    wm.xwz_auto_start   = True
 
 def unregister():
     xwz_ui_unregister()
-
+    
 if __name__ == "__main__":
     register()

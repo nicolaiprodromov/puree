@@ -17,7 +17,7 @@
                 style = "header"
                 [app.theme.root.bg.header.text]
                     style = "header_text"
-                    text  = "Puree UI KIT"
+                    text  = "puree UI KIT"
                 [app.theme.root.bg.header.logoh]
                     style = "header_logoh"
                     img   = "loggoui2"
