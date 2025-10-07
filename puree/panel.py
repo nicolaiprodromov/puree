@@ -3,11 +3,15 @@ from bpy.types import Panel
 from . import render
 
 class XWZ_PT_panel(Panel):
-    bl_label       = "XWZ UI"
+    bl_label       = "puree"
     bl_idname      = "XWZ_PT_panel"
     bl_space_type  = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category    = "XWZ_UI"
+    bl_category    = "puree"
+    
+    @classmethod
+    def poll(cls, context):
+        return context.window_manager.xwz_debug_panel
     
     def draw(self, context):
         layout = self.layout

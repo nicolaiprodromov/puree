@@ -40,7 +40,7 @@ header_text{
     width     : 50%;
     color     : rgba(0,0,0,0);
     text-color: var(--text_col);
-    text-x    : 40px;
+    text-x    : 15px;
     text-y    : 0px;
     text_scale: 24px;
 }

@@ -60,7 +60,7 @@ class RenderPipeline:
         return False
     def load_shader_file(self, filename):
         addon_dir   = os.path.dirname(os.path.dirname(__file__))
-        shader_path = os.path.join(addon_dir, "src", "shaders", filename)
+        shader_path = os.path.join(addon_dir, "puree", "shaders", filename)
         try:
             with open(shader_path, 'r') as f:
                 return f.read()
@@ -594,8 +594,8 @@ class RenderPipeline:
 
 class XWZ_OT_start_ui(Operator):
     bl_idname      = "xwz.start_ui"
-    bl_label       = "Start XWZ UI"
-    bl_description = "Start XWZ UI"
+    bl_label       = "Start puree"
+    bl_description = "Start puree UI"
     
     def execute(self, context):
         global _render_data, _modal_timer
@@ -740,8 +740,8 @@ class XWZ_OT_start_ui(Operator):
 
 class XWZ_OT_stop_ui(Operator):
     bl_idname      = "xwz.stop_ui"
-    bl_label       = "Stop XWZ UI"
-    bl_description = "Stop XWZ UI"
+    bl_label       = "Stop puree"
+    bl_description = "Stop puree UI"
     
     def execute(self, context):
         global _render_data, _modal_timer

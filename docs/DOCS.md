@@ -1,5 +1,4 @@
 > ## 🚧 **Puree 0.0.2 beta - WIP** 🚧
->
 > *This project is currently under active development.*
 > - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 > - The API is not stable and **breaking changes are expected** in future releases.
