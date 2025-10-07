@@ -1,14 +1,14 @@
-> ## 🚧 **Slippers 0.0.2 beta - WIP** 🚧
+> ## 🚧 **Puree 0.0.2 beta - WIP** 🚧
 >
 > *This project is currently under active development.*
-> - Slippers currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 > - The API is not stable and **breaking changes are expected** in future releases.
 
-# Slippers Documentation
+# Puree Documentation
 
-The *XWZ Slippers* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
-> Slippers is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 ## Overview
 
@@ -23,7 +23,7 @@ The *XWZ Slippers* framework for Blender is a declarative framework that provide
 
 ### Installation
 
-1. Download the [latest release](https://github.com/XWZ/slippers/releases/latest) and extract it or clone this repository.
+1. Download the [latest release](https://github.com/XWZ/Puree/releases/latest) and extract it or clone this repository.
 2. Run `make build` to build the addon zip file.
     - You need Blender 4.x+ installed.
     - You need *Python 3.10+* installed on your system.
@@ -41,7 +41,7 @@ The *XWZ Slippers* framework for Blender is a declarative framework that provide
 The bare minimum file structure for a project is as follows: 
 
 ```
-your_slippers_project/
+puree_project/
     ├── index.toml
     ├── style.css
     ├── __init__.py <-- your addon entry point
@@ -51,7 +51,7 @@ your_slippers_project/
 
 #### `index.toml` breakdown
 
-The `index.toml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Slippers. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
+The `index.toml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Puree. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
 
 Here is a basic example of what an `index.toml` file might look like: 
 
@@ -74,7 +74,7 @@ Here is a basic example of what an `index.toml` file might look like:
 
 The `app` section defines the application settings, including the selected and default themes. The `theme` section allows you to define multiple layouts, each with its own styles and scripts.
 
-The equivalent of the `body` tag in HTML is the `root` node in Slippers. The elements inside the root of the app are called **nodes**.
+The equivalent of the `body` tag in HTML is the `root` node in Puree. The elements inside the root of the app are called **nodes**.
 
 > Nodes are the building blocks of your UI, and they can represent various UI components such as buttons, panels, text fields, images, etc.
 
@@ -89,7 +89,7 @@ You can also add custom scripts to your theme. The scripts must be stored in the
 A more complete file structure would look like this: 
 
 ```
-your_slippers_project/
+puree_project/
     ├── assets/
     │   ├── your images
     ├── fonts/
@@ -107,7 +107,7 @@ your_slippers_project/
 
 You can define custom styles for your app using a CSS-like syntax to specify styles for your app's nodes.
 
-Slippers does not implement the full CSS specification, but does implement some new features specific to the framework. 
+Puree does not implement the full CSS specification, but does implement some new features specific to the framework. 
 
 >For more details and the list of supported properties, refer to the [API Reference](#api-reference).
 
