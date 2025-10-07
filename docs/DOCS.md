@@ -1,22 +1,55 @@
-# How to build a User Interface in Blender with Slippers
+> ## 🚧 **Slippers 0.0.2 beta - WIP** 🚧
+>
+> *This project is currently under active development.*
+> - Slippers currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> - The API is not stable and **breaking changes are expected** in future releases.
+
+# Slippers Documentation
 
 The *XWZ Slippers* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
+> Slippers is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+
 ## Overview
+
+1. [Installation](#installation)
+2. [Getting Started](#getting-started)
+3. [API Reference](#api-reference)
+    1. [Style Properties](#style-properties)
+    2. [Container Properties](#container-properties)
+4. [Troubleshooting](#troubleshooting)
+
+---
+
+### Installation
+
+1. Download the [latest release](https://github.com/XWZ/slippers/releases/latest) and extract it or clone this repository.
+2. Run `make build` to build the addon zip file.
+    - You need Blender 4.x+ installed.
+    - You need *Python 3.10+* installed on your system.
+    - You need *make* installed on your system.
+    - You can also manually zip the folder.
+3. Run `make install` to install the addon in Blender.
+    - To run `install` command you must install the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) in Blender and connect to the server.
+    - Alternatively, run `make deploy` to build and install in one step.
+    - Or just install the zip file manually in Blender preferences: Edit > Preferences > Add-ons > Install from disk
+
+---
+
+### Getting Started
 
 The bare minimum file structure for a project is as follows: 
 
 ```
 your_slippers_project/
-    ├── static/
-    │   ├── index.toml
-    │   └── style.css
+    ├── index.toml
+    ├── style.css
     ├── __init__.py <-- your addon entry point
 ```
 
 ---
 
-### `index.toml` breakdown
+#### `index.toml` breakdown
 
 The `index.toml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Slippers. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
 
@@ -30,14 +63,14 @@ Here is a basic example of what an `index.toml` file might look like:
     name    = "xwz_default"
     author  = "xwz"
     version = "1.0.0"
-    scripts = ["script.py"]
-    styles  = ["style.css"]
+    styles  = ["static/style.css"]
+    scripts = ["static/script.py"]
     [app.theme.root]
         style = "root"
         [app.theme.root.bg]
             style = "bg"
 ```
-#### Slippers app structure
+##### App structure
 
 The `app` section defines the application settings, including the selected and default themes. The `theme` section allows you to define multiple layouts, each with its own styles and scripts.
 
@@ -53,18 +86,7 @@ You can also draw images and text by changing the `img` and `text` properties. T
 
 You can also add custom scripts to your theme. The scripts must be stored in the `static/` folder in the root of your project and then linked in the `scripts` array of your theme.
 
-```python
-def main(self, app):
-    def text_func(container):
-        print("Button Clicked!")
-
-    app.theme.root.children[0].click.append(text_func)
-    return app
-```
-
-> More details on the scripting API can be found in the [API documentation](https://xwz.github.io/slippers/api/).
-
-A more complete file structure would look like this:
+A more complete file structure would look like this: 
 
 ```
 your_slippers_project/
@@ -81,47 +103,63 @@ your_slippers_project/
 
 ---
 
-### `style.css` breakdown
+#### `style.css` breakdown
 
 You can define custom styles for your app using a CSS-like syntax to specify styles for your app's nodes.
 
 Slippers does not implement the full CSS specification, but does implement some new features specific to the framework. 
 
->For more details and the list of supported properties, refer to the [API documentation](https://xwz.github.io/slippers/api/).
+>For more details and the list of supported properties, refer to the [API Reference](#api-reference).
 
 > *Ultimately, the point is not to replicate CSS, but to provide a familiar syntax for defining styles in a way that is easy to read and write.*
 
-Here is an example of what a `style.css` file might look like:
+Here is an example of what a `style.css` file might look like: 
 
 ```css
 root {
-    width           : 100%;
-    height          : 100%;
-    display         : flex;
-    flex-direction  : column;
-    align-items     : center;
-    justify-content : center;
-    background-color: #f0f0f0;
+    width          : 100%;
+    height         : 100%;
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    color          : #f0f0f0;
 }
 
 bg {
-    position        : absolute;
-    top             : 0;
-    left            : 0;
-    width           : 100%;
-    height          : 100%;
-    background-color: #e0e0e0;
-    z-index         : -1;
+    position: absolute;
+    top     : 0;
+    left    : 0;
+    width   : 100%;
+    height  : 100%;
+    color   : #e0e0e0;
+    z-index : -1;
 }
 ```
 
+#### `script.py` breakdown
+
+You can add custom Python scripts to your theme to handle events and add interactivity to your UI. The scripts must be stored in the `static/` folder in the root of your project and then linked in the `scripts` array of your theme.
+
+
+```python
+def main(self, app): 
+    def text_func(container): 
+        print("Button Clicked!")
+
+    app.theme.root.children[0].click.append(text_func)
+    return app
+```
+
+The `main` function is the entry point for your script, and it receives the `app` object as an argument. You can use this object to access and manipulate your UI components.
+
 ---
 
-## API Reference
+### API Reference
 
-### Style Properties
+#### Style Properties
 
-The `Style` class defines the visual appearance and layout behavior of UI nodes. Below is a comprehensive list of all available properties:
+The `Style` class defines the visual appearance and layout behavior of UI nodes. Below is a comprehensive list of all available properties: 
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -155,22 +193,22 @@ The `Style` class defines the visual appearance and layout behavior of UI nodes.
 | `background_size` | `str` | Background sizing: `AUTO`, `COVER`, `CONTAIN` |
 | `background_position` | `List[float]` | Background position (x, y) |
 | `background_repeat` | `str` | Background repeat: `REPEAT`, `NO_REPEAT`, `REPEAT_X`, `REPEAT_Y` |
-| `display` | `str` | Display mode: `NONE`, `FLEX`, `GRID`, `BLOCK` |
+| `display` | `str` | Display mode               : `NONE`,   `FLEX`,      `GRID`,     `BLOCK` |
 | `overflow` | `str` | Overflow behavior |
 | `scrollbar_width` | `float` | Width of scrollbar |
-| `position` | `str` | Position mode: `RELATIVE`, `ABSOLUTE` |
-| `align_items` | `str` | Align items: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
-| `justify_items` | `str` | Justify items: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
-| `align_self` | `str` | Align self: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
-| `justify_self` | `str` | Justify self: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
-| `align_content` | `str` | Align content: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `STRETCH`, `SPACE_BETWEEN`, `SPACE_EVENLY`, `SPACE_AROUND` |
-| `justify_content` | `str` | Justify content: `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `STRETCH`, `SPACE_BETWEEN`, `SPACE_EVENLY`, `SPACE_AROUND` |
+| `position` | `str` | Position mode         : `RELATIVE`, `ABSOLUTE` |
+| `align_items` | `str` | Align items        : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
+| `justify_items` | `str` | Justify items    : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
+| `align_self` | `str` | Align self          : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
+| `justify_self` | `str` | Justify self      : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
+| `align_content` | `str` | Align content    : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `STRETCH`,  `SPACE_BETWEEN`, `SPACE_EVENLY`, `SPACE_AROUND` |
+| `justify_content` | `str` | Justify content: `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `STRETCH`,  `SPACE_BETWEEN`, `SPACE_EVENLY`, `SPACE_AROUND` |
 | `size` | `List[float]` | Size (width, height) |
 | `min_size` | `List[float]` | Minimum size (width, height) |
 | `max_size` | `List[float]` | Maximum size (width, height) |
 | `aspect_ratio` | `bool` | Maintain aspect ratio |
-| `flex_wrap` | `str` | Flex wrap: `NO_WRAP`, `WRAP`, `WRAP_REVERSE` |
-| `flex_direction` | `str` | Flex direction: `ROW`, `COLUMN`, `ROW_REVERSE`, `COLUMN_REVERSE` |
+| `flex_wrap` | `str` | Flex wrap          : `NO_WRAP`, `WRAP`,   `WRAP_REVERSE` |
+| `flex_direction` | `str` | Flex direction: `ROW`,     `COLUMN`, `ROW_REVERSE`, `COLUMN_REVERSE` |
 | `flex_grow` | `float` | Flex grow factor |
 | `flex_shrink` | `float` | Flex shrink factor |
 | `flex_basis` | `float` | Flex basis size |
@@ -184,9 +222,9 @@ The `Style` class defines the visual appearance and layout behavior of UI nodes.
 
 ---
 
-### Container Properties
+#### Container Properties
 
-The `Container` class represents an individual UI node/element in the interface hierarchy. Below is a comprehensive list of all available properties:
+The `Container` class represents an individual UI node/element in the interface hierarchy. Below is a comprehensive list of all available properties: 
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -215,4 +253,7 @@ The `Container` class represents an individual UI node/element in the interface 
 > **Note:** Properties prefixed with `_` are internal state properties used by the framework for tracking user interactions and should generally not be modified directly by user code.
 
 
+### Troubleshooting
 
+- *"Failed to get ModernGL context: libGL.so: cannot open shared object file: No such file or directory*" - `sudo apt install libgl1-mesa-dev`
+- *"Can't get over 30fps on linux"* - `__GL_SYNC_TO_VBLANK=0 blender` (start blender from terminal without vsync)

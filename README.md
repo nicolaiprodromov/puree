@@ -4,13 +4,12 @@
 
 <br>
 
+*A declarative UI framework for Blender addons and much more*
+
 [![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/slippers1/main/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/slippers1)
 [![Release](https://img.shields.io/github/v/release/nicolaiprodromov/slippers1?style=flat&color=blue)](https://github.com/nicolaiprodromov/slippers1/releases)
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
-
-
-*A declarative UI framework for Blender addons and much more*
 
 </div>
 
@@ -35,7 +34,6 @@ Slippers is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to d
 | Feature | Description |
 |---------|-------------|
 | *Declarative UI Design* | Define your interface structure using TOML configuration files with HTML-like nesting |
-| *CSS-Powered Styling* | Apply styles using standard CSS syntax with support for flexbox layouts, gradients, borders, and shadows |
 | *GPU-Accelerated Rendering* | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
 | *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
 | *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
