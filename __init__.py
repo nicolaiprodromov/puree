@@ -1,14 +1,14 @@
 import bpy
-from .src import register as xwz_ui_register, unregister as xwz_ui_unregister
+from .puree import register as xwz_ui_register, unregister as xwz_ui_unregister
 
 bl_info = {
-    "name"       : "XWZ Shader UI",
+    "name"       : "Puree",
     "author"     : "Nicolai Prodromov",
-    "version"    : (1, 0, 0),
+    "version"    : (0, 0, 2),
     "blender"    : (4, 2, 0),
-    "location"   : "3D View > Sidebar > XWZ UI",
-    "description": "XWZ Shader UI",
-    "category"   : "3D View",
+    "location"   : "3D View > Sidebar > Puree",
+    "description": "XWZ Puree UI framework",
+    "category"   : "3D View"
 }
 
 def register():
