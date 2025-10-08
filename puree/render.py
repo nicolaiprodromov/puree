@@ -703,6 +703,14 @@ class XWZ_OT_start_ui(Operator):
 
                 texture_changed = _render_data.check_if_changed()
                 
+                # Check if script callbacks modified container state
+                state_synced = parser_op.sync_dirty_containers()
+                if state_synced:
+                    # Container state changed via scripts, need to update
+                    from . import hit_op
+                    hit_op._container_data = parser_op._container_json_data
+                    texture_changed = True
+                
                 # Run compute shader if viewport resized or other state changed
                 if texture_changed or size_changed:
                     # If size changed, update hit_op's container data reference

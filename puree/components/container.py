@@ -30,6 +30,12 @@ class Container():
         self._prev_clicked : bool  = False
         self._prev_hovered : bool  = False
         self._scroll_value : float = 0.0
+        
+        self._dirty        : bool  = False  # Track if container state changed
+    
+    def mark_dirty(self):
+        """Mark this container as having changed state that needs GPU sync"""
+        self._dirty = True
 
 class ContainerDefault():
     def __init__(self): 

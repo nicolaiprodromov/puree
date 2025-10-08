@@ -39,10 +39,7 @@
 
                     [app.theme.root.bg.body.buttons_test1.click_test]
                         style = "click_test"
-                        [app.theme.root.bg.body.buttons_test1.click_test.ct_text]
-                            style   = "ct_text"
-                            text    = "Click me!"
-                            passive = true
+                        
 
                     [app.theme.root.bg.body.buttons_test1.toggle_test]
                         style = "toggle_test"

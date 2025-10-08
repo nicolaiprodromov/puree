@@ -133,4 +133,47 @@ def recompute_layout(canvas_size):
     image_blocks_relative = image_extractor.image_blocks_relative
     
     return _container_json_data
+
+def sync_dirty_containers():
+    """
+    Sync container state from live Container objects to _container_json_data
+    without full layout recomputation. This is called when scripts modify
+    container properties (like colors) via event handlers.
+    """
+    global XWZ_UI, _container_json_data
+    
+    if XWZ_UI is None or not _container_json_data:
+        return False
+    
+    # Check if any containers are dirty
+    has_dirty = check_dirty_containers(XWZ_UI.theme.root)
+    if not has_dirty:
+        return False
+    
+    # Sync live Container tree state to flattened json data
+    # by reusing the existing abs_json_data structure
+    XWZ_UI.abs_json_data = []
+    XWZ_UI.flatten_node_tree()
+    _container_json_data = XWZ_UI.abs_json_data
+    
+    # Clear dirty flags
+    clear_dirty_flags(XWZ_UI.theme.root)
+    
+    return True
+
+def check_dirty_containers(container):
+    """Recursively check if any container in tree is marked dirty"""
+    if hasattr(container, '_dirty') and container._dirty:
+        return True
+    for child in container.children:
+        if check_dirty_containers(child):
+            return True
+    return False
+
+def clear_dirty_flags(container):
+    """Recursively clear all dirty flags in container tree"""
+    if hasattr(container, '_dirty'):
+        container._dirty = False
+    for child in container.children:
+        clear_dirty_flags(child)
     
