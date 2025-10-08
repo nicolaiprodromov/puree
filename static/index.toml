@@ -1,8 +1,6 @@
 [app]
     selected_theme = "xwz_default"
     default_theme  = "xwz_default"
-[app.settings]
-    scroll_speed = 100
 [[app.theme]]
     name         = "xwz_default"
     author       = "xwz"
@@ -11,41 +9,27 @@
     scripts      = ["static/script.py"]
     styles       = ["static/style.css"]
     components   = "static/components/"
-
     [app.theme.root]
         style = "root"
         [app.theme.root.bg]
             style = "bg"
-
             [app.theme.root.bg.header1]
                 data = "[header]"
-            [app.theme.root.bg.header2]
-                data     = "[header]"
-                title    = "another header instance"
-                subtitle = "subtitle"
-
             [app.theme.root.bg.body]
                 style = "body"
-
                 [app.theme.root.bg.body.buttons_test1]
                     style = "buttons_test1"
-                    
                     [app.theme.root.bg.body.buttons_test1.hover_test]
-                        style = "hover_test"
-                        [app.theme.root.bg.body.buttons_test1.hover_test.ht_text]
-                            style   = "ht_text"
-                            text    = "Hover me!"
-                            passive = true
-
+                        data     = "[test_button]"
+                        tb_style = "hover_test"
+                        tb_text  = "Hover me!"
                     [app.theme.root.bg.body.buttons_test1.click_test]
-                        style = "click_test"
-                        
-
+                        data     = "[test_button]"
+                        tb_style = "click_test"
+                        tb_text  = "Click me!"
                     [app.theme.root.bg.body.buttons_test1.toggle_test]
-                        style = "toggle_test"
-                        [app.theme.root.bg.body.buttons_test1.toggle_test.tg_text]
-                            style   = "tg_text"
-                            text    = "Toggle me!"
-                            passive = true
+                        data     = "[test_button]"
+                        tb_style = "toggle_test"
+                        tb_text  = "Toggle me!"
 
                     

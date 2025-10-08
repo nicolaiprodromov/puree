@@ -155,7 +155,7 @@ class UI():
     def parse_toml(self, path=None, base_dir=None):
         data     = self.load_conf_file(path)
         ui_data  = data.get('app', {})
-        settings = ui_data['settings']
+        # settings = ui_data['settings']
         theme    = ui_data['theme']
 
         self.selected_theme        = ui_data['selected_theme']

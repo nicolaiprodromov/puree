@@ -1,0 +1,6 @@
+[test_button]
+    style = "{{tb_style, 'hover_test'}}"
+    [test_button.tb_text]
+        style   = "ht_text"
+        text    = "{{tb_text, ''}}"
+        passive = true
