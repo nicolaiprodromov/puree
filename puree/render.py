@@ -129,7 +129,8 @@ class RenderPipeline:
                     container.get('box_shadow_offset', [0, 0, 0])[2],
                     container.get('box_shadow_blur', 0.0),
                     container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3]
+                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
+                    int(container.get('passive', False))
                 ]
                 container_array.extend(container_struct)
             
@@ -265,7 +266,8 @@ class RenderPipeline:
                         container.get('box_shadow_offset', [0, 0, 0])[2],
                         container.get('box_shadow_blur', 0.0),
                         container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                        container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3]
+                        container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
+                        int(container.get('passive', False))
                     ]
                     container_array.extend(container_struct)
                 
@@ -577,7 +579,8 @@ class RenderPipeline:
                     container.get('box_shadow_offset', [0, 0, 0])[2],
                     container.get('box_shadow_blur', 0.0),
                     container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3]
+                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
+                    int(container.get('passive', False))
                 ]
                 container_array.extend(container_struct)
             

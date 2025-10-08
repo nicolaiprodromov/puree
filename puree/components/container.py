@@ -13,6 +13,9 @@ class Container():
         self.text  : Optional[str] = ""
         self.font  : Optional[str] = 'NeueMontreal-Regular'
 
+        self.layer  : int   = 0
+        self.passive: bool  = False
+
         self.click         : List  = []
         self.toggle        : List  = []
         self.scroll        : List  = []
@@ -58,6 +61,9 @@ class ContainerDefault():
         self.text         = ""
         self.font         = 'NeueMontreal-Regular'
 
+        self.layer   = 0
+        self.passive = False
+
         self.x = 0.0
         self.y = 0.0
 
@@ -75,6 +81,10 @@ class ContainerDefault():
         self.click_color              = [0.0, 0.0, 0.0, -1.0]
         self.click_color_1            = [0.0, 0.0, 0.0, 0.0]
         self.click_color_gradient_rot = 0.0
+
+        self.toggle_color              = [0.0, 0.0, 0.0, -1.0]
+        self.toggle_color_1            = [0.0, 0.0, 0.0, 0.0]
+        self.toggle_color_gradient_rot = 0.0
 
         self.border_color              = [0.0, 0.0, 0.0, 0.0]
         self.border_color_1            = [0.0, 0.0, 0.0, 0.0]
