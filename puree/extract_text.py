@@ -10,7 +10,7 @@ class TextExtractor:
             self.text_blocks[container.id] = {
                 'container_id'            : container.id,
                 'text'                    : container.text,
-                'font'                    : container.font,
+                'font'                    : container.font if container.font != '' else self.ui.theme.default_font,
                 'text_x'                  : int(self.json_data[self.flat_index]['position'][0] + container.style.text_x),
                 'text_y'                  : int(self.json_data[self.flat_index]['position'][1] + container.style.text_y),
                 'text_scale'              : int(container.style.text_scale),

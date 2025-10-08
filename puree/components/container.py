@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Union
+from typing import Optional, List
 
 class Container(): 
     def __init__(self): 
@@ -11,10 +11,10 @@ class Container():
         self.data  : Optional[str] = ""
         self.img   : Optional[str] = ""
         self.text  : Optional[str] = ""
-        self.font  : Optional[str] = 'NeueMontreal-Regular'
+        self.font  : Optional[str] = ""
 
-        self.layer  : int   = 0
-        self.passive: bool  = False
+        self.layer   : int   = 0
+        self.passive : bool  = False
 
         self.click         : List  = []
         self.toggle        : List  = []

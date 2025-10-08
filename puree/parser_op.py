@@ -97,7 +97,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         global XWZ_UI, text_blocks, image_blocks, image_blocks_relative
         addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        self.ui              = UI(os.path.join(addon_dir, self.conf_path), canvas_size=region_size)
+        self.ui              = UI(os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size)
         self.compiler        = Compiler(self.ui)
         self.ui              = self.compiler.compile()
         
@@ -113,10 +113,6 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         return {'FINISHED'}
 
 def recompute_layout(canvas_size):
-    """
-    Recompute layout with new canvas size and update global container data.
-    Returns the updated container data.
-    """
     global XWZ_UI, _container_json_data, text_blocks, image_blocks, image_blocks_relative
     
     if XWZ_UI is None:

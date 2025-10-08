@@ -4,24 +4,51 @@
 [app.settings]
     scroll_speed = 100
 [[app.theme]]
-    name    = "xwz_default"
-    author  = "xwz"
-    version = "1.0.0"
-    scripts = ["static/script.py"]
-    styles  = ["static/style.css"]
+    name         = "xwz_default"
+    author       = "xwz"
+    version      = "1.0.0"
+    default_font = "NeueMontreal-Regular"
+    scripts      = ["static/script.py"]
+    styles       = ["static/style.css"]
+    components   = "static/components/"
+
     [app.theme.root]
         style = "root"
         [app.theme.root.bg]
             style = "bg"
-            [app.theme.root.bg.header]
-                style = "header"
-                [app.theme.root.bg.header.text]
-                    style = "header_text"
-                    text  = "puree UI KIT"
-                [app.theme.root.bg.header.logoh]
-                    style = "header_logoh"
-                    img   = "loggoui2"
+
+            [app.theme.root.bg.header1]
+                data = "[header]"
+            [app.theme.root.bg.header2]
+                data     = "[header]"
+                title    = "another header instance"
+                subtitle = "subtitle"
+
             [app.theme.root.bg.body]
                 style = "body"
-                [app.theme.root.bg.body.card1]
-                    style = "card1"
+
+                [app.theme.root.bg.body.buttons_test1]
+                    style = "buttons_test1"
+                    
+                    [app.theme.root.bg.body.buttons_test1.hover_test]
+                        style = "hover_test"
+                        [app.theme.root.bg.body.buttons_test1.hover_test.ht_text]
+                            style   = "ht_text"
+                            text    = "Hover me!"
+                            passive = true
+
+                    [app.theme.root.bg.body.buttons_test1.click_test]
+                        style = "click_test"
+                        [app.theme.root.bg.body.buttons_test1.click_test.ct_text]
+                            style   = "ct_text"
+                            text    = "Click me!"
+                            passive = true
+
+                    [app.theme.root.bg.body.buttons_test1.toggle_test]
+                        style = "toggle_test"
+                        [app.theme.root.bg.body.buttons_test1.toggle_test.tg_text]
+                            style   = "tg_text"
+                            text    = "Toggle me!"
+                            passive = true
+
+                    
