@@ -37,10 +37,11 @@ struct Container {
     vec3 box_shadow_offset;
     float box_shadow_blur;
     vec4 box_shadow_color;
+    int passive;
 };
 
 Container getContainer(int index) {
-    int offset = index * 53;
+    int offset = index * 54;
     Container c;
     c.display = int(container_data[offset + 0]);
     c.position = vec2(container_data[offset + 1], container_data[offset + 2]);
@@ -64,6 +65,7 @@ Container getContainer(int index) {
     c.box_shadow_offset = vec3(container_data[offset + 45], container_data[offset + 46], container_data[offset + 47]);
     c.box_shadow_blur = container_data[offset + 48];
     c.box_shadow_color = vec4(container_data[offset + 49], container_data[offset + 50], container_data[offset + 51], container_data[offset + 52]);
+    c.passive = int(container_data[offset + 53]);
     return c;
 }
 
@@ -77,11 +79,6 @@ layout(std430, binding = 3) restrict writeonly buffer DebugBuffer {
 };
 
 layout(rgba8, binding = 4) restrict writeonly uniform image2D output_texture;
-
-
-
-
-
 
 // Interleaved Gradient Noise by Jorge Jimenez
 // From Call of Duty: Advanced Warfare presentation
@@ -270,6 +267,12 @@ vec4 renderContainer(vec2 pixelPos, vec2 mousePixelPos, vec2 clickPixelPos, bool
         }
     }
     
+    // If container is passive, ignore hover and click states
+    if (container.passive != 0) {
+        isHovered = false;
+        isClicked = false;
+    }
+    
     vec4 baseColor = container.color;
     if (container.color_1.a > 0.0) {
         vec2 containerOrigin = getContainerOrigin(containerIndex);
@@ -368,6 +371,7 @@ void main() {
             Container container = getContainer(i);
             if (container.display == 0) continue;
             if (isAnyParentHidden(i)) continue;
+            if (container.passive != 0) continue;  // Skip passive containers for click detection
             
             bool childClicked = containerSDF(clickPixelPos, container, i) <= 0.0;
             
@@ -384,6 +388,7 @@ void main() {
         Container container = getContainer(i);
         if (container.display == 0) continue;
         if (isAnyParentHidden(i)) continue;
+        if (container.passive != 0) continue;  // Skip passive containers for hover detection
         
         bool childHovered = containerSDF(mousePixelPos, container, i) <= 0.0;
         
