@@ -53,10 +53,14 @@ class XWZ_OT_hit(bpy.types.Operator):
     
     def handle_hover_event(self):
         for _container in _container_data:
+            if _container.get('passive', False):
+                continue
             if self.detect_hover(_container):
                 _any_child_hovered = False
                 for child_ind in _container['children']:
                     _child_ = _container_data[child_ind]
+                    if _child_.get('passive', False):
+                        continue
                     if self.detect_hover(_child_):
                         _any_child_hovered = True
                         break
@@ -79,10 +83,14 @@ class XWZ_OT_hit(bpy.types.Operator):
 
     def handle_click_event(self):
         for _container in _container_data:
+            if _container.get('passive', False):
+                continue
             if self.detect_hover(_container):
                 _any_child_hovered = False
                 for child_ind in _container['children']:
                     _child_ = _container_data[child_ind]
+                    if _child_.get('passive', False):
+                        continue
                     if self.detect_hover(_child_):
                         _any_child_hovered = True
                         break
@@ -102,6 +110,8 @@ class XWZ_OT_hit(bpy.types.Operator):
 
     def handle_scroll_event(self):
         for _container in _container_data:
+            if _container.get('passive', False):
+                continue
             if self.detect_hover(_container):
                 _any_child_scrollable = False
                 for cc_indy in _container['children']:
@@ -236,10 +246,14 @@ class XWZ_OT_hit(bpy.types.Operator):
     
     def handle_toggle_event(self):
         for _container in _container_data:
+            if _container.get('passive', False):
+                continue
             if self.detect_hover(_container):
                 _any_child_hovered = False
                 for child_ind in _container['children']:
                     _child_ = _container_data[child_ind]
+                    if _child_.get('passive', False):
+                        continue
                     if self.detect_hover(_child_):
                         _any_child_hovered = True
                         break
