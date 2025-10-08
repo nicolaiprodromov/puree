@@ -1,5 +1,7 @@
-import toml
 import os
+import re
+import toml
+import math
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
 from stretchable import Edge
@@ -12,7 +14,6 @@ from stretchable.style.geometry.length import LengthPointsPercent
 from tinycss2 import ast
 from tinycss2 import parse_stylesheet, parse_declaration_list
 from textual.color import Color
-import math
 
 from .components.container import Container
 from .components.style import Style
@@ -120,17 +121,19 @@ class Styles():
 
 class Theme():
     def __init__(self):
-        self.name        = ""
-        self.author      = ""
-        self.version     = ""
-        self.scripts     = []
-        self.style_files = []
-        self.palette     = {}
-        self.styles      = Styles()
-        self.root        = Container()
+        self.name         = ""
+        self.author       = ""
+        self.version      = ""
+        self.scripts      = []
+        self.style_files  = []
+        self.default_font = ""
+        self.components   = ""
+        self.palette      = {}
+        self.styles       = Styles()
+        self.root         = Container()
         
 class UI():
-    def __init__(self, path=None, canvas_size=(800, 600)):
+    def __init__(self, path=None, base_dir=None, canvas_size=(800, 600)):
         self.selected_theme = "xwz_default"
         self.settings       = Settings()
         self.theme          = Theme()
@@ -139,7 +142,7 @@ class UI():
         self.root_node      = None  # Expose root node for recomputation
         self.canvas_size    = canvas_size  # Store current canvas size
 
-        self.parse_toml(path)
+        self.parse_toml(path, base_dir)
         self.parse_css()
         self.create_node_tree(canvas_size)
         self.flatten_node_tree()
@@ -149,7 +152,7 @@ class UI():
             data = toml.load(f)
         return data
     
-    def parse_toml(self, path=None):
+    def parse_toml(self, path=None, base_dir=None):
         data     = self.load_conf_file(path)
         ui_data  = data.get('app', {})
         settings = ui_data['settings']
@@ -157,7 +160,6 @@ class UI():
 
         self.selected_theme        = ui_data['selected_theme']
         self.default_theme         = ui_data['default_theme']
-        # self.settings.scroll_speed = settings['scroll_speed']
 
         self.theme_index = -1
         for _theme_ in theme:
@@ -175,29 +177,116 @@ class UI():
 
         root = ui_data['theme'][self.theme_index]['root']
 
-        self.theme.name        = theme[self.theme_index]['name']
-        self.theme.author      = theme[self.theme_index]['author']
-        self.theme.version     = theme[self.theme_index]['version']
-        self.theme.scripts     = theme[self.theme_index]['scripts']
-        self.theme.style_files = theme[self.theme_index]['styles']
+        self.theme.name         = theme[self.theme_index]['name']
+        self.theme.author       = theme[self.theme_index]['author']
+        self.theme.version      = theme[self.theme_index]['version']
+        self.theme.scripts      = theme[self.theme_index]['scripts']
+        self.theme.style_files  = theme[self.theme_index]['styles']
+        self.theme.default_font = theme[self.theme_index]['default_font']
+        self.theme.components   = theme[self.theme_index]['components']
 
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
+
                 if isinstance(attr_value, dict):
+                    # Check if this dict contains a 'data' attribute pointing to a component
+                    has_component_data = 'data' in attr_value and isinstance(attr_value['data'], str) and attr_value['data'].startswith('[') and attr_value['data'].endswith(']')
+                    
                     child_container = Container()
                     child_container.id = attr_name
                     child_container.parent = parent_container
                     parent_container.children.append(child_container)
                     
+                    # First, set all non-dict attributes on the child container
                     for child_attr_name, child_attr_value in attr_value.items():
                         if not isinstance(child_attr_value, dict):
                             if hasattr(child_container, child_attr_name):
-                                setattr(child_container, child_attr_name.replace('-', '_'), child_attr_value)
+                                # Don't set 'data' yet if it's a component reference
+                                if not (child_attr_name == 'data' and has_component_data):
+                                    setattr(child_container, child_attr_name.replace('-', '_'), child_attr_value)
                     
-                    load_container(attr_value, child_container)
+                    # If this container references a component, load it
+                    if has_component_data:
+                        component_ref = attr_value['data']
+                        component_dir = os.path.join(base_dir, self.theme.components)
+                        component_loaded = False
+                        
+                        # Extract component parameters (all non-dict, non-'data' attributes)
+                        component_params = {}
+                        for param_name, param_value in attr_value.items():
+                            if not isinstance(param_value, dict) and param_name != 'data':
+                                component_params[param_name] = param_value
+                        
+                        for root, dirs, files in os.walk(component_dir):
+                            for filename in files:
+                                if filename.endswith('.toml') and f'[{filename.replace(".toml", "")}]' == component_ref:
+                                    file_path = os.path.join(root, filename)
+                                    with open(file_path, 'r') as f:
+                                        component_data = toml.load(f)
+                                        # Load component data INTO the child_container, not parent_container
+                                        # This recursively handles all nested children from the component
+                                        component_key = component_ref.replace("[",'').replace("]",'')
+                                        
+                                        # Function to substitute parameters in string values
+                                        # Format: {{parameter_name, 'default value'}} or {{parameter_name, "default value"}}
+                                        def substitute_params(value, params):
+                                            if not isinstance(value, str):
+                                                return value
+                                            
+                                            # Pattern matches: {{param_name, 'default'}} or {{param_name, "default"}}
+                                            pattern = r'\{\{(\w+)\s*,\s*["\']([^"\']*?)["\']\}\}'
+                                            
+                                            def replace_param(match):
+                                                param_name = match.group(1)
+                                                default_value = match.group(2)
+                                                # Use provided parameter or fall back to default
+                                                return str(params.get(param_name, default_value))
+                                            
+                                            return re.sub(pattern, replace_param, value)
+                                        
+                                        # Namespace all component children with the parent container's ID
+                                        # to avoid ID collisions when multiple instances exist
+                                        # Use underscore as separator (dots are invalid for Node keys)
+                                        def load_component_with_namespace(comp_data, parent, namespace_prefix, params):
+                                            for attr_name, attr_value in comp_data.items():
+                                                if isinstance(attr_value, dict):
+                                                    # Create child with namespaced ID using underscore separator
+                                                    namespaced_child = Container()
+                                                    namespaced_child.id = f"{namespace_prefix}_{attr_name}"
+                                                    namespaced_child.parent = parent
+                                                    parent.children.append(namespaced_child)
+                                                    
+                                                    # Set non-dict attributes with parameter substitution
+                                                    for child_attr_name, child_attr_value in attr_value.items():
+                                                        if not isinstance(child_attr_value, dict):
+                                                            if hasattr(namespaced_child, child_attr_name):
+                                                                # Apply parameter substitution to string values
+                                                                substituted_value = substitute_params(child_attr_value, params)
+                                                                setattr(namespaced_child, child_attr_name.replace('-', '_'), substituted_value)
+                                                    
+                                                    # Recursively process with namespace and params
+                                                    load_component_with_namespace(attr_value, namespaced_child, f"{namespace_prefix}_{attr_name}", params)
+                                                else:
+                                                    # Set scalar attribute on parent with parameter substitution
+                                                    if hasattr(parent, attr_name):
+                                                        substituted_value = substitute_params(attr_value, params)
+                                                        setattr(parent, attr_name.replace('-', '_'), substituted_value)
+                                        
+                                        load_component_with_namespace(component_data[component_key], child_container, attr_name, component_params)
+                                        component_loaded = True
+                                    break
+                            if component_loaded:
+                                break
+                    else:
+                        # Only recursively process children if this wasn't a component reference
+                        # (component loading already handled all nested structure)
+                        load_container(attr_value, child_container)
+
                 else:
+                    # Handle scalar attributes on the parent container
                     if hasattr(parent_container, attr_name):
                         setattr(parent_container, attr_name.replace('-', '_'), attr_value)
+
 
         self.theme.root.id = "root"
         load_container(root, self.theme.root)
@@ -250,20 +339,15 @@ class UI():
         return attr_name, attr_value
 
     def parse_css(self):
-
         addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        
         style_str = ""
         for _style_file in self.theme.style_files:
             if _style_file.endswith('.css'):
                 with open(os.path.join(addon_dir, _style_file), 'r') as f:
                     style_str += f.read()
-
         css_string = style_str
-
         parser = CSSParser()
         styles = parser.parse(css_string)
-        
         for selector, declarations in styles.items():
             style_obj = Style()
             style_obj.id = selector
@@ -733,3 +817,4 @@ class UI():
                 flatten_conts_abs(child)
 
         flatten_conts_abs(self.theme.root)
+ 

@@ -248,6 +248,7 @@ The `Container` class represents an individual UI node/element in the interface 
 | `_prev_clicked` | `bool` | Previous click state for state tracking |
 | `_prev_hovered` | `bool` | Previous hover state for state tracking |
 | `_scroll_value` | `float` | Current scroll position value |
+| `passive` | `bool` | Whether the container is passive (non-interactive) |
 
 > **Note:** Properties prefixed with `_` are internal state properties used by the framework for tracking user interactions and should generally not be modified directly by user code.
 
