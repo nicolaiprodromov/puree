@@ -69,8 +69,6 @@ class XWZ_OT_hit(bpy.types.Operator):
                     if _container['_hovered'] is True and _container['_prev_hovered'] is False:
                         for _hover_handler in _container['hover']:
                             _hover_handler(_container)
-                            
-                        _container['_prev_hovered'] = _container['_hovered']
                 else:
                     _container['_hovered']      = False
             else:
@@ -78,8 +76,6 @@ class XWZ_OT_hit(bpy.types.Operator):
                 if _container['_hovered'] is False and _container['_prev_hovered'] is True:
                     for _hover_handler in _container['hoverout']:
                         _hover_handler(_container)
-                        
-                    _container['_prev_hovered'] = _container['_hovered']
 
     def handle_click_event(self):
         for _container in _container_data:

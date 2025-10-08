@@ -708,7 +708,18 @@ class XWZ_OT_start_ui(Operator):
                 if state_synced:
                     # Container state changed via scripts, need to update
                     from . import hit_op
-                    hit_op._container_data = parser_op._container_json_data
+                    new_data = parser_op._container_json_data
+                    old_data = hit_op._container_data
+                    
+                    if old_data and len(old_data) == len(new_data):
+                        for i in range(len(new_data)):
+                            runtime_keys = ['_hovered', '_prev_hovered', '_clicked', '_prev_clicked', 
+                                          '_toggled', '_prev_toggled', '_toggle_value', '_scroll_value']
+                            for key in runtime_keys:
+                                if key in old_data[i]:
+                                    new_data[i][key] = old_data[i][key]
+                    
+                    hit_op._container_data = new_data
                     texture_changed = True
                 
                 # Run compute shader if viewport resized or other state changed
@@ -716,7 +727,18 @@ class XWZ_OT_start_ui(Operator):
                     # If size changed, update hit_op's container data reference
                     if size_changed:
                         from . import hit_op
-                        hit_op._container_data = parser_op._container_json_data
+                        new_data = parser_op._container_json_data
+                        old_data = hit_op._container_data
+                        
+                        if old_data and len(old_data) == len(new_data):
+                            for i in range(len(new_data)):
+                                runtime_keys = ['_hovered', '_prev_hovered', '_clicked', '_prev_clicked', 
+                                              '_toggled', '_prev_toggled', '_toggle_value', '_scroll_value']
+                                for key in runtime_keys:
+                                    if key in old_data[i]:
+                                        new_data[i][key] = old_data[i][key]
+                        
+                        hit_op._container_data = new_data
                     
                     from .hit_op import _container_data
                     if _container_data:
