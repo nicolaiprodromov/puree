@@ -33,6 +33,28 @@ class Container():
         
         self._dirty        : bool  = False  # Track if container state changed
     
+    def __getattr__(self, name):
+        """
+        Enable property-based access to child containers by their id.
+        This allows accessing containers like: app.theme.root.bg.body
+        instead of: app.theme.root.children[0].children[2]
+        """
+        # Avoid infinite recursion by checking if we're accessing 'children'
+        if name == 'children':
+            raise AttributeError(f"'Container' object has no attribute '{name}'")
+        
+        # Search for a child container with matching id
+        try:
+            children = object.__getattribute__(self, 'children')
+            for child in children:
+                if child.id == name:
+                    return child
+        except AttributeError:
+            pass
+        
+        # If not found in children, raise AttributeError
+        raise AttributeError(f"'Container' object has no attribute or child named '{name}'")
+    
     def mark_dirty(self):
         """Mark this container as having changed state that needs GPU sync"""
         self._dirty = True
