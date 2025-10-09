@@ -72,16 +72,23 @@ class CSSParser:
         
         def replace_var(match):
             var_name = match.group(1).strip()
+            # Check for circular reference
             if var_name in visited:
                 return match.group(0)
             if var_name in variables:
-                visited.add(var_name)
+                # Add to visited set only for recursive call to detect circular references
+                new_visited = visited.copy()
+                new_visited.add(var_name)
                 resolved_value = variables[var_name]
-                result = self._resolve_variables(resolved_value, variables, visited.copy())
+                result = self._resolve_variables(resolved_value, variables, new_visited)
                 return result
             return match.group(0)
         
-        return re.sub(var_pattern, replace_var, value)
+        # Resolve all variables in the value string
+        resolved = re.sub(var_pattern, replace_var, value)
+        # Clean up any extra whitespace that might occur from variable substitution
+        resolved = ' '.join(resolved.split())
+        return resolved
     
     def parse(self, css_string):
         self.styles = {}
@@ -433,8 +440,9 @@ class UI():
             if hasattr(container.style, 'padding_left'):
                 left = parse_css_value(container.style.padding_left)
             if hasattr(container.style, 'padding') and isinstance(container.style.padding, str):
-                padding_str = container.style.padding.lower()
+                padding_str = container.style.padding.strip().lower()
                 if 'calc(' not in padding_str:
+                    # Split on whitespace - this handles multiple spaces correctly
                     values = padding_str.split()
                     if len(values) == 1:
                         val = parse_css_value(values[0])
@@ -466,8 +474,9 @@ class UI():
             if hasattr(container.style, 'margin_left'):
                 left = parse_css_value(container.style.margin_left)
             if hasattr(container.style, 'margin') and isinstance(container.style.margin, str):
-                margin_str = container.style.margin.lower()
+                margin_str = container.style.margin.strip().lower()
                 if 'calc(' not in margin_str:
+                    # Split on whitespace - this handles multiple spaces correctly
                     values = margin_str.split()
                     
                     if len(values) == 1:
@@ -493,8 +502,9 @@ class UI():
             width_top = width_right = width_bottom = width_left = LengthPointsPercent.from_any(0 * PT)
             
             if hasattr(container.style, 'border_width') and isinstance(container.style.border_width, str):
-                border_width_str = container.style.border_width.lower()
+                border_width_str = container.style.border_width.strip().lower()
                 if 'calc(' not in border_width_str:
+                    # Split on whitespace - this handles multiple spaces correctly
                     values = border_width_str.split()
                     
                     if len(values) == 1:
@@ -517,8 +527,9 @@ class UI():
                         width_left = parse_css_value(values[3])
             
             if hasattr(container.style, 'border') and isinstance(container.style.border, str):
-                border_str = container.style.border.lower()
+                border_str = container.style.border.strip().lower()
                 if 'calc(' not in border_str:
+                    # Split on whitespace - this handles multiple spaces correctly
                     parts = border_str.split()
                     for part in parts:
                         if 'px' in part or '%' in part:

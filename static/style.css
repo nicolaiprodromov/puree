@@ -70,8 +70,7 @@ right_box{
     border-radius : var(--border_radii);
     display       : flex;
     flex-direction: column;
-    padding       : var(--gappy);
-    padding-left: 0px;
+    padding       : var(--gappy) var(--gappy) var(--gappy) 0px;
     color         : rgba(0,0,0,0);
 }
 
