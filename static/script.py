@@ -16,7 +16,7 @@ def main(self, app):
 
     # app.theme.root.bg.body.buttons_test1.hover_test.hover.append(text_func)
     # app.theme.root.bg.body.buttons_test1.hover_test.hoverout.append(text_func1)
-    app.theme.root.bg.body.buttons_test1.click_test.hover.append(text_func)
-    app.theme.root.bg.body.buttons_test1.click_test.hoverout.append(text_func1)
+    # app.theme.root.bg.body.buttons_test1.click_test.hover.append(text_func)
+    # app.theme.root.bg.body.buttons_test1.click_test.hoverout.append(text_func1)
     # app.theme.root.bg.body.buttons_test1.toggle_test.click.append(text_func2)
     return app

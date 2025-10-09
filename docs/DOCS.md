@@ -13,10 +13,35 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 
 1. [Installation](#installation)
 2. [Getting Started](#getting-started)
-3. [API Reference](#api-reference)
+    1. [Quick Start](#quick-start)
+    2. [File Structure](#file-structure)
+    3. [`index.toml` breakdown](#indextoml-breakdown)
+        - [App structure](#app-structure)
+    4. [`style.css` breakdown](#stylecss-breakdown)
+        - [CSS Custom Properties (Variables)](#css-custom-properties-variables)
+        - [Color Space Conversion](#color-space-conversion)
+    5. [`script.py` breakdown](#scriptpy-breakdown)
+        - [Basic Structure](#basic-structure)
+        - [Event Handlers](#event-handlers)
+        - [Modifying Container Properties](#modifying-container-properties)
+        - [Accessing Container Hierarchy](#accessing-container-hierarchy)
+        - [Multiple Event Handlers](#multiple-event-handlers)
+        - [State Management](#state-management)
+        - [Integrating with Blender](#integrating-with-blender)
+        - [Best Practices](#best-practices)
+3. [Component Template System](#component-template-system)
+    1. [Overview](#overview-1)
+    2. [Creating Components](#creating-components)
+    3. [Parameter Syntax](#parameter-syntax)
+    4. [Using Components](#using-components)
+    5. [Component Namespacing](#component-namespacing)
+    6. [Accessing Component Instances in Scripts](#accessing-component-instances-in-scripts)
+    7. [Best Practices](#best-practices-1)
+    8. [Complete Example](#complete-example)
+4. [API Reference](#api-reference)
     1. [Style Properties](#style-properties)
     2. [Container Properties](#container-properties)
-4. [Troubleshooting](#troubleshooting)
+5. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -36,6 +61,93 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 ---
 
 ### Getting Started
+
+#### Quick Start
+
+Here's a minimal example to get you started with Puree:
+
+**1. Download the [latest release](https://github.com/nicolaiprodromov/puree/releases) or clone the [repository](https://github.com/nicolaiprodromov/puree)**
+
+**2. Create your project structure:**
+```
+my_addon/
+    ├── puree/ <-- puree source code
+    ├── static/
+    │   ├── index.toml
+    │   └── style.css
+    └── __init__.py <-- your addon entry point
+```
+
+**3. Define your addon entrypoint in `__init__.py`:**
+```python
+import bpy
+from .puree import register as xwz_ui_register, unregister as xwz_ui_unregister
+bl_info = {
+    "name"       : "my first puree addon",
+    "author"     : "you",
+    "version"    : (0, 0, 2),
+    "blender"    : (4, 2, 0),
+    "location"   : "3D View > Sidebar > Puree",
+    "description": "XWZ Puree UI framework",
+    "category"   : "3D View"
+}
+def register():
+    xwz_ui_register()
+    wm = bpy.context.window_manager
+    wm.xwz_ui_conf_path = "static/index.toml"
+    wm.xwz_debug_panel  = True
+    wm.xwz_auto_start   = True
+def unregister():
+    xwz_ui_unregister()
+if __name__ == "__main__":
+    register()
+```
+
+**4. Define your UI in `index.toml`:**
+```toml
+[app]
+    selected_theme = "default"
+    default_theme  = "default"
+[[app.theme]]
+    name         = "default"
+    author       = "you"
+    version      = "1.0.0"
+    default_font = "NeueMontreal-Regular"
+    styles       = ["static/style.css"]
+    scripts      = []
+    components   = ""
+    [app.theme.root]
+        style = "root"
+        [app.theme.root.hello]
+            style = "hello_box"
+            text  = "Hello, Puree!"
+```
+
+**5. Style it in `style.css`:**
+```css
+root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+hello_box {
+    width: 300px;
+    height: 100px;
+    background-color: #3498db;
+    border-radius: 10px;
+    text-color: #ffffff;
+    text-scale: 24px;
+}
+```
+
+That's it! You now have a centered blue box with text.
+
+---
+
+#### File Structure
 
 The bare minimum file structure for a project is as follows: 
 
@@ -123,40 +235,598 @@ root {
     align-items    : center;
     justify-content: center;
     color          : #f0f0f0;
+    
+    /* CSS Custom Properties (Variables) */
+    --bg_col       : #121212;
+    --header_col   : #f64720;
+    --text_col     : #FFFFFF;
+    --accent_col   : #fafc86;
+    --border_radii : 28px;
 }
 
 bg {
-    position: absolute;
-    top     : 0;
-    left    : 0;
-    width   : 100%;
-    height  : 100%;
-    color   : #e0e0e0;
-    z-index : -1;
+    width           : 500px;
+    height          : 500px;
+    background-color: var(--bg_col);      /* Using CSS variable */
+    border-radius   : var(--border_radii);
 }
 ```
+
+##### CSS Custom Properties (Variables)
+
+Puree supports CSS custom properties (variables) for maintaining consistent theming:
+
+**Defining Variables:**
+```css
+root {
+    --primary-color: #3498db;
+    --spacing-unit : 10px;
+    --border-radius: 8px;
+}
+```
+
+**Using Variables:**
+```css
+button {
+    background-color: var(--primary-color);
+    padding         : var(--spacing-unit);
+    border-radius   : var(--border-radius);
+}
+```
+
+Variables are resolved at parse time and support nesting. Define variables in the `root` selector for global access.
+
+##### Color Space Conversion
+
+> **Important:** Puree automatically converts CSS colors from sRGB color space to linear color space for accurate rendering in Blender's viewport.
+
+When you specify colors in CSS using hex codes, `rgba()`, or named colors, they are automatically converted from sRGB (standard for displays and CSS) to linear color space (used by Blender's rendering engine). This ensures colors appear as expected and lighting calculations are physically accurate.
+
+**Example:**
+```css
+button {
+    background-color: #ff6600;  /* Specified in sRGB */
+    /* Automatically converted to linear for GPU rendering */
+}
+```
+
+You don't need to do anything special—just use standard CSS color formats and the conversion happens automatically.
 
 #### `script.py` breakdown
 
 You can add custom Python scripts to your theme to handle events and add interactivity to your UI. The scripts must be stored in the `static/` folder in the root of your project and then linked in the `scripts` array of your theme.
 
+##### Basic Structure
+
+The `main` function is the entry point for your script and receives two arguments:
+- `self` - The compiler instance
+- `app` - The UI application object
+
+You must return the `app` object at the end.
 
 ```python
 def main(self, app): 
-    def text_func(container): 
-        print("Button Clicked!")
-
-    app.theme.root.children[0].click.append(text_func)
+    # Your script logic here
     return app
 ```
 
-The `main` function is the entry point for your script, and it receives the `app` object as an argument. You can use this object to access and manipulate your UI components.
+##### Event Handlers
+
+Puree supports several event types that you can attach to containers:
+
+**1. Click Events**
+
+Triggered when a user clicks on a container:
+
+```python
+def main(self, app):
+    button = app.theme.root.bg.my_button
+    
+    def on_button_click(container):
+        print(f"Button {container.id} was clicked!")
+    
+    button.click.append(on_button_click)
+    return app
+```
+
+**2. Hover Events**
+
+Triggered when the mouse enters or leaves a container:
+
+```python
+def main(self, app):
+    card = app.theme.root.bg.card
+    
+    def on_hover(container):
+        print(f"Mouse entered {container.id}")
+    
+    def on_hover_out(container):
+        print(f"Mouse left {container.id}")
+    
+    card.hover.append(on_hover)
+    card.hoverout.append(on_hover_out)
+    return app
+```
+
+**3. Toggle Events**
+
+For buttons that maintain on/off state:
+
+```python
+def main(self, app):
+    toggle_btn = app.theme.root.bg.toggle_button
+    
+    def on_toggle(container):
+        if container._toggle_value:
+            print("Toggle is ON")
+        else:
+            print("Toggle is OFF")
+    
+    toggle_btn.toggle.append(on_toggle)
+    return app
+```
+
+**4. Scroll Events**
+
+Triggered when scrolling within a scrollable container:
+
+```python
+def main(self, app):
+    scrollable = app.theme.root.bg.scroll_area
+    
+    def on_scroll(container):
+        print(f"Scroll position: {container._scroll_value}")
+    
+    scrollable.scroll.append(on_scroll)
+    return app
+```
+
+##### Modifying Container Properties
+
+You can dynamically change container properties at runtime:
+
+**Changing Text Content:**
+
+```python
+def main(self, app):
+    label = app.theme.root.bg.label
+    counter = [0]  # Use list to maintain state across function calls
+    
+    def increment_counter(container):
+        counter[0] += 1
+        label.text = f"Count: {counter[0]}"
+        label.mark_dirty()  # Signal that GPU sync is needed
+    
+    button = app.theme.root.bg.increment_btn
+    button.click.append(increment_counter)
+    
+    return app
+```
+
+**Showing/Hiding Elements:**
+
+```python
+def main(self, app):
+    modal = app.theme.root.bg.modal
+    open_btn = app.theme.root.bg.open_modal_btn
+    close_btn = app.theme.root.bg.modal.close_btn
+    
+    def show_modal(container):
+        modal.style.display = 'FLEX'
+        modal.mark_dirty()
+    
+    def hide_modal(container):
+        modal.style.display = 'NONE'
+        modal.mark_dirty()
+    
+    open_btn.click.append(show_modal)
+    close_btn.click.append(hide_modal)
+    
+    return app
+```
+
+##### Accessing Container Hierarchy
+
+Use dot notation to access containers by their ID:
+
+```python
+def main(self, app):
+    # Direct access by ID
+    header = app.theme.root.header
+    button = app.theme.root.bg.body.buttons.submit_btn
+    
+    # Access component children (with namespace)
+    card_title = app.theme.root.bg.my_card_header
+    
+    # Iterate through children
+    buttons_container = app.theme.root.bg.buttons
+    for child in buttons_container.children:
+        print(f"Found button: {child.id}")
+    
+    return app
+```
+
+##### Multiple Event Handlers
+
+You can attach multiple handlers to the same event:
+
+```python
+def main(self, app):
+    button = app.theme.root.bg.multi_action_btn
+    
+    def log_click(container):
+        print("Action logged")
+    
+    def update_ui(container):
+        print("UI updated")
+    
+    def play_sound(container):
+        print("Sound played")
+    
+    # All three handlers will be called in order
+    button.click.append(log_click)
+    button.click.append(update_ui)
+    button.click.append(play_sound)
+    
+    return app
+```
+
+##### State Management
+
+Manage application state using closures or external variables:
+
+```python
+def main(self, app):
+    # Application state
+    state = {
+        'selected_item': None,
+        'is_editing': False,
+        'items': []
+    }
+    
+    def select_item(container):
+        state['selected_item'] = container.id
+        print(f"Selected: {state['selected_item']}")
+    
+    def toggle_edit_mode(container):
+        state['is_editing'] = not state['is_editing']
+        edit_label = app.theme.root.bg.edit_status
+        edit_label.text = "Editing" if state['is_editing'] else "Viewing"
+        edit_label.mark_dirty()
+    
+    # Attach handlers
+    item1 = app.theme.root.bg.item1
+    item2 = app.theme.root.bg.item2
+    edit_btn = app.theme.root.bg.edit_toggle
+    
+    item1.click.append(select_item)
+    item2.click.append(select_item)
+    edit_btn.click.append(toggle_edit_mode)
+    
+    return app
+```
+
+##### Integrating with Blender
+
+Access Blender's API within your event handlers:
+
+```python
+import bpy
+
+def main(self, app):
+    add_cube_btn = app.theme.root.bg.add_cube
+    status_label = app.theme.root.bg.status
+    
+    def add_cube(container):
+        bpy.ops.mesh.primitive_cube_add()
+        cube_count = len([obj for obj in bpy.data.objects if obj.type == 'MESH'])
+        status_label.text = f"Cubes: {cube_count}"
+        status_label.mark_dirty()
+    
+    def delete_selected(container):
+        bpy.ops.object.delete()
+        status_label.text = "Deleted selected objects"
+        status_label.mark_dirty()
+    
+    delete_btn = app.theme.root.bg.delete_btn
+    
+    add_cube_btn.click.append(add_cube)
+    delete_btn.click.append(delete_selected)
+    
+    return app
+```
+
+##### Best Practices
+
+1. **Always return the app object** at the end of `main()`
+2. **Call `mark_dirty()`** after modifying container properties to trigger GPU sync
+3. **Use descriptive function names** for event handlers
+4. **Keep handlers focused** - each handler should do one thing well
+5. **Handle errors gracefully** - wrap Blender operations in try-except blocks
+6. **Use property-based access** - `app.theme.root.bg.button` instead of array indexing
 
 ---
 
-### API Reference
+## Component Template System
 
-#### Style Properties
+Puree includes a powerful component template system that allows you to create reusable UI components with parameterization. This feature promotes code reuse, maintains consistency, and simplifies complex UI structures.
+
+### Overview
+
+Component templates are defined as separate `.toml` files and can be instantiated multiple times throughout your UI with different parameters. Think of them as reusable UI "blueprints" similar to React components or Vue templates.
+
+### Creating Components
+
+#### 1. Component Directory Structure
+
+Components are stored in a dedicated directory specified in your theme configuration:
+
+```toml
+[[app.theme]]
+    name       = "xwz_default"
+    components = "static/components/"  # Path to components directory
+```
+
+Your project structure should look like:
+
+```
+puree_project/
+    ├── static/
+    │   ├── components/
+    │   │   ├── header.toml       # Component definition
+    │   │   ├── test_button.toml  # Component definition
+    │   │   └── card.toml         # Component definition
+    │   ├── index.toml
+    │   └── style.css
+    └── __init__.py
+```
+
+#### 2. Component Definition
+
+Create a `.toml` file in your components directory. The component must have a single root key that matches the filename (without extension):
+
+**Example: `test_button.toml`**
+
+```toml
+[test_button]
+    style = "{{tb_style, 'hover_test'}}"
+    [test_button.tb_text]
+        style   = "{{tb_text_style, 'ht_text'}}"
+        text    = "{{tb_text, 'Click Me'}}"
+        passive = true
+```
+
+**Example: `header.toml`**
+
+```toml
+[header]
+    style = "header"
+    [header.text_box]
+        style = "header_text_box"
+        [header.text_box.text]
+            style = "header_text"
+            text  = "{{title, 'Puree UI Kit'}}"
+            font  = "NeueMontreal-Bold"
+        [header.text_box.subtitle]
+            style = "header_text1"
+            text  = "{{subtitle, 'Declarative UI for Blender'}}"
+            font  = "NeueMontreal-Italic"
+    [header.logo]
+        style = "header_logo"
+        img   = "loggoui2"
+```
+
+### Parameter Syntax
+
+Component parameters use a special syntax: `{{parameter_name, 'default_value'}}`
+
+- **`parameter_name`**: The name of the parameter that can be passed when instantiating the component
+- **`default_value`**: The fallback value if no parameter is provided (must be in quotes)
+
+**Format:**
+```toml
+property = "{{param_name, 'default value'}}"
+```
+
+**Examples:**
+```toml
+text  = "{{button_text, 'Submit'}}"      # Text parameter with default
+style = "{{button_style, 'default'}}"     # Style parameter with default
+img   = "{{icon_name, 'icon_default'}}"  # Image parameter with default
+```
+
+### Using Components
+
+#### 1. Reference Components in Your UI
+
+To use a component, set the `data` property to the component reference in square brackets:
+
+```toml
+[app.theme.root.my_container.my_button]
+    data = "[test_button]"  # References test_button.toml
+```
+
+#### 2. Pass Parameters to Components
+
+You can customize component instances by passing parameters as properties:
+
+```toml
+[app.theme.root.bg.body.buttons.hover_button]
+    data          = "[test_button]"
+    tb_text_style = "ht_text"
+    tb_style      = "hover_test"
+    tb_text       = "Hover me!"
+
+[app.theme.root.bg.body.buttons.click_button]
+    data          = "[test_button]"
+    tb_text_style = "ct_text"
+    tb_style      = "click_test"
+    tb_text       = "Click me!"
+```
+
+In this example:
+- Both buttons use the same `test_button` component template
+- Each instance receives different parameter values
+- The component's `{{tb_text, ''}}` parameter gets replaced with "Hover me!" and "Click me!" respectively
+
+#### 3. Component Instance with Multiple Parameters
+
+**Component Definition (`header.toml`):**
+```toml
+[header]
+    style = "header"
+    [header.title]
+        text = "{{title, 'Default Title'}}"
+    [header.subtitle]
+        text = "{{subtitle, 'Default Subtitle'}}"
+```
+
+**Usage in `index.toml`:**
+```toml
+[app.theme.root.page.top_header]
+    data     = "[header]"
+    title    = "Welcome to Puree"
+    subtitle = "Build UIs with ease"
+```
+
+### Component Namespacing
+
+To prevent ID collisions when multiple instances of the same component exist, Puree automatically namespaces child elements:
+
+**Component Definition:**
+```toml
+[button]
+    [button.icon]
+        [button.icon.label]
+```
+
+**When instantiated as `my_button`:**
+```
+my_button
+  └── my_button_icon
+      └── my_button_icon_label
+```
+
+This means each component instance has unique IDs throughout the node tree, using underscore (`_`) as a separator.
+
+### Accessing Component Instances in Scripts
+
+Puree provides an intuitive property-based access system for navigating the container hierarchy. Instead of traversing arrays of children, you can access containers by their ID using dot notation.
+
+#### Property-Based Access
+
+```python
+def main(self, app):
+    # Access containers by ID using dot notation
+    # This is much cleaner than: app.theme.root.children[0].children[1]
+    hover_button = app.theme.root.bg.body.buttons.hover_button
+    
+    # Access nested children (with namespace)
+    button_text = app.theme.root.bg.body.buttons.hover_button_tb_text
+    
+    # Attach event handlers
+    def on_click(container):
+        print("Button clicked!")
+    
+    hover_button.click.append(on_click)
+    
+    return app
+```
+
+#### How It Works
+
+The `Container` class implements a custom `__getattr__` method that:
+1. Searches through the container's children
+2. Finds a child whose `id` matches the requested attribute name
+3. Returns that child container
+
+**Example:**
+```python
+# These are equivalent:
+button = app.theme.root.bg.my_button
+
+# Is the same as finding the child manually:
+button = None
+for child in app.theme.root.bg.children:
+    if child.id == "my_button":
+        button = child
+        break
+```
+
+This makes your script code much more readable and maintainable, especially when working with deeply nested UI structures.
+
+### Best Practices
+
+1. **Keep Components Focused**: Each component should represent a single, reusable UI pattern
+2. **Use Meaningful Parameter Names**: Choose descriptive names like `button_text` rather than `txt`
+3. **Provide Sensible Defaults**: Always include default values that make sense
+4. **Document Your Components**: Add comments in component files explaining parameters
+5. **Style Separation**: Define component-specific styles in your CSS file, pass style names as parameters
+6. **Avoid Deep Nesting**: Keep component hierarchies shallow for better maintainability
+
+### Complete Example
+
+**File: `static/components/card.toml`**
+```toml
+[card]
+    style = "{{card_style, 'default_card'}}"
+    [card.header]
+        style = "card_header"
+        text  = "{{card_title, 'Title'}}"
+    [card.body]
+        style = "card_body"
+        text  = "{{card_content, 'Content'}}"
+    [card.footer]
+        style = "card_footer"
+        [card.footer.button]
+            style = "card_button"
+            text  = "{{action_text, 'Action'}}"
+```
+
+**File: `static/style.css`**
+```css
+default_card {
+    width: 300px;
+    height: 400px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+card_header {
+    text-scale: 24px;
+    text-color: #333333;
+}
+
+card_body {
+    text-scale: 16px;
+    text-color: #666666;
+}
+```
+
+**File: `static/index.toml`**
+```toml
+[app.theme.root.dashboard.product_card]
+    data         = "[card]"
+    card_style   = "product_card_style"
+    card_title   = "Product Name"
+    card_content = "Product description goes here"
+    action_text  = "Buy Now"
+
+[app.theme.root.dashboard.profile_card]
+    data         = "[card]"
+    card_title   = "User Profile"
+    card_content = "User bio and information"
+    action_text  = "Edit Profile"
+```
+
+This creates two different cards from the same template with different content and styling.
+
+---
+
+## API Reference
+
+### Style Properties
 
 The `Style` class defines the visual appearance and layout behavior of UI nodes. Below is a comprehensive list of all available properties: 
 
@@ -186,14 +856,30 @@ The `Style` class defines the visual appearance and layout behavior of UI nodes.
 | `border_color_1` | `List[float]` | Secondary border color for gradient (RGBA) |
 | `border_color_gradient_rot` | `float` | Border gradient rotation angle |
 | `box_shadow_color` | `List[float]` | Shadow color (RGBA) |
-| `box_shadow_offset` | `List[float]` | Shadow offset (x, y, z) |
+| `box_shadow_offset` | `List[float]` | Shadow offset (x, y) in pixels |
 | `box_shadow_blur` | `float` | Shadow blur radius |
+| `toggle_color` | `List[float]` | Background color when toggled (RGBA) |
+| `toggle_color_1` | `List[float]` | Secondary toggle color for gradient (RGBA) |
+| `toggle_color_gradient_rot` | `float` | Toggle gradient rotation angle |
+| `text_align_h` | `str` | Horizontal text alignment: `LEFT`, `CENTER`, `RIGHT` |
+| `text_align_v` | `str` | Vertical text alignment: `TOP`, `CENTER`, `BOTTOM` |
+| `padding` | `str` | Padding (shorthand CSS-style: "10px", "10px 20px", etc.) |
+| `padding_top` | `str` | Top padding |
+| `padding_right` | `str` | Right padding |
+| `padding_bottom` | `str` | Bottom padding |
+| `padding_left` | `str` | Left padding |
+| `margin` | `str` | Margin (shorthand CSS-style: "10px", "10px 20px", etc.) |
+| `margin_top` | `str` | Top margin |
+| `margin_right` | `str` | Right margin |
+| `margin_bottom` | `str` | Bottom margin |
+| `margin_left` | `str` | Left margin |
+| `border` | `str` | Border shorthand (e.g., "2px #ff0000") |
 | `background_image` | `Optional[str]` | Path to background image |
 | `background_size` | `str` | Background sizing: `AUTO`, `COVER`, `CONTAIN` |
 | `background_position` | `List[float]` | Background position (x, y) |
 | `background_repeat` | `str` | Background repeat: `REPEAT`, `NO_REPEAT`, `REPEAT_X`, `REPEAT_Y` |
 | `display` | `str` | Display mode               : `NONE`,   `FLEX`,      `GRID`,     `BLOCK` |
-| `overflow` | `str` | Overflow behavior |
+| `overflow` | `str` | Overflow behavior: `HIDDEN`, `VISIBLE` |
 | `scrollbar_width` | `float` | Width of scrollbar |
 | `position` | `str` | Position mode         : `RELATIVE`, `ABSOLUTE` |
 | `align_items` | `str` | Align items        : `START`,    `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE`, `STRETCH` |
@@ -221,7 +907,7 @@ The `Style` class defines the visual appearance and layout behavior of UI nodes.
 
 ---
 
-#### Container Properties
+### Container Properties
 
 The `Container` class represents an individual UI node/element in the interface hierarchy. Below is a comprehensive list of all available properties: 
 
@@ -248,10 +934,13 @@ The `Container` class represents an individual UI node/element in the interface 
 | `_prev_clicked` | `bool` | Previous click state for state tracking |
 | `_prev_hovered` | `bool` | Previous hover state for state tracking |
 | `_scroll_value` | `float` | Current scroll position value |
+| `_dirty` | `bool` | Whether container state has changed and needs GPU sync |
 | `passive` | `bool` | Whether the container is passive (non-interactive) |
+| `layer` | `int` | Z-index/rendering layer for the container |
 
 > **Note:** Properties prefixed with `_` are internal state properties used by the framework for tracking user interactions and should generally not be modified directly by user code.
 
+---
 
 ### Troubleshooting
 

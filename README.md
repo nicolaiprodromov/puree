@@ -54,3 +54,91 @@ Puree follows a render pipeline inspired by modern web browsers:
 5. **Event Handling** – Mouse, scroll, and click events are tracked and propagated through the component tree
 
 This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
+
+
+<div align="center">
+
+## Quick Example
+
+</div>
+
+Here's a minimal example to get you started with Puree:
+
+**1. Download the [latest release](https://github.com/nicolaiprodromov/puree/releases) or clone the [repository](https://github.com/nicolaiprodromov/puree)**
+
+**2. Create your project structure:**
+```
+my_addon/
+    ├── puree/ <-- puree source code
+    ├── static/
+    │   ├── index.toml
+    │   └── style.css
+    └── __init__.py <-- your addon entry point
+```
+
+**3. Define your addon entrypoint in `__init__.py`:**
+```python
+import bpy
+from .puree import register as xwz_ui_register, unregister as xwz_ui_unregister
+bl_info = {
+    "name"       : "my first puree addon",
+    "author"     : "you",
+    "version"    : (0, 0, 2),
+    "blender"    : (4, 2, 0),
+    "location"   : "3D View > Sidebar > Puree",
+    "description": "XWZ Puree UI framework",
+    "category"   : "3D View"
+}
+def register():
+    xwz_ui_register()
+    wm = bpy.context.window_manager
+    wm.xwz_ui_conf_path = "static/index.toml"
+    wm.xwz_debug_panel  = True
+    wm.xwz_auto_start   = True
+def unregister():
+    xwz_ui_unregister()
+if __name__ == "__main__":
+    register()
+```
+
+**4. Define your UI in `index.toml`:**
+```toml
+[app]
+    selected_theme = "default"
+    default_theme  = "default"
+[[app.theme]]
+    name         = "default"
+    author       = "you"
+    version      = "1.0.0"
+    default_font = "NeueMontreal-Regular"
+    styles       = ["static/style.css"]
+    scripts      = []
+    components   = ""
+    [app.theme.root]
+        style = "root"
+        [app.theme.root.hello]
+            style = "hello_box"
+            text  = "Hello, Puree!"
+```
+
+**5. Style it in `style.css`:**
+```css
+root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+hello_box {
+    width: 300px;
+    height: 100px;
+    background-color: #3498db;
+    border-radius: 10px;
+    text-color: #ffffff;
+    text-scale: 24px;
+}
+```
+
+That's it! You now have a centered blue box with text.

@@ -11,161 +11,81 @@ root{
     --header_col   : #f64720;
     --text_col     : #FFFFFF;
     --accent_col   : #fafc86;
-    --border_radii : 28px;
+    --border_radii : 7px;
+    --gappy        : 7px;
 }
 
 bg{
     display         : flex;
-    flex-direction  : column;
-    width           : 500px;
-    height          : 500px;
+    flex-direction  : row;
+    width           : 800px;
+    height          : 400px;
     background-color: var(--bg_col);
     border-radius   : var(--border_radii);
 }
 
-header{
-    display        : flex;
-    flex-direction : row;
-    justify-content: space-between;
-    align-items    : center;
-    width          : 100%;
-    height         : 16%;
-    color          : var(--header_col);
-    padding        : 5px;
-    border-radius  : var(--border_radii);
+left_box{
+    display       : flex;
+    flex-direction: column;
+    width         : 70%;
+    height        : 100%;
+    padding       : var(--gappy);
+    color         : rgba(0,0,0,0);
 }
 
-header_text_box{
-    height          : 100%;
-    width           : 50%;
-    display         : flex;
-    flex-direction  : column;
-    align-items     : start;
-    justify-content : flex-start;
-    background-color: rgba(0,0,0,0.2);
-    border-radius   : var(--border_radii);
-    padding         : 5px;
-    color           : rgba(0, 0, 0, 0);
+left_top_box{
+    width        : 100%;
+    height       : 50%;
+    color        : rgba(0,0,0,0);
+    border-radius: var(--border_radii);
+    margin-bottom: var(--gappy);
 }
 
-header_text{
-    height    : 50%;
-    width     : 100%;
-    color     : rgba(0,0,0,0);
-    text-color: var(--text_col);
-    text_scale: 24px;
+left_bottom_box{
+    width        : 100%;
+    height       : 50%;
+    color        : var(--header_col);
+    border-radius: var(--border_radii);
 }
 
-header_text1{
-    height    : 50%;
-    width     : 100%;
-    color     : rgba(0,0,0,0);
-    text-color: var(--text_col);
-    text_scale: 14px;
+left_top_box_box{
+    width        : 70%;
+    height       : 100%;
+    color        : var(--header_col);
+    border-radius: var(--border_radii);
+    margin-right : var(--gappy);
 }
 
-header_logoh{
-    color : rgba(0,0,0,0);
-    width : 50px;
-    height: 50px;
+middle_top_box{
+    width        : 30%;
+    height       : 100%;
+    color        : var(--accent_col);
+    border-radius: var(--border_radii);
 }
 
-body{
-    height         : 84%;
-    width          : 100%;
-    display        : flex;
-    flex-direction : column;
-    align-items    : start;
-    justify-content: flex-start;
-    padding        : 20px;
-    color          : var(--bg_col);
-    border-radius  : var(--border_radii);
+
+right_box{
+    width         : 30%;
+    height        : 100%;
+    border-radius : var(--border_radii);
+    display       : flex;
+    flex-direction: column;
+    padding       : var(--gappy);
+    padding-left: 0px;
+    color         : rgba(0,0,0,0);
 }
 
-hover_test{
-    width          : 100%;
-    height         : 33%;
-    color          : var(--header_col);
-    border-radius  : 15px;
-    hover_color    : var(--accent_col);
-    margin-bottom  : 10px;
-    padding        : 10px;
-    flex-direction : row;
-    align-items    : center;
-    justify-content: center;
+right_top_box{
+    width        : 100%;
+    height       : 30%;
+    border-radius: var(--border_radii);
+    margin-bottom: var(--gappy);
+    color        : var(--header_col)
 }
 
-ht_text{
-    width       : 100%;
-    height      : 100%;
-    color       : rgba(0,0,0,1);
-    text-color  : var(--text_col);
-    text-align-h: center;
-    text-align-v: center;
-    text_scale  : 16px;
-    border-radius : 200px;
-    border-color : var(--accent_col);
-    border-width : 2px;
-    box-shadow-color: var(--accent_col);
-    box-shadow-blur : 10px;
-    box-shadow-offset: 10px 10px;
-}
-
-click_test{
-    width          : 100%;
-    height         : 33%;
-    color          : var(--header_col);
-    border-radius  : 15px;
-    hover_color    : var(--accent_col);
-    margin-bottom  : 10px;
-    padding        : 10px;
-    flex-direction : row;
-    align-items    : center;
-    justify-content: center;
-}
-
-ct_text{
-    width       : 100%;
-    height      : 100%;
-    color       : rgba(0,0,0,0);
-    text-color  : var(--text_col);
-    text-align-h: left;
-    text-align-v: top;
-    text_scale  : 16px;
-}
-
-toggle_test{
-    width          : 100%;
-    height         : 33%;
-    color          : var(--header_col);
-    border-radius  : 15px;
-    hover_color    : var(--accent_col);
-    margin-bottom  : 10px;
-    padding        : 10px;
-    flex-direction : row;
-    align-items    : center;
-    justify-content: center;
-}
-
-tg_text{
-    width       : 100%;
-    height      : 100%;
-    color       : rgba(0,0,0,0);
-    text-color  : var(--text_col);
-    text-align-h: right;
-    text-align-v: bottom;
-    text_scale  : 16px;
-}
-
-buttons_test1{
-    display         : flex;
-    flex-direction  : column;
-    align-items     : start;
-    justify-content : flex-start;
-    width           : 50%;
-    height          : 100%;
-    background-color: rgba(0,0,0,0);
-    border-radius   : var(--border_radii);
-    padding         : 5px;
-    color           : rgba(0, 0, 0, 0);
+right_bottom_box{
+    width        : 100%;
+    height       : 70%;
+    border-radius: var(--border_radii);
+    color        : var(--accent_col);
 }
