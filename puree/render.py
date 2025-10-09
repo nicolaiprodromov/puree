@@ -661,7 +661,9 @@ class XWZ_OT_start_ui(Operator):
                 mask_x        = block['mask_x'],
                 mask_y        = block['mask_y'],
                 mask_width    = block['mask_width'],
-                mask_height   = block['mask_height']
+                mask_height   = block['mask_height'],
+                align_h       = block.get('align_h', 'LEFT').upper(),
+                align_v       = block.get('align_v', 'CENTER').upper()
             )
 
         self.report({'INFO'}, "UI Started")

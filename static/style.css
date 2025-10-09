@@ -53,8 +53,6 @@ header_text{
     width     : 100%;
     color     : rgba(0,0,0,0);
     text-color: var(--text_col);
-    text-x    : 15px;
-    text-y    : 0px;
     text_scale: 24px;
 }
 
@@ -63,8 +61,6 @@ header_text1{
     width     : 100%;
     color     : rgba(0,0,0,0);
     text-color: var(--text_col);
-    text-x    : 15px;
-    text-y    : 0px;
     text_scale: 14px;
 }
 
@@ -87,71 +83,87 @@ body{
 }
 
 hover_test{
-    width          : 100px;
-    height         : 40px;
+    width          : 100%;
+    height         : 33%;
     color          : var(--header_col);
     border-radius  : 15px;
     hover_color    : var(--accent_col);
     margin-bottom  : 10px;
-    padding        : 15px;
+    padding        : 10px;
+    flex-direction : row;
     align-items    : center;
     justify-content: center;
 }
 
 ht_text{
-    width     : 100px;
-    height    : 40px;
-    color     : rgba(0,0,0,0);
-    text-color: var(--text_col);
-    text-x    : 15px;
-    text-y    : 10px;
-    text_scale: 16px;
+    width       : 100%;
+    height      : 100%;
+    color       : rgba(0,0,0,1);
+    text-color  : var(--text_col);
+    text-align-h: center;
+    text-align-v: center;
+    text_scale  : 16px;
+    border-radius : 200px;
+    border-color : var(--accent_col);
+    border-width : 2px;
+    box-shadow-color: var(--accent_col);
+    box-shadow-blur : 10px;
+    box-shadow-offset: 10px 10px;
 }
 
 click_test{
-    width        : 100px;
-    height       : 40px;
-    color        : var(--header_col);
-    border-radius: 15px;
-    click_color  : var(--accent_col);
-    margin-bottom: 10px;
+    width          : 100%;
+    height         : 33%;
+    color          : var(--header_col);
+    border-radius  : 15px;
+    hover_color    : var(--accent_col);
+    margin-bottom  : 10px;
+    padding        : 10px;
+    flex-direction : row;
+    align-items    : center;
+    justify-content: center;
 }
 
 ct_text{
-    width     : 100px;
-    height    : 40px;
-    color     : rgba(0,0,0,0);
-    text-color: var(--text_col);
-    text-x    : 15px;
-    text-y    : 10px;
-    text_scale: 16px;
+    width       : 100%;
+    height      : 100%;
+    color       : rgba(0,0,0,0);
+    text-color  : var(--text_col);
+    text-align-h: left;
+    text-align-v: top;
+    text_scale  : 16px;
 }
 
 toggle_test{
-    width        : 100px;
-    height       : 40px;
-    color        : var(--header_col);
-    border-radius: 15px;
-    margin-bottom: 10px;
+    width          : 100%;
+    height         : 33%;
+    color          : var(--header_col);
+    border-radius  : 15px;
+    hover_color    : var(--accent_col);
+    margin-bottom  : 10px;
+    padding        : 10px;
+    flex-direction : row;
+    align-items    : center;
+    justify-content: center;
 }
 
 tg_text{
-    width     : 100px;
-    height    : 40px;
-    color     : rgba(0,0,0,0);
-    text-color: var(--text_col);
-    text-x    : 15px;
-    text-y    : 10px;
-    text_scale: 16px;
+    width       : 100%;
+    height      : 100%;
+    color       : rgba(0,0,0,0);
+    text-color  : var(--text_col);
+    text-align-h: right;
+    text-align-v: bottom;
+    text_scale  : 16px;
 }
 
 buttons_test1{
-    display        : flex;
-    flex-direction : column;
-    align-items    : start;
-    justify-content: flex-start;
-    width          : 50%;
-    height         : 50%;
+    display         : flex;
+    flex-direction  : column;
+    align-items     : start;
+    justify-content : flex-start;
+    width           : 50%;
+    height          : 100%;
     background-color: rgba(0,0,0,0);
     border-radius   : var(--border_radii);
     padding         : 5px;

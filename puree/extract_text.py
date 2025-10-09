@@ -20,7 +20,9 @@ class TextExtractor:
                 'mask_x'                  : int(self.json_data[self.flat_index]['position'][0]),
                 'mask_y'                  : int(self.json_data[self.flat_index]['position'][1]),
                 'mask_width'              : int(self.json_data[self.flat_index]['size'][0]),
-                'mask_height'             : int(self.json_data[self.flat_index]['size'][1])
+                'mask_height'             : int(self.json_data[self.flat_index]['size'][1]),
+                'align_h'                 : container.style.text_align_h,
+                'align_v'                 : container.style.text_align_v
             }
         self.flat_index += 1
         for child in container.children:  

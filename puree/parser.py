@@ -336,6 +336,18 @@ class UI():
         elif attr_name in rotation_props:
             attr_value = float(attr_value.replace('deg', '').strip())
 
+        elif attr_name == 'box_shadow_offset':
+            # Parse box-shadow-offset which expects 2 values (x, y) in pixels
+            # Format: "10px 10px" -> [10.0, 10.0, 0.0]
+            values = attr_value.strip().split()
+            if len(values) == 2:
+                x_offset = float(values[0].replace('px', '').strip())
+                y_offset = float(values[1].replace('px', '').strip())
+                attr_value = [x_offset, y_offset, 0.0]
+            else:
+                # Fallback to default if format is incorrect
+                attr_value = [0.0, 0.0, 0.0]
+
         return attr_name, attr_value
 
     def parse_css(self):

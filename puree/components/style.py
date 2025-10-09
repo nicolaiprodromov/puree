@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Union
+from typing import Optional, List
 
 class Style(): 
     def __init__(self): 
@@ -20,12 +20,14 @@ class Style():
         self.click_color_1           : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.click_color_gradient_rot: float       = 0.0
         
-        self.text_x                 : float       = 0.0
-        self.text_y                 : float       = 0.0
-        self.text_scale             : float       = 12.0
-        self.text_color             : List[float] = [1.0, 1.0, 1.0, 1.0]
-        self.text_color_1           : List[float] = [0.0, 0.0, 0.0, 0.0]
-        self.text_color_gradient_rot: float       = 0.0
+        self.text_x                  : float       = 0.0
+        self.text_y                  : float       = 0.0
+        self.text_scale              : float       = 12.0
+        self.text_color              : List[float] = [1.0, 1.0, 1.0, 1.0]
+        self.text_color_1            : List[float] = [0.0, 0.0, 0.0, 0.0]
+        self.text_color_gradient_rot: float        = 0.0
+        self.text_align_h            : str         = 'LEFT'
+        self.text_align_v            : str         = 'CENTER'
 
         self.border_radius            : float       = 0.0
         self.border_width             : float       = 0.0

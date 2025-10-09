@@ -19,17 +19,23 @@
                 style = "body"
                 [app.theme.root.bg.body.buttons_test1]
                     style = "buttons_test1"
+                    
                     [app.theme.root.bg.body.buttons_test1.hover_test]
-                        data     = "[test_button]"
-                        tb_style = "hover_test"
-                        tb_text  = "Hover me!"
+                        data          = "[test_button]"
+                        tb_text_style = "ht_text"
+                        tb_style      = "hover_test"
+                        tb_text       = "Hover me!"
+
                     [app.theme.root.bg.body.buttons_test1.click_test]
-                        data     = "[test_button]"
-                        tb_style = "click_test"
-                        tb_text  = "Click me!"
+                        data          = "[test_button]"
+                        tb_text_style = "ct_text"
+                        tb_style      = "click_test"
+                        tb_text       = "Click me!"
+
                     [app.theme.root.bg.body.buttons_test1.toggle_test]
-                        data     = "[test_button]"
-                        tb_style = "toggle_test"
-                        tb_text  = "Toggle me!"
+                        data          = "[test_button]"
+                        tb_text_style = "tg_text"
+                        tb_style      = "toggle_test"
+                        tb_text       = "Toggle me!"
 
                     
