@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/loggoui2.png" alt="Puree UI Logo" width="200"/>
+<img src="docs/Asset 1.png" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
@@ -12,8 +12,6 @@
 
 <div align="center">
 
-# puree UI
-
 [![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/Puree1/main/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/Puree1)
 [![Release](https://img.shields.io/github/v/release/nicolaiprodromov/Puree1?style=flat&color=blue)](https://github.com/nicolaiprodromov/Puree1/releases)
 
@@ -23,9 +21,9 @@
 
 </div>
 
-The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+*Puree UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
-Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 <div align="center">
 

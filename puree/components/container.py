@@ -31,7 +31,7 @@ class Container():
         self._prev_hovered : bool  = False
         self._scroll_value : float = 0.0
         
-        self._dirty        : bool  = False  # Track if container state changed
+        self._dirty        : bool  = False
     
     def __getattr__(self, name):
         """

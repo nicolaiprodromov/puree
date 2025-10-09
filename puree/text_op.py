@@ -53,7 +53,7 @@ class FontManager:
 font_manager = FontManager()
 
 class TextInstance:
-    def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None):
+    def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER'):
         self.container_id = container_id
         self.id        = len(_text_instances)
         self.text      = text
@@ -63,6 +63,8 @@ class TextInstance:
         self.position  = pos
         self.color     = color
         self.mask      = mask
+        self.align_h   = align_h
+        self.align_v   = align_v
     def update_text(self, new_text):
         self.text = new_text
         self._trigger_redraw()
@@ -83,7 +85,7 @@ class TextInstance:
     def update_mask(self, new_mask):
         self.mask = new_mask
         self._trigger_redraw()
-    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None):
+    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, align_h=None, align_v=None):
         if text is not None:
             self.text = text
         if font_name is not None and font_name in font_manager.get_available_fonts():
@@ -97,6 +99,10 @@ class TextInstance:
             self.color = list(color)
         if mask is not None:
             self.mask = mask
+        if align_h is not None:
+            self.align_h = align_h
+        if align_v is not None:
+            self.align_v = align_v
         self._trigger_redraw()
     def _trigger_redraw(self):
         for area in bpy.context.screen.areas:
@@ -104,7 +110,6 @@ class TextInstance:
                 area.tag_redraw()
 
 def draw_all_text():
-    # Get viewport height to flip Y coordinate
     viewport_height = 0
     for area in bpy.context.screen.areas:
         if area.type == 'VIEW_3D':
@@ -115,6 +120,7 @@ def draw_all_text():
             break
     
     for instance in _text_instances:
+        # Set up clipping if mask exists
         if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             xmin = instance.mask[0]
             ymin = viewport_height - instance.mask[1] - instance.mask[3]
@@ -123,9 +129,39 @@ def draw_all_text():
             blf.clipping(instance.font_id, xmin, ymin, xmax, ymax)
             blf.enable(instance.font_id, blf.CLIPPING)
         
-        flipped_y = viewport_height - instance.position[1] - instance.size
-        blf.position(instance.font_id, instance.position[0], flipped_y, 0)
+        # Set text size and get dimensions
         blf.size(instance.font_id, instance.size)
+        text_width, text_height = blf.dimensions(instance.font_id, instance.text)
+        
+        # Calculate position based on alignment
+        x_pos = instance.position[0]
+        y_pos = instance.position[1]
+        
+        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+            container_width = instance.mask[2]
+            container_height = instance.mask[3]
+            
+            # Horizontal alignment - adjust X based on text anchor point
+            if instance.align_h == 'LEFT':
+                x_pos = instance.mask[0]
+            elif instance.align_h == 'CENTER':
+                x_pos = instance.mask[0] + (container_width - text_width) / 2
+            elif instance.align_h == 'RIGHT':
+                x_pos = instance.mask[0] + container_width - text_width
+            
+            # Vertical alignment - adjust Y based on text anchor point
+            if instance.align_v == 'TOP':
+                y_pos = instance.mask[1]
+            elif instance.align_v == 'CENTER':
+                y_pos = instance.mask[1] + (container_height - text_height) / 2
+            elif instance.align_v == 'BOTTOM':
+                y_pos = instance.mask[1] + container_height - text_height
+        
+        # Convert to Blender's flipped Y coordinate
+        flipped_y = viewport_height - y_pos - text_height
+        
+        # Position and draw
+        blf.position(instance.font_id, x_pos, flipped_y, 0)
         blf.color(instance.font_id, *instance.color)
         blf.draw(instance.font_id, instance.text)
         
@@ -151,6 +187,16 @@ class DrawTextOP(bpy.types.Operator):
     mask_y     : bpy.props.IntProperty(name="Mask Y", default=0)
     mask_width : bpy.props.IntProperty(name="Mask Width", default=0)
     mask_height: bpy.props.IntProperty(name="Mask Height", default=0)
+    align_h    : bpy.props.EnumProperty(
+        name="Horizontal Align",
+        items=[('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],
+        default='LEFT'
+    )
+    align_v    : bpy.props.EnumProperty(
+        name="Vertical Align",
+        items=[('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
+        default='CENTER'
+    )
     
     def execute(self, context):
         global _draw_handle, _text_instances
@@ -166,7 +212,9 @@ class DrawTextOP(bpy.types.Operator):
             size=self.size,
             pos=[self.x_pos, self.y_pos],
             color=list(self.color),
-            mask=mask
+            mask=mask,
+            align_h=self.align_h,
+            align_v=self.align_v
         )
         _text_instances.append(new_instance)
         
@@ -239,33 +287,37 @@ class UpdateTextOP(bpy.types.Operator):
     mask_y     : bpy.props.IntProperty(name="Mask Y", default=-999999)
     mask_width : bpy.props.IntProperty(name="Mask Width", default=-1)
     mask_height: bpy.props.IntProperty(name="Mask Height", default=-1)
+    align_h    : bpy.props.EnumProperty(
+        name="Horizontal Align",
+        items=[('__NOCHANGE__', 'No Change', ''), ('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],
+        default='__NOCHANGE__'
+    )
+    align_v    : bpy.props.EnumProperty(
+        name="Vertical Align",
+        items=[('__NOCHANGE__', 'No Change', ''), ('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
+        default='__NOCHANGE__'
+    )
     
     def execute(self, context):
         for instance in _text_instances:
             if instance.id == self.instance_id:
                 kwargs = {}
                 
-                # Check text content
-                if self.text:  # Empty string means no change
+                if self.text:
                     kwargs['text'] = self.text
                 
-                # Check font
                 if self.font_name != "__NOCHANGE__" and self.font_name in font_manager.get_available_fonts():
                     kwargs['font_name'] = self.font_name
                 
-                # Check size
                 if self.size != -1:
                     kwargs['size'] = self.size
                 
-                # Check position
                 if self.x_pos != -999999 or self.y_pos != -999999:
                     new_x = self.x_pos if self.x_pos != -999999 else instance.position[0]
                     new_y = self.y_pos if self.y_pos != -999999 else instance.position[1]
                     kwargs['pos'] = [new_x, new_y]
                 
-                # Check color (if any component is not -1, update the whole color)
                 if any(c != -1 for c in self.color):
-                    # If some components are -1, keep the current values for those
                     current_color = instance.color
                     new_color = [
                         self.color[0] if self.color[0] != -1 else current_color[0],
@@ -275,7 +327,6 @@ class UpdateTextOP(bpy.types.Operator):
                     ]
                     kwargs['color'] = new_color
                 
-                # Check mask
                 if (self.mask_x != -999999 or self.mask_y != -999999 or 
                     self.mask_width != -1 or self.mask_height != -1):
                     current_mask = instance.mask or [0, 0, 0, 0]
@@ -285,10 +336,15 @@ class UpdateTextOP(bpy.types.Operator):
                         self.mask_width if self.mask_width != -1 else current_mask[2],
                         self.mask_height if self.mask_height != -1 else current_mask[3]
                     ]
-                    # Set mask to None if width or height is 0 or negative
                     kwargs['mask'] = new_mask if new_mask[2] > 0 and new_mask[3] > 0 else None
                 
-                if kwargs:  # Only update if something changed
+                if self.align_h != '__NOCHANGE__':
+                    kwargs['align_h'] = self.align_h
+                
+                if self.align_v != '__NOCHANGE__':
+                    kwargs['align_v'] = self.align_v
+                
+                if kwargs:
                     instance.update_all(**kwargs)
                     updated_props = list(kwargs.keys())
                     self.report({'INFO'}, f"Updated text instance #{self.instance_id}: {', '.join(updated_props)}")

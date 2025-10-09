@@ -422,29 +422,19 @@ void main() {
             
             vec4 sampleColor = vec4(0.0);
             
+            // Render root containers (shadow then container)
             for (int i = 0; i < container_count && i < 100; i++) {
                 Container container = getContainer(i);
                 if (container.parent >= 0) continue;
+                
+                // Render shadow first
                 vec4 shadowColor = renderShadow(samplePos, container, i);
                 if (shadowColor.a > 0.0) {
                     sampleColor.rgb = mix(sampleColor.rgb, shadowColor.rgb, shadowColor.a);
                     sampleColor.a = min(sampleColor.a + shadowColor.a, 1.0);
                 }
-            }
-            
-            for (int i = 0; i < container_count && i < 100; i++) {
-                Container container = getContainer(i);
-                if (container.parent < 0) continue;
-                vec4 shadowColor = renderShadow(samplePos, container, i);
-                if (shadowColor.a > 0.0) {
-                    sampleColor.rgb = mix(sampleColor.rgb, shadowColor.rgb, shadowColor.a);
-                    sampleColor.a = min(sampleColor.a + shadowColor.a, 1.0);
-                }
-            }
-            
-            for (int i = 0; i < container_count && i < 100; i++) {
-                Container container = getContainer(i);
-                if (container.parent >= 0) continue;
+                
+                // Then render container
                 bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
                 bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
                 vec4 containerColor = renderContainer(samplePos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
@@ -453,9 +443,19 @@ void main() {
                 }
             }
             
+            // Render child containers (shadow then container)
             for (int i = 0; i < container_count && i < 100; i++) {
                 Container container = getContainer(i);
                 if (container.parent < 0) continue;
+                
+                // Render shadow first
+                vec4 shadowColor = renderShadow(samplePos, container, i);
+                if (shadowColor.a > 0.0) {
+                    sampleColor.rgb = mix(sampleColor.rgb, shadowColor.rgb, shadowColor.a);
+                    sampleColor.a = min(sampleColor.a + shadowColor.a, 1.0);
+                }
+                
+                // Then render container
                 bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
                 bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
                 vec4 containerColor = renderContainer(samplePos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
@@ -468,29 +468,19 @@ void main() {
         }
         finalColor = accumulatedColor * 0.25;
     } else {
+        // Render root containers (shadow then container)
         for (int i = 0; i < container_count && i < 100; i++) {
             Container container = getContainer(i);
             if (container.parent >= 0) continue;
+            
+            // Render shadow first
             vec4 shadowColor = renderShadow(viewportPixelPos, container, i);
             if (shadowColor.a > 0.0) {
                 finalColor.rgb = mix(finalColor.rgb, shadowColor.rgb, shadowColor.a);
                 finalColor.a = min(finalColor.a + shadowColor.a, 1.0);
             }
-        }
-        
-        for (int i = 0; i < container_count && i < 100; i++) {
-            Container container = getContainer(i);
-            if (container.parent < 0) continue;
-            vec4 shadowColor = renderShadow(viewportPixelPos, container, i);
-            if (shadowColor.a > 0.0) {
-                finalColor.rgb = mix(finalColor.rgb, shadowColor.rgb, shadowColor.a);
-                finalColor.a = min(finalColor.a + shadowColor.a, 1.0);
-            }
-        }
-        
-        for (int i = 0; i < container_count && i < 100; i++) {
-            Container container = getContainer(i);
-            if (container.parent >= 0) continue;
+            
+            // Then render container
             bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
             bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
             vec4 containerColor = renderContainer(viewportPixelPos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
@@ -499,9 +489,19 @@ void main() {
             }
         }
         
+        // Render child containers (shadow then container)
         for (int i = 0; i < container_count && i < 100; i++) {
             Container container = getContainer(i);
             if (container.parent < 0) continue;
+            
+            // Render shadow first
+            vec4 shadowColor = renderShadow(viewportPixelPos, container, i);
+            if (shadowColor.a > 0.0) {
+                finalColor.rgb = mix(finalColor.rgb, shadowColor.rgb, shadowColor.a);
+                finalColor.a = min(finalColor.a + shadowColor.a, 1.0);
+            }
+            
+            // Then render container
             bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
             bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
             vec4 containerColor = renderContainer(viewportPixelPos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
