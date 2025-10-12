@@ -9,7 +9,8 @@ class Compiler():
         self.ui = ui
     def compile(self):
         global global_vars
-        addon_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        from . import get_addon_root
+        addon_dir = get_addon_root()
         
         if addon_dir not in sys.path:
             sys.path.insert(0, addon_dir)

@@ -1,4 +1,4 @@
-.PHONY: build install uninstall deploy wheels update_version
+.PHONY: build install uninstall deploy wheels update_version build_package
 
 ifeq ($(OS),Windows_NT)
 PYTHON := python
@@ -24,9 +24,18 @@ uninstall:
 wheels:
 	@cd puree/wheels && $(PYTHON) download_wheels.py
 
+build_package:
+	@echo "Building Python package..."
+	@echo "Cleaning up old packages..."
+	@rm -f dist/*.tar.gz
+	@$(PYTHON) setup.py sdist bdist_wheel
+	@echo "Moving wheel to puree/wheels..."
+	@mv dist/puree_ui-*.whl puree/wheels/ 2>/dev/null || true
+	@echo "Cleaning up build artifacts..."
+	@rm -rf build *.egg-info
+	@echo "Package built successfully!"
+
 deploy:
-	make wheels
-	make build
 	@$(TIMEOUT)
 	make uninstall
 	@$(TIMEOUT)

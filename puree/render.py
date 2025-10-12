@@ -59,8 +59,9 @@ class RenderPipeline:
                 return False
         return False
     def load_shader_file(self, filename):
-        addon_dir   = os.path.dirname(os.path.dirname(__file__))
-        shader_path = os.path.join(addon_dir, "puree", "shaders", filename)
+        # Shader files are in the puree package directory
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        shader_path = os.path.join(package_dir, "shaders", filename)
         try:
             with open(shader_path, 'r') as f:
                 return f.read()

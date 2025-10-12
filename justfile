@@ -16,9 +16,18 @@ uninstall:
 wheels:
     @cd puree/wheels; {{python}} download_wheels.py
 
+build_package:
+    @echo "Building Python package..."
+    @echo "Cleaning up old packages..."
+    @rm -f dist/*.tar.gz
+    @{{python}} setup.py sdist bdist_wheel
+    @echo "Moving wheel to puree/wheels..."
+    @if [ -f dist/puree_ui-*.whl ]; then mv dist/puree_ui-*.whl puree/wheels/; fi
+    @echo "Cleaning up build artifacts..."
+    @rm -rf build *.egg-info
+    @echo "Package built successfully!"
+
 deploy:
-    just wheels
-    just build
     @{{timeout_cmd}}
     just uninstall
     @{{timeout_cmd}}
@@ -26,12 +35,14 @@ deploy:
 
 update_version VERSION:
     @{{python}} dist/update_version.py {{VERSION}}
+    just build_package
+    just build
 
 release VERSION:
     @echo "Updating version to {{VERSION}}..."
     just update_version {{VERSION}}
     @echo "Committing version bump..."
-    git add blender_manifest.toml __init__.py
+    git add blender_manifest.toml __init__.py setup.py pyproject.toml
     git commit -m "Bump version to {{VERSION}}"
     git push origin master
     @echo "Building and releasing v{{VERSION}}..."

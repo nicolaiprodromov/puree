@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id         = "xwz_puree_ui"
-version    = "0.0.6"
+version    = "0.0.7"
 name       = "Puree UI"
 tagline    = "XWZ Puree UI"
 maintainer = "Nicolai Prodromov"
@@ -42,7 +42,8 @@ wheels = [
   "./puree/wheels/pygments-2.19.2-py3-none-any.whl",
   "./puree/wheels/markdown_it_py-4.0.0-py3-none-any.whl",
   "./puree/wheels/mdurl-0.1.2-py3-none-any.whl",
-  "./puree/wheels/typing_extensions-4.15.0-py3-none-any.whl"
+  "./puree/wheels/typing_extensions-4.15.0-py3-none-any.whl",
+  "./puree/wheels/puree_ui-0.0.7-py3-none-any.whl"
 ]
 
 [build]

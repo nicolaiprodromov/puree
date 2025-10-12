@@ -45,11 +45,10 @@ echo "Building addon: $addon_name version $version"
 
 mkdir -p "$addon_dir/dist"
 
-output_file="$addon_dir/dist/${addon_name}_${version}.zip"
+echo "Cleaning up old zip files..."
+rm -f "$addon_dir/dist"/*.zip
 
-if [ -f "$output_file" ]; then
-    rm -f "$output_file"
-fi
+output_file="$addon_dir/dist/${addon_name}_${version}.zip"
 
 echo "Building extension using Blender $latest_version..."
 "$blender_exe" --background --command extension build --source-dir "$addon_dir" --output-filepath "$output_file"

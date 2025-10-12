@@ -361,7 +361,9 @@ class UI():
         return attr_name, attr_value
 
     def parse_css(self):
-        addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Import here to avoid circular import
+        from . import get_addon_root
+        addon_dir  = get_addon_root()
         style_str = ""
         for _style_file in self.theme.style_files:
             if _style_file.endswith('.css'):
