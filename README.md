@@ -56,11 +56,10 @@ Puree follows a render pipeline inspired by modern web browsers:
 
 This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
 
-
-<div align="center">
-
 > [!NOTE]
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
+
+<div align="center">
 
 ## Quick Example
 
