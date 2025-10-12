@@ -46,6 +46,16 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 
 ### Installation
 
+Install Make or Just, [Blender 4.x+](https://www.blender.org/download/), and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
+```bash
+# install make or just
+# windows
+choco install make
+# linux
+winget install --id Casey.Just
+
+```
+
 1. Download the [latest release](https://github.com/XWZ/Puree/releases/latest) and extract it or clone this repository.
 2. Run `make build` to build the addon zip file.
     - You need Blender 4.x+ installed.

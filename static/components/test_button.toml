@@ -3,4 +3,5 @@
     [test_button.tb_text]
         style   = "{{tb_text_style, 'ht_text'}}"
         text    = "{{tb_text, ''}}"
+        font    = "{{tb_font, 'NeueMontreal-Regular'}}"
         passive = true

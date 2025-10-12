@@ -710,6 +710,7 @@ class XWZ_OT_start_ui(Operator):
                 if state_synced:
                     # Container state changed via scripts, need to update
                     from . import hit_op
+                    from . import text_op
                     new_data = parser_op._container_json_data
                     old_data = hit_op._container_data
                     
@@ -722,6 +723,37 @@ class XWZ_OT_start_ui(Operator):
                                     new_data[i][key] = old_data[i][key]
                     
                     hit_op._container_data = new_data
+                    
+                    # Update text instances with new text content
+                    for text_instance in text_op._text_instances:
+                        container_id = text_instance.container_id
+                        if container_id in parser_op.text_blocks:
+                            block = parser_op.text_blocks[container_id]
+                            text_instance.update_all(
+                                text=block['text'],
+                                font_name=block['font'],
+                                size=block['text_scale'],
+                                pos=[block['text_x'], block['text_y']],
+                                color=block['text_color'],
+                                mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
+                                align_h=block.get('align_h', 'LEFT').upper(),
+                                align_v=block.get('align_v', 'CENTER').upper()
+                            )
+                    
+                    # Update image instances with new image content
+                    from . import img_op
+                    for image_instance in img_op._image_instances:
+                        container_id = image_instance.container_id
+                        if container_id in parser_op.image_blocks:
+                            block = parser_op.image_blocks[container_id]
+                            image_instance.update_all(
+                                image_name=block['image_name'],
+                                pos=[block['x_pos'], block['y_pos']],
+                                size=[block['width'], block['height']],
+                                mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
+                                aspect_ratio=block['aspect_ratio']
+                            )
+                    
                     texture_changed = True
                 
                 # Run compute shader if viewport resized or other state changed

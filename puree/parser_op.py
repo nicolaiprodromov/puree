@@ -138,9 +138,9 @@ def sync_dirty_containers():
     """
     Sync container state from live Container objects to _container_json_data
     without full layout recomputation. This is called when scripts modify
-    container properties (like colors) via event handlers.
+    container properties (like colors, text, images) via event handlers.
     """
-    global XWZ_UI, _container_json_data
+    global XWZ_UI, _container_json_data, text_blocks, image_blocks, image_blocks_relative
     
     if XWZ_UI is None or not _container_json_data:
         return False
@@ -155,6 +155,16 @@ def sync_dirty_containers():
     XWZ_UI.abs_json_data = []
     XWZ_UI.flatten_node_tree()
     _container_json_data = XWZ_UI.abs_json_data
+    
+    # Regenerate text and image blocks to pick up changes
+    # This ensures that changes to container.text and container.img
+    # are reflected in the rendered output
+    text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    
+    text_blocks = text_extractor.text_blocks
+    image_blocks = image_extractor.image_blocks
+    image_blocks_relative = image_extractor.image_blocks_relative
     
     # Clear dirty flags
     clear_dirty_flags(XWZ_UI.theme.root)

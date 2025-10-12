@@ -200,7 +200,10 @@ class UI():
                     has_component_data = 'data' in attr_value and isinstance(attr_value['data'], str) and attr_value['data'].startswith('[') and attr_value['data'].endswith(']')
                     
                     child_container = Container()
-                    child_container.id = attr_name
+                    if parent_container.id == "root":
+                        child_container.id = attr_name
+                    else:
+                        child_container.id = f"{parent_container.id}_{attr_name}"
                     child_container.parent = parent_container
                     parent_container.children.append(child_container)
                     
@@ -259,7 +262,7 @@ class UI():
                                                 if isinstance(attr_value, dict):
                                                     # Create child with namespaced ID using underscore separator
                                                     namespaced_child = Container()
-                                                    namespaced_child.id = f"{namespace_prefix}_{attr_name}"
+                                                    namespaced_child.id = f"{parent.id}_{attr_name}"
                                                     namespaced_child.parent = parent
                                                     parent.children.append(namespaced_child)
                                                     
@@ -272,7 +275,7 @@ class UI():
                                                                 setattr(namespaced_child, child_attr_name.replace('-', '_'), substituted_value)
                                                     
                                                     # Recursively process with namespace and params
-                                                    load_component_with_namespace(attr_value, namespaced_child, f"{namespace_prefix}_{attr_name}", params)
+                                                    load_component_with_namespace(attr_value, namespaced_child, namespaced_child.id, params)
                                                 else:
                                                     # Set scalar attribute on parent with parameter substitution
                                                     if hasattr(parent, attr_name):

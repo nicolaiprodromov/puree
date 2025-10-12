@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import os
+import sys
 from time import sleep
 
 class Compiler():
@@ -9,6 +10,10 @@ class Compiler():
     def compile(self):
         global global_vars
         addon_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        if addon_dir not in sys.path:
+            sys.path.insert(0, addon_dir)
+        
         for _script_ in self.ui.theme.scripts:
             module_name = _script_.replace(".py", "")
             try:
