@@ -1,4 +1,3 @@
-*.whl
 *.ai
 *.blend
 *.blend1
@@ -12,3 +11,8 @@ __pycache__/
 *.pyo
 *.pyd
 .vscode/
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg

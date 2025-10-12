@@ -33,8 +33,7 @@ release VERSION:
     @echo "Committing version bump..."
     git add blender_manifest.toml __init__.py
     git commit -m "Bump version to {{VERSION}}"
-    @echo "Creating and pushing tag v{{VERSION}}..."
-    git tag v{{VERSION}}
     git push origin master
-    git push origin v{{VERSION}}
-    @echo "Release v{{VERSION}} triggered! Check GitHub Actions for build status."
+    @echo "Building and releasing v{{VERSION}}..."
+    @cd dist; {{python}} release.py {{VERSION}}
+    @echo "Release v{{VERSION}} completed!"
