@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Get version from tag
+        id: version
+        run: |
+          $TAG = "${{ github.ref_name }}"
+          $VERSION = $TAG -replace '^v', ''
+          echo "VERSION=$VERSION" >> $env:GITHUB_ENV
+          echo "TAG=$TAG" >> $env:GITHUB_ENV
+        shell: powershell
+
+      - name: Download Blender
+        run: |
+          $blenderUrl = "https://download.blender.org/release/Blender4.2/blender-4.2.0-windows-x64.zip"
+          $blenderZip = "blender.zip"
+          Write-Host "Downloading Blender..."
+          Invoke-WebRequest -Uri $blenderUrl -OutFile $blenderZip
+          Write-Host "Extracting Blender..."
+          Expand-Archive -Path $blenderZip -DestinationPath "blender" -Force
+          $blenderPath = Get-ChildItem -Path "blender" -Filter "blender.exe" -Recurse | Select-Object -First 1
+          echo "BLENDER_PATH=$($blenderPath.FullName)" >> $env:GITHUB_ENV
+        shell: powershell
+
+      - name: Build addon
+        run: |
+          $addonDir = $PWD.Path
+          $outputFile = "$addonDir\dist\Puree_UI_${{ env.VERSION }}.zip"
+          
+          if (Test-Path "dist") {
+            Remove-Item "dist\*.zip" -ErrorAction SilentlyContinue
+          } else {
+            New-Item -ItemType Directory -Path "dist" -Force
+          }
+          
+          Write-Host "Building extension with Blender..."
+          & $env:BLENDER_PATH --background --command extension build --source-dir "$addonDir" --output-filepath "$outputFile"
+          
+          if (Test-Path $outputFile) {
+            Write-Host "Build successful: $outputFile"
+            echo "ZIP_FILE=$outputFile" >> $env:GITHUB_ENV
+            echo "ZIP_NAME=Puree_UI_${{ env.VERSION }}.zip" >> $env:GITHUB_ENV
+          } else {
+            Write-Host "Build failed!"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          $notes = @"
+          ## Puree UI ${{ env.VERSION }}
+          
+          ### Installation
+          1. Download ``Puree_UI_${{ env.VERSION }}.zip``
+          2. In Blender, go to Edit > Preferences > Get Extensions
+          3. Click the dropdown menu (⌄) > Install from Disk
+          4. Select the downloaded zip file
+          
+          ### What's Changed
+          See commits since last release for details.
+          "@
+          
+          $notes | Out-File -FilePath release_notes.md -Encoding utf8
+        shell: powershell
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_FILE }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          name: Puree UI ${{ env.VERSION }}
+          tag_name: ${{ env.TAG }}
