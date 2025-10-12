@@ -22,7 +22,8 @@ class FontManager:
             self._initialized = True
     
     def _load_fonts(self):
-        addon_fonts_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fonts")
+        from . import get_addon_root
+        addon_fonts_path = os.path.join(get_addon_root(), "fonts")
         if os.path.exists(addon_fonts_path):
             for font_file in os.listdir(addon_fonts_path):
                 if font_file.lower().endswith(('.otf', '.ttf')):
@@ -49,6 +50,19 @@ class FontManager:
                 print(f"Failed to unload font {font_name} (path: {font_path}): {e}")
         self.fonts.clear()
         self.font_ids.clear()
+    
+    def reload_fonts(self):
+        """Reload all fonts - used when addon is re-enabled without Blender restart"""
+        self.unload_fonts()
+        self._load_fonts()
+    
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance - used during addon unregister"""
+        if cls._instance is not None:
+            if cls._instance._initialized:
+                cls._instance.unload_fonts()
+            cls._instance = None
 
 font_manager = FontManager()
 
@@ -357,13 +371,23 @@ class UpdateTextOP(bpy.types.Operator):
         return {'CANCELLED'}
 
 def register():
+    global font_manager
+    
+    # Ensure fonts are loaded/reloaded when addon is (re)enabled
+    if font_manager is None:
+        # After unregister was called - recreate the singleton
+        font_manager = FontManager()
+    elif font_manager._initialized:
+        # Addon was previously loaded - reload fonts
+        font_manager.reload_fonts()
+    
     bpy.utils.register_class(DrawTextOP)
     bpy.utils.register_class(RemoveTextOP)
     bpy.utils.register_class(ClearTextOP)
     bpy.utils.register_class(UpdateTextOP)
 
 def unregister():
-    global _draw_handle, _text_instances
+    global _draw_handle, _text_instances, font_manager
     
     # Force clear all text instances
     _text_instances.clear()
@@ -372,7 +396,9 @@ def unregister():
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
-    font_manager.unload_fonts()
+    # Unload fonts and reset the singleton
+    FontManager.reset_instance()
+    font_manager = None
     
     bpy.utils.unregister_class(DrawTextOP)
     bpy.utils.unregister_class(RemoveTextOP)

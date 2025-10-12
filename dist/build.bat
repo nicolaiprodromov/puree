@@ -99,9 +99,10 @@ echo Building addon: %addon_name% version %version%
 
 if not exist "%addon_dir%\dist" mkdir "%addon_dir%\dist"
 
-set output_file=%addon_dir%\dist\%addon_name%_%version%.zip
+echo Cleaning up old zip files...
+del /q "%addon_dir%\dist\*.zip" 2>nul
 
-if exist "%output_file%" del /q "%output_file%"
+set output_file=%addon_dir%\dist\%addon_name%_%version%.zip
 
 echo Building extension using Blender %latest_version%...
 "%blender_exe%" --background --command extension build --source-dir "%addon_dir%" --output-filepath "%output_file%"

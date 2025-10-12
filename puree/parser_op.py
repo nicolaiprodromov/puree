@@ -95,7 +95,8 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
                         break
                 break
         global XWZ_UI, text_blocks, image_blocks, image_blocks_relative
-        addon_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        from . import get_addon_root
+        addon_dir  = get_addon_root()
 
         self.ui              = UI(os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size)
         self.compiler        = Compiler(self.ui)

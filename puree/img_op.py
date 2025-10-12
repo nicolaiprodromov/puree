@@ -24,7 +24,8 @@ class ImageManager:
             self._initialized = True
     
     def _load_images(self):
-        addon_assets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+        from . import get_addon_root
+        addon_assets_path = os.path.join(get_addon_root(), "assets")
         if os.path.exists(addon_assets_path):
             for image_file in os.listdir(addon_assets_path):
                 if image_file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tga', '.webp')):
@@ -66,6 +67,19 @@ class ImageManager:
         
         self.textures.clear()
         self.images.clear()
+    
+    def reload_images(self):
+        """Reload all images - used when addon is re-enabled without Blender restart"""
+        self.unload_images()
+        self._load_images()
+    
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance - used during addon unregister"""
+        if cls._instance is not None:
+            if cls._instance._initialized:
+                cls._instance.unload_images()
+            cls._instance = None
 
 image_manager = ImageManager()
 
@@ -393,13 +407,23 @@ class UpdateImageOP(bpy.types.Operator):
         return {'CANCELLED'}
 
 def register():
+    global image_manager
+    
+    # Ensure images are loaded/reloaded when addon is (re)enabled
+    if image_manager is None:
+        # After unregister was called - recreate the singleton
+        image_manager = ImageManager()
+    elif image_manager._initialized:
+        # Addon was previously loaded - reload images
+        image_manager.reload_images()
+    
     bpy.utils.register_class(DrawImageOP)
     bpy.utils.register_class(RemoveImageOP)
     bpy.utils.register_class(ClearImageOP)
     bpy.utils.register_class(UpdateImageOP)
 
 def unregister():
-    global _draw_handle, _image_instances
+    global _draw_handle, _image_instances, image_manager
     
     # Force clear all image instances
     _image_instances.clear()
@@ -408,7 +432,9 @@ def unregister():
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
-    image_manager.unload_images()
+    # Unload images and reset the singleton
+    ImageManager.reset_instance()
+    image_manager = None
     
     bpy.utils.unregister_class(DrawImageOP)
     bpy.utils.unregister_class(RemoveImageOP)
