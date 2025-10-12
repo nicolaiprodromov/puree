@@ -12,7 +12,8 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/main/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
+
+[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
 [![Release](https://img.shields.io/github/v/release/nicolaiprodromov/puree?style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 
 
@@ -57,6 +58,9 @@ This architecture allows for rapid UI prototyping and iteration while maintainin
 
 
 <div align="center">
+
+> [!NOTE]
+> Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
 ## Quick Example
 
