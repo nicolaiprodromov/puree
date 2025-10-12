@@ -12,8 +12,8 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/Puree1/main/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/Puree1)
-[![Release](https://img.shields.io/github/v/release/nicolaiprodromov/Puree1?style=flat&color=blue)](https://github.com/nicolaiprodromov/Puree1/releases)
+[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/Puree1/main/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
+[![Release](https://img.shields.io/github/v/release/nicolaiprodromov/Puree1?style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 
 
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
