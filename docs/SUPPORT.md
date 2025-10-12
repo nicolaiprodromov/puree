@@ -5,7 +5,7 @@
 If you need help with this project, please try the following:
 
 ### Documentation
-- Check the [README.md](README.md) for setup and usage instructions
+- Check the [README](README.md) for setup and usage instructions
 - Review any existing documentation in the repository
 
 ### Issues
@@ -25,4 +25,4 @@ This project is provided as-is. Commercial support is not currently available.
 
 ## Contributing
 
-Interested in contributing? Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Interested in contributing? Please refer to [Contributing](CONTRIBUTING.md) for guidelines.

@@ -26,3 +26,15 @@ deploy:
 
 update_version VERSION:
     @{{python}} dist/update_version.py {{VERSION}}
+
+release VERSION:
+    @echo "Updating version to {{VERSION}}..."
+    just update_version {{VERSION}}
+    @echo "Committing version bump..."
+    git add blender_manifest.toml __init__.py
+    git commit -m "Bump version to {{VERSION}}"
+    @echo "Creating and pushing tag v{{VERSION}}..."
+    git tag v{{VERSION}}
+    git push origin master
+    git push origin v{{VERSION}}
+    @echo "Release v{{VERSION}} triggered! Check GitHub Actions for build status."
