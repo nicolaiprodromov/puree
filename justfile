@@ -23,3 +23,6 @@ deploy:
     just uninstall
     @{{timeout_cmd}}
     just install
+
+update_version VERSION:
+    @{{python}} dist/update_version.py {{VERSION}}

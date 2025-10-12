@@ -4,7 +4,7 @@ from .puree import register as xwz_ui_register, unregister as xwz_ui_unregister
 bl_info = {
     "name"       : "Puree",
     "author"     : "Nicolai Prodromov",
-    "version"    : (0, 0, 2),
+    "version"    : (0, 0, 6),
     "blender"    : (4, 2, 0),
     "location"   : "3D View > Sidebar > Puree",
     "description": "XWZ Puree UI framework",
