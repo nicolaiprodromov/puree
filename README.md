@@ -20,9 +20,15 @@
 
 *Puree UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
+It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
+
 > Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 <div align="center">
+
+## What is puree good for?
+
+From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown-type (and soon true markdown rendering!) rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
 
 ## Key Features
 
@@ -248,6 +254,11 @@ This architecture enables:
 
 </div>
 
+> [!WARNING]
+> ### **Puree 0.0.2 beta - WIP**
+> - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> - The API is not stable and **breaking changes are expected** in future releases.
+
 ### Getting Help
 
 For questions and support, check out the [docs](docs/DOCS.md) or [support guide](docs/SUPPORT.md).
@@ -290,6 +301,8 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 <div align="center">
 
 *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
+
+<img src="docs/munky.gif" width="100px">
 
 </div>
 
