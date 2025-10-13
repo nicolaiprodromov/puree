@@ -44,7 +44,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 <div align="center">
 
-## Quick Example
+## Quick Start
 
 </div>
 
@@ -255,8 +255,8 @@ This architecture enables:
 </div>
 
 > [!WARNING]
-> ### **Puree 0.0.2 beta - WIP**
-> - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> ### **puree is in beta - WIP**
+> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 > - The API is not stable and **breaking changes are expected** in future releases.
 
 ### Getting Help
