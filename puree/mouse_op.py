@@ -1,4 +1,5 @@
 import bpy
+import time
 
 class MouseState:
     _instance = None
@@ -52,6 +53,9 @@ class XWZ_OT_mouse(bpy.types.Operator):
     
     def invoke(self, context, event):
         self.should_stop = False
+        self.start_time = time.time()
+        self.click_enabled = False
+        mouse_state.is_clicked = False
         mouse_state.set_operator(self)
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
@@ -60,6 +64,11 @@ class XWZ_OT_mouse(bpy.types.Operator):
         if self.should_stop:
             mouse_state.set_operator(None)
             return {'CANCELLED'}
+        
+        if not self.click_enabled:
+            elapsed = time.time() - self.start_time
+            if elapsed >= 1.0:
+                self.click_enabled = True
         
         if event.type == 'MOUSEMOVE':
             area = context.area
@@ -71,10 +80,12 @@ class XWZ_OT_mouse(bpy.types.Operator):
                 mouse_state.update_mouse(pos)
         
         elif event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-            mouse_state.update_click(True)
+            if self.click_enabled:
+                mouse_state.update_click(True)
         
         elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
-            mouse_state.update_click(False)
+            if self.click_enabled:
+                mouse_state.update_click(False)
         
         if event.type in {'ESC'}:
             return {'CANCELLED'}
