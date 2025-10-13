@@ -1,0 +1,35 @@
+schema_version = "1.0.0"
+
+id         = "your_addon_id"
+version    = "your_addon_version"
+name       = "your_addon_name"
+tagline    = "your_addon_tagline"
+maintainer = "your_addon_maintainer"
+type       = "add-on"
+
+blender_version_min = "your_addon_version_blend_min"
+
+license = [
+  "your_addon_license",
+]
+
+platforms = [
+  "windows-x64",
+  "linux-x64",
+  "macos-arm64",
+  "macos-x64"
+  ]
+
+wheels = [
+  "./wheels/puree_ui-0.0.7-py3-none-any.whl"
+]
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "*.zip",
+  "*.pyc",
+  ".gitignore",
+  ".vscode/",
+  ".git/",
+]
