@@ -4,6 +4,9 @@ import re
 import json
 import subprocess
 import time
+import shutil
+import zipfile
+import tarfile
 from pathlib import Path
 
 def get_version():
@@ -24,45 +27,71 @@ def get_addon_name():
         return match.group(1).replace(' ', '')
     raise Exception("Name not found in blender_manifest.toml")
 
-def build_addon(version):
-    print(f"Building addon version {version}...")
-    
-    build_script = Path(__file__).parent / 'build.bat'
-    result = subprocess.run([str(build_script)], cwd=build_script.parent, shell=True)
-    
-    if result.returncode != 0:
-        print("Build failed!")
-        sys.exit(1)
+def create_release_archives(version):
+    print(f"Creating release archives for version {version}...")
     
     addon_name = get_addon_name()
-    zip_file = Path(__file__).parent / f"{addon_name}_{version}.zip"
+    project_root = Path(__file__).parent.parent
+    dist_dir = Path(__file__).parent
+    release_dir = dist_dir / 'release'
     
-    print(f"Waiting for zip file: {zip_file}")
-    max_wait = 30
-    wait_time = 0
-    while not zip_file.exists() and wait_time < max_wait:
-        time.sleep(1)
-        wait_time += 1
-        if wait_time % 5 == 0:
-            print(f"Still waiting... ({wait_time}s)")
+    release_dir.mkdir(exist_ok=True)
     
-    if not zip_file.exists():
-        print(f"Error: Expected zip file not found after {max_wait}s: {zip_file}")
-        sys.exit(1)
+    release_items = [
+        'assets',
+        'fonts',
+        'static',
+        'wheels',
+        '__init__.example.py',
+        'blender_manifest.example.toml',
+        'LICENSE',
+        'README.md'
+    ]
     
-    print(f"Zip file found, verifying...")
-    initial_size = zip_file.stat().st_size
-    time.sleep(1)
-    final_size = zip_file.stat().st_size
+    temp_build_dir = release_dir / 'temp_build'
+    if temp_build_dir.exists():
+        shutil.rmtree(temp_build_dir)
+    temp_build_dir.mkdir(parents=True)
     
-    if initial_size != final_size:
-        print("File still being written, waiting...")
-        time.sleep(2)
+    print("Copying release files...")
+    for item in release_items:
+        source = project_root / item
+        dest = temp_build_dir / item
+        
+        if not source.exists():
+            print(f"Warning: {item} not found, skipping...")
+            continue
+            
+        if source.is_dir():
+            shutil.copytree(source, dest)
+        else:
+            shutil.copy2(source, dest)
     
-    print(f"Build successful: {zip_file}")
-    return zip_file
+    zip_file = release_dir / f"{addon_name}_{version}.zip"
+    tar_file = release_dir / f"{addon_name}_{version}.tar.gz"
+    
+    print(f"Creating {zip_file.name}...")
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(temp_build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(temp_build_dir)
+                zf.write(file_path, arcname)
+    
+    print(f"Creating {tar_file.name}...")
+    with tarfile.open(tar_file, 'w:gz') as tf:
+        for root, dirs, files in os.walk(temp_build_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(temp_build_dir)
+                tf.add(file_path, arcname)
+    
+    shutil.rmtree(temp_build_dir)
+    
+    print(f"Release archives created successfully!")
+    return zip_file, tar_file
 
-def create_github_release(version, zip_file):
+def create_github_release(version, zip_file, tar_file):
     print(f"Creating GitHub release v{version}...")
     
     tag = f"v{version}"
@@ -71,10 +100,10 @@ def create_github_release(version, zip_file):
     release_notes = f"""## Puree UI {version}
 
 ### Installation
-1. Download `{zip_file.name}`
+1. Download `{zip_file.name}` or `{tar_file.name}`
 2. In Blender, go to Edit > Preferences > Get Extensions
 3. Click the dropdown menu (⌄) > Install from Disk
-4. Select the downloaded zip file
+4. Select the downloaded archive file
 
 ### What's Changed
 See commits since last release for details.
@@ -86,6 +115,7 @@ See commits since last release for details.
     cmd = [
         'gh', 'release', 'create', tag,
         str(zip_file),
+        str(tar_file),
         '--title', release_name,
         '--notes-file', str(notes_file),
         '--repo', 'nicolaiprodromov/puree'
@@ -130,8 +160,8 @@ def main():
         print("Install it from: https://cli.github.com/")
         sys.exit(1)
     
-    zip_file = build_addon(version)
-    create_github_release(version, zip_file)
+    zip_file, tar_file = create_release_archives(version)
+    create_github_release(version, zip_file, tar_file)
     
     print("\nRelease process completed successfully!")
 
