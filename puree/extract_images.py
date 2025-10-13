@@ -19,7 +19,9 @@ class ImageExtractor():
                 "mask_y"      : int(self.json_data[self.flat_index]['position'][1]),
                 "mask_width"  : int(self.json_data[self.flat_index]['size'][0]),
                 "mask_height" : int(self.json_data[self.flat_index]['size'][1]),
-                "aspect_ratio": container.style.aspect_ratio
+                "aspect_ratio": container.style.aspect_ratio,
+                'align_h'     : container.style.img_align_h,
+                'align_v'     : container.style.img_align_v
             }
         self.flat_index += 1
         for child in container.children:

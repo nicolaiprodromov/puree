@@ -79,7 +79,7 @@ class ImageManager:
 image_manager = ImageManager()
 
 class ImageInstance:
-    def __init__(self, container_id, image_name=None, pos=[50, 50], size=[100, 100], mask=None, aspect_ratio=True):
+    def __init__(self, container_id, image_name=None, pos=[50, 50], size=[100, 100], mask=None, aspect_ratio=True, align_h='LEFT', align_v='TOP'):
         self.id           = len(_image_instances)
         self.container_id = container_id
         self.image_name   = image_name
@@ -88,6 +88,8 @@ class ImageInstance:
         self.size         = size
         self.mask         = mask
         self.aspect_ratio = aspect_ratio
+        self.align_h      = align_h
+        self.align_v      = align_v
         self.shader       = gpu.shader.from_builtin('IMAGE')
         self.batch        = None
         self._create_batch()
@@ -153,7 +155,7 @@ class ImageInstance:
         self.aspect_ratio = new_aspect_ratio
         self._trigger_redraw()
     
-    def update_all(self, image_name=None, size=None, pos=None, mask=None, aspect_ratio=None):
+    def update_all(self, image_name=None, size=None, pos=None, mask=None, aspect_ratio=None, align_h=None, align_v=None):
         if image_name is not None and image_name in image_manager.get_available_images():
             self.image_name = image_name
             self.texture = image_manager.get_texture(image_name)
@@ -166,6 +168,10 @@ class ImageInstance:
             self.mask = mask
         if aspect_ratio is not None:
             self.aspect_ratio = aspect_ratio
+        if align_h is not None:
+            self.align_h = align_h
+        if align_v is not None:
+            self.align_v = align_v
         self._trigger_redraw()
     
     def _trigger_redraw(self):
@@ -197,12 +203,33 @@ def draw_all_images():
             gpu.state.scissor_test_set(True)
             gpu.state.scissor_set(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
         
-        flipped_y = viewport_height - instance.position[1] - instance.size[1]
-        
         display_size = instance.get_display_size()
         
+        x_pos = instance.position[0]
+        y_pos = instance.position[1]
+        
+        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+            container_width = instance.mask[2]
+            container_height = instance.mask[3]
+            
+            if instance.align_h == 'LEFT':
+                x_pos = instance.mask[0]
+            elif instance.align_h == 'CENTER':
+                x_pos = instance.mask[0] + (container_width - display_size[0]) / 2
+            elif instance.align_h == 'RIGHT':
+                x_pos = instance.mask[0] + container_width - display_size[0]
+            
+            if instance.align_v == 'TOP':
+                y_pos = instance.mask[1]
+            elif instance.align_v == 'CENTER':
+                y_pos = instance.mask[1] + (container_height - display_size[1]) / 2
+            elif instance.align_v == 'BOTTOM':
+                y_pos = instance.mask[1] + container_height - display_size[1]
+        
+        flipped_y = viewport_height - y_pos - display_size[1]
+        
         scale_matrix = Matrix.Diagonal((display_size[0], display_size[1], 1.0, 1.0))
-        translation_matrix = Matrix.Translation((instance.position[0], flipped_y, 0))
+        translation_matrix = Matrix.Translation((x_pos, flipped_y, 0))
         
         matrix = gpu.matrix.get_projection_matrix()
         matrix = matrix @ translation_matrix @ scale_matrix
@@ -245,6 +272,16 @@ class DrawImageOP(bpy.types.Operator):
     mask_width  : bpy.props.IntProperty(name="Mask Width", default=0)
     mask_height : bpy.props.IntProperty(name="Mask Height", default=0)
     aspect_ratio: bpy.props.BoolProperty(name="Keep Aspect Ratio", default=True)
+    align_h     : bpy.props.EnumProperty(
+        name="Horizontal Align",
+        items=[('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],
+        default='LEFT'
+    )
+    align_v     : bpy.props.EnumProperty(
+        name="Vertical Align",
+        items=[('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
+        default='TOP'
+    )
     
     def execute(self, context):
         global _draw_handle, _image_instances
@@ -259,7 +296,9 @@ class DrawImageOP(bpy.types.Operator):
             pos=[self.x_pos, self.y_pos],
             size=[self.width, self.height],
             mask=mask,
-            aspect_ratio=self.aspect_ratio
+            aspect_ratio=self.aspect_ratio,
+            align_h=self.align_h,
+            align_v=self.align_v
         )
         _image_instances.append(new_instance)
         
@@ -346,6 +385,16 @@ class UpdateImageOP(bpy.types.Operator):
         ],
         default=0  # Will default to "No Change"
     )
+    align_h: bpy.props.EnumProperty(
+        name="Horizontal Align",
+        items=[('__NOCHANGE__', 'No Change', ''), ('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],
+        default='__NOCHANGE__'
+    )
+    align_v: bpy.props.EnumProperty(
+        name="Vertical Align",
+        items=[('__NOCHANGE__', 'No Change', ''), ('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
+        default='__NOCHANGE__'
+    )
     
     def execute(self, context):
         for instance in _image_instances:
@@ -388,6 +437,12 @@ class UpdateImageOP(bpy.types.Operator):
                 # Check aspect ratio
                 if self.aspect_ratio != "__NOCHANGE__":
                     kwargs['aspect_ratio'] = self.aspect_ratio == "TRUE"
+                
+                if self.align_h != '__NOCHANGE__':
+                    kwargs['align_h'] = self.align_h
+                
+                if self.align_v != '__NOCHANGE__':
+                    kwargs['align_v'] = self.align_v
                 
                 if kwargs:
                     instance.update_all(**kwargs)
