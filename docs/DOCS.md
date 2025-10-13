@@ -887,7 +887,8 @@ The `Container` class represents an individual UI node/element in the interface 
 | `passive` | `bool` | Whether the container is passive (non-interactive) |
 | `layer` | `int` | Z-index/rendering layer for the container |
 
-> **Note:** Properties prefixed with `_` are internal state properties used by the framework for tracking user interactions and should generally not be modified directly by user code.
+> [!NOTE]
+> Properties prefixed with `_` are internal state properties used by the framework for tracking user interactions and should generally not be modified directly by user code.
 
 ---
 
