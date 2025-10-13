@@ -260,6 +260,7 @@ You can add custom Python scripts to your theme to handle events and add interac
 ##### Basic Structure
 
 The `main` function is the entry point for your script and receives two arguments:
+
 - `self` - The compiler instance
 - `app` - The UI application object
 
