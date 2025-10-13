@@ -56,9 +56,9 @@ Puree follows a render pipeline inspired by modern web browsers:
 
 ```mermaid
 graph TD;
-    index.toml-->UI;
-    style.css-->UI;
-    script.py-->UI;
+    index-->UI;
+    style-->UI;
+    script-->UI;
     UI-->PARSER;
     PARSER-->RENDERER;
     RENDERER-->BLENDER;
