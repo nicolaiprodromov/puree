@@ -229,12 +229,12 @@ graph LR
     
     H --> N[Blender Viewport]
     
-    style A fill:#e3f2fd
-    style C fill:#fff3e0
-    style D fill:#f3e5f5
-    style G fill:#e8f5e9
-    style H fill:#fce4ec
-    style K fill:#fff9c4
+    style A fill:#000
+    style C fill:#000
+    style D fill:#000
+    style G fill:#000
+    style H fill:#000
+    style K fill:#000
 ```
 
 This architecture enables:
