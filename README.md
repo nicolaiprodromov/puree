@@ -55,13 +55,85 @@ Puree follows a render pipeline inspired by modern web browsers:
 5. **Event Handling** – Mouse, scroll, and click events are tracked and propagated through the component tree
 
 ```mermaid
-graph TD;
-    index-->UI;
-    style-->UI;
-    script-->UI;
-    UI-->PARSER;
-    PARSER-->RENDERER;
-    RENDERER-->BLENDER;
+graph TB
+    subgraph Input["📁 Input Layer"]
+        TOML[index.toml<br/>Component Structure]
+        CSS[style.css<br/>Styling Rules]
+        Assets[assets/<br/>Images & Fonts]
+    end
+
+    subgraph Parse["🔍 Parse Layer"]
+        Parser[parser.py<br/>TOML Parser]
+        CSSParser[TinyCSS2<br/>CSS Parser]
+        ExtractText[extract_text.py<br/>Text Extraction]
+        ExtractImg[extract_images.py<br/>Image Processing]
+    end
+
+    subgraph Component["🧩 Component Layer"]
+        Container[container.py<br/>Container Objects]
+        Style[style.py<br/>Style Application]
+        Utils[utils.py<br/>Utilities]
+    end
+
+    subgraph Layout["📐 Layout Layer"]
+        Compiler[compiler.py<br/>Layout Compiler]
+        Stretchable[Stretchable<br/>Flexbox Engine]
+    end
+
+    subgraph Render["🎨 Render Layer"]
+        ModernGL[ModernGL<br/>GPU Context]
+        Shaders[shaders/<br/>GLSL Shaders]
+        RenderEngine[render.py<br/>Render Pipeline]
+    end
+
+    subgraph Events["🖱️ Event Layer"]
+        MouseOp[mouse_op.py<br/>Mouse Events]
+        ScrollOp[scroll_op.py<br/>Scroll Events]
+        HitOp[hit_op.py<br/>Hit Detection]
+    end
+
+    subgraph UI["🖼️ UI Layer"]
+        Panel[panel.py<br/>Blender Panel]
+        TextOp[text_op.py<br/>Text Operations]
+        ImgOp[img_op.py<br/>Image Operations]
+    end
+
+    TOML --> Parser
+    CSS --> CSSParser
+    Assets --> ExtractText
+    Assets --> ExtractImg
+    
+    Parser --> Container
+    CSSParser --> Style
+    ExtractText --> Container
+    ExtractImg --> Container
+    
+    Container --> Compiler
+    Style --> Compiler
+    Utils --> Compiler
+    
+    Compiler --> Stretchable
+    Stretchable --> RenderEngine
+    
+    RenderEngine --> ModernGL
+    ModernGL --> Shaders
+    Shaders --> Panel
+    
+    MouseOp --> HitOp
+    ScrollOp --> HitOp
+    HitOp --> Container
+    
+    Panel --> TextOp
+    Panel --> ImgOp
+    Container --> Panel
+
+    style Input fill:#e8f4f8
+    style Parse fill:#fff4e6
+    style Component fill:#f0f8ff
+    style Layout fill:#fff0f5
+    style Render fill:#f0fff0
+    style Events fill:#fffacd
+    style UI fill:#ffe4e1
 ```
 
 This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
