@@ -67,46 +67,104 @@ This architecture allows for rapid UI prototyping and iteration while maintainin
 
 Here's a minimal example to get you started with Puree:
 
-1. **Download the [latest release](https://github.com/nicolaiprodromov/puree/releases) or clone the [repository](https://github.com/nicolaiprodromov/puree)**
+1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
+
+    ```bash
+    pip download --only-binary=:all: --no-deps --dest wheels puree-ui
+    ```
 
 2. **Create your project structure:**
 
-    ```
-    my_addon/
-        ├── puree/ <-- puree source code
+    ```bash
+    my_addon/x
         ├── static/
         │   ├── index.toml
         │   └── style.css
         └── __init__.py <-- your addon entry point
     ```
 
-3. **Define your addon entrypoint in `__init__.py`:**
+3. **Define your addon manifest in `blender_manifest.toml`:**
+
+    Rename the `blender_manifest.example.toml` to `blender_manifest.toml` and modify to fit your addons metadata.
+
+    ```toml
+    schema_version      = "1.0.0"
+    id                  = "your_addon_id"
+    version             = "your_addon_version"
+    name                = "your_addon_name"
+    tagline             = "your_addon_tagline"
+    maintainer          = "your_name"
+    type                = "add-on"
+    blender_version_min = "your_addon_version_blend_min"
+
+    license = [
+    "your_addon_license",
+    ]
+
+    platforms = [
+    "windows-x64",
+    "linux-x64",
+    "macos-arm64",
+    "macos-x64"
+    ]
+
+    wheels = [
+    "./wheels/puree_ui-0.0.7-py3-none-any.whl"
+    ]
+
+    [build]
+    paths_exclude_pattern = [
+    "__pycache__/",
+    "*.zip",
+    "*.pyc",
+    ".gitignore",
+    ".vscode/",
+    ".git/",
+    ]
+    ```
+
+4. **Define your addon entrypoint in `__init__.py`:**
+
+    Rename the `__init__.example.py` to `__init__.py` and modify to fit your addons metadata.
 
     ```python
     import bpy
-    from .puree import register as xwz_ui_register, unregister as xwz_ui_unregister
+    import os
+    from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
+    from puree import set_addon_root
+
     bl_info = {
-        "name"       : "my first puree addon",
-        "author"     : "you",
-        "version"    : (0, 0, 2),
+        "name"       : "your_addon_name",
+        "author"     : "your_name",
+        "version"    : (1, 0, 0),
         "blender"    : (4, 2, 0),
-        "location"   : "3D View > Sidebar > Puree",
-        "description": "XWZ Puree UI framework",
-        "category"   : "3D View"
+        "location"   : "3D View > Sidebar > Your Addon",
+        "description": "Your addon description",
+        "category"   : "Your Addon Category"
     }
+
     def register():
+        # Set the addon root directory so puree knows where to find resources
+        set_addon_root(os.path.dirname(os.path.abspath(__file__)))
+        # Register the framework
         xwz_ui_register()
+        # Set default properties
+        # ui_conf_path is relative to the addon root directory and
+        # is required to point puree to the main configuration file of your UI
         wm = bpy.context.window_manager
         wm.xwz_ui_conf_path = "static/index.toml"
         wm.xwz_debug_panel  = True
         wm.xwz_auto_start   = True
+
     def unregister():
+        # Unregister the framework
         xwz_ui_unregister()
+        
     if __name__ == "__main__":
         register()
     ```
 
-4. **Define your UI in `index.toml`:**
+5. **Define your UI in `index.toml`:**
 
     ```toml
     [app]
@@ -127,7 +185,7 @@ Here's a minimal example to get you started with Puree:
                 text  = "Hello, Puree!"
     ```
 
-5. **Style it in `style.css`:**
+6. **Style it in `style.css`:**
 
     ```css
     root {
@@ -148,32 +206,11 @@ Here's a minimal example to get you started with Puree:
     }
     ```
 
-6. **Install Make or Just**, [Blender 4.x+](https://www.blender.org/download/), and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
+7. **Zip the files.**
 
-    ```bash
-    # install make or just
-    # windows
-    choco install make
-    winget install --id Casey.Just
-    #linux 
-    # for just or both you can just use snap or any package manager
-    # or for make run
-    sudo apt update
-    sudo apt install make
-    ```
+8. **Install in Blender**: `Edit > Preferences > Add-ons > Install from disk`
 
-7. **Run `make build` to build the addon zip file.**
-    - You need Blender 4.x+ installed.
-    - You need *Python 3.10+* installed on your system.
-    - You need *make* installed on your system.
-    - You can also manually zip the folder.
-
-8. **Run `make install` to install the addon in Blender.**
-    - To run `install` command you must install the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) in Blender and connect to the server.
-    - Alternatively, run `make deploy` to build and install in one step.
-    - Or just install the zip file manually in Blender preferences: Edit > Preferences > Add-ons > Install from disk
-
-Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
+9. Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
 
 <div align="center">
 

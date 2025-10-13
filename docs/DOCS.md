@@ -1,4 +1,5 @@
-> ### 🚧 **Puree 0.0.2 beta - WIP** 🚧
+> [!WARNING]
+> ### **Puree 0.0.2 beta - WIP**
 > - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 > - The API is not stable and **breaking changes are expected** in future releases.
 
@@ -46,26 +47,52 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 
 ### Installation
 
-Install Make or Just, [Blender 4.x+](https://www.blender.org/download/), and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
-```bash
-# install make or just
-# windows
-choco install make
-# linux
-winget install --id Casey.Just
+There are 3 ways to start working with puree:
 
+1. [Install with pip](#install-with-pip) and make your own app directory
+2. [Download the latest release](#download-latest-release) and modify & rename the example files
+3. [Clone this repo](#install-with-pip), install dependencies, build the addon, and work from there
+
+#### Install with pip
+
+Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon. This way you will have to build the addon structure yourself from scratch.
+
+```bash
+pip download --only-binary=:all: --no-deps --dest wheels puree-ui
 ```
 
-1. Download the [latest release](https://github.com/XWZ/Puree/releases/latest) and extract it or clone this repository.
-2. Run `make build` to build the addon zip file.
+#### Download latest release
+
+Go to Releases and download the archive. Unpack it, modify the files, build and install addon.
+
+#### Clone the repo
+
+1. Clone this repository.
+
+    ```bash
+    git clone https://github.com/nicolaiprodromov/puree
+    ```
+
+2. Install Make or Just, [Blender 4.x+](https://www.blender.org/download/), and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
+
+    ```bash
+    # install make or just
+    # windows
+    choco install make
+    # linux
+    winget install --id Casey.Just
+
+    ```
+
+3. Run `just build_package` or `make build_package` to build the python package.
+4. Run `just build` or `make build` to build the addon zip file.
     - You need Blender 4.x+ installed.
     - You need *Python 3.10+* installed on your system.
-    - You need *make* installed on your system.
     - You can also manually zip the folder.
-3. Run `make install` to install the addon in Blender.
+5. Run `make install` to install the addon in Blender.
     - To run `install` command you must install the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) in Blender and connect to the server.
-    - Alternatively, run `make deploy` to build and install in one step.
-    - Or just install the zip file manually in Blender preferences: Edit > Preferences > Add-ons > Install from disk
+    - Alternatively, run `just deploy` or `make deploy` to build package, and build and install addon in one step.
+    - Or just install the zip file manually in Blender preferences: `Edit > Preferences > Add-ons > Install from disk`
 
 ---
 
