@@ -56,7 +56,7 @@ Here's a minimal example to get you started with Puree:
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 
     ```bash
-    pip download --only-binary=:all: --no-deps --dest wheels puree-ui
+    pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
     ```
 
 2. **Create your project structure:**
@@ -74,13 +74,15 @@ Here's a minimal example to get you started with Puree:
     Rename the `blender_manifest.example.toml` to `blender_manifest.toml` and modify to fit your addons metadata.
 
     ```toml
-    schema_version      = "1.0.0"
-    id                  = "your_addon_id"
-    version             = "your_addon_version"
-    name                = "your_addon_name"
-    tagline             = "your_addon_tagline"
-    maintainer          = "your_name"
-    type                = "add-on"
+    schema_version = "1.0.0"
+
+    id         = "your_addon_id"
+    version    = "your_addon_version"
+    name       = "your_addon_name"
+    tagline    = "your_addon_tagline"
+    maintainer = "your_name"
+    type       = "add-on"
+
     blender_version_min = "your_addon_version_blend_min"
 
     license = [
@@ -95,7 +97,24 @@ Here's a minimal example to get you started with Puree:
     ]
 
     wheels = [
-    "./wheels/puree_ui-0.0.7-py3-none-any.whl"
+    "./wheels/attrs-25.3.0-py3-none-any.whl",
+    "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
+    "./wheels/linkify_it_py-2.0.3-py3-none-any.whl",
+    "./wheels/markdown_it_py-4.0.0-py3-none-any.whl",
+    "./wheels/mdit_py_plugins-0.5.0-py3-none-any.whl",
+    "./wheels/mdurl-0.1.2-py3-none-any.whl",
+    "./wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
+    "./wheels/platformdirs-4.5.0-py3-none-any.whl",
+    "./wheels/puree_ui-0.0.7-py3-none-any.whl",
+    "./wheels/pygments-2.19.2-py3-none-any.whl",
+    "./wheels/rich-14.1.0-py3-none-any.whl",
+    "./wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
+    "./wheels/textual-6.2.1-py3-none-any.whl",
+    "./wheels/tinycss2-1.4.0-py3-none-any.whl",
+    "./wheels/toml-0.10.2-py2.py3-none-any.whl",
+    "./wheels/typing_extensions-4.15.0-py3-none-any.whl",
+    "./wheels/uc_micro_py-1.0.3-py3-none-any.whl",
+    "./wheels/webencodings-0.5.1-py2.py3-none-any.whl"
     ]
 
     [build]
