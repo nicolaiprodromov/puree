@@ -29,6 +29,9 @@ class Style():
         self.text_align_h            : str         = 'LEFT'
         self.text_align_v            : str         = 'CENTER'
 
+        self.img_align_h            : str         = 'LEFT'
+        self.img_align_v            : str         = 'TOP'
+
         self.border_radius            : float       = 0.0
         self.border_width             : float       = 0.0
         self.border_color             : List[float] = [0.0, 0.0, 0.0, 0.0]
