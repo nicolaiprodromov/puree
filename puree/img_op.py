@@ -36,6 +36,8 @@ class ImageManager:
                         else:
                             bpy_image = bpy.data.images[image_file]
                         
+                        bpy_image.alpha_mode = 'PREMUL'
+                        
                         texture = gpu.texture.from_image(bpy_image)
                         image_name = os.path.splitext(image_file)[0]
                         self.images[image_name] = image_path
@@ -181,7 +183,7 @@ def draw_all_images():
                     break
             break
     
-    gpu.state.blend_set('ALPHA')
+    gpu.state.blend_set('ALPHA_PREMULT')
     
     for instance in _image_instances:
         if not instance.texture or not instance.batch:
