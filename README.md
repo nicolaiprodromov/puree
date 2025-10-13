@@ -54,6 +54,16 @@ Puree follows a render pipeline inspired by modern web browsers:
 4. **GPU Rendering** – A compute shader generates the final UI texture with gradients, rounded corners, shadows, and interaction states
 5. **Event Handling** – Mouse, scroll, and click events are tracked and propagated through the component tree
 
+```mermaid
+graph TD;
+    index.toml-->UI;
+    style.css-->UI;
+    script.py-->UI;
+    UI-->PARSER;
+    PARSER-->RENDERER;
+    RENDERER-->BLENDER;
+```
+
 This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
 
 > [!TIP]
@@ -67,10 +77,10 @@ This architecture allows for rapid UI prototyping and iteration while maintainin
 
 Here's a minimal example to get you started with Puree:
 
-1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
-
 > [!IMPORTANT]
 > Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
+
+1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 
     ```bash
     pip download --only-binary=:all: --no-deps --dest wheels puree-ui
