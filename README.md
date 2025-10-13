@@ -6,16 +6,12 @@
 
 *A declarative UI framework for Blender addons and much more*
 
-
-
 </div>
 
 <div align="center">
 
-
 [![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
 [![Release](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
-
 
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
@@ -30,8 +26,6 @@
 
 ## Key Features
 
-</div>
-
 | Feature | Description |
 |---------|-------------|
 | *Declarative UI Design* | Define your interface structure using TOML configuration files with HTML-like nesting |
@@ -39,6 +33,8 @@
 | *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
 | *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
 | *Web-Inspired Architecture* | Familiar paradigm for developers coming from web development |
+
+</div>
 
 <div align="center">
 
