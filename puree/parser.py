@@ -333,6 +333,10 @@ class UI():
             'text_color_gradient_rot'
             ]
 
+        bool_props = [
+            'aspect_ratio'
+            ]
+
         if attr_name in color_props:
             value_color = Color.parse(attr_value)
             # Convert from sRGB (0-255) to linear color space (0-1)
@@ -357,6 +361,9 @@ class UI():
             else:
                 # Fallback to default if format is incorrect
                 attr_value = [0.0, 0.0, 0.0]
+
+        elif attr_name in bool_props:
+            attr_value = attr_value.strip().lower() in ('true', '1', 'yes')
 
         return attr_name, attr_value
 
