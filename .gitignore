@@ -2,6 +2,8 @@
 *.blend1
 *.ai
 *.psd
+*.aep
+docs.aep_AME/
 
 *.zip
 *.tar.gz
