@@ -259,14 +259,10 @@ class XWZ_OT_hit(bpy.types.Operator):
                         _container['_toggle_value'] = not _container['_toggle_value']
                         for _toggle_handler in _container['toggle']:
                             _toggle_handler(_container)
-                            
-                        _container['_prev_toggled'] = _container['_toggled']
                 else:
-                    _container['_toggled']      = False
-                    _container['_prev_toggled'] = False
+                    _container['_toggled'] = False
             else:
-                _container['_toggled']      = False
-                _container['_prev_toggled'] = False
+                _container['_toggled'] = False
 
     def _is_mouse_in_viewport(self):
         try:

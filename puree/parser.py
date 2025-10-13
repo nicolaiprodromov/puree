@@ -767,13 +767,13 @@ class UI():
                     "_scroll_value"            : container._scroll_value,
                     "hover"                    : container.hover,
                     "hoverout"                 : container.hoverout,
-                    "_clicked"                 : container._clicked,
-                    "_prev_clicked"            : container._prev_clicked,
-                    "_toggle_value"            : container._toggle_value,
-                    "_toggled"                 : container._toggled,
-                    "_prev_toggled"            : container._prev_toggled,
-                    "_hovered"                 : container._hovered,
-                    "_prev_hovered"            : container._prev_hovered
+                    "_clicked"                 : False,
+                    "_prev_clicked"            : False,
+                    "_toggle_value"            : False,
+                    "_toggled"                 : False,
+                    "_prev_toggled"            : False,
+                    "_hovered"                 : False,
+                    "_prev_hovered"            : False
                 }
                 self.json_data.append(container_data)
             for child in container.children:
@@ -832,13 +832,13 @@ class UI():
                     "_scroll_value"            : container._scroll_value,
                     "hover"                    : container.hover,
                     "hoverout"                 : container.hoverout,
-                    "_clicked"                 : container._clicked,
-                    "_prev_clicked"            : container._prev_clicked,
-                    "_toggle_value"            : container._toggle_value,
-                    "_toggled"                 : container._toggled,
-                    "_prev_toggled"            : container._prev_toggled,
-                    "_hovered"                 : container._hovered,
-                    "_prev_hovered"            : container._prev_hovered
+                    "_clicked"                 : False,
+                    "_prev_clicked"            : False,
+                    "_toggle_value"            : False,
+                    "_toggled"                 : False,
+                    "_prev_toggled"            : False,
+                    "_hovered"                 : False,
+                    "_prev_hovered"            : False
                 }
                 self.abs_json_data.append(container_data)
             for child in container.children:
