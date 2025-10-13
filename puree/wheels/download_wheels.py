@@ -132,7 +132,7 @@ if __name__ == "__main__":
     missing = get_missing_downloads(existing_wheels)
     
     if not missing:
-        print("\n✓ All wheels already downloaded!")
+        print("\nAll wheels already downloaded!")
     else:
         print(f"\nNeed to download {len(missing)} wheels...\n")
         
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             print(f"Downloading {name}{platform_str}...")
             download_wheel(package, platform)
         
-        print("\n✓ Done!")
+        print("\nDone!")
     
     final_wheels = sorted(WHEELS_DIR.glob("*.whl"))
     print(f"\nTotal wheels: {len(final_wheels)}")
