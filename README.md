@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/Asset 1.png" alt="Puree UI Logo" width="100%"/>
+<img src="docs/Asset 4.png" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
@@ -29,6 +29,12 @@ It's meant for all Blender users that want to enhance their ability to present t
 ## What is puree good for?
 
 From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown-type (and soon true markdown rendering!) rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
+
+<div align="center">
+
+<img src="docs/example1.gif" alt="Puree UI Logo" width="100%"/>
+
+</div>
 
 ## Key Features
 
