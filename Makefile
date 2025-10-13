@@ -1,4 +1,4 @@
-.PHONY: build install uninstall deploy wheels update_version build_package
+.PHONY: build install uninstall deploy wheels build_package bump release
 
 ifeq ($(OS),Windows_NT)
 PYTHON := python
@@ -25,15 +25,7 @@ wheels:
 	@cd puree/wheels && $(PYTHON) download_wheels.py
 
 build_package:
-	@echo "Building Python package..."
-	@echo "Cleaning up old packages..."
-	@rm -f dist/*.tar.gz
-	@$(PYTHON) setup.py sdist bdist_wheel
-	@echo "Moving wheel to puree/wheels..."
-	@mv dist/puree_ui-*.whl puree/wheels/ 2>/dev/null || true
-	@echo "Cleaning up build artifacts..."
-	@rm -rf build *.egg-info
-	@echo "Package built successfully!"
+	@cd dist && $(PYTHON) build_package.py
 
 deploy:
 	@$(TIMEOUT)
@@ -41,11 +33,40 @@ deploy:
 	@$(TIMEOUT)
 	make install
 
-update_version:
+bump:
 ifeq ($(OS),Windows_NT)
-	@if not defined VERSION (echo Error: VERSION argument required. Usage: make update_version VERSION=0.0.3 && exit /b 1)
+	@if not defined VERSION (echo Error: VERSION argument required. Usage: make bump VERSION=0.0.3 && exit /b 1)
 	@$(PYTHON) dist/update_version.py $(VERSION)
+	@make build_package
+	@cd dist && $(BUILD)
 else
-	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make update_version VERSION=0.0.3"; exit 1; fi
+	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make bump VERSION=0.0.3"; exit 1; fi
 	@$(PYTHON) dist/update_version.py $(VERSION)
+	@make build_package
+	@cd dist && $(BUILD)
+endif
+
+release:
+ifeq ($(OS),Windows_NT)
+	@if not defined VERSION (echo Error: VERSION argument required. Usage: make release VERSION=0.0.3 && exit /b 1)
+	@echo Updating version to $(VERSION)...
+	@make bump VERSION=$(VERSION)
+	@echo Committing version bump...
+	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
+	@git commit -m "Bump version to $(VERSION)"
+	@git push origin master
+	@echo Building and releasing v$(VERSION)...
+	@cd dist && $(PYTHON) release.py $(VERSION)
+	@echo Release v$(VERSION) completed!
+else
+	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make release VERSION=0.0.3"; exit 1; fi
+	@echo "Updating version to $(VERSION)..."
+	@make bump VERSION=$(VERSION)
+	@echo "Committing version bump..."
+	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
+	@git commit -m "Bump version to $(VERSION)"
+	@git push origin master
+	@echo "Building and releasing v$(VERSION)..."
+	@cd dist && $(PYTHON) release.py $(VERSION)
+	@echo "Release v$(VERSION) completed!"
 endif
