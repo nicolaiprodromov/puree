@@ -56,7 +56,7 @@ Puree follows a render pipeline inspired by modern web browsers:
 
 This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
 
-> [!NOTE]
+> [!TIP]
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
 <div align="center">
@@ -68,6 +68,9 @@ This architecture allows for rapid UI prototyping and iteration while maintainin
 Here's a minimal example to get you started with Puree:
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
+
+    > [!IMPORTANT]
+    > Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
 
     ```bash
     pip download --only-binary=:all: --no-deps --dest wheels puree-ui
