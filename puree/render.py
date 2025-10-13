@@ -752,7 +752,7 @@ class XWZ_OT_start_ui(Operator):
                                 pos=[block['x_pos'], block['y_pos']],
                                 size=[block['width'], block['height']],
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
-                                aspect_ratio=block['aspect_ratio']
+                                aspect_ratio=True if block['aspect_ratio'] == 'True' else False
                             )
                     
                     texture_changed = True
