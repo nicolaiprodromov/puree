@@ -26,12 +26,15 @@ def main():
     for tarball in glob.glob("dist/*.tar.gz"):
         os.remove(tarball)
         print(f"Removed {tarball}")
+    for old_wheel in glob.glob("dist/puree_ui-*.whl"):
+        os.remove(old_wheel)
+        print(f"Removed {old_wheel}")
     
     print("Building package with setuptools...")
     python_cmd = "python" if sys.platform == "win32" else "python3"
     run_command(f"{python_cmd} setup.py sdist bdist_wheel")
     
-    print("Moving wheel to root wheels/ folder...")
+    print("Copying wheel to root wheels/ folder...")
     wheels_dir = os.path.join(project_root, "wheels")
     os.makedirs(wheels_dir, exist_ok=True)
     
@@ -42,8 +45,8 @@ def main():
     
     for wheel in glob.glob("dist/puree_ui-*.whl"):
         dest = os.path.join(wheels_dir, os.path.basename(wheel))
-        shutil.move(wheel, dest)
-        print(f"Moved {os.path.basename(wheel)} to wheels/")
+        shutil.copy2(wheel, dest)
+        print(f"Copied {os.path.basename(wheel)} to wheels/")
     
     print("Cleaning up build artifacts...")
     if os.path.exists("build"):
