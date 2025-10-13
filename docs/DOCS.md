@@ -78,11 +78,38 @@ Go to Releases and download the archive. Unpack it, modify the files, build and 
 
     ```bash
     # install make or just
+    # unix
+    # Make is usually pre-installed, but if needed:
+    sudo apt update
+    sudo apt install make
+
+    # Just - using snap (recommended):
+    sudo snap install --edge --classic just
+
+    # Just - alternative methods:
+    # Using cargo (if Rust is installed):
+    cargo install just
+
+    # Using pre-built binary:
+    curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+    # Using Homebrew (recommended):
+    brew install make
+    brew install just
+
+    # Make is pre-installed on macOS, but GNU Make specifically:
+    brew install make
+    # (GNU make will be installed as 'gmake' to avoid conflicts with system make)
+
+    # Just - alternative with cargo (if Rust is installed):
+    cargo install just
+
+    # Just - using MacPorts:
+    sudo port install just
+
     # windows
     choco install make
-    # linux
     winget install --id Casey.Just
-
     ```
 
 3. Run `just build_package` or `make build_package` to build the python package.
