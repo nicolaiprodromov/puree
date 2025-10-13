@@ -64,7 +64,7 @@ pip download --only-binary=:all: --no-deps --dest wheels puree-ui
 
 #### Download latest release
 
-Go to Releases and download the archive. Unpack it, modify the files, build and install addon.
+Go to Releases and download the archive. Unpack it, modify the files, build and install addon. `Edit > Preferences > Add-ons > Install from disk` or simply drag and drop the .zip file in Blender.
 
 #### Clone the repo
 
@@ -74,51 +74,35 @@ Go to Releases and download the archive. Unpack it, modify the files, build and 
     git clone https://github.com/nicolaiprodromov/puree
     ```
 
-2. Install Make or Just, [Blender 4.x+](https://www.blender.org/download/), and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
+2. Install *Make or Just*, [Blender 4.x+](https://www.blender.org/download/), [Python 3.10+](https://www.python.org/downloads/) and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
 
-    ```bash
-    # install make or just
-    # unix
-    # Make is usually pre-installed, but if needed:
-    sudo apt update
-    sudo apt install make
+    - **Linux**:
 
-    # Just - using snap (recommended):
-    sudo snap install --edge --classic just
+        ```bash
+        sudo apt update
+        sudo apt install make
 
-    # Just - alternative methods:
-    # Using cargo (if Rust is installed):
-    cargo install just
+        sudo snap install --edge --classic just
+        ```
 
-    # Using pre-built binary:
-    curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+    - **MacOS**:
 
-    # Using Homebrew (recommended):
-    brew install make
-    brew install just
+        ```bash
+        brew install make
+        brew install just
+        ```
 
-    # Make is pre-installed on macOS, but GNU Make specifically:
-    brew install make
-    # (GNU make will be installed as 'gmake' to avoid conflicts with system make)
+    - **Windows**:
 
-    # Just - alternative with cargo (if Rust is installed):
-    cargo install just
-
-    # Just - using MacPorts:
-    sudo port install just
-
-    # windows
-    choco install make
-    winget install --id Casey.Just
-    ```
+        ```powershell
+        choco install make
+        winget install --id Casey.Just
+        ```
 
 3. Run `just build_package` or `make build_package` to build the python package.
 4. Run `just build` or `make build` to build the addon zip file.
-    - You need Blender 4.x+ installed.
-    - You need *Python 3.10+* installed on your system.
     - You can also manually zip the folder.
-5. Run `make install` to install the addon in Blender.
-    - To run `install` command you must install the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) in Blender and connect to the server.
+5. Run `just install` or `make install` to install the addon in Blender.
     - Alternatively, run `just deploy` or `make deploy` to build package, and build and install addon in one step.
     - Or just install the zip file manually in Blender preferences: `Edit > Preferences > Add-ons > Install from disk`
 
