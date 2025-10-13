@@ -42,107 +42,6 @@
 
 <div align="center">
 
-## How it works
-
-</div>
-
-Puree follows a render pipeline inspired by modern web browsers:
-
-1. **Parse & Structure** – UI components are defined in TOML files with a hierarchical container structure
-2. **Style Application** – CSS files are parsed and styles are applied to containers with support for variables and selectors
-3. **Layout Computation** – The Stretchable engine computes flexbox layouts with support for percentage-based sizing, padding, margins, and borders
-4. **GPU Rendering** – A compute shader generates the final UI texture with gradients, rounded corners, shadows, and interaction states
-5. **Event Handling** – Mouse, scroll, and click events are tracked and propagated through the component tree
-
-```mermaid
-graph TB
-    subgraph Input["📁 Input Layer"]
-        TOML[index.toml<br/>Component Structure]
-        CSS[style.css<br/>Styling Rules]
-        Assets[assets/<br/>Images & Fonts]
-    end
-
-    subgraph Parse["🔍 Parse Layer"]
-        Parser[parser.py<br/>TOML Parser]
-        CSSParser[TinyCSS2<br/>CSS Parser]
-        ExtractText[extract_text.py<br/>Text Extraction]
-        ExtractImg[extract_images.py<br/>Image Processing]
-    end
-
-    subgraph Component["🧩 Component Layer"]
-        Container[container.py<br/>Container Objects]
-        Style[style.py<br/>Style Application]
-        Utils[utils.py<br/>Utilities]
-    end
-
-    subgraph Layout["📐 Layout Layer"]
-        Compiler[compiler.py<br/>Layout Compiler]
-        Stretchable[Stretchable<br/>Flexbox Engine]
-    end
-
-    subgraph Render["🎨 Render Layer"]
-        ModernGL[ModernGL<br/>GPU Context]
-        Shaders[shaders/<br/>GLSL Shaders]
-        RenderEngine[render.py<br/>Render Pipeline]
-    end
-
-    subgraph Events["🖱️ Event Layer"]
-        MouseOp[mouse_op.py<br/>Mouse Events]
-        ScrollOp[scroll_op.py<br/>Scroll Events]
-        HitOp[hit_op.py<br/>Hit Detection]
-    end
-
-    subgraph UI["🖼️ UI Layer"]
-        Panel[panel.py<br/>Blender Panel]
-        TextOp[text_op.py<br/>Text Operations]
-        ImgOp[img_op.py<br/>Image Operations]
-    end
-
-    TOML --> Parser
-    CSS --> CSSParser
-    Assets --> ExtractText
-    Assets --> ExtractImg
-    
-    Parser --> Container
-    CSSParser --> Style
-    ExtractText --> Container
-    ExtractImg --> Container
-    
-    Container --> Compiler
-    Style --> Compiler
-    Utils --> Compiler
-    
-    Compiler --> Stretchable
-    Stretchable --> RenderEngine
-    
-    RenderEngine --> ModernGL
-    ModernGL --> Shaders
-    Shaders --> Panel
-    
-    MouseOp --> HitOp
-    ScrollOp --> HitOp
-    HitOp --> Container
-    
-    Panel --> TextOp
-    Panel --> ImgOp
-    Container --> Panel
-
-    style Input fill:#e8f4f8
-    style Parse fill:#fff4e6
-    style Component fill:#f0f8ff
-    style Layout fill:#fff0f5
-    style Render fill:#f0fff0
-    style Events fill:#fffacd
-    style UI fill:#ffe4e1
-```
-
-This architecture allows for rapid UI prototyping and iteration while maintaining the performance requirements of real-time 3D applications.
-
-> [!TIP]
-> Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
-
-<div align="center">
-
 ## Quick Example
 
 </div>
@@ -296,6 +195,56 @@ Here's a minimal example to get you started with Puree:
 8. **Install in Blender**: `Edit > Preferences > Add-ons > Install from disk`
 
 9. Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
+
+<div align="center">
+
+## How it works
+
+</div>
+
+Puree follows a render pipeline inspired by modern web browsers:
+
+1. **Parse** – TOML/CSS files are loaded and parsed into container tree with styles
+2. **Layout** – Stretchable computes flexbox layouts with viewport-aware sizing
+3. **Compile** – Optional Python scripts transform the UI tree
+4. **Render** – ModernGL compute shader generates GPU texture with all visual effects
+5. **Event** – Mouse/scroll events update container states and trigger re-renders
+
+```mermaid
+graph LR
+    A[TOML + CSS] --> B[Parser]
+    B --> C[Container Tree]
+    C --> D[Stretchable Layout]
+    D --> E[Flattened Data]
+    E --> F[GPU Buffers]
+    F --> G[Compute Shader]
+    G --> H[UI Texture]
+    
+    I[Mouse/Scroll] --> J[Event Handlers]
+    J --> K[Hit Detection]
+    K --> C
+    
+    L[Python Scripts] --> M[Compiler]
+    M --> C
+    
+    H --> N[Blender Viewport]
+    
+    style A fill:#e3f2fd
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+    style G fill:#e8f5e9
+    style H fill:#fce4ec
+    style K fill:#fff9c4
+```
+
+This architecture enables:
+- **Reactive updates** – Layout recomputes on viewport resize
+- **GPU acceleration** – All rendering in compute shaders
+- **Script integration** – Python scripts can modify UI at runtime
+- **Event propagation** – Interactions flow through container hierarchy
+
+> [!TIP]
+> Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
 <div align="center">
 
