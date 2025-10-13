@@ -50,13 +50,6 @@ class ImageManager:
         return list(self.images.keys())
     
     def unload_images(self):
-        for image_name, texture in self.textures.items():
-            try:
-                if texture:
-                    texture.clear()
-            except Exception as e:
-                print(f"Failed to clear GPU texture for {image_name}: {e}")
-        
         for image_name, image_path in self.images.items():
             try:
                 image_file = os.path.basename(image_path)

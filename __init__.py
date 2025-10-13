@@ -14,17 +14,20 @@ bl_info = {
 }
 
 def register():
-    # Set the addon root directory so puree package knows where to find resources
-    addon_root = os.path.dirname(os.path.abspath(__file__))
-    set_addon_root(addon_root)
-    
+    # Set the addon root directory so puree knows where to find resources
+    set_addon_root(os.path.dirname(os.path.abspath(__file__)))
+    # Register the framework
     xwz_ui_register()
+    # Set default properties
+    # ui_conf_path is relative to the addon root directory and
+    # is required to point puree to the main configuration file of your UI
     wm = bpy.context.window_manager
     wm.xwz_ui_conf_path = "static/index.toml"
     wm.xwz_debug_panel  = True
     wm.xwz_auto_start   = True
 
 def unregister():
+    # Unregister the framework
     xwz_ui_unregister()
     
 if __name__ == "__main__":
