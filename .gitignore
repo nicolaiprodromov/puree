@@ -12,7 +12,6 @@ __pycache__/
 *.pyd
 .vscode/
 build/
-dist/
 *.egg-info/
 .eggs/
 *.egg
