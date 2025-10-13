@@ -14,7 +14,7 @@ uninstall:
     @cd dist; {{python}} install.py uninstall
 
 wheels:
-    @cd puree/wheels; {{python}} download_wheels.py
+    @cd puree/scripts; {{python}} download_wheels.py
 
 build_package:
     @cd dist; {{python}} build_package.py

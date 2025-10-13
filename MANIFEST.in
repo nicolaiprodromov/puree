@@ -2,3 +2,4 @@ include README.md
 include LICENSE
 include requirements.txt
 recursive-include puree/shaders *.glsl
+recursive-include puree/wheels *.whl
