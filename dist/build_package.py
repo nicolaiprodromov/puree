@@ -16,9 +16,9 @@ def main():
     os.chdir(project_root)
     
     print("Downloading dependency wheels...")
-    wheels_script = os.path.join(project_root, "puree", "scripts", "download_wheels.py")
-    python_cmd = "python" if sys.platform == "win32" else "python3"
-    run_command(f"{python_cmd} \"{wheels_script}\"")
+    wheels_dir = os.path.join(project_root, "wheels")
+    os.makedirs(wheels_dir, exist_ok=True)
+    run_command(f"pip download --only-binary=:all: --python-version 3.11 --dest \"{wheels_dir}\" puree-ui")
     
     print("\nBuilding Python package...")
     
