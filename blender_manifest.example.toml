@@ -4,7 +4,7 @@ id         = "your_addon_id"
 version    = "your_addon_version"
 name       = "your_addon_name"
 tagline    = "your_addon_tagline"
-maintainer = "your_addon_maintainer"
+maintainer = "your_name"
 type       = "add-on"
 
 blender_version_min = "your_addon_version_blend_min"
