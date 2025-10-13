@@ -55,12 +55,15 @@
                     style = "right_box"
                     [app.theme.root.bg.top_box.right_box.right_top_box]
                         style = "right_top_box"
-                        [app.theme.root.bg.top_box.right_box.right_top_box.img_test]
+                        [app.theme.root.bg.top_box.right_box.right_top_box.img_test1]
                             style = "img_test"
-                            img   = "Asset2"
+                            img   = "Asset3"
 
                     [app.theme.root.bg.top_box.right_box.right_bottom_box]
                         style = "right_bottom_box"
+                        [app.theme.root.bg.top_box.right_box.right_bottom_box.img_test]
+                            style = "img_test"
+                            img   = "Asset2"
 
             [app.theme.root.bg.bottom_text_box]
                 style = "bottom_text_box"
