@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import re
 
-WHEELS_DIR = Path(__file__).parent
+WHEELS_DIR = Path(__file__).parent.parent / "wheels"
 WHEELS_DIR.mkdir(exist_ok=True)
 
 PACKAGES = {

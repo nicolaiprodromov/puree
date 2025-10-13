@@ -22,12 +22,15 @@ uninstall:
 	@cd dist && $(PYTHON) install.py uninstall
 
 wheels:
-	@cd puree/wheels && $(PYTHON) download_wheels.py
+	@cd puree/scripts && $(PYTHON) download_wheels.py
 
 build_package:
 	@cd dist && $(PYTHON) build_package.py
 
 deploy:
+	make build_package
+	@$(TIMEOUT)
+    make build
 	@$(TIMEOUT)
 	make uninstall
 	@$(TIMEOUT)

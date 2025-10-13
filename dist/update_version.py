@@ -20,8 +20,8 @@ def update_version(version):
     
     # Update puree_ui wheel filename
     manifest_content = re.sub(
-        r'"\./puree/wheels/puree_ui-[^"]*-py3-none-any\.whl"',
-        f'"./puree/wheels/puree_ui-{version}-py3-none-any.whl"',
+        r'"\./wheels/puree_ui-[^"]*-py3-none-any\.whl"',
+        f'"./wheels/puree_ui-{version}-py3-none-any.whl"',
         manifest_content
     )
     

@@ -15,7 +15,12 @@ def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     os.chdir(project_root)
     
-    print("Building Python package...")
+    print("Downloading dependency wheels...")
+    wheels_script = os.path.join(project_root, "puree", "scripts", "download_wheels.py")
+    python_cmd = "python" if sys.platform == "win32" else "python3"
+    run_command(f"{python_cmd} \"{wheels_script}\"")
+    
+    print("\nBuilding Python package...")
     
     print("Cleaning up old packages...")
     for tarball in glob.glob("dist/*.tar.gz"):
@@ -26,8 +31,8 @@ def main():
     python_cmd = "python" if sys.platform == "win32" else "python3"
     run_command(f"{python_cmd} setup.py sdist bdist_wheel")
     
-    print("Moving wheel to puree/wheels...")
-    wheels_dir = os.path.join(project_root, "puree", "wheels")
+    print("Moving wheel to root wheels/ folder...")
+    wheels_dir = os.path.join(project_root, "wheels")
     os.makedirs(wheels_dir, exist_ok=True)
     
     print("Removing old puree_ui wheels...")
@@ -38,7 +43,7 @@ def main():
     for wheel in glob.glob("dist/puree_ui-*.whl"):
         dest = os.path.join(wheels_dir, os.path.basename(wheel))
         shutil.move(wheel, dest)
-        print(f"Moved {os.path.basename(wheel)} to puree/wheels/")
+        print(f"Moved {os.path.basename(wheel)} to wheels/")
     
     print("Cleaning up build artifacts...")
     if os.path.exists("build"):

@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id         = "xwz_puree_ui"
-version    = "0.0.7"
+version    = "0.0.8"
 name       = "Puree UI"
 tagline    = "XWZ Puree UI"
 maintainer = "Nicolai Prodromov"
@@ -21,29 +21,7 @@ platforms = [
   ]
 
 wheels = [
-  "./puree/wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
-  "./puree/wheels/moderngl-5.12.0-cp311-cp311-macosx_11_0_arm64.whl", 
-  "./puree/wheels/moderngl-5.12.0-cp311-cp311-macosx_10_9_x86_64.whl",
-  "./puree/wheels/moderngl-5.12.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-  "./puree/wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
-  "./puree/wheels/glcontext-3.0.0-cp311-cp311-macosx_11_0_arm64.whl",
-  "./puree/wheels/glcontext-2.5.0-cp311-cp311-macosx_10_9_x86_64.whl",
-  "./puree/wheels/glcontext-3.0.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-  "./puree/wheels/toml-0.10.2-py2.py3-none-any.whl",
-  "./puree/wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
-  "./puree/wheels/stretchable-1.1.7-cp38-abi3-macosx_11_0_arm64.whl",
-  "./puree/wheels/stretchable-1.0.0-cp38-abi3-macosx_10_7_x86_64.whl",
-  "./puree/wheels/stretchable-1.1.7-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-  "./puree/wheels/attrs-25.3.0-py3-none-any.whl",
-  "./puree/wheels/tinycss2-1.4.0-py3-none-any.whl",
-  "./puree/wheels/webencodings-0.5.1-py2.py3-none-any.whl",
-  "./puree/wheels/textual-6.2.1-py3-none-any.whl",
-  "./puree/wheels/rich-14.1.0-py3-none-any.whl",
-  "./puree/wheels/pygments-2.19.2-py3-none-any.whl",
-  "./puree/wheels/markdown_it_py-4.0.0-py3-none-any.whl",
-  "./puree/wheels/mdurl-0.1.2-py3-none-any.whl",
-  "./puree/wheels/typing_extensions-4.15.0-py3-none-any.whl",
-  "./puree/wheels/puree_ui-0.0.7-py3-none-any.whl"
+  "./wheels/puree_ui-0.0.8-py3-none-any.whl"
 ]
 
 [build]
@@ -51,14 +29,18 @@ paths_exclude_pattern = [
   "__pycache__/",
   "*.zip",
   "*.pyc",
-  "docs/",
-  "dist/",
-  ".gitignore",
-  ".vscode/",
+  
   ".git/",
+  ".vscode/",
+  "dist/",
+  "docs/",
+  ".gitignore",
+  ".blender_manifest.example.toml",
+  "justfile",
+  "Makefile",
+  "MANIFEST.in",
   "Pipfile",
   "Pipfile.lock",
-  "README.md",
-  "Makefile",
   "requirements.txt",
+  "setup.py",
 ]

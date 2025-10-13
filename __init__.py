@@ -6,7 +6,7 @@ from puree import set_addon_root
 bl_info = {
     "name"       : "Puree",
     "author"     : "Nicolai Prodromov",
-    "version"    : (0, 0, 7),
+    "version"    : (0, 0, 8),
     "blender"    : (4, 2, 0),
     "location"   : "3D View > Sidebar > Puree",
     "description": "XWZ Puree UI framework",
