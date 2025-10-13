@@ -69,8 +69,8 @@ Here's a minimal example to get you started with Puree:
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 
-    > [!IMPORTANT]
-    > Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
+> [!IMPORTANT]
+> Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
 
     ```bash
     pip download --only-binary=:all: --no-deps --dest wheels puree-ui
