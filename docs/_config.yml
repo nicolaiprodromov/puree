@@ -1,95 +1,44 @@
-lang: en
-
-timezone: UTC
-
 title: Puree
-tagline: Declarative UI Framework for Blender
-description: A declarative UI framework for Blender addons and much more
+description: Declarative UI Framework for Blender
 
-url: "https://nicolaiprodromov.github.io"
-baseurl: "/puree"
+url: https://nicolaiprodromov.github.io
+baseurl: /puree
 
-github:
-  username: nicolaiprodromov
+remote_theme: just-the-docs/just-the-docs
 
-social:
-  name: Nicolai Prodromov
-  email: ""
-  links:
-    - https://github.com/nicolaiprodromov
+# Enable dark mode by default
+color_scheme: dark
 
-remote_theme: cotes2020/jekyll-theme-chirpy
+# Search
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
 
-theme_mode: dark
+# Aux links for the upper right navigation
+aux_links:
+  "Puree on GitHub":
+    - "https://github.com/nicolaiprodromov/puree"
 
-toc: true
+# Footer
+footer_content: "Copyright &copy; 2025 Nicolai Prodromov. Distributed under the MIT License."
 
-comments:
-  active: false
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
 
-paginate: 10
-
+markdown: kramdown
 kramdown:
+  input: GFM
   syntax_highlighter: rouge
   syntax_highlighter_opts:
-    css_class: highlight
-    span:
-      line_numbers: false
     block:
       line_numbers: true
-      start_line: 1
 
-collections:
-  tabs:
-    output: true
-    sort_by: order
-
-defaults:
-  - scope:
-      path: ""
-      type: posts
-    values:
-      layout: post
-      comments: false
-      toc: true
-      permalink: /posts/:title/
-  - scope:
-      path: _drafts
-    values:
-      comments: false
-  - scope:
-      path: ""
-      type: tabs
-    values:
-      layout: page
-  - scope:
-      path: assets/img/favicons
-    values:
-      swcache: true
-  - scope:
-      path: assets/js/dist
-    values:
-      swcache: true
-
-sass:
-  style: compressed
-
-compress_html:
-  clippings: all
-  comments: all
-  endings: all
-  profile: false
-  blanklines: false
-  ignore:
-    envs: [development]
-
-exclude:
-  - "*.gem"
-  - "*.gemspec"
-  - "*.config.js"
-  - docs.aep
-  - BA_POST.md
-  - node_modules
-  - vendor
-  - Gemfile
-  - Gemfile.lock
+# Heading anchor links appear on hover
+heading_anchors: true
