@@ -1,14 +1,29 @@
-title: Puree Documentation
-description: Declarative UI Framework for Blender
-theme: jekyll-theme-cayman
+title: Puree
+tagline: Declarative UI Framework for Blender
+description: A declarative UI framework for Blender addons and much more
+url: "https://nicolaiprodromov.github.io"
+baseurl: "/puree"
 
-header_pages:
-  - DOCS.md
-  - CONTRIBUTING.md
-  - SUPPORT.md
+remote_theme: cotes2020/jekyll-theme-chirpy
 
-github_username: nicolaiprodromov
-repository: nicolaiprodromov/puree
+github:
+  username: nicolaiprodromov
+
+social:
+  name: Nicolai Prodromov
+  links:
+    - https://github.com/nicolaiprodromov
+
+theme_mode: dark
+
+avatar: /assets/images/Asset 4.png
+
+toc: true
+
+comments:
+  active: false
+
+timezone: UTC
 
 markdown: kramdown
 kramdown:
@@ -16,3 +31,43 @@ kramdown:
   syntax_highlighter: rouge
   syntax_highlighter_opts:
     css_class: 'highlight'
+
+collections:
+  tabs:
+    output: true
+    sort_by: order
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      comments: false
+      toc: true
+      permalink: /posts/:title/
+  - scope:
+      path: ""
+      type: tabs
+    values:
+      layout: page
+      permalink: /:title/
+
+sass:
+  style: compressed
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  profile: false
+  blanklines: false
+  ignore:
+    envs: [development]
+
+exclude:
+  - "*.gem"
+  - "*.gemspec"
+  - docs.aep
+  - node_modules
+  - vendor
