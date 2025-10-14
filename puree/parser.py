@@ -555,6 +555,12 @@ class UI():
                         
             return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
         def create_node(container):
+            if not hasattr(container, 'style') or container.style is None or isinstance(container.style, str):
+                default_style = Style()
+                setattr(default_style, 'width', "100%")
+                setattr(default_style, 'height', "100%")
+                container.style = default_style
+            
             disp_str     = container.style.display.lower()
             pos_str      = container.style.position.lower()
             position_val = Position.RELATIVE
