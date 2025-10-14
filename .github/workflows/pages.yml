@@ -1,4 +1,4 @@
-name: Deploy Jekyll site to Pages
+name: Deploy Chirpy site to Pages
 
 on:
   push:
@@ -20,9 +20,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +31,7 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
+          cache-version: 0
           working-directory: docs
 
       - name: Setup Pages
@@ -41,9 +39,19 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Build with Jekyll
-        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
+        run: |
+          cd docs
+          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
         env:
           JEKYLL_ENV: production
+
+      - name: Test site
+        run: |
+          cd docs
+          bundle exec htmlproofer _site \
+            --disable-external \
+            --ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/" \
+            --allow-missing-href || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
