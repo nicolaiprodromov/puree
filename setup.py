@@ -31,7 +31,7 @@ setup(
         "stretchable==1.1.7",
         "tinycss2==1.4.0",
         "webencodings==0.5.1",
-        "toml==0.10.2",
+        "PyYAML==6.0.2",
         "markdown-it-py==4.0.0",
         "mdurl==0.1.2",
         "pygments==2.19.2",
