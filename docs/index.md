@@ -236,7 +236,7 @@ This architecture enables:
 - **Script integration** – Python scripts can modify UI at runtime
 - **Event propagation** – Interactions flow through container hierarchy
 
-> **TIP:** Read the full [documentation]({{ site.baseurl }}/DOCS) for detailed guides, API references, and examples.
+> Read the full [documentation](DOCS.md) for detailed guides, API references, and examples.
 
 ---
 
@@ -252,8 +252,12 @@ This architecture enables:
 
 ---
 
-**Special thanks to the open-source community and the developers behind the projects that make puree possible.**
-
 <p align="center">
   <img src="images/munky.gif" width="100px" alt="Monkey GIF"/>
 </p>
+
+|  | Previous Page | Next Page |
+|----------|----------|------|
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** || [Documentation](DOCS.md) |
+
+---

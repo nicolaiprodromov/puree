@@ -3,8 +3,6 @@ layout: page
 title: Support
 ---
 
-# Support
-
 ## Getting Help
 
 If you need help with this project, please try the following:
@@ -31,3 +29,5 @@ This project is provided as-is. Commercial support is not currently available.
 ## Contributing
 
 Interested in contributing? Please refer to [Contributing](CONTRIBUTING.md) for guidelines.
+
+
