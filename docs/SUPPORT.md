@@ -1,7 +1,6 @@
 ---
-layout: default
+layout: page
 title: Support
-nav_order: 3
 ---
 
 # Support
