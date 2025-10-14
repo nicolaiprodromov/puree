@@ -1,6 +1,6 @@
 import os
 import re
-import toml
+import yaml
 import math
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
@@ -156,7 +156,7 @@ class UI():
 
     def load_conf_file(self, path):
         with open(path, 'r') as f:
-            data = toml.load(f)
+            data = yaml.safe_load(f)
         return data
     
     def parse_toml(self, path=None, base_dir=None):
@@ -229,10 +229,10 @@ class UI():
                         
                         for root, dirs, files in os.walk(component_dir):
                             for filename in files:
-                                if filename.endswith('.toml') and f'[{filename.replace(".toml", "")}]' == component_ref:
+                                if filename.endswith('.yaml') and f'[{filename.replace(".yaml", "")}]' == component_ref:
                                     file_path = os.path.join(root, filename)
                                     with open(file_path, 'r') as f:
-                                        component_data = toml.load(f)
+                                        component_data = yaml.safe_load(f)
                                         # Load component data INTO the child_container, not parent_container
                                         # This recursively handles all nested children from the component
                                         component_key = component_ref.replace("[",'').replace("]",'')
