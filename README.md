@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/Asset 4.png" alt="Puree UI Logo" width="100%"/>
+<img src="docs/images/Asset 4.png" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
@@ -10,9 +10,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
-[![Release](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
-
+[![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
@@ -32,7 +30,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 <div align="center">
 
-<img src="docs/example1.gif" alt="Example 1 UI GIF" width="100%"/>
+<img src="docs/images/example1.gif" alt="Example 1 UI GIF" width="100%"/>
 
 </div>
 
@@ -328,7 +326,7 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 
 *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
 
-<img src="docs/munky.gif" width="100px">
+<img src="docs/images/munky.gif" width="100px">
 
 </div>
 
