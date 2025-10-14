@@ -73,7 +73,7 @@ def register():
     bpy.types.WindowManager.xwz_ui_conf_path = bpy.props.StringProperty(
         name        = "XWZ UI Config Path",
         description = "Path to the configuration file for XWZ UI",
-        default     = "index.toml"
+        default     = "index.yaml"
     )
     bpy.types.WindowManager.xwz_debug_panel = bpy.props.BoolProperty(
         name        = "XWZ Debug Panel",
