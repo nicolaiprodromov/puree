@@ -1,44 +1,34 @@
 title: Puree
 description: Declarative UI Framework for Blender
+author: Nicolai Prodromov
 
 url: https://nicolaiprodromov.github.io
 baseurl: /puree
 
-remote_theme: just-the-docs/just-the-docs
+remote_theme: jekyll/minima
 
-# Enable dark mode by default
-color_scheme: dark
+minima:
+  skin: dark
+  date_format: "%b %-d, %Y"
+  social_links:
+    - { platform: github, user_url: "https://github.com/nicolaiprodromov/puree" }
 
-# Search
-search_enabled: true
-search:
-  heading_level: 2
-  previews: 3
-  preview_words_before: 5
-  preview_words_after: 10
-  tokenizer_separator: /[\s/]+/
-  rel_url: true
-  button: false
+header_pages:
+  - index.md
+  - DOCS.md
+  - SUPPORT.md
+  - CONTRIBUTING.md
 
-# Aux links for the upper right navigation
-aux_links:
-  "Puree on GitHub":
-    - "https://github.com/nicolaiprodromov/puree"
-
-# Footer
-footer_content: "Copyright &copy; 2025 Nicolai Prodromov. Distributed under the MIT License."
-
-# Back to top link
-back_to_top: true
-back_to_top_text: "Back to top"
+show_excerpts: true
 
 markdown: kramdown
 kramdown:
   input: GFM
   syntax_highlighter: rouge
   syntax_highlighter_opts:
-    block:
-      line_numbers: true
+    default_lang: python
+    css_class: 'highlight'
 
-# Heading anchor links appear on hover
-heading_anchors: true
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag

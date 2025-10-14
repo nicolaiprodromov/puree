@@ -1,7 +1,6 @@
 ---
-layout: default
+layout: home
 title: Home
-nav_order: 1
 ---
 
 <p align="center">
