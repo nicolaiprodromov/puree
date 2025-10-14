@@ -1,12 +1,12 @@
 ---
 layout: page
-title : 2. Documentation
+title : 1. Documentation
 ---
 
-<img src="https://img.shields.io/badge/STATUS-BETA%20%7C%20WIP-ff6b6b?style=for-the-badge&logo=blender&logoColor=white" alt="Beta Status"/>
-<br>
 <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
+
+<br>
 
 The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 

@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 7. Contributing
+title: 6. Contributing
 ---
 
 We welcome contributions to puree! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.

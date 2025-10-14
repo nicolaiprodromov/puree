@@ -1,6 +1,6 @@
 ---
 layout: page
-title : 5. Troubleshooting
+title : 4. Troubleshooting
 ---
 
 ## Linux

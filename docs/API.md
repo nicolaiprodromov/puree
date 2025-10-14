@@ -1,6 +1,6 @@
 ---
 layout: page
-title : 4. API Reference
+title : 3. API Reference
 ---
 
 ## Style Properties
