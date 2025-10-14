@@ -5,15 +5,21 @@ author: Nicolai Prodromov
 url: https://nicolaiprodromov.github.io
 baseurl: /puree
 
-remote_theme: rundocs/jekyll-rtd-theme
+remote_theme: cotes2020/jekyll-theme-chirpy
 
-readme_index:
-  with_frontmatter: true
+lang: en
+
+timezone: America/New_York
+
+theme_mode: dark
+
+social:
+  name: Nicolai Prodromov
+  links:
+    - https://github.com/nicolaiprodromov
 
 github:
-  repository_url: https://github.com/nicolaiprodromov/puree
-
-copyright: "Copyright &copy; 2025 Nicolai Prodromov"
+  username: nicolaiprodromov
 
 markdown: kramdown
 kramdown:
