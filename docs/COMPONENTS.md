@@ -40,6 +40,7 @@ Create a `.yaml` file in your components directory. The component must have a si
 
 **Example: `test_button.yaml`**
 
+{% raw %}
 ```yaml
 test_button:
   style: "{{tb_style, 'hover_test'}}"
@@ -48,9 +49,11 @@ test_button:
     text: "{{tb_text, 'Click Me'}}"
     passive: true
 ```
+{% endraw %}
 
 **Example: `header.yaml`**
 
+{% raw %}
 ```yaml
 header:
   style: header
@@ -58,6 +61,7 @@ header:
     style: header_text_box
     text:
       style: header_text
+      
       text: "{{title, 'Puree UI Kit'}}"
       font: NeueMontreal-Bold
     subtitle:
@@ -68,25 +72,32 @@ header:
     style: header_logo
     img: loggoui2
 ```
+{% endraw %}
 
 ## Parameter Syntax
 
-Component parameters use a special syntax: `{{parameter_name, 'default_value'}}`
+Component parameters use a special syntax: {% raw %}`{{parameter_name, 'default_value'}}`{% endraw %}
 
 - **`parameter_name`**: The name of the parameter that can be passed when instantiating the component
 - **`default_value`**: The fallback value if no parameter is provided (must be in quotes)
 
 **Format:**
+
+{% raw %}
 ```yaml
 property: "{{param_name, 'default value'}}"
 ```
+{% endraw %}
 
 **Examples:**
+
+{% raw %}
 ```yaml
 text: "{{button_text, 'Submit'}}"      # Text parameter with default
 style: "{{button_style, 'default'}}"     # Style parameter with default
 img: "{{icon_name, 'icon_default'}}"  # Image parameter with default
 ```
+{% endraw %}
 
 ## Using Components
 
@@ -107,6 +118,7 @@ app:
 
 You can customize component instances by passing parameters as properties:
 
+{% raw %}
 ```yaml
 app:
   theme:
@@ -125,15 +137,19 @@ app:
                 tb_style: click_test
                 tb_text: Click me!
 ```
+{% endraw %}
 
 In this example:
+
 - Both buttons use the same `test_button` component template
 - Each instance receives different parameter values
-- The component's `{{tb_text, ''}}` parameter gets replaced with "Hover me!" and "Click me!" respectively
+- The component's {% raw %}`{{tb_text, ''}}`{% endraw %} parameter gets replaced with "Hover me!" and "Click me!" respectively
 
 ### 3. Component Instance with Multiple Parameters
 
 **Component Definition (`header.yaml`):**
+
+{% raw %}
 ```yaml
 header:
   style: header
@@ -142,8 +158,10 @@ header:
   subtitle:
     text: "{{subtitle, 'Default Subtitle'}}"
 ```
+{% endraw %}
 
 **Usage in `index.yaml`:**
+
 ```yaml
 app:
   theme:
@@ -160,6 +178,7 @@ app:
 To prevent ID collisions when multiple instances of the same component exist, Puree automatically namespaces child elements:
 
 **Component Definition:**
+
 ```yaml
 button:
   icon:
@@ -167,7 +186,8 @@ button:
 ```
 
 **When instantiated as `my_button`:**
-```
+
+```text
 my_button
   └── my_button_icon
       └── my_button_icon_label
@@ -202,11 +222,13 @@ def main(self, app):
 ## How It Works
 
 The `Container` class implements a custom `__getattr__` method that:
+
 1. Searches through the container's children
 2. Finds a child whose `id` matches the requested attribute name
 3. Returns that child container
 
 **Example:**
+
 ```python
 # These are equivalent:
 button = app.theme.root.bg.my_button
@@ -233,6 +255,8 @@ This makes your script code much more readable and maintainable, especially when
 ## Complete Example
 
 **File: `static/components/card.yaml`**
+
+{% raw %}
 ```yaml
 card:
   style: "{{card_style, 'default_card'}}"
@@ -248,8 +272,10 @@ card:
       style: card_button
       text: "{{action_text, 'Action'}}"
 ```
+{% endraw %}
 
 **File: `static/style.css`**
+
 ```css
 default_card {
     width: 300px;
@@ -271,6 +297,7 @@ card_body {
 ```
 
 **File: `static/index.yaml`**
+
 ```yaml
 app:
   theme:
