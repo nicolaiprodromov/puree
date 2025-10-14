@@ -1,3 +1,9 @@
+---
+layout: default
+title: Documentation
+nav_order: 1
+---
+
 > [!WARNING]
 > ### **puree is in beta - WIP**
 > - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
