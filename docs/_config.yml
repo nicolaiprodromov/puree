@@ -1,14 +1,18 @@
 title: Puree Documentation
 description: Declarative UI Framework for Blender
 theme: jekyll-theme-cayman
-# or choose another theme: minima, slate, architect, etc.
 
-# Optional: Configure navigation
 header_pages:
   - DOCS.md
   - CONTRIBUTING.md
   - SUPPORT.md
 
-# Optional: Add GitHub links
 github_username: nicolaiprodromov
 repository: nicolaiprodromov/puree
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
