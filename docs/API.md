@@ -3,9 +3,7 @@ layout: page
 title : API Reference
 ---
 
-## API Reference
-
-### Style Properties
+## Style Properties
 
 The `Style` class defines the visual appearance and layout behavior of UI nodes. Below is a comprehensive list of all available properties: 
 
@@ -86,7 +84,7 @@ The `Style` class defines the visual appearance and layout behavior of UI nodes.
 
 ---
 
-### Container Properties
+## Container Properties
 
 The `Container` class represents an individual UI node/element in the interface hierarchy. Below is a comprehensive list of all available properties: 
 
@@ -121,12 +119,8 @@ The `Container` class represents an individual UI node/element in the interface 
 
 ---
 
-<p align="center">
-  <img src="images/munky.gif" width="100px" alt="Monkey GIF"/>
-</p>
-
 |  | Previous Page | Next Page |
 |----------|----------|------|
-| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Components](COMPONENTS.md) | [Home](index.md) |
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Components](COMPONENTS.md) | [Troubleshooting](TROUBLESHOOTING.md) |
 
 ---

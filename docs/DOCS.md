@@ -503,10 +503,6 @@ def main(self, app):
 
 ---
 
-<p align="center">
-  <img src="images/munky.gif" width="100px" alt="Monkey GIF"/>
-</p>
-
 |  | Previous Page | Next Page |
 |----------|----------|------|
 | Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Home](index.md) | [Components](COMPONENTS.md) |

@@ -8,14 +8,17 @@ title: Support
 If you need help with this project, please try the following:
 
 ### Documentation
+
 - Check the [README](README.md) for setup and usage instructions
 - Review any existing documentation in the repository
 
 ### Issues
+
 - Search [existing issues](../../issues) to see if your question has been answered
 - Create a [new issue](../../issues/new) if you've found a bug or have a feature request
 
 ### Discussions
+
 - Use [GitHub Discussions](../../discussions) for questions and community support
 
 ## Reporting Security Issues
@@ -30,4 +33,10 @@ This project is provided as-is. Commercial support is not currently available.
 
 Interested in contributing? Please refer to [Contributing](CONTRIBUTING.md) for guidelines.
 
+---
 
+|  | Previous Page | Next Page |
+|----------|----------|------|
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Troubleshooting](TROUBLESHOOTING.md) | [Home](index.md) |
+
+---
