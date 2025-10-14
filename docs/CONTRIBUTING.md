@@ -1,6 +1,9 @@
-## Contributing
+---
+layout: page
+title: Contributing
+---
 
-</div>
+## Contributing
 
 We welcome contributions to puree! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
