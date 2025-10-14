@@ -6,8 +6,6 @@ title : 1. Documentation
 <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
 
-<br>
-
 The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 > Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.

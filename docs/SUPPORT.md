@@ -6,10 +6,6 @@ title: 5. Support
 <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
 
-<br>
-
-## Getting Help
-
 If you need help with this project, please try the following:
 
 ### Documentation
