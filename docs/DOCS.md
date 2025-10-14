@@ -16,7 +16,7 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 2. [Getting Started](#getting-started)
     1. [Quick Start](#quick-start)
     2. [File Structure](#file-structure)
-    3. [`index.toml` breakdown](#indextoml-breakdown)
+    3. [`index.yaml` breakdown](#indexyaml-breakdown)
         - [App structure](#app-structure)
     4. [`style.css` breakdown](#stylecss-breakdown)
         - [CSS Custom Properties (Variables)](#css-custom-properties-variables)
@@ -114,33 +114,35 @@ The bare minimum file structure for a project is as follows:
 
 ```
 puree_project/
-    ├── index.toml
+    ├── index.yaml
     ├── style.css
     ├── __init__.py <-- your addon entry point
 ```
 
 ---
 
-#### `index.toml` breakdown
+#### `index.yaml` breakdown
 
-The `index.toml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Puree. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
+The `index.yaml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Puree. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
 
-Here is a basic example of what an `index.toml` file might look like: 
+Here is a basic example of what an `index.yaml` file might look like: 
 
-```toml
-[app]
-    selected_theme = "xwz_default"
-    default_theme  = "xwz_default"
-[[app.theme]]
-    name    = "xwz_default"
-    author  = "xwz"
-    version = "1.0.0"
-    styles  = ["static/style.css"]
-    scripts = ["static/script.py"]
-    [app.theme.root]
-        style = "root"
-        [app.theme.root.bg]
-            style = "bg"
+```yaml
+app:
+  selected_theme: xwz_default
+  default_theme: xwz_default
+  theme:
+    - name: xwz_default
+      author: xwz
+      version: 1.0.0
+      styles:
+        - static/style.css
+      scripts:
+        - static/script.py
+      root:
+        style: root
+        bg:
+          style: bg
 ```
 ##### App structure
 
@@ -515,7 +517,7 @@ Puree includes a powerful component template system that allows you to create re
 
 ### Overview
 
-Component templates are defined as separate `.toml` files and can be instantiated multiple times throughout your UI with different parameters. Think of them as reusable UI "blueprints" similar to React components or Vue templates.
+Component templates are defined as separate `.yaml` files and can be instantiated multiple times throughout your UI with different parameters. Think of them as reusable UI "blueprints" similar to React components or Vue templates.
 
 ### Creating Components
 
@@ -523,10 +525,11 @@ Component templates are defined as separate `.toml` files and can be instantiate
 
 Components are stored in a dedicated directory specified in your theme configuration:
 
-```toml
-[[app.theme]]
-    name       = "xwz_default"
-    components = "static/components/"  # Path to components directory
+```yaml
+app:
+  theme:
+    - name: xwz_default
+      components: static/components/  # Path to components directory
 ```
 
 Your project structure should look like:
@@ -535,47 +538,47 @@ Your project structure should look like:
 puree_project/
     ├── static/
     │   ├── components/
-    │   │   ├── header.toml       # Component definition
-    │   │   ├── test_button.toml  # Component definition
-    │   │   └── card.toml         # Component definition
-    │   ├── index.toml
+    │   │   ├── header.yaml       # Component definition
+    │   │   ├── test_button.yaml  # Component definition
+    │   │   └── card.yaml         # Component definition
+    │   ├── index.yaml
     │   └── style.css
     └── __init__.py
 ```
 
 #### 2. Component Definition
 
-Create a `.toml` file in your components directory. The component must have a single root key that matches the filename (without extension):
+Create a `.yaml` file in your components directory. The component must have a single root key that matches the filename (without extension):
 
-**Example: `test_button.toml`**
+**Example: `test_button.yaml`**
 
-```toml
-[test_button]
-    style = "{{tb_style, 'hover_test'}}"
-    [test_button.tb_text]
-        style   = "{{tb_text_style, 'ht_text'}}"
-        text    = "{{tb_text, 'Click Me'}}"
-        passive = true
+```yaml
+test_button:
+  style: "{{tb_style, 'hover_test'}}"
+  tb_text:
+    style: "{{tb_text_style, 'ht_text'}}"
+    text: "{{tb_text, 'Click Me'}}"
+    passive: true
 ```
 
-**Example: `header.toml`**
+**Example: `header.yaml`**
 
-```toml
-[header]
-    style = "header"
-    [header.text_box]
-        style = "header_text_box"
-        [header.text_box.text]
-            style = "header_text"
-            text  = "{{title, 'Puree UI Kit'}}"
-            font  = "NeueMontreal-Bold"
-        [header.text_box.subtitle]
-            style = "header_text1"
-            text  = "{{subtitle, 'Declarative UI for Blender'}}"
-            font  = "NeueMontreal-Italic"
-    [header.logo]
-        style = "header_logo"
-        img   = "loggoui2"
+```yaml
+header:
+  style: header
+  text_box:
+    style: header_text_box
+    text:
+      style: header_text
+      text: "{{title, 'Puree UI Kit'}}"
+      font: NeueMontreal-Bold
+    subtitle:
+      style: header_text1
+      text: "{{subtitle, 'Declarative UI for Blender'}}"
+      font: NeueMontreal-Italic
+  logo:
+    style: header_logo
+    img: loggoui2
 ```
 
 ### Parameter Syntax
@@ -586,15 +589,15 @@ Component parameters use a special syntax: `{{parameter_name, 'default_value'}}`
 - **`default_value`**: The fallback value if no parameter is provided (must be in quotes)
 
 **Format:**
-```toml
-property = "{{param_name, 'default value'}}"
+```yaml
+property: "{{param_name, 'default value'}}"
 ```
 
 **Examples:**
-```toml
-text  = "{{button_text, 'Submit'}}"      # Text parameter with default
-style = "{{button_style, 'default'}}"     # Style parameter with default
-img   = "{{icon_name, 'icon_default'}}"  # Image parameter with default
+```yaml
+text: "{{button_text, 'Submit'}}"      # Text parameter with default
+style: "{{button_style, 'default'}}"     # Style parameter with default
+img: "{{icon_name, 'icon_default'}}"  # Image parameter with default
 ```
 
 ### Using Components
@@ -603,27 +606,36 @@ img   = "{{icon_name, 'icon_default'}}"  # Image parameter with default
 
 To use a component, set the `data` property to the component reference in square brackets:
 
-```toml
-[app.theme.root.my_container.my_button]
-    data = "[test_button]"  # References test_button.toml
+```yaml
+app:
+  theme:
+    - root:
+        my_container:
+          my_button:
+            data: '[test_button]'  # References test_button.yaml
 ```
 
 #### 2. Pass Parameters to Components
 
 You can customize component instances by passing parameters as properties:
 
-```toml
-[app.theme.root.bg.body.buttons.hover_button]
-    data          = "[test_button]"
-    tb_text_style = "ht_text"
-    tb_style      = "hover_test"
-    tb_text       = "Hover me!"
-
-[app.theme.root.bg.body.buttons.click_button]
-    data          = "[test_button]"
-    tb_text_style = "ct_text"
-    tb_style      = "click_test"
-    tb_text       = "Click me!"
+```yaml
+app:
+  theme:
+    - root:
+        bg:
+          body:
+            buttons:
+              hover_button:
+                data: '[test_button]'
+                tb_text_style: ht_text
+                tb_style: hover_test
+                tb_text: Hover me!
+              click_button:
+                data: '[test_button]'
+                tb_text_style: ct_text
+                tb_style: click_test
+                tb_text: Click me!
 ```
 
 In this example:
@@ -633,22 +645,26 @@ In this example:
 
 #### 3. Component Instance with Multiple Parameters
 
-**Component Definition (`header.toml`):**
-```toml
-[header]
-    style = "header"
-    [header.title]
-        text = "{{title, 'Default Title'}}"
-    [header.subtitle]
-        text = "{{subtitle, 'Default Subtitle'}}"
+**Component Definition (`header.yaml`):**
+```yaml
+header:
+  style: header
+  title:
+    text: "{{title, 'Default Title'}}"
+  subtitle:
+    text: "{{subtitle, 'Default Subtitle'}}"
 ```
 
-**Usage in `index.toml`:**
-```toml
-[app.theme.root.page.top_header]
-    data     = "[header]"
-    title    = "Welcome to Puree"
-    subtitle = "Build UIs with ease"
+**Usage in `index.yaml`:**
+```yaml
+app:
+  theme:
+    - root:
+        page:
+          top_header:
+            data: '[header]'
+            title: Welcome to Puree
+            subtitle: Build UIs with ease
 ```
 
 ### Component Namespacing
@@ -656,10 +672,10 @@ In this example:
 To prevent ID collisions when multiple instances of the same component exist, Puree automatically namespaces child elements:
 
 **Component Definition:**
-```toml
-[button]
-    [button.icon]
-        [button.icon.label]
+```yaml
+button:
+  icon:
+    label:
 ```
 
 **When instantiated as `my_button`:**
@@ -728,21 +744,21 @@ This makes your script code much more readable and maintainable, especially when
 
 ### Complete Example
 
-**File: `static/components/card.toml`**
-```toml
-[card]
-    style = "{{card_style, 'default_card'}}"
-    [card.header]
-        style = "card_header"
-        text  = "{{card_title, 'Title'}}"
-    [card.body]
-        style = "card_body"
-        text  = "{{card_content, 'Content'}}"
-    [card.footer]
-        style = "card_footer"
-        [card.footer.button]
-            style = "card_button"
-            text  = "{{action_text, 'Action'}}"
+**File: `static/components/card.yaml`**
+```yaml
+card:
+  style: "{{card_style, 'default_card'}}"
+  header:
+    style: card_header
+    text: "{{card_title, 'Title'}}"
+  body:
+    style: card_body
+    text: "{{card_content, 'Content'}}"
+  footer:
+    style: card_footer
+    button:
+      style: card_button
+      text: "{{action_text, 'Action'}}"
 ```
 
 **File: `static/style.css`**
@@ -766,20 +782,23 @@ card_body {
 }
 ```
 
-**File: `static/index.toml`**
-```toml
-[app.theme.root.dashboard.product_card]
-    data         = "[card]"
-    card_style   = "product_card_style"
-    card_title   = "Product Name"
-    card_content = "Product description goes here"
-    action_text  = "Buy Now"
-
-[app.theme.root.dashboard.profile_card]
-    data         = "[card]"
-    card_title   = "User Profile"
-    card_content = "User bio and information"
-    action_text  = "Edit Profile"
+**File: `static/index.yaml`**
+```yaml
+app:
+  theme:
+    - root:
+        dashboard:
+          product_card:
+            data: '[card]'
+            card_style: product_card_style
+            card_title: Product Name
+            card_content: Product description goes here
+            action_text: Buy Now
+          profile_card:
+            data: '[card]'
+            card_title: User Profile
+            card_content: User bio and information
+            action_text: Edit Profile
 ```
 
 This creates two different cards from the same template with different content and styling.

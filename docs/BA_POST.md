@@ -1,20 +1,32 @@
-<div align="center">
 
-<img src="docs/Asset 4.png" alt="Puree UI Logo" width="100%"/>
+## Hi folks,
+
+I've been a blenderhead for the past 8 years and lately I've been working on a particular addon that deserves a much more user friendly and powerful UI then what blender is capable of offering with it's panels and stuff.
+
+I stumbled upon [this post](https://blenderartists.org/t/compute-shaders-are-rarely-used-why/1592930) and just said to myself, why not try and use compute shaders paired with fragment/vertex shaders. Maybe using the [gpu module](https://docs.blender.org/api/current/gpu.html) would make this a perfect setup for a UI renderer. This seemed to work at first, but I just could not get the gpu module to run compute shaders with big uniform buffers that would allow me to update the UI state based on user interactions coming from the cpu.
+It turns out that ModernGL was the missing piece of the puzzle, by allowing me to bypass Blender's API completely, now I could offload the heavy parts of the UI renderer to the gpu and just handle the easy stuff in python (would still end up offloading layout computation too because it was just too slow, therefore Strechable - a python library for context-agnostic layout computation with rust bindings - came into the picture).
+
+After some time of research and head banging out came `puree`.  My best attempt at making a webstack-inspired API to make user interfaces in Blender.  It has some limitations at the moment, the main one being it's dependency on ModernGL which means that the framework only works with a opengl backend (no vulkan for now :frowning:, but I am actively refactoring the codebase to use [wgpu-py](https://github.com/pygfx/wgpu-py) which would give puree vulkan support too).
+
+Although I understand the need for a consistent and 
+
+
+[]() I pasted the README
 
 <br>
+
+<br>
+
+<div align="center">
+<img src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/Asset%204.png" alt="Puree UI Logo" width="100%"/>
 
 *A declarative UI framework for Blender addons and much more*
 
 </div>
-
 <div align="center">
 
-[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree)
-[![Release](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
-
-[![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
-[![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
+[![Version](https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/blender_manifest.toml&query=$.version&label=version&color=blue&style=flat)](https://github.com/nicolaiprodromov/puree) [![Release](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
+[![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/) [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
 </div>
 
@@ -32,7 +44,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 <div align="center">
 
-<img src="docs/example1.gif" alt="Example 1 UI GIF" width="100%"/>
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/example1.gif?raw=true" alt="Example 1 UI GIF" width="100%"/>
 
 </div>
 
@@ -48,6 +60,10 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 </div>
 
+> ### **puree is in beta - WIP**
+> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> - The API is not stable and **breaking changes are expected** in future releases.
+
 <div align="center">
 
 ## Quick Start
@@ -56,7 +72,6 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 Here's a minimal example to get you started with Puree:
 
-> [!IMPORTANT]
 > Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
@@ -238,65 +253,13 @@ Puree follows a render pipeline inspired by modern web browsers:
 4. **Render** – ModernGL compute shader generates GPU texture with all visual effects
 5. **Event** – Mouse/scroll events update container states and trigger re-renders
 
-```mermaid
-graph LR
-    A[YAML + CSS] --> B[Parser]
-    B --> C[Container Tree]
-    C --> D[Stretchable Layout]
-    D --> E[Flattened Data]
-    E --> F[GPU Buffers]
-    F --> G[Compute Shader]
-    G --> H[UI Texture]
-    
-    I[Mouse/Scroll] --> J[Event Handlers]
-    J --> K[Hit Detection]
-    K --> C
-    
-    L[Python Scripts] --> M[Compiler]
-    M --> C
-    
-    H --> N[Blender Viewport]
-    
-    style A fill:#000
-    style C fill:#000
-    style D fill:#000
-    style G fill:#000
-    style H fill:#000
-    style K fill:#000
-```
-
 This architecture enables:
 - **Reactive updates** – Layout recomputes on viewport resize
 - **GPU acceleration** – All rendering in compute shaders
 - **Script integration** – Python scripts can modify UI at runtime
 - **Event propagation** – Interactions flow through container hierarchy
 
-> [!TIP]
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
-
-<div align="center">
-
-## Support & Issues
-
-</div>
-
-> [!WARNING]
-> ### **puree is in beta - WIP**
-> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
-> - The API is not stable and **breaking changes are expected** in future releases.
-
-### Getting Help
-
-For questions and support, check out the [docs](docs/DOCS.md) or [support guide](docs/SUPPORT.md).
-
-### Reporting Issues
-
-Found a bug or have a feature request? [Open an issue](https://github.com/nicolaiprodromov/puree/issues) with:
-
-- Clear description of the problem or feature
-- Steps to reproduce (for bugs)
-- Blender version and OS
-- Relevant error messages or screenshots
 
 <div align="center">
 
@@ -304,31 +267,31 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 
 </div>
 
-<p align="center">
+<div align="center">
   <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-E87D0D?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
+</div>
 
-<p align="center">
+<div align="center">
   <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5C2D91?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-5586A4?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
+</div>
 
-<p align="center">
+<div align="center">
   <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-FF6B6B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/Kozea/tinycss2"><img src="https://img.shields.io/badge/TinyCSS2-264DE4?style=flat-square&logo=css3&logoColor=white&logoSize=auto" height="28"/></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://yaml.org/"><img src="https://img.shields.io/badge/YAML-CB171E?style=flat-square&logo=yaml&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
+</div>
 
 <div align="center">
 
 *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
 
-<img src="docs/munky.gif" width="100px">
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/munky.gif?raw=true" width="100px">
 
 </div>
 
