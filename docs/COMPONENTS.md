@@ -5,13 +5,11 @@ title : Component Template System
 
 Puree includes a powerful component template system that allows you to create reusable UI components with parameterization. This feature promotes code reuse, maintains consistency, and simplifies complex UI structures.
 
-### Overview
-
 Component templates are defined as separate `.yaml` files and can be instantiated multiple times throughout your UI with different parameters. Think of them as reusable UI "blueprints" similar to React components or Vue templates.
 
-### Creating Components
+## Creating Components
 
-#### 1. Component Directory Structure
+### 1. Component Directory Structure
 
 Components are stored in a dedicated directory specified in your theme configuration:
 
@@ -36,7 +34,7 @@ puree_project/
     └── __init__.py
 ```
 
-#### 2. Component Definition
+### 2. Component Definition
 
 Create a `.yaml` file in your components directory. The component must have a single root key that matches the filename (without extension):
 
@@ -71,7 +69,7 @@ header:
     img: loggoui2
 ```
 
-### Parameter Syntax
+## Parameter Syntax
 
 Component parameters use a special syntax: `{{parameter_name, 'default_value'}}`
 
@@ -90,9 +88,9 @@ style: "{{button_style, 'default'}}"     # Style parameter with default
 img: "{{icon_name, 'icon_default'}}"  # Image parameter with default
 ```
 
-### Using Components
+## Using Components
 
-#### 1. Reference Components in Your UI
+### 1. Reference Components in Your UI
 
 To use a component, set the `data` property to the component reference in square brackets:
 
@@ -105,7 +103,7 @@ app:
             data: '[test_button]'  # References test_button.yaml
 ```
 
-#### 2. Pass Parameters to Components
+### 2. Pass Parameters to Components
 
 You can customize component instances by passing parameters as properties:
 
@@ -133,7 +131,7 @@ In this example:
 - Each instance receives different parameter values
 - The component's `{{tb_text, ''}}` parameter gets replaced with "Hover me!" and "Click me!" respectively
 
-#### 3. Component Instance with Multiple Parameters
+### 3. Component Instance with Multiple Parameters
 
 **Component Definition (`header.yaml`):**
 ```yaml
@@ -157,7 +155,7 @@ app:
             subtitle: Build UIs with ease
 ```
 
-### Component Namespacing
+## Component Namespacing
 
 To prevent ID collisions when multiple instances of the same component exist, Puree automatically namespaces child elements:
 
@@ -177,11 +175,11 @@ my_button
 
 This means each component instance has unique IDs throughout the node tree, using underscore (`_`) as a separator.
 
-### Accessing Component Instances in Scripts
+## Accessing Component Instances in Scripts
 
 Puree provides an intuitive property-based access system for navigating the container hierarchy. Instead of traversing arrays of children, you can access containers by their ID using dot notation.
 
-#### Property-Based Access
+### Property-Based Access
 
 ```python
 def main(self, app):
@@ -201,7 +199,7 @@ def main(self, app):
     return app
 ```
 
-#### How It Works
+## How It Works
 
 The `Container` class implements a custom `__getattr__` method that:
 1. Searches through the container's children
@@ -223,7 +221,7 @@ for child in app.theme.root.bg.children:
 
 This makes your script code much more readable and maintainable, especially when working with deeply nested UI structures.
 
-### Best Practices
+## Best Practices
 
 1. **Keep Components Focused**: Each component should represent a single, reusable UI pattern
 2. **Use Meaningful Parameter Names**: Choose descriptive names like `button_text` rather than `txt`
@@ -232,7 +230,7 @@ This makes your script code much more readable and maintainable, especially when
 5. **Style Separation**: Define component-specific styles in your CSS file, pass style names as parameters
 6. **Avoid Deep Nesting**: Keep component hierarchies shallow for better maintainability
 
-### Complete Example
+## Complete Example
 
 **File: `static/components/card.yaml`**
 ```yaml
@@ -294,10 +292,6 @@ app:
 This creates two different cards from the same template with different content and styling.
 
 ---
-
-<p align="center">
-  <img src="images/munky.gif" width="100px" alt="Monkey GIF"/>
-</p>
 
 |  | Previous Page | Next Page |
 |----------|----------|------|
