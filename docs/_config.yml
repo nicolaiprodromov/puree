@@ -1,36 +1,43 @@
+lang: en
+
+timezone: UTC
+
 title: Puree
 tagline: Declarative UI Framework for Blender
 description: A declarative UI framework for Blender addons and much more
+
 url: "https://nicolaiprodromov.github.io"
 baseurl: "/puree"
-
-remote_theme: cotes2020/jekyll-theme-chirpy
 
 github:
   username: nicolaiprodromov
 
 social:
   name: Nicolai Prodromov
+  email: ""
   links:
     - https://github.com/nicolaiprodromov
 
-theme_mode: dark
+remote_theme: cotes2020/jekyll-theme-chirpy
 
-avatar: /assets/images/Asset 4.png
+theme_mode: dark
 
 toc: true
 
 comments:
   active: false
 
-timezone: UTC
+paginate: 10
 
-markdown: kramdown
 kramdown:
-  input: GFM
   syntax_highlighter: rouge
   syntax_highlighter_opts:
-    css_class: 'highlight'
+    css_class: highlight
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
 
 collections:
   tabs:
@@ -47,11 +54,22 @@ defaults:
       toc: true
       permalink: /posts/:title/
   - scope:
+      path: _drafts
+    values:
+      comments: false
+  - scope:
       path: ""
       type: tabs
     values:
       layout: page
-      permalink: /:title/
+  - scope:
+      path: assets/img/favicons
+    values:
+      swcache: true
+  - scope:
+      path: assets/js/dist
+    values:
+      swcache: true
 
 sass:
   style: compressed
@@ -68,6 +86,10 @@ compress_html:
 exclude:
   - "*.gem"
   - "*.gemspec"
+  - "*.config.js"
   - docs.aep
+  - BA_POST.md
   - node_modules
   - vendor
+  - Gemfile
+  - Gemfile.lock
