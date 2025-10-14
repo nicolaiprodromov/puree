@@ -17,6 +17,11 @@ title: Home
   <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat" alt="ModernGL"/></a>
 </p>
 
+<p align="center">
+    <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
+    <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
+</p>
+
 **Puree UI** for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
@@ -49,8 +54,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 Here's a minimal example to get you started with Puree:
 
-> [!IMPORTANT]
-> Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
+> It's not recommended to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies and reference them in the `blender_manifest.toml` file of your addon.
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 
