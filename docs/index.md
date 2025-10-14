@@ -64,7 +64,7 @@ Here's a minimal example to get you started with Puree:
 
 2. **Create your project structure:**
 
-    ```bash
+    ```plaintext
     my_addon/x
         ├── static/
         │   ├── index.yaml
