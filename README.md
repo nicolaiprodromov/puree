@@ -55,7 +55,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 Here's a minimal example to get you started with Puree:
 
 > [!IMPORTANT]
-> Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon.
+> It's not recommend to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 

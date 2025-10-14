@@ -46,7 +46,7 @@ There are 3 ways to start working with puree:
 
 #### Install with pip
 
-Blender does not recommend installing dependencies with pip in the blender python context, so it's better to download the puree wheel and reference it in the blender manifest file of your addon. This way you will have to build the addon structure yourself from scratch.
+> It's not recommend to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
 
 ```plaintext
 pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
