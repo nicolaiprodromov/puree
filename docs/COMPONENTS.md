@@ -1,6 +1,6 @@
 ---
 layout: page
-title : Component Template System
+title : 3. Components
 ---
 
 Puree includes a powerful component template system that allows you to create reusable UI components with parameterization. This feature promotes code reuse, maintains consistency, and simplifies complex UI structures.

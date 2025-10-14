@@ -1,6 +1,6 @@
 ---
 layout: page
-title : Documentation
+title : 2. Documentation
 ---
 
 <img src="https://img.shields.io/badge/STATUS-BETA%20%7C%20WIP-ff6b6b?style=for-the-badge&logo=blender&logoColor=white" alt="Beta Status"/>

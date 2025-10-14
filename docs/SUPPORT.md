@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Support
+title: 6. Support
 ---
 
 ## Getting Help
