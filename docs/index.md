@@ -1,6 +1,6 @@
 ---
-layout: home
-title: 1. Home
+layout: page
+title: Home
 ---
 
 <p align="center">

@@ -8,18 +8,26 @@ baseurl: /puree
 remote_theme: cotes2020/jekyll-theme-chirpy
 
 lang: en
-
 timezone: America/New_York
 
 theme_mode: dark
 
+title: Puree
+tagline: Declarative UI Framework for Blender
+
 social:
   name: Nicolai Prodromov
   links:
-    - https://github.com/nicolaiprodromov
+    - https://github.com/nicolaiprodromov/puree
 
 github:
   username: nicolaiprodromov
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: page
 
 markdown: kramdown
 kramdown:
@@ -32,3 +40,5 @@ kramdown:
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-paginate
