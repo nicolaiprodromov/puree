@@ -2,32 +2,16 @@ title: Puree
 description: Declarative UI Framework for Blender
 author: Nicolai Prodromov
 
+title: Puree
+description: Declarative UI Framework for Blender
+author: Nicolai Prodromov
+
 url: https://nicolaiprodromov.github.io
 baseurl: /puree
 
-remote_theme: cotes2020/jekyll-theme-chirpy
+remote_theme: pages-themes/slate@v0.2.0
 
-lang: en
-timezone: America/New_York
-
-theme_mode: dark
-
-title: Puree
-tagline: Declarative UI Framework for Blender
-
-social:
-  name: Nicolai Prodromov
-  links:
-    - https://github.com/nicolaiprodromov/puree
-
-github:
-  username: nicolaiprodromov
-
-defaults:
-  - scope:
-      path: ""
-    values:
-      layout: page
+show_downloads: false
 
 markdown: kramdown
 kramdown:
