@@ -3,59 +3,49 @@ layout: default
 title: Home
 ---
 
-<div align="center">
+<p align="center">
+  <img src="images/Asset 4.png" alt="Puree UI Logo" width="100%"/>
+</p>
 
-<img src="images/Asset 4.png" alt="Puree UI Logo" width="100%"/>
+<p align="center">
+  <em>A declarative UI framework for Blender addons and much more</em>
+</p>
 
-<br>
+<p align="center">
+  <a href="https://github.com/nicolaiprodromov/puree/releases"><img src="https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue" alt="Version"/></a>
+  <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white" alt="Blender"/></a>
+  <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat" alt="ModernGL"/></a>
+</p>
 
-*A declarative UI framework for Blender addons and much more*
-
-</div>
-
-<div align="center">
-
-[![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
-[![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
-[![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
-
-</div>
-
-*Puree UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+**Puree UI** for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
 
 > Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
-<div align="center">
+---
 
 ## What is puree good for?
 
 From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown-type (and soon true markdown rendering!) rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
 
-<div align="center">
-
-<img src="images/example1.gif" alt="Example 1 UI GIF" width="100%"/>
-
-</div>
+<p align="center">
+  <img src="images/example1.gif" alt="Example 1 UI GIF" width="100%"/>
+</p>
 
 ## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| *Declarative UI Design* | Define your interface structure using YAML configuration files with HTML-like nesting |
-| *GPU-Accelerated Rendering* | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
-| *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
-| *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
-| *Web-Inspired Architecture* | Familiar paradigm for developers coming from web development |
+| **Declarative UI Design** | Define your interface structure using YAML configuration files with HTML-like nesting |
+| **GPU-Accelerated Rendering** | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
+| **Responsive Layouts** | Automatic layout computation using the Stretchable flexbox engine |
+| **Interactive Components** | Built-in support for hover states, click events, scrolling, and toggle interactions |
+| **Web-Inspired Architecture** | Familiar paradigm for developers coming from web development |
 
-</div>
-
-<div align="center">
+---
 
 ## Quick Start
-
-</div>
 
 Here's a minimal example to get you started with Puree:
 
@@ -227,11 +217,9 @@ Here's a minimal example to get you started with Puree:
 
 9. Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
 
-<div align="center">
+---
 
 ## How it works
-
-</div>
 
 Puree follows a render pipeline inspired by modern web browsers:
 
@@ -269,22 +257,22 @@ graph LR
 ```
 
 This architecture enables:
+
 - **Reactive updates** – Layout recomputes on viewport resize
 - **GPU acceleration** – All rendering in compute shaders
 - **Script integration** – Python scripts can modify UI at runtime
 - **Event propagation** – Interactions flow through container hierarchy
 
-> [!TIP]
-> Read the full [documentation]({{ site.baseurl }}/DOCS) for detailed guides, API references, and examples.
+> **TIP:** Read the full [documentation]({{ site.baseurl }}/DOCS) for detailed guides, API references, and examples.
 
-<div align="center">
+---
 
 ## Support & Issues
 
-</div>
-
-> [!WARNING]
+> **WARNING:**
+>
 > ### **puree is in beta - WIP**
+>
 > - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 > - The API is not stable and **breaking changes are expected** in future releases.
 
@@ -301,46 +289,26 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 - Blender version and OS
 - Relevant error messages or screenshots
 
-<div align="center">
+---
 
 ## Built With
 
-</div>
-
-<p align="center">
-  <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-E87D0D?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5C2D91?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-5586A4?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-FF6B6B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/Kozea/tinycss2"><img src="https://img.shields.io/badge/TinyCSS2-264DE4?style=flat-square&logo=css3&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://yaml.org/"><img src="https://img.shields.io/badge/YAML-CB171E?style=flat-square&logo=yaml&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<div align="center">
-
-*Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
-
-<img src="images/munky.gif" width="100px">
-
-</div>
-
-</div>
+- [Blender](https://www.blender.org/) - 3D creation suite
+- [Python](https://www.python.org/) - Programming language
+- [ModernGL](https://github.com/moderngl/moderngl) - Modern OpenGL bindings
+- [GLSL](https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language) - OpenGL Shading Language
+- [Stretchable](https://github.com/vislyhq/stretchable) - Flexbox layout engine
+- [TinyCSS2](https://github.com/Kozea/tinycss2) - CSS parser
+- [YAML](https://yaml.org/) - Configuration format
 
 ---
 
-<div align="center">
+**Special thanks to the open-source community and the developers behind the projects that make puree possible.**
+
+<p align="center">
+  <img src="images/munky.gif" width="100px" alt="Monkey GIF"/>
+</p>
+
+---
 
 **[Next: Full Documentation →]({{ site.baseurl }}/DOCS)**
-
-</div>
