@@ -1,0 +1,37 @@
+app:
+  selected_theme: showcase_theme
+  default_theme : showcase_theme
+  theme:
+    - name   : showcase_theme
+      author : puree
+      version: 1.0.0
+
+      default_font: NeueMontreal-Regular
+      scripts:
+        - examples/example1/showcase_script.py
+      styles:
+        - examples/example1/showcase_style.scss
+      components: examples/example1/components/
+      
+      root:
+        style: showcase_root
+        bg:
+          style: showcase_bg
+          
+          header1:
+            data          : '[header]'
+            title         : Puree UI Showcase
+            subtitle      : All Features Demo
+            title_color   : '#ffffff'
+            subtitle_color: '#ffba00'
+            bg_color      : '#1a1a1a'
+            logo_size     : 60px
+
+          test_button:
+            data               : '[test_button]'
+            tb_text_value      : Test Button
+            tb_font_value      : NeueMontreal-Bold
+            border_radius_value: 8px
+            padding_value      : 10px
+
+
