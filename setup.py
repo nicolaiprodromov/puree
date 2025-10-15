@@ -25,7 +25,6 @@ setup(
     install_requires=[
         "moderngl==5.12.0",
         "glcontext==3.0.0",
-        "numpy>=1.20.0",
         "textual==6.2.1",
         "rich==14.1.0",
         "stretchable==1.1.7",
