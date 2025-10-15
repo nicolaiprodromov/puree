@@ -668,6 +668,24 @@ class XWZ_OT_start_ui(Operator):
                 align_h       = block.get('align_h', 'LEFT').upper(),
                 align_v       = block.get('align_v', 'CENTER').upper()
             )
+        
+        for _container_id in parser_op.text_input_blocks:
+            block = parser_op.text_input_blocks[_container_id]
+            bpy.ops.xwz.create_text_input(
+                container_id = _container_id,
+                placeholder  = block['placeholder'],
+                font_name    = block['font'],
+                size         = block['text_scale'],
+                x_pos        = block['x_pos'],
+                y_pos        = block['y_pos'],
+                color        = block['text_color'],
+                mask_x       = block['mask_x'],
+                mask_y       = block['mask_y'],
+                mask_width   = block['mask_width'],
+                mask_height  = block['mask_height'],
+                align_h      = block.get('align_h', 'LEFT').upper(),
+                align_v      = block.get('align_v', 'TOP').upper()
+            )
 
         self.report({'INFO'}, "UI Started")
         return {'RUNNING_MODAL'}
@@ -741,6 +759,28 @@ class XWZ_OT_start_ui(Operator):
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
                                 align_h=block.get('align_h', 'LEFT').upper(),
                                 align_v=block.get('align_v', 'CENTER').upper()
+                            )
+                    
+                    # Update text input instances with new layout
+                    from . import text_input_op
+                    for input_instance in text_input_op._text_input_instances:
+                        container_id = input_instance.container_id
+                        if container_id in parser_op.text_input_blocks:
+                            block = parser_op.text_input_blocks[container_id]
+                            bpy.ops.xwz.update_text_input(
+                                instance_id=input_instance.id,
+                                placeholder=block['placeholder'],
+                                font_name=block['font'],
+                                size=block['text_scale'],
+                                x_pos=block['x_pos'],
+                                y_pos=block['y_pos'],
+                                color=block['text_color'],
+                                mask_x=block['mask_x'],
+                                mask_y=block['mask_y'],
+                                mask_width=block['mask_width'],
+                                mask_height=block['mask_height'],
+                                align_h=block.get('align_h', 'LEFT').upper(),
+                                align_v=block.get('align_v', 'TOP').upper()
                             )
                     
                     # Update image instances with new image content
@@ -832,6 +872,7 @@ class XWZ_OT_stop_ui(Operator):
         
         try:
             bpy.ops.xwz.clear_text()
+            bpy.ops.xwz.clear_text_inputs()
             bpy.ops.xwz.clear_images()
         except Exception:
             pass

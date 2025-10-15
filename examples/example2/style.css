@@ -13,15 +13,6 @@ root{
     --text_col     : #FFFFFF;
     --accent_col   : #6a6fff;
     --border_radii : 7px;
-    --gappy        : 7px;
-
-
-    --blue  : #0090e7;
-    --red   : #ff4100;
-    --brown : #a56100;
-    --purple: #ab39ff;
-    --yellow: #ffba00;
-
 }
 
 tt_input{
