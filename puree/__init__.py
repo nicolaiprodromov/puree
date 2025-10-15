@@ -66,6 +66,7 @@ def register():
     import bpy
     from .render  import register as render_register
     from .text_op import register as txt_register
+    from .text_input_op import register as txt_input_register
     from .img_op  import register as img_register
     from .hit_op  import register as hit_register
     from .panel   import register as panel_register
@@ -88,6 +89,7 @@ def register():
     
     render_register()
     txt_register()
+    txt_input_register()
     img_register()
     panel_register()
     hit_register()
@@ -100,6 +102,7 @@ def unregister():
     import bpy
     from .render  import unregister as render_unregister
     from .text_op import unregister as txt_unregister
+    from .text_input_op import unregister as txt_input_unregister
     from .img_op  import unregister as img_unregister
     from .hit_op  import unregister as hit_unregister
     from .panel   import unregister as panel_unregister
@@ -129,6 +132,7 @@ def unregister():
     hit_unregister()
     panel_unregister()
     img_unregister()
+    txt_input_unregister()
     txt_unregister()
     render_unregister()
 

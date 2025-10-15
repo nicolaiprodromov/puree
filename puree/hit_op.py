@@ -93,6 +93,20 @@ class XWZ_OT_hit(bpy.types.Operator):
                 if not _any_child_hovered and mouse_state.is_clicked is True:
                     _container['_clicked'] = True
                     if _container['_clicked'] is True and _container['_prev_clicked'] is False:
+                        from . import text_input_op
+                        
+                        text_input_clicked = False
+                        for input_instance in text_input_op._text_input_instances:
+                            if input_instance.container_id == _container['id']:
+                                bpy.ops.xwz.focus_text_input(instance_id=input_instance.id)
+                                text_input_clicked = True
+                                break
+                        
+                        if not text_input_clicked:
+                            for input_instance in text_input_op._text_input_instances:
+                                if input_instance.is_focused:
+                                    bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
+                        
                         for _click_handler in _container['click']:
                             _click_handler(_container)
                             

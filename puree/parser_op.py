@@ -4,9 +4,11 @@ from .parser    import UI
 from .compiler  import Compiler
 from .extract_images import ImageExtractor
 from .extract_text   import TextExtractor
+from .extract_text_input import TextInputExtractor
 
 XWZ_UI                = None
 text_blocks           = {}
+text_input_blocks     = {}
 image_blocks          = {}
 image_blocks_relative = {}
 _container_json_data  = []
@@ -94,7 +96,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
                         region_size = (region.width, region.height)
                         break
                 break
-        global XWZ_UI, text_blocks, image_blocks, image_blocks_relative
+        global XWZ_UI, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
         from . import get_addon_root
         addon_dir  = get_addon_root()
 
@@ -104,8 +106,10 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         
         self.image_extractor = ImageExtractor(self.ui, self.ui.abs_json_data)
         self.text_extractor  = TextExtractor(self.ui, self.ui.abs_json_data)
+        self.text_input_extractor = TextInputExtractor(self.ui, self.ui.abs_json_data)
 
         text_blocks           = self.text_extractor.text_blocks
+        text_input_blocks     = self.text_input_extractor.text_input_blocks
         image_blocks          = self.image_extractor.image_blocks
         image_blocks_relative = self.image_extractor.image_blocks_relative
 
@@ -114,7 +118,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         return {'FINISHED'}
 
 def recompute_layout(canvas_size):
-    global XWZ_UI, _container_json_data, text_blocks, image_blocks, image_blocks_relative
+    global XWZ_UI, _container_json_data, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
     
     if XWZ_UI is None:
         return None
@@ -127,9 +131,11 @@ def recompute_layout(canvas_size):
     
     # Update text and image blocks with new layout
     text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    text_input_extractor = TextInputExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     
     text_blocks = text_extractor.text_blocks
+    text_input_blocks = text_input_extractor.text_input_blocks
     image_blocks = image_extractor.image_blocks
     image_blocks_relative = image_extractor.image_blocks_relative
     
@@ -141,7 +147,7 @@ def sync_dirty_containers():
     without full layout recomputation. This is called when scripts modify
     container properties (like colors, text, images) via event handlers.
     """
-    global XWZ_UI, _container_json_data, text_blocks, image_blocks, image_blocks_relative
+    global XWZ_UI, _container_json_data, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
     
     if XWZ_UI is None or not _container_json_data:
         return False
@@ -161,9 +167,11 @@ def sync_dirty_containers():
     # This ensures that changes to container.text and container.img
     # are reflected in the rendered output
     text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
+    text_input_extractor = TextInputExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     
     text_blocks = text_extractor.text_blocks
+    text_input_blocks = text_input_extractor.text_input_blocks
     image_blocks = image_extractor.image_blocks
     image_blocks_relative = image_extractor.image_blocks_relative
     

@@ -1,16 +1,16 @@
 app:
-  selected_theme: showcase_theme
-  default_theme : showcase_theme
+  selected_theme: test_theme1
+  default_theme : test_theme1
   theme:
-    - name   : showcase_theme
+    - name   : test_theme1
       author : puree
       version: 1.0.0
 
       default_font: NeueMontreal-Regular
       scripts:
-        - examples/example1/showcase_script.py
+        - examples/example1/script.py
       styles:
-        - examples/example1/showcase_style.scss
+        - examples/example1/style.scss
       components: examples/example1/components/
       
       root:
