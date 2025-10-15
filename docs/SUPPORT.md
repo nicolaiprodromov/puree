@@ -39,5 +39,3 @@ Interested in contributing? Please refer to [Contributing](CONTRIBUTING.md) for 
 |  | Previous Page | Next Page |
 |----------|----------|------|
 | Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Troubleshooting](TROUBLESHOOTING.md) | [Home](index.md) |
-
----
