@@ -2,6 +2,7 @@ import os
 import re
 import yaml
 import math
+
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
 from stretchable import Edge
@@ -17,37 +18,23 @@ from textual.color import Color
 
 from .components.container import Container
 from .components.style import Style
+from .scss_compiler import SCSSCompiler
 
 node_flat = {}
 node_flat_abs = {}
 
 def srgb_to_linear(value):
-    """
-    Convert sRGB color value (0-1 range) to linear color space.
-    This is the standard sRGB to linear conversion formula used by Blender.
-    
-    Blender's rendering pipeline works in linear color space for physically accurate lighting,
-    but UI color pickers and CSS colors are in sRGB space (what humans perceive as uniform).
-    
-    References:
-    - https://en.wikipedia.org/wiki/SRGB#Transformation
-    - Blender API: bpy.types.ColorManagedInputColorspaceSettings
-    """
     if value <= 0.04045:
         return value / 12.92
     else:
         return math.pow((value + 0.055) / 1.055, 2.4)
 
 def convert_srgb_to_linear_color(r, g, b, a):
-    """
-    Convert RGBA color from sRGB to linear color space.
-    Alpha channel is not converted as it's not affected by gamma.
-    """
     return [
         srgb_to_linear(r),
         srgb_to_linear(g),
         srgb_to_linear(b),
-        a  # Alpha is linear already
+        a 
     ]
 
 class CSSParser:
@@ -72,11 +59,9 @@ class CSSParser:
         
         def replace_var(match):
             var_name = match.group(1).strip()
-            # Check for circular reference
             if var_name in visited:
                 return match.group(0)
             if var_name in variables:
-                # Add to visited set only for recursive call to detect circular references
                 new_visited = visited.copy()
                 new_visited.add(var_name)
                 resolved_value = variables[var_name]
@@ -84,9 +69,7 @@ class CSSParser:
                 return result
             return match.group(0)
         
-        # Resolve all variables in the value string
         resolved = re.sub(var_pattern, replace_var, value)
-        # Clean up any extra whitespace that might occur from variable substitution
         resolved = ' '.join(resolved.split())
         return resolved
     
@@ -146,8 +129,8 @@ class UI():
         self.theme          = Theme()
         self.json_data      = []
         self.abs_json_data  = []
-        self.root_node      = None  # Expose root node for recomputation
-        self.canvas_size    = canvas_size  # Store current canvas size
+        self.root_node      = None
+        self.canvas_size    = canvas_size
 
         self.parse_toml(path, base_dir)
         self.parse_css()
@@ -162,7 +145,6 @@ class UI():
     def parse_toml(self, path=None, base_dir=None):
         data     = self.load_conf_file(path)
         ui_data  = data.get('app', {})
-        # settings = ui_data['settings']
         theme    = ui_data['theme']
 
         self.selected_theme        = ui_data['selected_theme']
@@ -196,7 +178,6 @@ class UI():
             for attr_name, attr_value in container_data.items():
 
                 if isinstance(attr_value, dict):
-                    # Check if this dict contains a 'data' attribute pointing to a component
                     has_component_data = 'data' in attr_value and isinstance(attr_value['data'], str) and attr_value['data'].startswith('[') and attr_value['data'].endswith(']')
                     
                     child_container = Container()
@@ -207,21 +188,17 @@ class UI():
                     child_container.parent = parent_container
                     parent_container.children.append(child_container)
                     
-                    # First, set all non-dict attributes on the child container
                     for child_attr_name, child_attr_value in attr_value.items():
                         if not isinstance(child_attr_value, dict):
                             if hasattr(child_container, child_attr_name):
-                                # Don't set 'data' yet if it's a component reference
                                 if not (child_attr_name == 'data' and has_component_data):
                                     setattr(child_container, child_attr_name.replace('-', '_'), child_attr_value)
                     
-                    # If this container references a component, load it
                     if has_component_data:
                         component_ref = attr_value['data']
                         component_dir = os.path.join(base_dir, self.theme.components)
                         component_loaded = False
                         
-                        # Extract component parameters (all non-dict, non-'data' attributes)
                         component_params = {}
                         for param_name, param_value in attr_value.items():
                             if not isinstance(param_value, dict) and param_name != 'data':
@@ -231,55 +208,74 @@ class UI():
                             for filename in files:
                                 if filename.endswith('.yaml') and f'[{filename.replace(".yaml", "")}]' == component_ref:
                                     file_path = os.path.join(root, filename)
+                                    component_base_name = filename.replace('.yaml', '')
+                                    scss_file_path = os.path.join(root, f"{component_base_name}.scss")
+                                    
                                     with open(file_path, 'r') as f:
                                         component_data = yaml.safe_load(f)
-                                        # Load component data INTO the child_container, not parent_container
-                                        # This recursively handles all nested children from the component
                                         component_key = component_ref.replace("[",'').replace("]",'')
                                         
-                                        # Function to substitute parameters in string values
-                                        # Format: {{parameter_name, 'default value'}} or {{parameter_name, "default value"}}
+                                        if os.path.exists(scss_file_path):
+                                            scss_compiler = SCSSCompiler()
+                                            namespace = child_container.id
+                                            compiled_css = scss_compiler.compile_file(
+                                                scss_file_path,
+                                                namespace=namespace,
+                                                param_overrides=component_params,
+                                                component_name=component_base_name
+                                            )
+                                            
+                                            css_parser = CSSParser()
+                                            component_styles = css_parser.parse(compiled_css)
+                                            for selector, declarations in component_styles.items():
+                                                style_obj = Style()
+                                                style_obj.id = selector
+                                                for prop, value in declarations.items():
+                                                    attr_name_parsed, attr_value_parsed = self.parse_container_props_from_style(prop, value)
+                                                    setattr(style_obj, attr_name_parsed, attr_value_parsed)
+                                                self.theme.styles.__dict__[selector] = style_obj
+                                        
                                         def substitute_params(value, params):
                                             if not isinstance(value, str):
                                                 return value
                                             
-                                            # Pattern matches: {{param_name, 'default'}} or {{param_name, "default"}}
                                             pattern = r'\{\{(\w+)\s*,\s*["\']([^"\']*?)["\']\}\}'
                                             
                                             def replace_param(match):
                                                 param_name = match.group(1)
                                                 default_value = match.group(2)
-                                                # Use provided parameter or fall back to default
                                                 return str(params.get(param_name, default_value))
                                             
                                             return re.sub(pattern, replace_param, value)
                                         
-                                        # Namespace all component children with the parent container's ID
-                                        # to avoid ID collisions when multiple instances exist
-                                        # Use underscore as separator (dots are invalid for Node keys)
                                         def load_component_with_namespace(comp_data, parent, namespace_prefix, params):
                                             for attr_name, attr_value in comp_data.items():
                                                 if isinstance(attr_value, dict):
-                                                    # Create child with namespaced ID using underscore separator
                                                     namespaced_child = Container()
                                                     namespaced_child.id = f"{parent.id}_{attr_name}"
                                                     namespaced_child.parent = parent
                                                     parent.children.append(namespaced_child)
                                                     
-                                                    # Set non-dict attributes with parameter substitution
                                                     for child_attr_name, child_attr_value in attr_value.items():
                                                         if not isinstance(child_attr_value, dict):
                                                             if hasattr(namespaced_child, child_attr_name):
-                                                                # Apply parameter substitution to string values
                                                                 substituted_value = substitute_params(child_attr_value, params)
+                                                                if child_attr_name == 'style' and isinstance(substituted_value, str):
+                                                                    if substituted_value == component_base_name:
+                                                                        substituted_value = child_container.id
+                                                                    elif substituted_value.startswith(component_base_name + '_'):
+                                                                        substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
                                                                 setattr(namespaced_child, child_attr_name.replace('-', '_'), substituted_value)
                                                     
-                                                    # Recursively process with namespace and params
                                                     load_component_with_namespace(attr_value, namespaced_child, namespaced_child.id, params)
                                                 else:
-                                                    # Set scalar attribute on parent with parameter substitution
                                                     if hasattr(parent, attr_name):
                                                         substituted_value = substitute_params(attr_value, params)
+                                                        if attr_name == 'style' and isinstance(substituted_value, str):
+                                                            if substituted_value == component_base_name:
+                                                                substituted_value = child_container.id
+                                                            elif substituted_value.startswith(component_base_name + '_'):
+                                                                substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
                                                         setattr(parent, attr_name.replace('-', '_'), substituted_value)
                                         
                                         load_component_with_namespace(component_data[component_key], child_container, attr_name, component_params)
@@ -288,19 +284,15 @@ class UI():
                             if component_loaded:
                                 break
                     else:
-                        # Only recursively process children if this wasn't a component reference
-                        # (component loading already handled all nested structure)
                         load_container(attr_value, child_container)
 
                 else:
-                    # Handle scalar attributes on the parent container
                     if hasattr(parent_container, attr_name):
                         setattr(parent_container, attr_name.replace('-', '_'), attr_value)
 
 
         self.theme.root.id = "root"
         load_container(root, self.theme.root)
-        #print(self.theme.root.children[0].id)
 
     def parse_container_props_from_style(self, attr_name, attr_value):
         attr_name = attr_name.replace('-', '_')
@@ -339,8 +331,6 @@ class UI():
 
         if attr_name in color_props:
             value_color = Color.parse(attr_value)
-            # Convert from sRGB (0-255) to linear color space (0-1)
-            # First normalize to 0-1, then convert to linear space
             srgb_normalized = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0, value_color.a]
             attr_value = convert_srgb_to_linear_color(*srgb_normalized)
 
@@ -351,15 +341,12 @@ class UI():
             attr_value = float(attr_value.replace('deg', '').strip())
 
         elif attr_name == 'box_shadow_offset':
-            # Parse box-shadow-offset which expects 2 values (x, y) in pixels
-            # Format: "10px 10px" -> [10.0, 10.0, 0.0]
             values = attr_value.strip().split()
             if len(values) == 2:
                 x_offset = float(values[0].replace('px', '').strip())
                 y_offset = float(values[1].replace('px', '').strip())
                 attr_value = [x_offset, y_offset, 0.0]
             else:
-                # Fallback to default if format is incorrect
                 attr_value = [0.0, 0.0, 0.0]
 
         elif attr_name in bool_props:
@@ -368,14 +355,20 @@ class UI():
         return attr_name, attr_value
 
     def parse_css(self):
-        # Import here to avoid circular import
         from . import get_addon_root
         addon_dir  = get_addon_root()
         style_str = ""
+        scss_compiler = SCSSCompiler()
+        
         for _style_file in self.theme.style_files:
-            if _style_file.endswith('.css'):
-                with open(os.path.join(addon_dir, _style_file), 'r') as f:
+            file_path = os.path.join(addon_dir, _style_file)
+            if _style_file.endswith('.scss'):
+                compiled_css = scss_compiler.compile_file(file_path)
+                style_str += compiled_css
+            elif _style_file.endswith('.css'):
+                with open(file_path, 'r') as f:
                     style_str += f.read()
+        
         css_string = style_str
         parser = CSSParser()
         styles = parser.parse(css_string)
@@ -664,22 +657,19 @@ class UI():
 
         self.root_node = create_node(self.theme.root)
         self.root_node.compute_layout(canvas_size)
-        self.canvas_size = canvas_size  # Update stored canvas size
+        self.canvas_size = canvas_size
         get_all_nodes(self.theme.root, self.root_node)
 
     def recompute_layout(self, canvas_size):
         """Recompute layout with new canvas size and regenerate flattened data"""
         global node_flat, node_flat_abs
         
-        # Clear previous layout data
         node_flat.clear()
         node_flat_abs.clear()
         
-        # Recompute layout with new canvas size
         self.root_node.compute_layout(canvas_size)
         self.canvas_size = canvas_size
         
-        # Regenerate flattened node data
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
@@ -710,7 +700,6 @@ class UI():
         
         get_all_nodes(self.theme.root, self.root_node)
         
-        # Regenerate flattened container data
         self.json_data = []
         self.abs_json_data = []
         self.flatten_node_tree()
