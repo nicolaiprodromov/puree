@@ -22,7 +22,7 @@ def register():
     # ui_conf_path is relative to the addon root directory and
     # is required to point puree to the main configuration file of your UI
     wm = bpy.context.window_manager
-    wm.xwz_ui_conf_path = "static/index.yaml"
+    wm.xwz_ui_conf_path = "examples/example1/showcase.yaml"
     wm.xwz_debug_panel  = True
     wm.xwz_auto_start   = True
 
