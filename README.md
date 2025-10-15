@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/Asset 4.png" alt="Puree UI Logo" width="100%"/>
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/Asset%204.png?raw=true" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
@@ -30,7 +30,7 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 
 <div align="center">
 
-<img src="docs/images/example1.gif" alt="Example 1 UI GIF" width="100%"/>
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/example1.gif?raw=true" alt="Example 1 UI GIF" width="100%"/>
 
 </div>
 
@@ -326,7 +326,7 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 
 *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
 
-<img src="docs/images/munky.gif" width="100px">
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/munky.gif?raw=true" width="100px">
 
 </div>
 
