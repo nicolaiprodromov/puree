@@ -24,6 +24,7 @@ wheels = [
   "./wheels/attrs-25.3.0-py3-none-any.whl",
   "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
   "./wheels/glcontext-3.0.0-cp312-cp312-win_amd64.whl",
+  "./wheels/libsass-0.23.0-cp38-abi3-win_amd64.whl",
   "./wheels/linkify_it_py-2.0.3-py3-none-any.whl",
   "./wheels/markdown_it_py-4.0.0-py3-none-any.whl",
   "./wheels/mdit_py_plugins-0.5.0-py3-none-any.whl",

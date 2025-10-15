@@ -1,0 +1,29 @@
+$bg_color           : #0d0d0d !default;
+$hover_bg_color     : #1f1f1f !default;
+$click_bg_color     : #424242 !default;
+$text_color_value   : #f6f6f6 !default;
+$border_radius_value: 8px !default;
+$padding_value      : 10px !default;
+
+test_button {
+    width          : 300px;
+    height         : 80px;
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+    padding        : $padding_value;
+    border-radius  : $border_radius_value;
+    color          : $bg_color;
+    hover-color    : $hover_bg_color;
+    click-color    : $click_bg_color;
+}
+
+test_button_text {
+    width       : 300px;
+    height      : 80px;
+    color       : rgba(0,0,0,0);
+    text-color  : $text_color_value;
+    text-scale  : 24px;
+    text-align-h: center;
+    text-align-v: center;
+}
