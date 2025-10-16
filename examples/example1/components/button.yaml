@@ -1,0 +1,12 @@
+button:
+  style: button
+  tb_text:
+    style  : button_text
+    text   : "{{tb_text_value, ''}}"
+    font   : "{{tb_font_value, 'NeueMontreal-Regular'}}"
+    passive: true
+  # radial:
+  #   style        : button_radial
+  #   border_color : "{{border_color_value, '#ffffff'}}"
+  #   bg_color     : "{{bg_color_value, '#333333'}}"
+  #   hover_color  : "{{hover_color_value, '#555555'}}"
