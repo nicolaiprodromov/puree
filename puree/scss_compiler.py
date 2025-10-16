@@ -12,11 +12,23 @@ class SCSSCompiler:
                 var_name = key.replace("-", "_")
                 if isinstance(value, str):
                     if not value.startswith(('rgb(', 'rgba(', '#', '"', "'")):
-                        stripped = value.rstrip('px%emremvwvhptcmmmininchpcexchvminvmax')
-                        try:
-                            float(stripped)
-                        except ValueError:
-                            value = f'"{value}"'
+                        parts = value.split()
+                        if len(parts) > 1:
+                            is_css_multi_value = all(
+                                part.rstrip('px%emremvwvhptcmmmininchpcexchvminvmax').replace('.', '').replace('-', '').isdigit() or 
+                                part in ('auto', 'inherit', 'initial', 'unset')
+                                for part in parts
+                            )
+                            if is_css_multi_value:
+                                pass
+                            else:
+                                value = f'"{value}"'
+                        else:
+                            stripped = value.rstrip('px%emremvwvhptcmmmininchpcexchvminvmax')
+                            try:
+                                float(stripped)
+                            except ValueError:
+                                value = f'"{value}"'
                 var_defs.append(f'${var_name}: {value};')
             scss_content = '\n'.join(var_defs) + '\n' + scss_content
         
