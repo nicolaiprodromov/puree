@@ -1,7 +1,0 @@
-test_button:
-  style: test_button
-  tb_text:
-    style  : test_button_text
-    text   : "{{tb_text_value, ''}}"
-    font   : "{{tb_font_value, 'NeueMontreal-Regular'}}"
-    passive: true
