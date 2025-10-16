@@ -134,6 +134,9 @@ class UI():
         self.create_node_tree(canvas_size)
         self.flatten_node_tree()
 
+    def get_by_id(self, target_id):
+        return self.theme.root.get_by_id(target_id)
+
     def load_conf_file(self, path):
         with open(path, 'r') as f:
             data = yaml.safe_load(f)
