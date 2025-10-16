@@ -36,15 +36,16 @@ class SCSSCompiler:
                     namespaced_selectors = []
                     for selector in selectors:
                         if selector:
-                            print(f"[NAMESPACE] selector='{selector}', base='{component_base_name}', namespace='{namespace}', match={selector == component_base_name}")
-                            if selector == component_base_name:
+                            selector_clean = selector.lstrip('.')
+                            print(f"[NAMESPACE] selector='{selector}', base='{component_base_name}', namespace='{namespace}', match={selector_clean == component_base_name}")
+                            if selector_clean == component_base_name:
                                 namespaced_selectors.append(namespace)
-                            elif selector.startswith(component_base_name + '_'):
-                                namespaced_selectors.append(selector.replace(component_base_name, namespace, 1))
-                            elif not selector.startswith(namespace):
-                                namespaced_selectors.append(f'{namespace}_{selector}')
+                            elif selector_clean.startswith(component_base_name + '_'):
+                                namespaced_selectors.append(selector_clean.replace(component_base_name, namespace, 1))
+                            elif not selector_clean.startswith(namespace):
+                                namespaced_selectors.append(f'{namespace}_{selector_clean}')
                             else:
-                                namespaced_selectors.append(selector)
+                                namespaced_selectors.append(selector_clean)
                     line = ', '.join(namespaced_selectors) + ' {' + line.split('{', 1)[1]
             lines.append(line)
         return '\n'.join(lines)
