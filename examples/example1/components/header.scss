@@ -3,7 +3,7 @@ $subtitle_color: #ffba00 !default;
 $bg_color      : #1a1a1a !default;
 $logo_size     : 60px !default;
 
-header {
+.header {
     display        : flex;
     flex-direction : row;
     width          : 100%;
@@ -16,7 +16,7 @@ header {
     color          : $bg_color;
 }
 
-header_text_box {
+.header_text_box {
     display       : flex;
     flex-direction: column;
     height        : 100%;
@@ -24,7 +24,7 @@ header_text_box {
     color         : rgba(0,0,0,0);
 }
 
-header_text {
+.header_text {
     color       : rgba(0,0,0,0);
     text-scale  : 32px;
     text-color  : $title_color;
@@ -33,7 +33,7 @@ header_text {
     height      : 40px;
 }
 
-header_text1 {
+.header_text1 {
     color       : rgba(0,0,0,0);
     text-scale  : 16px;
     text-color  : $subtitle_color;
@@ -42,7 +42,7 @@ header_text1 {
     height      : 20px;
 }
 
-header_logoh {
+.header_logoh {
     width : $logo_size;
     height: $logo_size;
     color : rgba(0,0,0,0);

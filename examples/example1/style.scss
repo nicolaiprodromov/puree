@@ -1,7 +1,7 @@
 $bg-dark      : #000000;
 $border-radius: 8px;
 
-showcase_root {
+.showcase_root {
     display        : flex;
     flex-direction : column;
     align-items    : center;
@@ -11,7 +11,7 @@ showcase_root {
     color          : rgba(0,0,0,0);
 }
 
-showcase_bg{
+.showcase_bg{
     flex-direction  : column;
     width           : 400px;
     height          : 400px;
