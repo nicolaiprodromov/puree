@@ -308,17 +308,7 @@ class XWZ_OT_hit(bpy.types.Operator):
         return cx <= x <= cx + cw and cy <= y <= cy + ch
     
     def _get_absolute_position(self, container):
-        cx = container['position'][0]
-        cy = container['position'][1]
-        
-        parent_index = container.get('parent', -1)
-        while parent_index >= 0 and parent_index < len(_container_data):
-            parent = _container_data[parent_index]
-            cx += parent['position'][0]
-            cy += parent['position'][1]
-            parent_index = parent.get('parent', -1)
-        
-        return cx, cy
+        return container['position'][0], container['position'][1]
 
     def detect_hover(self, container):
         try:
