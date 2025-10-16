@@ -1,11 +1,8 @@
----
-layout: page
-title: 6. Contributing
----
+# Contributing
 
 We welcome contributions to puree! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
-### Development Setup
+## Development Setup
 
 1. **Fork and clone the repository:**
 
@@ -29,7 +26,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 - **Make**: Traditional build tool using `Makefile`. Best for environments where Make is already available.
 - **Just**: Modern command runner using `justfile`. Offers simpler syntax and better cross-platform consistency.
 
-#### Available Commands
+### Available Commands
 
 | Command | Description |
 |---------|-------------|
@@ -45,10 +42,59 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 > [!NOTE]
 > Before bumping version, make sure all changes are commited.
 
-### Contribution Guidelines
+## Contribution Guidelines
 
 1. Create a feature branch from `master`
 2. Make your changes with clear, descriptive commits
 3. Test your changes with `make deploy` in Blender 4.2+
 4. Ensure no regressions in existing functionality
 5. Submit a pull request with a clear description of changes
+
+### All contributions to this repository must adhere to the following rules
+
+- Commits must be made in English.
+- Commit messages must be in [imperative mood](https://chris.beams.io/posts/git-commit/#imperative).
+- Commits must be atomic (i.e., each commit should represent a single logical change).
+
+### All commits must follow the following format
+
+```html
+<type>(<scope>): <short description>
+```
+
+### Types of commits
+
+- `feat`    : A new feature.
+- `fix`     : A bug fix.
+- `docs`    : Documentation changes.
+- `style`   : Code style changes (e.g., formatting, no functional change).
+- `refactor`: Code changes that neither add features nor fix bugs.
+- `test`    : Adding or modifying tests.
+- `chore`   : Maintenance tasks (e.g., updating dependencies).
+
+### Examples
+
+1. **Simple Feature Commit**
+   ```
+   feat(auth): add user login endpoint
+   ```
+
+2. **Bug Fix**
+   ```
+   fix(ui): resolve button alignment issue on mobile
+   ```
+
+3. **Documentation Update**
+   ```
+   docs(readme): update installation instructions
+   ```
+
+4. **Refactor with Scope**
+   ```
+   refactor(database): optimize query performance
+   ```
+
+5. **Chore with No Scope**
+   ```
+   chore: update npm dependencies to latest versions
+   ```
