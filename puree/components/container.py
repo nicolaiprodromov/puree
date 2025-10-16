@@ -94,8 +94,17 @@ class Container():
                 object.__setattr__(self, name, value)
     
     def mark_dirty(self):
-        """Mark this container as having changed state that needs GPU sync"""
         self._dirty = True
+    
+    def get_by_id(self, target_id):
+        if self.id == target_id or self.id.endswith(f"_{target_id}"):
+            return self
+        if self.children:
+            for child in self.children:
+                result = child.get_by_id(target_id)
+                if result:
+                    return result
+        return None
 
 class ContainerDefault():
     def __init__(self): 
