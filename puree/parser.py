@@ -23,17 +23,14 @@ from .scss_compiler import SCSSCompiler
 node_flat = {}
 node_flat_abs = {}
 
-def srgb_to_linear(value):
-    if value <= 0.04045:
-        return value / 12.92
-    else:
-        return math.pow((value + 0.055) / 1.055, 2.4)
+def gamma_correct(value):
+    return math.pow(value, 2.2)
 
-def convert_srgb_to_linear_color(r, g, b, a):
+def apply_gamma_correction(r, g, b, a):
     return [
-        srgb_to_linear(r),
-        srgb_to_linear(g),
-        srgb_to_linear(b),
+        gamma_correct(r),
+        gamma_correct(g),
+        gamma_correct(b),
         a 
     ]
 
@@ -332,7 +329,7 @@ class UI():
         if attr_name in color_props:
             value_color = Color.parse(attr_value)
             srgb_normalized = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0, value_color.a]
-            attr_value = convert_srgb_to_linear_color(*srgb_normalized)
+            attr_value = apply_gamma_correction(*srgb_normalized)
 
         elif attr_name in float_props:
             attr_value = float(attr_value.replace('px', '').strip())
@@ -374,17 +371,32 @@ class UI():
         styles = parser.parse(css_string)
         for selector, declarations in styles.items():
             style_obj = Style()
-            style_obj.id = selector
+            selector_clean = selector.lstrip('.')
+            style_obj.id = selector_clean
             for prop, value in declarations.items():
                 attr_name, attr_value = self.parse_container_props_from_style(prop, value)
                 setattr(style_obj, attr_name, attr_value)
-            self.theme.styles.__dict__[selector] = style_obj
+            self.theme.styles.__dict__[selector_clean] = style_obj
         def apply_styles_to_containers(container):
             if hasattr(container, 'style') and container.style:
                 style_name = container.style
                 if isinstance(style_name, str):
                     if hasattr(self.theme.styles, style_name):
-                        container.style = getattr(self.theme.styles, style_name)
+                        original_style = getattr(self.theme.styles, style_name)
+                        style_copy = Style()
+                        style_copy.id = original_style.id
+                        for attr_name in dir(original_style):
+                            if not attr_name.startswith('_'):
+                                try:
+                                    attr_value = getattr(original_style, attr_name)
+                                    if not callable(attr_value):
+                                        if isinstance(attr_value, list):
+                                            setattr(style_copy, attr_name, attr_value.copy())
+                                        else:
+                                            setattr(style_copy, attr_name, attr_value)
+                                except AttributeError:
+                                    pass
+                        container.style = style_copy
                     else:
                         print(f"Warning: Style '{style_name}' not found, using default")
                         default_style = Style()
