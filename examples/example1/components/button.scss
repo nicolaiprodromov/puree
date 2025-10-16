@@ -1,32 +1,58 @@
 $bg_color           : rgba(0,0,0,0) !default;
-
 $hover_bg_color     : rgba(0,0,0,0) !default;
 $click_bg_color     : rgba(0,0,0,0) !default;
-
+$transparent        : rgba(0,0,0,0) !default;
+$radial_border_color: rgba(0,0,0,0) !default;
+$radial_color       : #70e813 !default;
+$radial_hover_color : #befd5f !default;
 $text_color_value   : #ffffff !default;
-
-$border_radius_value: 8px !default;
-$padding_value      : 10px !default;
+$border_radii       : 8px !default;
+$padding_value      : 15px !default;
+$radial_radius      : 15px !default;
 
 .button {
-    width          : 300px;
-    height         : 80px;
+    width          : auto;
+    height         : 50px;
     display        : flex;
+    flex-direction : row;
     align-items    : center;
-    justify-content: center;
-    padding        : $padding_value;
-    border-radius  : $border_radius_value;
+    justify-content: space-between;
     color          : $bg_color;
     hover-color    : $hover_bg_color;
     click-color    : $click_bg_color;
+    border-radius  : $border_radii;
+    padding        : $padding_value;
+    margin-bottom  : 5px;
+}
+
+.button_text_box{
+    width          : 200px;
+    height         : 100%;
+    display        : flex;
+    flex-direction : column;
+    align-items    : start;
+    justify-content: start;
+    color          : #ffaa00;
+    margin-right   : 15px;
 }
 
 .button_text {
-    width       : 300px;
-    height      : 80px;
-    color       : rgba(0,0,0,0);
+    width       : 100%;
+    height      : 100%;
+    color       : $transparent;
     text-color  : $text_color_value;
-    text-scale  : 24px;
-    text-align-h: center;
+    text-scale  : 18px;
+    text-align-h: left;
     text-align-v: center;
 }
+
+.button_radial{
+    width           : $radial_radius;
+    height          : $radial_radius;
+    color           : $radial_color;
+    hover-color     : $radial_hover_color;
+    border-color    : $radial_border_color;
+    border-radius   : $radial_radius;
+    border-width    : 1px;
+}
+

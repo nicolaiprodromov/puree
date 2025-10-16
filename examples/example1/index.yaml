@@ -23,39 +23,38 @@ app:
             data          : '[header]'
             title         : Puree UI Showcase
             subtitle      : All Features Demo
-            title_color   : 'rgba(255, 255, 255, 0.9)'
-            subtitle_color: '#ffba00'
-            bg_color      : '#1a1a1a'
+            title_color   : rgb(255, 255, 255)
+            subtitle_color: rgb(176, 176, 176)
+            bg_color      : rgb(20, 20, 20)
             logo_size     : 60px
 
-          hover_test_button:
-            data               : '[button]'
-            bg_color           : '#0f0f0f'
-            hover_bg_color     : '#ff00aa'
-            click_bg_color     : '#0f0f0f'
-            tb_text_value      : Test Button
-            tb_font_value      : NeueMontreal-Bold
-            border_radius_value: 8px
-            padding_value      : 10px
+          left_side_interactions:
+            style: left_side_interactions
+            hover_test_button:
+              data          : '[button]'
+              bg_color      : '#111111'
+              hover_bg_color: '#2b2b2b'
+              click_bg_color: '#4a4a4a'
+              tb_text_value : Hover me!
+              border_radii  : 60px
+              padding_value : 15px 35px 15px 35px
 
-          click_test_button:
-            data               : '[button]'
-            bg_color           : '#050505'
-            hover_bg_color     : '#0f0f0f'
-            click_bg_color     : '#262626'
-            tb_text_value      : Test Button
-            tb_font_value      : NeueMontreal-Bold
-            border_radius_value: 8px
-            padding_value      : 10px
+            click_test_button:
+              data          : '[button]'
+              bg_color      : '#111111'
+              hover_bg_color: '#2b2b2b'
+              click_bg_color: '#4a4a4a'
+              tb_text_value : Click me!
+              border_radii  : 60px
+              padding_value : 15px 35px 15px 35px
 
-          toggle_test_button:
-            data               : '[button]'
-            bg_color           : '#050505'
-            hover_bg_color     : '#0f0f0f'
-            click_bg_color     : '#262626'
-            tb_text_value      : Test Button
-            tb_font_value      : NeueMontreal-Bold
-            border_radius_value: 8px
-            padding_value      : 10px
+            toggle_test_button:
+              data          : '[button]'
+              bg_color      : '#111111'
+              hover_bg_color: '#2b2b2b'
+              click_bg_color: '#4a4a4a'
+              tb_text_value : Toggle me!
+              border_radii  : 60px
+              padding_value : 15px 35px 15px 35px
 
 
