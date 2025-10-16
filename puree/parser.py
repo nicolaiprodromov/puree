@@ -328,6 +328,11 @@ class UI():
         bool_props = [
             'aspect_ratio'
             ]
+        
+        string_props = [
+            'overflow', 'display', 'position',
+            'flex_direction', 'align_items', 'justify_content'
+            ]
 
         if attr_name in color_props:
             value_color = Color.parse(attr_value)
@@ -351,6 +356,9 @@ class UI():
 
         elif attr_name in bool_props:
             attr_value = attr_value.strip().lower() in ('true', '1', 'yes')
+        
+        elif attr_name in string_props:
+            attr_value = attr_value.strip().upper().replace('-', '_')
 
         return attr_name, attr_value
 
@@ -737,14 +745,17 @@ class UI():
             x = y = width = height = 0
             node         = node_flat.get(container.id)
             parent_index = -1
+            if container.parent and container.parent.id in container_id_to_index:
+                parent_index = container_id_to_index[container.parent.id]
             if node:
                 x, y          = node['x'], node['y']
                 width, height = node['width'], node['height']
+                overflow_value = False if container.style.overflow == 'HIDDEN' else True
                 container_data = {
                     "id"                       : container.id,
                     "style"                    : container.style.id,
                     "display"                  : True if container.style.display != Display.NONE else False,
-                    "overflow"                 : False if container.style.overflow == 'HIDDEN' else True,
+                    "overflow"                 : overflow_value,
                     "data"                     : container.data,
                     "img"                      : container.img,
                     "aspect_ratio"             : container.style.aspect_ratio,
@@ -802,6 +813,8 @@ class UI():
             x = y = width = height = 0
             node         = node_flat_abs.get(container.id)
             parent_index = -1
+            if container.parent and container.parent.id in container_id_to_index:
+                parent_index = container_id_to_index[container.parent.id]
             if node:
                 x, y          = node['x'], node['y']
                 width, height = node['width'], node['height']
