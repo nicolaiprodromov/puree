@@ -15,6 +15,7 @@ uninstall:
 
 wheels:
     @pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
+    @{{python}} update_wheels.py
 
 build_package:
     @cd dist; {{python}} build_package.py
