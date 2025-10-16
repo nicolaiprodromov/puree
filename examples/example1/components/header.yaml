@@ -5,7 +5,7 @@ header:
     text:
       style: header_text
       text: "{{title, 'Puree UI Kit'}}"
-      font: NeueMontreal-Bold
+      font: NeueMontreal-BoldItalic
     text1:
       style: header_text1
       text: "{{subtitle, 'Declarative UI for Blender'}}"
