@@ -1,11 +1,26 @@
 import os
 
 # Export public API
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
+__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'is_native_available']
+
+# Version
+__version__ = "0.1.0"
 
 # Global variable to store the addon root directory
 # This is separate from the package directory when puree is installed as a wheel
 _ADDON_ROOT = None
+
+# Try to detect native module availability
+NATIVE_AVAILABLE = False
+try:
+    from . import native_bindings
+    NATIVE_AVAILABLE = native_bindings.is_native_available()
+except ImportError:
+    pass
+
+def is_native_available():
+    """Check if native acceleration module is available"""
+    return NATIVE_AVAILABLE
 
 def set_addon_root(path):
     """Set the addon root directory where static/, assets/, fonts/ are located"""
@@ -68,8 +83,21 @@ def register():
     from .text_op import register as txt_register
     from .text_input_op import register as txt_input_register
     from .img_op  import register as img_register
-    from .hit_op  import register as hit_register
     from .panel   import register as panel_register
+    
+    # Register native-optimized hit detection
+    try:
+        from .hit_op import register as hit_register
+        hit_register()
+        if NATIVE_AVAILABLE:
+            print("✓ Puree: Native acceleration enabled")
+        else:
+            print("⚠ Puree: Native module not found, but operator registered")
+            print("  Build it with: cd puree/hit_core && ./build.sh")
+    except Exception as e:
+        print(f"✗ Puree: Failed to register hit detection: {e}")
+        import traceback
+        traceback.print_exc()
     
     bpy.types.WindowManager.xwz_ui_conf_path = bpy.props.StringProperty(
         name        = "XWZ UI Config Path",
@@ -92,7 +120,6 @@ def register():
     txt_input_register()
     img_register()
     panel_register()
-    hit_register()
 
     if auto_start_ui_handler not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(auto_start_ui_handler)
@@ -104,8 +131,14 @@ def unregister():
     from .text_op import unregister as txt_unregister
     from .text_input_op import unregister as txt_input_unregister
     from .img_op  import unregister as img_unregister
-    from .hit_op  import unregister as hit_unregister
     from .panel   import unregister as panel_unregister
+    
+    # Unregister native hit detection
+    try:
+        from .hit_op import unregister as hit_unregister
+        hit_unregister()
+    except:
+        pass
     
     if auto_start_ui_handler in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(auto_start_ui_handler)
@@ -129,7 +162,6 @@ def unregister():
     del bpy.types.WindowManager.xwz_debug_panel
     del bpy.types.WindowManager.xwz_auto_start
 
-    hit_unregister()
     panel_unregister()
     img_unregister()
     txt_input_unregister()

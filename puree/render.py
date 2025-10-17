@@ -615,8 +615,9 @@ class XWZ_OT_start_ui(Operator):
             _render_data = None
             return {'CANCELLED'}
 
+        # Start native-optimized hit detection
         try:
-             bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
+            bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start hit detect modal: {e}")
 

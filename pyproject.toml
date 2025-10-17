@@ -45,4 +45,4 @@ Repository = "https://github.com/nicolaiprodromov/puree"
 packages = ["puree", "puree.components"]
 
 [tool.setuptools.package-data]
-puree = ["shaders/*.glsl", "wheels/*.whl"]
+puree = ["shaders/*.glsl", "wheels/*.whl", "native_binaries/*.so", "native_binaries/*.pyd", "native_binaries/*.dylib"]

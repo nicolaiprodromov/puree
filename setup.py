@@ -41,6 +41,9 @@ setup(
         "puree": [
             "shaders/*.glsl",
             "wheels/*.whl",
+            "native_binaries/*.so",
+            "native_binaries/*.pyd",
+            "native_binaries/*.dylib",
         ],
     },
     include_package_data=True,
