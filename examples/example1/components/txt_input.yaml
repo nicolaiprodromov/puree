@@ -1,0 +1,35 @@
+txt_input:
+  style: txt_input
+  
+  label_box:
+    style: txt_input_label_box
+
+    ti_icon:
+      style  : txt_input_ti_icon
+      img    : "{{ti_icon_img, ''}}"
+
+    ti_label:
+      style  : txt_input_ti_label
+      text   : "{{ti_label_txt, 'User text input box'}}"
+      font   : "{{ti_label_font, 'NeueMontreal-Regular'}}"
+
+  input_box:
+    data   : '<INPUT>|Type your text here...'
+    style  : txt_input_input_box
+    font   : "{{ti_input_font, 'NeueMontreal-Regular'}}"
+
+  ti_footer:
+    style: txt_input_ti_footer
+
+    ti_footer_text:
+      style  : txt_input_ti_footer_text
+      text   : "{{ti_footer_txt, 'This is a footer. You can use it to provide additional information to the user.'}}"
+      font   : NeueMontreal-Italic
+      passive: true
+
+    ti_footer_action:
+      style  : txt_input_ti_footer_action
+      ti_footer_icon: 
+        style: txt_input_ti_footer_icon
+        img  : "{{ti_footer_icon_img, ''}}"
+        passive: true
