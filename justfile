@@ -4,6 +4,12 @@ python := if os() == "windows" { "python" } else { "python3" }
 build_cmd := if os() == "windows" { "./build" } else { "./build.sh" }
 timeout_cmd := if os() == "windows" { "timeout /t 1 /nobreak" } else { "sleep 1" }
 
+build_core:
+    @cd puree/hit_core && ./build.sh
+
+build_package:
+    @cd dist; {{python}} build_package.py
+
 build:
     @cd dist; {{build_cmd}}
 
@@ -17,15 +23,12 @@ wheels:
     @pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
     @{{python}} update_wheels.py
 
-build_package:
-    @cd dist; {{python}} build_package.py
-
 deploy:
+    just build_core
+    @{{timeout_cmd}}
     just build_package
     @{{timeout_cmd}}
     just build
-    @{{timeout_cmd}}
-    just uninstall
     @{{timeout_cmd}}
     just install
 
