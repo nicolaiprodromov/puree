@@ -1,4 +1,4 @@
-.PHONY: build install uninstall deploy wheels build_package bump release
+.PHONY: build install uninstall deploy wheels build_package bump release build_rust
 
 ifeq ($(OS),Windows_NT)
 PYTHON := python
@@ -11,6 +11,12 @@ TIMEOUT := sleep 1
 BUILD := ./build.sh
 SED := sed -i
 endif
+
+build_core:
+	@cd puree/hit_core && ./build.sh
+
+build_package:
+	@cd dist && $(PYTHON) build_package.py
 
 build:
 	@cd dist && $(BUILD)
@@ -25,13 +31,13 @@ wheels:
 	@pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
 	@$(PYTHON) update_wheels.py
 
-build_package:
-	@cd dist && $(PYTHON) build_package.py
 
 deploy:
+	make build_core
+	@$(TIMEOUT)
 	make build_package
 	@$(TIMEOUT)
-    make build
+	make build
 	@$(TIMEOUT)
 	make uninstall
 	@$(TIMEOUT)
