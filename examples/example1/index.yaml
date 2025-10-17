@@ -30,31 +30,36 @@ app:
 
           left_side_interactions:
             style: left_side_interactions
+
             hover_test_button:
               data          : '[button]'
-              bg_color      : '#111111'
-              hover_bg_color: '#2b2b2b'
-              click_bg_color: '#4a4a4a'
+              bg_color      : '#2b2b2b'
+              hover_bg_color: '#202020'
+              click_bg_color: '#111111'
               tb_text_value : Hover me!
               border_radii  : 60px
-              padding_value : 15px 35px 15px 35px
+              padding_value : 10px 35px 10px 35px
 
             click_test_button:
               data          : '[button]'
-              bg_color      : '#111111'
-              hover_bg_color: '#2b2b2b'
-              click_bg_color: '#4a4a4a'
+              bg_color      : '#2b2b2b'
+              hover_bg_color: '#202020'
+              click_bg_color: '#111111'
               tb_text_value : Click me!
               border_radii  : 60px
-              padding_value : 15px 35px 15px 35px
+              padding_value : 10px 35px 10px 35px
 
             toggle_test_button:
               data          : '[button]'
-              bg_color      : '#111111'
-              hover_bg_color: '#2b2b2b'
-              click_bg_color: '#4a4a4a'
+              bg_color      : '#2b2b2b'
+              hover_bg_color: '#202020'
+              click_bg_color: '#111111'
               tb_text_value : Toggle me!
               border_radii  : 60px
-              padding_value : 15px 35px 15px 35px
+              padding_value : 10px 35px 10px 35px
+
+            text_input_test:
+              style: text_input_test
+              data: '<INPUT>|Type your text here...'
 
 
