@@ -3,6 +3,7 @@
 *.ai
 *.psd
 *.aep
+assets/*.svg
 docs.aep_AME/
 
 *.zip
