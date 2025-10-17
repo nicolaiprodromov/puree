@@ -8,28 +8,28 @@ def main(self, app):
 
     def hover_button_in(container):
         this_container = recursive_search(app.theme.root, container['id'])
-        radial = this_container.children[1]
+        radial = this_container.children[2]
         radial.style.box_shadow_color = radial_focus
         radial.style.box_shadow_blur  = radial_blur_focus
         radial.mark_dirty() 
 
     def hover_button_out(container):
         this_container = recursive_search(app.theme.root, container['id'])
-        radial = this_container.children[1]
+        radial = this_container.children[2]
         radial.style.box_shadow_color = radial_neutral
         radial.style.box_shadow_blur  = radial_blur_neutral
         radial.mark_dirty()
 
     def click_button(container):
         this_container = recursive_search(app.theme.root, container['id'])
-        radial = this_container.children[1]
+        radial = this_container.children[2]
         radial.style.box_shadow_color = radial_focus
         radial.style.box_shadow_blur  = radial_blur_focus
         radial.mark_dirty() 
 
     def toggle_button(container):
         this_container = recursive_search(app.theme.root, container['id'])
-        radial = this_container.children[1]
+        radial = this_container.children[2]
         print(f"Toggle - Container: {container['id']}, Toggle: {container['_toggle_value']}, Radial: {radial.id}, Style Obj: {id(radial.style)}")
 
         if container['_toggle_value'] == True:

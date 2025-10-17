@@ -1,0 +1,70 @@
+
+
+.txt_input_temp{
+    width        : 100%;
+    height       : 300px;
+    color        : $transparent;
+    border-radius: $border_radii;
+    padding      : 0px;
+}
+
+
+
+.label_box{
+    width          : 100%;
+    height         : 30px;
+    color          : $transparent;
+    margin-bottom  : 5px;
+    border-radius  : $border_radii;
+    border-color   : $label_border_color;
+    border-width   : $label_border_width;
+    display        : flex;
+    flex-direction : row;
+    align-items    : center;
+    justify-content: start;
+}
+
+.ti_icon{
+    width       : $icon_radius;
+    height      : $icon_radius;
+    color       : $transparent;
+    margin-right: 10px;
+    img-align-h : center;
+    img-align-v : center;
+}
+
+.ti_label{
+    width       : 90%;
+    height      : 100%;
+    color       : $transparent;
+    text-color  : $text_color_value;
+    text-scale  : $text_scale_value;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.input_box{
+    width        : 100%;
+    height       : 250px;
+    color        : $input_box_color;
+    border-radius: $border_radii;
+    padding      : 10px;
+    text-color   : $text_color_value;
+    text-scale   : $text_scale_value;
+    text-align-h : left;
+    text-align-v : top;
+}
+
+.ti_footer{
+    width          : 100%;
+    height         : 20px;
+    color          : $transparent;
+    margin-top     : 5px;
+    border-radius  : $border_radii;
+    border-color   : $footer_border_color;
+    border-width   : $footer_border_width;
+    display        : flex;
+    flex-direction : row;
+    align-items    : center;
+    justify-content: start;
+}

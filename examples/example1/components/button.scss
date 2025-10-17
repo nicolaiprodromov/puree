@@ -1,32 +1,64 @@
-$bg_color           : rgba(0,0,0,0) !default;
-$hover_bg_color     : rgba(0,0,0,0) !default;
-$click_bg_color     : rgba(0,0,0,0) !default;
-$transparent        : rgba(0,0,0,0) !default;
-$radial_border_color: rgba(0,0,0,0) !default;
+$transparent: rgba(0,0,0,0) !default;
+
+$bg_color       : rgba(0,0,0,0) !default;
+$bg_color1      : rgba(0,0,0,0) !default;
+$hover_bg_color : rgba(0,0,0,0) !default;
+$hover_bg_color1: rgba(0,0,0,0) !default;
+$click_bg_color : rgba(0,0,0,0) !default;
+$click_bg_color1: rgba(0,0,0,0) !default;
+$bg_grd_rot     : 0deg !default;
+$hover_grd_rot  : 0deg !default;
+$click_grd_rot  : 0deg !default;
+
+$button_width        : 100% !default;
+$button_height       : 40px !default;
+$button_bottom_margin: 10px !default;
+
 $radial_color       : #70e813 !default;
-$radial_hover_color : #befd5f !default;
-$text_color_value   : #ffffff !default;
-$border_radii       : 8px !default;
-$padding_value      : 15px !default;
+$radial_border_color: rgba(0,0,0,0) !default;
 $radial_radius      : 15px !default;
+$radial_border_width: 1px !default;
+
+$icon_radius        : 15px !default;
+
+$text_color_value: #ffffff !default;
+$text_scale_value: 17px !default;
+
+$border_radii : 8px !default;
+$padding_value: 8px 15px 8px 15px !default;
 
 .button {
-    width          : 100%;
-    height         : 40px;
-    display        : flex;
-    flex-direction : row;
-    align-items    : center;
-    justify-content: space-between;
-    color          : $bg_color;
-    hover-color    : $hover_bg_color;
-    click-color    : $click_bg_color;
-    border-radius  : $border_radii;
-    padding        : $padding_value;
-    margin-bottom  : 10px;
+    width                   : $button_width;
+    height                  : $button_height;
+    display                 : flex;
+    flex-direction          : row;
+    align-items             : center;
+    justify-content         : space-between;
+    color                   : $bg_color;
+    color-1                 : $bg_color1;
+    color-gradient-rot      : $bg_grd_rot;
+    hover-color             : $hover_bg_color;
+    hover-color-1           : $hover_bg_color1;
+    hover-color-gradient-rot: $hover_grd_rot;
+    click-color             : $click_bg_color;
+    click-color-1           : $click_bg_color1;
+    click-color-gradient-rot: $click_grd_rot;
+    border-radius           : $border_radii;
+    padding                 : $padding_value;
+    margin-bottom           : $button_bottom_margin;
+}
+
+.button_icon {
+    width       : $icon_radius;
+    height      : $icon_radius;
+    color       : $transparent;
+    margin-right: 15px;
+    img-align-h : center;
+    img-align-v : center;
 }
 
 .button_text_box{
-    width          : 200px;
+    width          : 80%;
     height         : 100%;
     display        : flex;
     flex-direction : column;
@@ -41,18 +73,17 @@ $radial_radius      : 15px !default;
     height      : 100%;
     color       : $transparent;
     text-color  : $text_color_value;
-    text-scale  : 17px;
+    text-scale  : $text_scale_value;
     text-align-h: left;
     text-align-v: center;
 }
 
 .button_radial{
-    width           : $radial_radius;
-    height          : $radial_radius;
-    color           : $radial_color;
-    hover-color     : $radial_hover_color;
-    border-color    : $radial_border_color;
-    border-radius   : $radial_radius;
-    border-width    : 1px;
+    width        : $radial_radius;
+    height       : $radial_radius;
+    color        : $radial_color;
+    border-color : $radial_border_color;
+    border-radius: 9999px;
+    border-width : $radial_border_width;
 }
 

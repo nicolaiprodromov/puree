@@ -1,6 +1,11 @@
 button:
   style: button
 
+  tb_icon:
+    style  : button_icon
+    img    : "{{tb_icon_value, ''}}"
+    passive: true
+
   tb_text_box:
     style  : button_text_box
     passive: true

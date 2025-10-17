@@ -33,30 +33,27 @@ app:
 
             hover_test_button:
               data          : '[button]'
+              tb_icon_value : 'hover'
               bg_color      : '#2b2b2b'
               hover_bg_color: '#202020'
               click_bg_color: '#111111'
               tb_text_value : Hover me!
-              border_radii  : 60px
-              padding_value : 10px 35px 10px 35px
 
             click_test_button:
               data          : '[button]'
+              tb_icon_value : 'click'
               bg_color      : '#2b2b2b'
               hover_bg_color: '#202020'
               click_bg_color: '#111111'
               tb_text_value : Click me!
-              border_radii  : 60px
-              padding_value : 10px 35px 10px 35px
 
             toggle_test_button:
               data          : '[button]'
+              tb_icon_value : 'toggle'
               bg_color      : '#2b2b2b'
               hover_bg_color: '#202020'
               click_bg_color: '#111111'
               tb_text_value : Toggle me!
-              border_radii  : 60px
-              padding_value : 10px 35px 10px 35px
 
             text_input_test:
               style: text_input_test
