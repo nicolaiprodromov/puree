@@ -269,7 +269,6 @@ This architecture enables:
 - **Script integration** – Python scripts can modify UI at runtime
 - **Event propagation** – Interactions flow through container hierarchy
 
-> [!TIP]
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
 <div align="center">
