@@ -4,27 +4,69 @@ We welcome contributions to puree! Whether you're fixing bugs, adding features, 
 
 ## Development Setup
 
-1. **Fork and clone the repository:**
+Puree uses **Make** or **Just** for build automation. Both systems provide identical functionality with cross-platform support for Windows, Linux, and macOS:
 
-    ```bash
-    git clone https://github.com/yourusername/puree.git
+<details>
+<summary>
+Click here for installation commands
+</summary>
+
+<br>
+
+- Linux:
+
+<pre>
+<code class="language-bash">
+    sudo apt update
+    sudo apt install make
+    sudo snap install --edge --classic just
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code>
+</pre>
+
+- MacOS:
+<pre>
+<code class="language-bash">
+    brew install make
+    brew install just
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code>
+</pre>
+
+- Windows:
+
+<pre>
+<code class="language-bash">
+    choco install make
+    winget install --id Casey.Just
+    winget install Rustlang.Rustup
+</code>
+</pre>
+</details>
+
+1. Install the following:
+
+    | Dependencies |
+    |-------------|
+    | [Blender 4.1+](https://www.blender.org/download/) |
+    | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
+    | [Rust](https://rust-lang.org/tools/install/) |
+    | [Python 3.10+](https://www.python.org/downloads/) |
+    | [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) |
+
+2. Clone this repository.
+
+    ```plaintext
+    git clone https://github.com/nicolaiprodromov/puree
     cd puree
     ```
 
-2. **Download platform-specific wheels:**
-
-    ```bash
-    make wheels
-    # or
-    just wheels
-    ```
-
-### Build Process
-
-Puree uses **Make** or **Just** for build automation. Both systems provide identical functionality with cross-platform support for Windows, Linux, and macOS:
-
-- **Make**: Traditional build tool using `Makefile`. Best for environments where Make is already available.
-- **Just**: Modern command runner using `justfile`. Offers simpler syntax and better cross-platform consistency.
+3. Run `just wheels` or `make wheels` to download the python dependencies and add them automatically to the manifest file
+4. Run `just build_core` or `make build_core` to build the core binaries
+5. Run `just build_package` or `make build_package` to build the python package.
+6. Run `just build` or `make build` to build the addon zip file (make sure Blender is running).
+7. Run `just install` or `make install` to install the addon in Blender.
+    - Alternatively, run `just deploy` or `make deploy` to build core, build package, and build and install addon in one command (make sure Blender is running).
 
 ### Available Commands
 

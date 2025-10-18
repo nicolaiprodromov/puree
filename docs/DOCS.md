@@ -13,15 +13,17 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 ## Overview
 
 1. [Installation](#installation)
-2. [Getting Started](#getting-started)
-    1. [Quick Start](#quick-start)
-    2. [File Structure](#file-structure)
-    3. [`index.yaml` breakdown](#indexyaml-breakdown)
+
+2. [File Structure](#file-structure)
+
+    1. [`index.yaml` breakdown](#indexyaml-breakdown)
         - [App structure](#app-structure)
-    4. [`style.css` breakdown](#stylecss-breakdown)
+        
+    2. [`style.css` breakdown](#stylecss-breakdown)
         - [CSS Custom Properties (Variables)](#css-custom-properties-variables)
         - [Color Space Conversion](#color-space-conversion)
-    5. [`script.py` breakdown](#scriptpy-breakdown)
+
+    3. [`script.py` breakdown](#scriptpy-breakdown)
         - [Basic Structure](#basic-structure)
         - [Event Handlers](#event-handlers)
         - [Modifying Container Properties](#modifying-container-properties)
@@ -30,75 +32,98 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
         - [State Management](#state-management)
         - [Integrating with Blender](#integrating-with-blender)
         - [Best Practices](#best-practices)
+
 3. [Component Template System](COMPONENTS.md)
+
 4. [API Reference](API.md)
+
 5. [Troubleshooting](Troubleshooting.md)
 
 ---
 
-### Installation
+## Installation
 
-There are 3 ways to start working with puree:
+**There are 3 ways to start making a user interface using puree with increasing levels of complexity:**
 
-1. [Install with pip](#install-with-pip) and make your own app directory
-2. [Download the latest release](#download-latest-release) and modify & rename the example files
-3. [Clone this repo](#install-with-pip), install dependencies, build the addon, and work from there
+### 1. Download latest release
 
-#### Install with pip
+Go to Releases and download the archive. Unpack it, modify the example files, build and install addon. `Edit > Preferences > Add-ons > Install from disk` or simply drag and drop the .zip file in Blender.
 
-> It's not recommend to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
+### 2. Install with pip
+
+> It's not recommend to install dependencies with pip in the blender's python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
 
 ```plaintext
 pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
 ```
 
-#### Download latest release
+### 3. Clone the repo
 
-Go to Releases and download the archive. Unpack it, modify the files, build and install addon. `Edit > Preferences > Add-ons > Install from disk` or simply drag and drop the .zip file in Blender.
+<details>
+<summary>
+Click here for installation commands
+</summary>
 
-#### Clone the repo
+<br>
 
-1. Clone this repository.
+- Linux:
+
+<pre>
+<code class="language-bash">
+    sudo apt update
+    sudo apt install make
+    sudo snap install --edge --classic just
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code>
+</pre>
+
+- MacOS:
+<pre>
+<code class="language-bash">
+    brew install make
+    brew install just
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code>
+</pre>
+
+- Windows:
+
+<pre>
+<code class="language-bash">
+    choco install make
+    winget install --id Casey.Just
+    winget install Rustlang.Rustup
+</code>
+</pre>
+</details>
+
+1. Install the following:
+
+    | Dependencies |
+    |-------------|
+    | [Blender 4.1+](https://www.blender.org/download/) |
+    | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
+    | [Rust](https://rust-lang.org/tools/install/) |
+    | [Python 3.10+](https://www.python.org/downloads/) |
+    | [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) |
+
+2. Clone this repository.
 
     ```plaintext
     git clone https://github.com/nicolaiprodromov/puree
+    cd puree
     ```
 
-2. Install *Make or Just*, [Blender 4.x+](https://www.blender.org/download/), [Python 3.10+](https://www.python.org/downloads/) and the [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) for the easiest development experience.
-
-    - **Linux**:
-
-        ```plaintext
-        sudo apt update
-        sudo apt install make
-
-        sudo snap install --edge --classic just
-        ```
-
-    - **MacOS**:
-
-        ```plaintext
-        brew install make
-        brew install just
-        ```
-
-    - **Windows**:
-
-        ```powershell
-        choco install make
-        winget install --id Casey.Just
-        ```
-
-3. Run `just build_package` or `make build_package` to build the python package.
-4. Run `just build` or `make build` to build the addon zip file.
-    - You can also manually zip the folder.
-5. Run `just install` or `make install` to install the addon in Blender.
-    - Alternatively, run `just deploy` or `make deploy` to build package, and build and install addon in one step.
-    - Or just install the zip file manually in Blender preferences: `Edit > Preferences > Add-ons > Install from disk`
+3. Run `just wheels` or `make wheels` to download the python dependencies and add them automatically to the manifest file
+4. Run `just build_core` or `make build_core` to build the core binaries
+5. Run `just build_package` or `make build_package` to build the python package.
+6. Run `just build` or `make build` to build the addon zip file (make sure Blender is running).
+7. Run `just install` or `make install` to install the addon in Blender.
+    - Alternatively, run `just deploy` or `make deploy` to build core, build package, and build and install addon in one command (make sure Blender is running).
 
 ---
 
-### File Structure
+## File Structure
 
 The bare minimum file structure for a project is as follows: 
 
@@ -111,7 +136,7 @@ puree_project/
 
 ---
 
-#### `index.yaml` breakdown
+## `index.yaml` breakdown
 
 The `index.yaml` file is the entry point for your UI definition, and it should contain the necessary configuration for your UI components, styles, and scripts. Think of it as the index.html of Puree. It is where you will define the hierarchy of your UI elements, their properties, theme, and settings.
 
@@ -134,7 +159,7 @@ app:
         bg:
           style: bg
 ```
-##### App structure
+### App structure
 
 The `app` section defines the application settings, including the selected and default themes. The `theme` section allows you to define multiple layouts, each with its own styles and scripts.
 
@@ -167,13 +192,13 @@ puree_project/
 
 ---
 
-#### `style.css` breakdown
+## `style.css` breakdown
 
 You can define custom styles for your app using a CSS-like syntax to specify styles for your app's nodes.
 
 Puree does not implement the full CSS specification, but does implement some new features specific to the framework. 
 
->For more details and the list of supported properties, refer to the [API Reference](#api-reference).
+>For more details and the list of supported properties, refer to the [API Reference](API.md).
 
 > *Ultimately, the point is not to replicate CSS, but to provide a familiar syntax for defining styles in a way that is easy to read and write.*
 
@@ -205,7 +230,7 @@ bg {
 }
 ```
 
-##### CSS Custom Properties (Variables)
+### CSS Custom Properties (Variables)
 
 Puree supports CSS custom properties (variables) for maintaining consistent theming:
 
@@ -229,7 +254,7 @@ button {
 
 Variables are resolved at parse time and support nesting. Define variables in the `root` selector for global access.
 
-##### Color Space Conversion
+### Color Space Conversion
 
 > **Important:** Puree automatically converts CSS colors from sRGB color space to linear color space for accurate rendering in Blender's viewport.
 
@@ -245,11 +270,13 @@ button {
 
 You don't need to do anything special—just use standard CSS color formats and the conversion happens automatically.
 
-#### `script.py` breakdown
+---
+
+## `script.py` breakdown
 
 You can add custom Python scripts to your theme to handle events and add interactivity to your UI. The scripts must be stored in the `static/` folder in the root of your project and then linked in the `scripts` array of your theme.
 
-##### Basic Structure
+### Basic Structure
 
 The `main` function is the entry point for your script and receives two arguments:
 
@@ -264,7 +291,7 @@ def main(self, app):
     return app
 ```
 
-##### Event Handlers
+### Event Handlers
 
 Puree supports several event types that you can attach to containers:
 
@@ -335,7 +362,7 @@ def main(self, app):
     return app
 ```
 
-##### Modifying Container Properties
+### Modifying Container Properties
 
 You can dynamically change container properties at runtime:
 
@@ -379,7 +406,7 @@ def main(self, app):
     return app
 ```
 
-##### Accessing Container Hierarchy
+### Accessing Container Hierarchy
 
 Use dot notation to access containers by their ID:
 
@@ -400,7 +427,7 @@ def main(self, app):
     return app
 ```
 
-##### Multiple Event Handlers
+### Multiple Event Handlers
 
 You can attach multiple handlers to the same event:
 
@@ -425,7 +452,7 @@ def main(self, app):
     return app
 ```
 
-##### State Management
+### State Management
 
 Manage application state using closures or external variables:
 
@@ -460,7 +487,7 @@ def main(self, app):
     return app
 ```
 
-##### Integrating with Blender
+### Integrating with Blender
 
 Access Blender's API within your event handlers:
 
@@ -490,7 +517,7 @@ def main(self, app):
     return app
 ```
 
-##### Best Practices
+### Best Practices
 
 1. **Always return the app object** at the end of `main()`
 2. **Call `mark_dirty()`** after modifying container properties to trigger GPU sync
