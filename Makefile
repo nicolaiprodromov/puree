@@ -4,16 +4,18 @@ ifeq ($(OS),Windows_NT)
 PYTHON := python
 TIMEOUT := timeout /t 1 /nobreak
 BUILD := build.bat
+BUILD_CORE := build.bat
 SED := powershell -Command "(Get-Content
 else
 PYTHON := python3
 TIMEOUT := sleep 1
 BUILD := ./build.sh
+BUILD_CORE := ./build.sh
 SED := sed -i
 endif
 
 build_core:
-	@cd puree/hit_core && ./build.sh
+	@cd puree/hit_core && $(BUILD_CORE)
 
 build_package:
 	@cd dist && $(PYTHON) build_package.py
