@@ -1,3 +1,15 @@
+> [!IMPORTANT]
+> CURRENTLY WORKING ON THE [`feature/rust-migration`](https://github.com/nicolaiprodromov/puree/tree/feature/rust-migration) branch.
+>
+> **only contributions on this branch are accepted**
+
+> [!NOTE]
+> Development priority:
+> 1. **RUST MIGRATION**: [`feature/rust-migration`](https://github.com/nicolaiprodromov/puree/tree/feature/rust-migration)
+> 2. **OPTIMIZATIONS**: [`issue`](https://github.com/nicolaiprodromov/puree/tree/feature/rust-migration)
+>
+> feel to contact me via [email](prodromounicolaie@gmail.com) or msg me on [blender artists forum](https://blenderartists.org/t/puree-blender-ui-framework/1615167)
+
 # Contributing
 
 We welcome contributions to puree! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
