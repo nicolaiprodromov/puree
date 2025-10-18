@@ -2,10 +2,11 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 python := if os() == "windows" { "python" } else { "python3" }
 build_cmd := if os() == "windows" { "./build" } else { "./build.sh" }
+build_core_cmd := if os() == "windows" { "./build.bat" } else { "./build.sh" }
 timeout_cmd := if os() == "windows" { "timeout /t 1 /nobreak" } else { "sleep 1" }
 
 build_core:
-    @cd puree/hit_core && ./build.sh
+    @cd puree/hit_core; {{build_core_cmd}}
 
 build_package:
     @cd dist; {{python}} build_package.py

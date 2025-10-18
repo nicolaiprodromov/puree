@@ -12,6 +12,9 @@ docs.aep_AME/
 *.7z
 *.log
 
+build/
+*.whl
+
 __pycache__/
 *.pyc
 *.pyo
@@ -20,6 +23,11 @@ __pycache__/
 *.egg-info/
 .eggs/
 *.egg
+*.so
+*$py.class
+*.py[cod]
 
-build/
-*.whl
+/puree/hit_core/target/
+/puree/native_binaries/
+**/*.rs.bk
+Cargo.lock
