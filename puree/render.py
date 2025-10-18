@@ -649,7 +649,8 @@ class XWZ_OT_start_ui(Operator):
                 mask_height  = block['mask_height'],
                 aspect_ratio = block['aspect_ratio'],
                 align_h      = block.get('align_h', 'LEFT').upper(),
-                align_v      = block.get('align_v', 'TOP').upper()
+                align_v      = block.get('align_v', 'TOP').upper(),
+                opacity      = block.get('opacity', 1.0)
             )
         
         for _container_id in parser_op.text_blocks:
@@ -797,7 +798,8 @@ class XWZ_OT_start_ui(Operator):
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
                                 aspect_ratio=block['aspect_ratio'],
                                 align_h=block.get('align_h', 'LEFT').upper(),
-                                align_v=block.get('align_v', 'TOP').upper()
+                                align_v=block.get('align_v', 'TOP').upper(),
+                                opacity=block.get('opacity', 1.0)
                             )
                     
                     texture_changed = True

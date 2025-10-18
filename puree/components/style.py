@@ -31,6 +31,7 @@ class Style():
 
         self.img_align_h            : str         = 'LEFT'
         self.img_align_v            : str         = 'TOP'
+        self.img_opacity            : float       = 1.0
 
         self.border_radius            : float       = 0.0
         self.border_width             : float       = 0.0

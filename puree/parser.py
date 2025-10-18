@@ -314,7 +314,7 @@ class UI():
         float_props = [
             'border_radius', 'border_width',
             'text_scale', 'text_x', 'text_y',
-            'box_shadow_blur'
+            'box_shadow_blur', 'img_opacity'
             ]
 
         rotation_props = [
