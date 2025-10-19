@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Container {
     pub id: String,
+    pub style_id: String,
     pub position: [f32; 2],
     pub size: [f32; 2],
     pub parent: i32,
@@ -11,7 +12,6 @@ pub struct Container {
     pub display: bool,
     pub overflow: bool,
     
-    // Visual properties
     pub color: [f32; 4],
     pub color_1: [f32; 4],
     pub color_gradient_rot: f32,
@@ -27,7 +27,6 @@ pub struct Container {
     pub border_radius: f32,
     pub border_width: f32,
     
-    // Text properties
     pub text: String,
     pub font: String,
     pub text_color: [f32; 4],
@@ -37,17 +36,16 @@ pub struct Container {
     pub text_x: f32,
     pub text_y: f32,
     
-    // Shadow properties
     pub box_shadow_color: [f32; 4],
     pub box_shadow_offset: [f32; 3],
     pub box_shadow_blur: f32,
     
-    // Image properties
     pub img: String,
     pub aspect_ratio: bool,
     pub data: String,
     
-    // State
+    pub scroll_value: f32,
+    
     pub hovered: bool,
     pub prev_hovered: bool,
     pub clicked: bool,
@@ -55,7 +53,6 @@ pub struct Container {
     pub toggled: bool,
     pub prev_toggled: bool,
     pub toggle_value: bool,
-    pub scroll_value: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
