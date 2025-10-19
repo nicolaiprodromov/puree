@@ -44,6 +44,78 @@ class HitDetector:
     
     def any_children_hovered(self, container_index: int) -> bool:
         return self._detector.any_children_hovered(container_index)
+
+
+class CSSParser:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._parser = puree_rust_core.CSSParser()
+        return cls._instance
+    
+    def parse(self, css_string: str) -> Dict[str, Dict[str, str]]:
+        return self._parser.parse(css_string)
+    
+    def get_styles(self) -> Dict[str, Dict[str, str]]:
+        return self._parser.get_styles()
+    
+    def get_variables(self) -> Dict[str, str]:
+        return self._parser.get_variables()
+
+
+class SCSSCompiler:
+    _instance = None
+    _cache = {}
+    
+    def __new__(cls, injected_vars: Dict[str, str] = None):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._compiler = puree_rust_core.SCSSCompiler(injected_vars)
+            cls._instance._cache = {}
+        return cls._instance
+    
+    def _make_cache_key(self, filepath: str, namespace: str, param_overrides: Dict[str, str], component_name: str) -> str:
+        params_str = str(sorted(param_overrides.items())) if param_overrides else ""
+        return f"{filepath}:{namespace}:{params_str}:{component_name}"
+    
+    def compile(
+        self,
+        scss_content: str,
+        namespace: str = None,
+        param_overrides: Dict[str, str] = None,
+        component_name: str = None
+    ) -> str:
+        return self._compiler.compile(scss_content, namespace, param_overrides, component_name)
+    
+    def compile_file(
+        self,
+        filepath: str,
+        namespace: str = None,
+        param_overrides: Dict[str, str] = None,
+        component_name: str = None
+    ) -> str:
+        cache_key = self._make_cache_key(filepath, namespace, param_overrides, component_name)
+        
+        try:
+            file_mtime = os.path.getmtime(filepath)
+            if cache_key in self._cache:
+                cached_mtime, cached_result = self._cache[cache_key]
+                if cached_mtime >= file_mtime:
+                    return cached_result
+        except OSError:
+            pass
+        
+        result = self._compiler.compile_file(filepath, namespace, param_overrides, component_name)
+        
+        try:
+            file_mtime = os.path.getmtime(filepath)
+            self._cache[cache_key] = (file_mtime, result)
+        except OSError:
+            pass
+        
+        return result
 class ContainerProcessor:
     def __init__(self):
         self._processor = puree_rust_core.ContainerProcessor()

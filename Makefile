@@ -15,7 +15,7 @@ SED := sed -i
 endif
 
 build_core:
-	@cd puree/hit_core && $(BUILD_CORE)
+	@cd puree/puree_core && $(BUILD_CORE)
 
 build_package:
 	@cd dist && $(PYTHON) build_package.py
