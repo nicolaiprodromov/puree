@@ -334,6 +334,28 @@ void main() {
     
     int container_count = int(container_count_float);
     
+    bool pixelNearAnyContainer = false;
+    for (int i = 0; i < container_count && i < 100; i++) {
+        Container container = getContainer(i);
+        if (container.display == 0) continue;
+        if (isAnyParentHidden(i)) continue;
+        
+        vec2 containerOrigin = getContainerOrigin(i);
+        vec2 localPos = viewportPixelPos - containerOrigin;
+        vec2 size = container.size;
+        float maxDist = max(size.x, size.y) * 0.5 + container.border_width + container.box_shadow_blur + 5.0;
+        
+        if (abs(localPos.x - size.x * 0.5) < maxDist && abs(localPos.y - size.y * 0.5) < maxDist) {
+            pixelNearAnyContainer = true;
+            break;
+        }
+    }
+    
+    if (!pixelNearAnyContainer) {
+        imageStore(output_texture, pixel_coords, vec4(0.0));
+        return;
+    }
+    
     if (pixel_coords.x == 0 && pixel_coords.y == 0) {
         debug_values[0] = viewportSize.x;
         debug_values[1] = viewportSize.y;

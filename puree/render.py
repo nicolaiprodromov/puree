@@ -5,6 +5,7 @@ import time
 import moderngl as mgl
 from .components.container import container_default
 import numpy as np
+import traceback
 
 from gpu_extras.batch import batch_for_shader
 from bpy.types import Operator, Panel
@@ -48,6 +49,9 @@ class RenderPipeline:
         self.last_scroll_value = 0.0
         self.last_container_update = 0
         self.conf_path = 'xwz.ui.toml'
+        self.pbos            = []
+        self.pbo_index       = 0
+        self.pbo_count       = 3
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -148,6 +152,13 @@ class RenderPipeline:
                 4
             )
             self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
+            
+            pixel_size = self.texture_size[0] * self.texture_size[1] * 4
+            self.pbos = []
+            for i in range(self.pbo_count):
+                pbo = self.mgl_context.buffer(reserve=pixel_size)
+                self.pbos.append(pbo)
+            
             return True
         except Exception:
             return False
@@ -292,6 +303,16 @@ class RenderPipeline:
                 )
                 self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
                 self.needs_texture_update = True
+                
+                for pbo in self.pbos:
+                    self._safe_release_moderngl_object(pbo)
+                self.pbos = []
+                
+                pixel_size = self.texture_size[0] * self.texture_size[1] * 4
+                for i in range(self.pbo_count):
+                    pbo = self.mgl_context.buffer(reserve=pixel_size)
+                    self.pbos.append(pbo)
+                self.pbo_index = 0
         
         return size_changed
     def update_click_value(self, value):
@@ -445,36 +466,66 @@ class RenderPipeline:
                     gpu.state.depth_test_set('LESS_EQUAL')
                 return
             
-            texture_data = self.output_texture.read()
+            if not self.pbos or len(self.pbos) < self.pbo_count:
+                return
             
-            float_data = np.frombuffer(texture_data, dtype=np.uint8).astype(np.float32) / 255.0
-            
-            buffer = gpu.types.Buffer('FLOAT', len(float_data), float_data)
-            
-            if self.blender_texture:
-                del self.blender_texture
-            
-            self.blender_texture = gpu.types.GPUTexture(
-                self.texture_size,
-                format = 'RGBA8',
-                data   = buffer
-            )
-            
-            gpu.state.blend_set('ALPHA')
-            gpu.state.depth_test_set('NONE')
-            
-            self.gpu_shader.bind()
-            self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
-            self.gpu_shader.uniform_float("opacity", 1.0)
-            
-            gpu.matrix.push()
-            gpu.matrix.load_identity()
-            
-            self.batch.draw(self.gpu_shader)
-            gpu.matrix.pop()
-            
-            gpu.state.blend_set('NONE')
-            gpu.state.depth_test_set('LESS_EQUAL')
+            advanced = False
+            try:
+                current_pbo = self.pbos[self.pbo_index]
+                self.output_texture.read_into(current_pbo)
+
+                read_index = (self.pbo_index + 2) % self.pbo_count
+                read_pbo = self.pbos[read_index]
+
+                texture_data = read_pbo.read()
+
+                expected_size = self.texture_size[0] * self.texture_size[1] * 4
+                if len(texture_data) != expected_size:
+                    if len(texture_data) > expected_size:
+                        texture_data = texture_data[:expected_size]
+                    else:
+                        raise RuntimeError(f"texture_data too small: {len(texture_data)} < {expected_size}")
+
+                texture_array = np.frombuffer(texture_data, dtype=np.uint8)
+                texture_float = np.multiply(texture_array, 0.00392156862745098, dtype=np.float32)
+                
+                buffer = gpu.types.Buffer('FLOAT', len(texture_float), texture_float)
+
+                if self.blender_texture:
+                    try:
+                        del self.blender_texture
+                    except Exception:
+                        pass
+
+                self.blender_texture = gpu.types.GPUTexture(
+                    self.texture_size,
+                    format = 'RGBA8',
+                    data   = buffer
+                )
+
+                advanced = True
+                self.texture_needs_readback = False
+
+                gpu.state.blend_set('ALPHA')
+                gpu.state.depth_test_set('NONE')
+
+                self.gpu_shader.bind()
+                self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
+                self.gpu_shader.uniform_float("opacity", 1.0)
+
+                gpu.matrix.push()
+                gpu.matrix.load_identity()
+
+                self.batch.draw(self.gpu_shader)
+                gpu.matrix.pop()
+
+                gpu.state.blend_set('NONE')
+                gpu.state.depth_test_set('LESS_EQUAL')
+            except Exception as e:
+                traceback.print_exc()
+            finally:
+                if advanced:
+                    self.pbo_index = (self.pbo_index + 1) % self.pbo_count
             
         except Exception:
             pass
@@ -504,6 +555,11 @@ class RenderPipeline:
             self.output_texture = None
         if self._safe_release_moderngl_object(self.compute_shader):
             self.compute_shader = None
+        
+        for pbo in self.pbos:
+            self._safe_release_moderngl_object(pbo)
+        self.pbos = []
+        self.pbo_index = 0
         
         if self.mgl_context:
             try:
