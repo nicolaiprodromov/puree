@@ -12,14 +12,11 @@ from stretchable.style.props import AlignItems, JustifyContent
 from stretchable.style.props import Display, Position
 from stretchable.style.geometry.rect import RectPointsPercent
 from stretchable.style.geometry.length import LengthPointsPercent
-from tinycss2 import ast
-from tinycss2 import parse_stylesheet, parse_declaration_list
 from textual.color import Color
 
 from .components.container import Container
 from .components.style import Style
-from .scss_compiler import SCSSCompiler
-from .native_bindings import ContainerProcessor
+from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler
 
 node_flat = {}
 node_flat_abs = {}
@@ -35,69 +32,7 @@ def apply_gamma_correction(r, g, b, a):
         a 
     ]
 
-class CSSParser:
-    def __init__(self):
-        self.styles = {}
-        self.variables = {}
-    
-    def _extract_variables(self, styles):
-        variables = {}
-        for selector, declarations in styles.items():
-            for prop, value in declarations.items():
-                if prop.startswith('--'):
-                    variables[prop] = value
-        return variables
-    
-    def _resolve_variables(self, value, variables, visited=None):
-        import re
-        if visited is None:
-            visited = set()
-        
-        var_pattern = r'var\(([^)]+)\)'
-        
-        def replace_var(match):
-            var_name = match.group(1).strip()
-            if var_name in visited:
-                return match.group(0)
-            if var_name in variables:
-                new_visited = visited.copy()
-                new_visited.add(var_name)
-                resolved_value = variables[var_name]
-                result = self._resolve_variables(resolved_value, variables, new_visited)
-                return result
-            return match.group(0)
-        
-        resolved = re.sub(var_pattern, replace_var, value)
-        resolved = ' '.join(resolved.split())
-        return resolved
-    
-    def parse(self, css_string):
-        self.styles = {}
-        rules = parse_stylesheet(css_string)
-        
-        for rule in rules:
-            if hasattr(rule, 'content'):
-                selector = ''.join(token.serialize() for token in rule.prelude).strip()
-                declarations = {}
-                
-                content_str = ''.join(token.serialize() for token in rule.content)
-                decl_list = parse_declaration_list(content_str)
-                
-                for decl in decl_list:
-                    if isinstance(decl, ast.Declaration):
-                        value = ''.join(token.serialize() for token in decl.value).strip()
-                        declarations[decl.name] = value
-                
-                self.styles[selector] = declarations
-        
-        self.variables = self._extract_variables(self.styles)
-        
-        for selector, declarations in self.styles.items():
-            for prop, value in declarations.items():
-                if not prop.startswith('--'):
-                    self.styles[selector][prop] = self._resolve_variables(value, self.variables)
-        
-        return self.styles
+
 
 class Settings():
     def __init__(self):

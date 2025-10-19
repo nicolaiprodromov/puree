@@ -1,18 +1,20 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
-mod hit_detection;
-mod container_data;
 mod types;
+mod hit_detection;
+mod css;
 
-use hit_detection::HitDetector;
-use container_data::ContainerProcessor;
+use hit_detection::{HitDetector, ContainerProcessor};
+use css::{CSSParser, SCSSCompiler};
 
 /// Main entry point for the Rust module
 #[pymodule]
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<HitDetector>()?;
     m.add_class::<ContainerProcessor>()?;
+    m.add_class::<CSSParser>()?;
+    m.add_class::<SCSSCompiler>()?;
     m.add_function(wrap_pyfunction!(detect_hover_batch, m)?)?;
     m.add_function(wrap_pyfunction!(detect_clicks_batch, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_containers_fast, m)?)?;

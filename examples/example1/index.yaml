@@ -58,10 +58,10 @@ app:
             text_input_test:
               data              : '[txt_input]'
               ti_icon_img       : 'light_off'
-              ti_label_txt      : 'Enter your name:'
+              ti_label_txt      : 'This is an example text input box multi-line field'
               ti_label_font     : 'NeueMontreal-Regular'
-              ti_input_font     : 'NeueMontreal-Regular'
-              ti_footer_txt     : 'Please enter your full name.'
+              ti_input_font     : 'NeueMontreal-Italic'
+              ti_footer_txt     : 'Example footer with icon.'
               ti_footer_icon_img: 'light_on'
 
 

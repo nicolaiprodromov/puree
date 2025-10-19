@@ -7,11 +7,6 @@ textual==6.2.1
 rich==14.1.0
 stretchable==1.1.7
 
-# CSS/SCSS Parsing
-tinycss2==1.4.0
-webencodings==0.5.1
-libsass==0.23.0
-
 # Configuration
 PyYAML==6.0.2
 

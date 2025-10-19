@@ -5,6 +5,7 @@
 *.aep
 assets/*.svg
 docs.aep_AME/
+docs/.bgpu.md
 
 *.zip
 *.tar.gz
@@ -27,7 +28,7 @@ __pycache__/
 *$py.class
 *.py[cod]
 
-/puree/hit_core/target/
+/puree/puree_core/target/
 /puree/native_binaries/
 **/*.rs.bk
 Cargo.lock
