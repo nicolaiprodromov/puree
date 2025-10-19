@@ -5,9 +5,8 @@ mod hit_detection;
 mod container_data;
 mod types;
 
-use hit_detection::{HitDetector, HitResult};
+use hit_detection::HitDetector;
 use container_data::ContainerProcessor;
-use types::{Container, MouseState, EventHandlers};
 
 /// Main entry point for the Rust module
 #[pymodule]
@@ -100,12 +99,9 @@ fn detect_clicks_batch(
 #[pyfunction]
 fn flatten_containers_fast(
     py: Python,
-    container_tree: &PyDict,
+    _container_tree: &PyDict,
 ) -> PyResult<PyObject> {
     let result_list = PyList::empty(py);
-    
-    // Recursive flattening would go here
-    // This is a placeholder for the actual implementation
     
     Ok(result_list.into())
 }

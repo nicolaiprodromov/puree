@@ -25,7 +25,7 @@ impl HitDetector {
     }
     
     /// Load container data from Python
-    pub fn load_containers(&mut self, py: Python, container_list: &PyList) -> PyResult<()> {
+    pub fn load_containers(&mut self, _py: Python, container_list: &PyList) -> PyResult<()> {
         self.containers.clear();
         
         for item in container_list.iter() {
@@ -149,6 +149,7 @@ impl HitDetector {
         
         Ok(Container {
             id,
+            style_id: dict.get_item("style")?.unwrap().extract::<String>()?,
             position,
             size,
             parent,
@@ -184,6 +185,7 @@ impl HitDetector {
             img: dict.get_item("img")?.unwrap().extract::<String>()?,
             aspect_ratio: dict.get_item("aspect_ratio")?.unwrap().extract::<bool>()?,
             data: dict.get_item("data")?.unwrap().extract::<String>()?,
+            scroll_value: dict.get_item("_scroll_value")?.unwrap().extract::<f32>()?,
             hovered: dict.get_item("_hovered")?.unwrap().extract::<bool>()?,
             prev_hovered: dict.get_item("_prev_hovered")?.unwrap().extract::<bool>()?,
             clicked: dict.get_item("_clicked")?.unwrap().extract::<bool>()?,
@@ -191,7 +193,6 @@ impl HitDetector {
             toggled: dict.get_item("_toggled")?.unwrap().extract::<bool>()?,
             prev_toggled: dict.get_item("_prev_toggled")?.unwrap().extract::<bool>()?,
             toggle_value: dict.get_item("_toggle_value")?.unwrap().extract::<bool>()?,
-            scroll_value: dict.get_item("_scroll_value")?.unwrap().extract::<f32>()?,
         })
     }
     
