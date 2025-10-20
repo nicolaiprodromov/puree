@@ -10,7 +10,11 @@ type       = "add-on"
 blender_version_min = "4.2.0"
 
 license = [
-  "MIT",
+  "SPDX:GPL-3.0-or-later",
+]
+
+copyright = [
+  "2025 Nicolai Prodromov",
 ]
 
 platforms = [
@@ -61,6 +65,5 @@ paths_exclude_pattern = [
   "Pipfile.lock",
   "requirements.txt",
   "setup.py",
-  "puree/hit_core/",
-  
+  "puree/puree_core/",
 ]
