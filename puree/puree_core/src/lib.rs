@@ -5,9 +5,12 @@ use pyo3::types::{PyDict, PyList};
 mod types;
 mod hit_detection;
 mod css;
+mod color;
 
 use hit_detection::{HitDetector, ContainerProcessor};
 use css::{CSSParser, SCSSCompiler};
+use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_color_py, 
+            interpolate_color_py, rotate_gradient_py};
 
 /// Main entry point for the Rust module
 #[pymodule]
@@ -16,9 +19,15 @@ fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<ContainerProcessor>()?;
     m.add_class::<CSSParser>()?;
     m.add_class::<SCSSCompiler>()?;
+    m.add_class::<ColorProcessor>()?;
     m.add_function(wrap_pyfunction!(detect_hover_batch, m)?)?;
     m.add_function(wrap_pyfunction!(detect_clicks_batch, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_containers_fast, m)?)?;
+    m.add_function(wrap_pyfunction!(gamma_correct, m)?)?;
+    m.add_function(wrap_pyfunction!(apply_gamma_correction_py, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_color_py, m)?)?;
+    m.add_function(wrap_pyfunction!(interpolate_color_py, m)?)?;
+    m.add_function(wrap_pyfunction!(rotate_gradient_py, m)?)?;
     Ok(())
 }
 
