@@ -23,13 +23,8 @@ classifiers = [
 dependencies = [
     "moderngl==5.12.0",
     "glcontext==3.0.0",
-    "textual==6.2.1",
-    "rich==14.1.0",
     "stretchable==1.1.7",
     "PyYAML==6.0.2",
-    "markdown-it-py==4.0.0",
-    "mdurl==0.1.2",
-    "pygments==2.19.2",
     "typing-extensions==4.15.0",
     "attrs==25.3.0",
 ]
