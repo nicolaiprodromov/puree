@@ -19,6 +19,8 @@ once_cell = "1.19"
 regex = "1.10"
 csscolorparser = "0.7"
 palette = "0.7"
+notify = "6.1"
+crossbeam-channel = "0.5"
 
 [profile.release]
 opt-level = 3

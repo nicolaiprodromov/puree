@@ -17,6 +17,7 @@ from . import parser_op
 
 _render_data = None
 _modal_timer = None
+_hot_reload_enabled = False
 
 class RenderPipeline:
     def __init__(self):
@@ -47,6 +48,7 @@ class RenderPipeline:
         self.last_mouse_pos = [0.5, 0.5]
         self.last_click_value = 0.0
         self.last_scroll_value = 0.0
+        self.click_frames_remaining = 0
         self.last_container_update = 0
         self.conf_path = 'xwz.ui.toml'
         self.pbos            = []
@@ -366,6 +368,12 @@ class RenderPipeline:
         
         if self.click_value != self.last_click_value:
             self.last_click_value = self.click_value
+            self.click_frames_remaining = 3  # Force 3 frames for triple buffering
+            changed = True
+        
+        # Continue running for additional frames when click state changes
+        if self.click_frames_remaining > 0:
+            self.click_frames_remaining -= 1
             changed = True
         
         current_scroll = float(scroll_state.scroll_value)
@@ -745,7 +753,26 @@ class XWZ_OT_start_ui(Operator):
                 align_v      = block.get('align_v', 'TOP').upper()
             )
 
-        self.report({'INFO'}, "UI Started")
+        try:
+            from .hot_reload import setup_hot_reload, register_default_callbacks, get_hot_reload_manager
+            from . import get_addon_root
+            
+            addon_dir = get_addon_root()
+            if setup_hot_reload(addon_dir):
+                register_default_callbacks()
+                manager = get_hot_reload_manager()
+                manager.enable()
+                
+                global _hot_reload_enabled
+                _hot_reload_enabled = True
+                
+                self.report({'INFO'}, "UI Started with hot reload enabled")
+            else:
+                self.report({'INFO'}, "UI Started (hot reload unavailable)")
+        except Exception as e:
+            print(f"Hot reload initialization failed: {e}")
+            self.report({'INFO'}, "UI Started (hot reload disabled)")
+        
         return {'RUNNING_MODAL'}
     
     def modal(self, context, event):
@@ -778,8 +805,18 @@ class XWZ_OT_start_ui(Operator):
             region = context.region
             
             if area and region:
+                # Check for hot reload changes
+                global _hot_reload_enabled
+                if _hot_reload_enabled:
+                    try:
+                        from .hot_reload import get_hot_reload_manager
+                        manager = get_hot_reload_manager()
+                        manager.check_for_changes()
+                    except Exception as e:
+                        print(f"Hot reload error: {e}")
+
                 _render_data.update_fps()
-                
+
                 size_changed = _render_data.update_region_size(region.width, region.height)
 
                 texture_changed = _render_data.check_if_changed()
@@ -915,7 +952,7 @@ class XWZ_OT_stop_ui(Operator):
     bl_description = "Stop puree UI"
     
     def execute(self, context):
-        global _render_data, _modal_timer
+        global _render_data, _modal_timer, _hot_reload_enabled
         
         if _modal_timer:
             context.window_manager.event_timer_remove(_modal_timer)
@@ -924,6 +961,14 @@ class XWZ_OT_stop_ui(Operator):
         if _render_data:
             _render_data.cleanup()
             _render_data = None
+
+        if _hot_reload_enabled:
+            try:
+                from .hot_reload import cleanup_hot_reload
+                cleanup_hot_reload()
+                _hot_reload_enabled = False
+            except Exception as e:
+                print(f"Hot reload cleanup error: {e}")
 
         bpy.ops.xwz.hit_stop()
         scroll_state.stop_scrolling()
