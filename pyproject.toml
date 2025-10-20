@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "puree-ui"
-version = "0.1.1"
+version = "0.1.2"
 description = "XWZ Puree UI framework for Blender"
 readme = "README.md"
 requires-python = ">=3.11"
