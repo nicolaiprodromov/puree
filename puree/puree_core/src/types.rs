@@ -63,14 +63,6 @@ pub struct MouseState {
     pub scroll_delta: f32,
 }
 
-#[derive(Debug, Clone)]
-pub struct EventHandlers {
-    pub click_count: usize,
-    pub hover_count: usize,
-    pub toggle_count: usize,
-    pub scroll_count: usize,
-}
-
 impl Container {
     pub fn contains_point(&self, x: f32, y: f32) -> bool {
         x >= self.position[0] 
@@ -87,14 +79,6 @@ impl Container {
     pub fn update_click_state(&mut self, is_clicked: bool) {
         self.prev_clicked = self.clicked;
         self.clicked = is_clicked;
-    }
-    
-    pub fn has_hover_changed(&self) -> bool {
-        self.hovered != self.prev_hovered
-    }
-    
-    pub fn has_click_changed(&self) -> bool {
-        self.clicked != self.prev_clicked
     }
 }
 

@@ -14,7 +14,7 @@ except ImportError as e:
     print("=" * 70)
     print("❌ CRITICAL ERROR: Puree Rust Core Missing")
     print(f"Import error: {e}")
-    raise RuntimeError("Puree requires the Rust core module") from e
+    raise RuntimeError("Puree requires the core modules") from e
 
 finally:
     if native_binaries_dir in sys.path:
@@ -69,10 +69,10 @@ class SCSSCompiler:
     _instance = None
     _cache = {}
     
-    def __new__(cls, injected_vars: Dict[str, str] = None):
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._compiler = puree_rust_core.SCSSCompiler(injected_vars)
+            cls._instance._compiler = puree_rust_core.SCSSCompiler()
             cls._instance._cache = {}
         return cls._instance
     
