@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Update the wheels list in blender_manifest.toml based on actual .whl files in the wheels/ directory.
-"""
 import os
 import sys
 from pathlib import Path
