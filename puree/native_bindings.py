@@ -198,3 +198,34 @@ class ColorProcessor:
         colors: List[tuple]
     ) -> List[List[float]]:
         return [list(c) for c in self._processor.process_colors_batch(colors)]
+
+
+class PyFileWatcher:
+    """
+    Python wrapper for the Rust-based file watcher.
+    Monitors directories for file changes with debouncing.
+    """
+    def __init__(self, debounce_ms: int = 300, watch_yaml: bool = True, 
+                 watch_styles: bool = True, watch_scripts: bool = True):
+        self._watcher = puree_rust_core.PyFileWatcher(debounce_ms, watch_yaml, 
+                                                       watch_styles, watch_scripts)
+    
+    def watch_path(self, path: str) -> bool:
+        """Start watching a directory path."""
+        return self._watcher.watch_path(path)
+    
+    def unwatch_path(self, path: str) -> bool:
+        """Stop watching a directory path."""
+        return self._watcher.unwatch_path(path)
+    
+    def has_changes(self) -> bool:
+        """Check if there are pending file changes."""
+        return self._watcher.has_changes()
+    
+    def get_changes(self) -> List[Dict[str, Any]]:
+        """Get all pending changes as a list of dictionaries."""
+        return self._watcher.get_changes()
+    
+    def clear_changes(self):
+        """Clear all pending changes without processing."""
+        self._watcher.clear_changes()

@@ -6,11 +6,13 @@ mod types;
 mod hit_detection;
 mod css;
 mod color;
+mod file_watcher;
 
 use hit_detection::{HitDetector, ContainerProcessor};
 use css::{CSSParser, SCSSCompiler};
 use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_color_py, 
             interpolate_color_py, rotate_gradient_py};
+use file_watcher::PyFileWatcher;
 
 /// Main entry point for the Rust module
 #[pymodule]
@@ -20,6 +22,7 @@ fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<CSSParser>()?;
     m.add_class::<SCSSCompiler>()?;
     m.add_class::<ColorProcessor>()?;
+    m.add_class::<PyFileWatcher>()?;
     m.add_function(wrap_pyfunction!(detect_hover_batch, m)?)?;
     m.add_function(wrap_pyfunction!(detect_clicks_batch, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_containers_fast, m)?)?;
