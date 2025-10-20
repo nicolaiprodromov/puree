@@ -29,9 +29,9 @@ wheels = [
   "./wheels/attrs-25.3.0-py3-none-any.whl",
   "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
   "./wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
+  "./wheels/puree_ui-0.1.2-py3-none-any.whl",
   "./wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
   "./wheels/typing_extensions-4.15.0-py3-none-any.whl",
-  "./wheels/puree_ui-0.1.2-py3-none-any.whl"
 ]
 
 [build]
