@@ -97,17 +97,17 @@ def create_github_release(version, zip_file, tar_file):
     tag = f"v{version}"
     release_name = f"Puree UI {version}"
     
-    release_notes = f"""## Puree UI {version}
-
-### Installation
-1. Download `{zip_file.name}` or `{tar_file.name}`
-2. In Blender, go to Edit > Preferences > Get Extensions
-3. Click the dropdown menu (⌄) > Install from Disk
-4. Select the downloaded archive file
-
-### What's Changed
-See commits since last release for details.
-"""
+    template_path = Path(__file__).parent.parent / 'docs' / '.release_note.md'
+    if not template_path.exists():
+        raise Exception(f"Release notes template not found at {template_path}")
+    
+    release_notes_template = template_path.read_text(encoding='utf-8')
+    release_notes = release_notes_template.format(
+        version=version,
+        zip_name=zip_file.name,
+        tar_name=tar_file.name,
+        previous_version='0.0.0'
+    )
     
     notes_file = Path(__file__).parent / 'release_notes.md'
     notes_file.write_text(release_notes, encoding='utf-8')

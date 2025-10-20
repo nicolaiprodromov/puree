@@ -4,9 +4,7 @@ build_dir=$(pwd)
 cd "$(dirname "$0")/.."
 addon_dir=$(pwd)
 
-echo "Working from: $addon_dir"
-
-echo "Searching for Blender installation..."
+echo "working from: $addon_dir"
 
 blender_exe=""
 latest_version=""
@@ -34,35 +32,29 @@ if [ -z "$blender_exe" ]; then
     exit 1
 fi
 
-echo "Found Blender $latest_version at: $blender_exe"
-
 addon_name=$(grep '^name' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "')
 version=$(grep '^version' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "')
 
 addon_name=$(echo "$addon_name" | tr ' ' '_')
 
-echo "Building addon: $addon_name version $version"
+echo "building: $addon_name version $version"
 
 mkdir -p "$addon_dir/dist"
 
-echo "Cleaning up old zip files..."
 rm -f "$addon_dir/dist"/*.zip
 
 output_file="$addon_dir/dist/${addon_name}_${version}.zip"
 
-echo "Building extension using Blender $latest_version..."
 "$blender_exe" --background --command extension build --source-dir "$addon_dir" --output-filepath "$output_file"
 
 if [ -f "$output_file" ]; then
-    echo
+    echo ---------------------
     echo "Build successful!"
     echo "Output: $output_file"
 else
-    echo
+    echo ---------------------
     echo "Build failed!"
     exit 1
 fi
 
 cd "$build_dir"
-
-echo
