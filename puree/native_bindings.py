@@ -151,3 +151,50 @@ class ContainerProcessor:
         except Exception as e:
             print(f"❌ Error updating states: {e}")
             return False
+
+
+class ColorProcessor:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._processor = puree_rust_core.ColorProcessor()
+        return cls._instance
+    
+    def gamma_correct(self, value: float) -> float:
+        return puree_rust_core.gamma_correct(value)
+    
+    def apply_gamma_correction(self, r: float, g: float, b: float, a: float) -> List[float]:
+        return list(puree_rust_core.apply_gamma_correction_py(r, g, b, a))
+    
+    def parse_color(self, color_str: str) -> List[float]:
+        return list(puree_rust_core.parse_color_py(color_str))
+    
+    def interpolate_color(
+        self,
+        color1: List[float],
+        color2: List[float],
+        t: float
+    ) -> List[float]:
+        return list(puree_rust_core.interpolate_color_py(color1, color2, t))
+    
+    def rotate_gradient(
+        self,
+        color1: List[float],
+        color2: List[float],
+        rotation_deg: float,
+        x: float,
+        y: float,
+        width: float,
+        height: float
+    ) -> List[float]:
+        return list(puree_rust_core.rotate_gradient_py(
+            color1, color2, rotation_deg, x, y, width, height
+        ))
+    
+    def process_colors_batch(
+        self,
+        colors: List[tuple]
+    ) -> List[List[float]]:
+        return [list(c) for c in self._processor.process_colors_batch(colors)]

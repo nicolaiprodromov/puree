@@ -1,7 +1,6 @@
 import os
 import re
 import yaml
-import math
 
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
@@ -12,25 +11,15 @@ from stretchable.style.props import AlignItems, JustifyContent
 from stretchable.style.props import Display, Position
 from stretchable.style.geometry.rect import RectPointsPercent
 from stretchable.style.geometry.length import LengthPointsPercent
-from textual.color import Color
 
 from .components.container import Container
 from .components.style import Style
-from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler
+from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler, ColorProcessor
 
 node_flat = {}
 node_flat_abs = {}
 
-def gamma_correct(value):
-    return math.pow(value, 2.2)
-
-def apply_gamma_correction(r, g, b, a):
-    return [
-        gamma_correct(r),
-        gamma_correct(g),
-        gamma_correct(b),
-        a 
-    ]
+color_processor = ColorProcessor()
 
 
 
@@ -271,9 +260,12 @@ class UI():
             ]
 
         if attr_name in color_props:
-            value_color = Color.parse(attr_value)
-            srgb_normalized = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0, value_color.a]
-            attr_value = apply_gamma_correction(*srgb_normalized)
+            try:
+                attr_value = color_processor.parse_color(attr_value)
+            except Exception as e:
+                print(f"⚠️  Color parsing failed for '{attr_name}' = '{attr_value}': {e}")
+                print(f"   Using default black color")
+                attr_value = [0.0, 0.0, 0.0, 1.0]
 
         elif attr_name in float_props:
             attr_value = float(attr_value.replace('px', '').strip())
