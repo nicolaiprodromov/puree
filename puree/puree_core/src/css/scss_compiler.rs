@@ -1,35 +1,14 @@
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::collections::HashMap;
-use regex::Regex;
-use once_cell::sync::Lazy;
-
-static MULTI_SPACE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\s+").unwrap()
-});
 
 #[pyclass]
-pub struct SCSSCompiler {
-    injected_vars: HashMap<String, String>,
-}
+pub struct SCSSCompiler;
 
 #[pymethods]
 impl SCSSCompiler {
     #[new]
-    pub fn new(injected_vars: Option<&PyDict>) -> PyResult<Self> {
-        let mut vars = HashMap::new();
-        
-        if let Some(vars_dict) = injected_vars {
-            for (key, value) in vars_dict.iter() {
-                let key_str = key.extract::<String>()?;
-                let value_str = value.extract::<String>()?;
-                vars.insert(key_str, value_str);
-            }
-        }
-        
-        Ok(SCSSCompiler {
-            injected_vars: vars,
-        })
+    pub fn new() -> PyResult<Self> {
+        Ok(SCSSCompiler)
     }
     
     pub fn compile(
