@@ -9,8 +9,8 @@ _container_data = []
 _native_detector = None
 
 class XWZ_OT_hit_detect(bpy.types.Operator):
-    bl_idname = "xwz.hit_detect"
-    bl_label = "Detect interactions in UI (Performance-optimized)"
+    bl_idname  = "xwz.hit_detect"
+    bl_label   = "Detect interactions in UI (Performance-optimized)"
     bl_options = {'REGISTER'}
     
     def invoke(self, context, event):
@@ -75,7 +75,6 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         return {'PASS_THROUGH'}
     
     def apply_hit_results(self, results):
-        # Create lookup dict for fast access
         results_by_id = {r['container_id']: r for r in results}
         
         for container in _container_data:
@@ -84,26 +83,19 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
             if container_id in results_by_id:
                 result = results_by_id[container_id]
                 
-                # Update hover state
                 container['_hovered'] = result['is_hovered']
                 
-                # Trigger hover events if state changed
                 if result['hover_changed']:
                     if result['is_hovered'] and not container['_prev_hovered']:
-                        # Hover enter
                         for hover_handler in container['hover']:
                             hover_handler(container)
                     elif not result['is_hovered'] and container['_prev_hovered']:
-                        # Hover exit
                         for hoverout_handler in container['hoverout']:
                             hoverout_handler(container)
                 
-                # Update click state
                 container['_clicked'] = result['is_clicked']
                 
-                # Trigger click events if state changed
                 if result['click_changed'] and result['is_clicked'] and not container['_prev_clicked']:
-                    # Handle text input focus/blur
                     from . import text_input_op
                     
                     text_input_clicked = False
@@ -118,11 +110,9 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                             if input_instance.is_focused:
                                 bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
                     
-                    # Trigger click handlers
                     for click_handler in container['click']:
                         click_handler(container)
                     
-                    # Handle toggle
                     container['_toggled'] = True
                     if container['_toggled'] and not container['_prev_toggled']:
                         container['_toggle_value'] = not container['_toggle_value']

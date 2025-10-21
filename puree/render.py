@@ -18,20 +18,26 @@ from . import parser_op
 _render_data = None
 _modal_timer = None
 _hot_reload_enabled = False
+_debug_outlined_containers = set()
 
 class RenderPipeline:
     def __init__(self):
         self.mgl_context     = None
         self.compute_shader  = None
+        self.outline_shader  = None
         self.mouse_buffer    = None
         self.container_buffer = None
         self.viewport_buffer = None
         self.output_texture  = None
+        self.outline_texture = None
+        self.debug_outline_buffer = None
+        self.debug_outline_count_buffer = None
         self.blender_texture = None
         self.gpu_shader      = None
         self.batch           = None
         self.draw_handler    = None
         self.running         = False
+        self.debug_outlined_containers = set()
         self.mouse_pos       = [0.5, 0.5]
         self.start_time      = time.time()
         self.texture_size    = (1920, 1080)
@@ -65,7 +71,6 @@ class RenderPipeline:
                 return False
         return False
     def load_shader_file(self, filename):
-        # Shader files are in the puree package directory
         package_dir = os.path.dirname(os.path.abspath(__file__))
         shader_path = os.path.join(package_dir, "shaders", filename)
         try:
@@ -94,6 +99,16 @@ class RenderPipeline:
             return False
         try:
             self.compute_shader = self.mgl_context.compute_shader(shader_source)
+            return True
+        except Exception:
+            return False
+    
+    def create_outline_shader(self):
+        shader_source = self.load_shader_file("outline.glsl")
+        if not shader_source:
+            return False
+        try:
+            self.outline_shader = self.mgl_context.compute_shader(shader_source)
             return True
         except Exception:
             return False
@@ -160,6 +175,18 @@ class RenderPipeline:
             for i in range(self.pbo_count):
                 pbo = self.mgl_context.buffer(reserve=pixel_size)
                 self.pbos.append(pbo)
+            
+            self.outline_texture = self.mgl_context.texture(
+                self.texture_size, 
+                4
+            )
+            self.outline_texture.filter = (mgl.NEAREST, mgl.NEAREST)
+            
+            outline_ids = np.array([], dtype=np.int32)
+            self.debug_outline_buffer = self.mgl_context.buffer(reserve=400)
+            
+            outline_count = np.array([0], dtype=np.int32)
+            self.debug_outline_count_buffer = self.mgl_context.buffer(outline_count.tobytes())
             
             return True
         except Exception:
@@ -239,13 +266,11 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
         
         if size_changed:
-            # Recompute layout with new viewport size
             updated_container_data = parser_op.recompute_layout((w, h))
             
             if updated_container_data:
                 self.container_data = updated_container_data
                 
-                # Rebuild container buffer with new layout
                 container_array = []
                 for i, container in enumerate(self.container_data):
                     container_struct = [
@@ -368,10 +393,9 @@ class RenderPipeline:
         
         if self.click_value != self.last_click_value:
             self.last_click_value = self.click_value
-            self.click_frames_remaining = 3  # Force 3 frames for triple buffering
+            self.click_frames_remaining = 3
             changed = True
         
-        # Continue running for additional frames when click state changes
         if self.click_frames_remaining > 0:
             self.click_frames_remaining -= 1
             changed = True
@@ -390,8 +414,21 @@ class RenderPipeline:
         return changed
     
     def has_texture_changed(self):
-        """Check if texture needs readback. Called from draw_texture."""
         return self.texture_needs_readback
+    
+    def update_debug_outline_buffers(self):
+        if not self.debug_outline_buffer or not self.debug_outline_count_buffer:
+            return
+        
+        outlined_ids = [int(cid) for cid in self.debug_outlined_containers]
+        
+        outline_count = np.array([len(outlined_ids)], dtype=np.int32)
+        self.debug_outline_count_buffer.write(outline_count.tobytes())
+        
+        if len(outlined_ids) > 0:
+            outline_data = np.array(outlined_ids, dtype=np.int32)
+            self.debug_outline_buffer.write(outline_data.tobytes())
+    
     def run_compute_shader(self):
         if not (self.compute_shader and self.mouse_buffer and self.container_buffer and 
                 self.viewport_buffer and self.output_texture):
@@ -407,6 +444,22 @@ class RenderPipeline:
             groups_y = (self.texture_size[1] + 15) // 16
 
             self.compute_shader.run(groups_x, groups_y, 1)
+            
+            if self.outline_shader and len(self.debug_outlined_containers) > 0:
+                self.update_debug_outline_buffers()
+                
+                self.output_texture.bind_to_image(0, read=True, write=False)
+                self.outline_texture.bind_to_image(1, read=False, write=True)
+                self.container_buffer.bind_to_storage_buffer(2)
+                self.viewport_buffer.bind_to_storage_buffer(3)
+                self.debug_outline_buffer.bind_to_storage_buffer(4)
+                self.debug_outline_count_buffer.bind_to_storage_buffer(5)
+                
+                self.outline_shader.run(groups_x, groups_y, 1)
+                
+                temp = self.output_texture
+                self.output_texture = self.outline_texture
+                self.outline_texture = temp
             
             return True
         except Exception:
@@ -425,6 +478,8 @@ class RenderPipeline:
         if not self.init_moderngl_context():
             return False
         if not self.create_compute_shader():
+            return False
+        if not self.create_outline_shader():
             return False
         if not self.create_buffers_and_textures():
             return False
@@ -561,8 +616,16 @@ class RenderPipeline:
             self.viewport_buffer = None
         if self._safe_release_moderngl_object(self.output_texture):
             self.output_texture = None
+        if self._safe_release_moderngl_object(self.outline_texture):
+            self.outline_texture = None
+        if self._safe_release_moderngl_object(self.debug_outline_buffer):
+            self.debug_outline_buffer = None
+        if self._safe_release_moderngl_object(self.debug_outline_count_buffer):
+            self.debug_outline_count_buffer = None
         if self._safe_release_moderngl_object(self.compute_shader):
             self.compute_shader = None
+        if self._safe_release_moderngl_object(self.outline_shader):
+            self.outline_shader = None
         
         for pbo in self.pbos:
             self._safe_release_moderngl_object(pbo)
@@ -594,7 +657,6 @@ class RenderPipeline:
             mouse_state.unregister_callback(self.on_mouse_event)
             self.mouse_callback_registered = False
     def update_container_buffer_full(self, hit_container_data):
-        """Update entire container buffer with current interaction states"""
         if not self.container_buffer or not hit_container_data:
             return False
         
@@ -782,7 +844,6 @@ class XWZ_OT_start_ui(Operator):
             self.cancel(context)
             return {'CANCELLED'}
         
-        # Handle window deactivate to catch resize events
         if event.type == 'WINDOW_DEACTIVATE':
             area = context.area
             region = context.region
@@ -805,7 +866,6 @@ class XWZ_OT_start_ui(Operator):
             region = context.region
             
             if area and region:
-                # Check for hot reload changes
                 global _hot_reload_enabled
                 if _hot_reload_enabled:
                     try:
@@ -821,10 +881,8 @@ class XWZ_OT_start_ui(Operator):
 
                 texture_changed = _render_data.check_if_changed()
                 
-                # Check if script callbacks modified container state
                 state_synced = parser_op.sync_dirty_containers()
                 if state_synced:
-                    # Container state changed via scripts, need to update
                     from . import hit_op
                     from . import text_op
                     new_data = parser_op._container_json_data
@@ -840,7 +898,6 @@ class XWZ_OT_start_ui(Operator):
                     
                     hit_op._container_data = new_data
                     
-                    # Update text instances with new text content
                     for text_instance in text_op._text_instances:
                         container_id = text_instance.container_id
                         if container_id in parser_op.text_blocks:
@@ -856,7 +913,6 @@ class XWZ_OT_start_ui(Operator):
                                 align_v=block.get('align_v', 'CENTER').upper()
                             )
                     
-                    # Update text input instances with new layout
                     from . import text_input_op
                     for input_instance in text_input_op._text_input_instances:
                         container_id = input_instance.container_id
@@ -878,7 +934,6 @@ class XWZ_OT_start_ui(Operator):
                                 align_v=block.get('align_v', 'TOP').upper()
                             )
                     
-                    # Update image instances with new image content
                     from . import img_op
                     for image_instance in img_op._image_instances:
                         container_id = image_instance.container_id
@@ -897,9 +952,7 @@ class XWZ_OT_start_ui(Operator):
                     
                     texture_changed = True
                 
-                # Run compute shader if viewport resized or other state changed
                 if texture_changed or size_changed:
-                    # If size changed, update hit_op's container data reference
                     if size_changed:
                         from . import hit_op
                         new_data = parser_op._container_json_data

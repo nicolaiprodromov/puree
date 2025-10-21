@@ -1,13 +1,9 @@
-"""
-Hot Reload Operators for Puree UI
-"""
 import bpy
 from bpy.types import Operator
 
-
 class XWZ_OT_enable_hot_reload(Operator):
-    bl_idname = "xwz.enable_hot_reload"
-    bl_label = "Enable Hot Reload"
+    bl_idname      = "xwz.enable_hot_reload"
+    bl_label       = "Enable Hot Reload"
     bl_description = "Enable live file watching and UI hot reload"
     
     def execute(self, context):
@@ -23,19 +19,15 @@ class XWZ_OT_enable_hot_reload(Operator):
             addon_dir = get_addon_root()
             wm = context.window_manager
             
-            # Setup hot reload system
             if setup_hot_reload(addon_dir):
-                # Register callbacks
                 register_default_callbacks()
                 
-                # Enable
                 manager = get_hot_reload_manager()
                 manager.enable()
                 
-                # Set global flag
                 render._hot_reload_enabled = True
                 
-                self.report({'INFO'}, "🔥 Hot reload enabled")
+                self.report({'INFO'}, "Hot reload enabled")
                 return {'FINISHED'}
             else:
                 self.report({'ERROR'}, "Failed to enable hot reload")
@@ -49,8 +41,8 @@ class XWZ_OT_enable_hot_reload(Operator):
 
 
 class XWZ_OT_disable_hot_reload(Operator):
-    bl_idname = "xwz.disable_hot_reload"
-    bl_label = "Disable Hot Reload"
+    bl_idname      = "xwz.disable_hot_reload"
+    bl_label       = "Disable Hot Reload"
     bl_description = "Disable live file watching and UI hot reload"
     
     def execute(self, context):
@@ -61,10 +53,9 @@ class XWZ_OT_disable_hot_reload(Operator):
             manager = get_hot_reload_manager()
             manager.disable()
             
-            # Clear global flag
             render._hot_reload_enabled = False
             
-            self.report({'INFO'}, "❄️  Hot reload disabled")
+            self.report({'INFO'}, "Hot reload disabled")
             return {'FINISHED'}
             
         except Exception as e:
@@ -73,8 +64,8 @@ class XWZ_OT_disable_hot_reload(Operator):
 
 
 class XWZ_OT_trigger_ui_reload(Operator):
-    bl_idname = "xwz.trigger_ui_reload"
-    bl_label = "Reload UI"
+    bl_idname      = "xwz.trigger_ui_reload"
+    bl_label       = "Reload UI"
     bl_description = "Manually trigger a full UI reload"
     
     def execute(self, context):

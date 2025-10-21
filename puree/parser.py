@@ -21,8 +21,6 @@ node_flat_abs = {}
 
 color_processor = ColorProcessor()
 
-
-
 class Settings():
     def __init__(self):
         self.scroll_speed = 0
@@ -398,7 +396,6 @@ class UI():
             if hasattr(container.style, 'padding') and isinstance(container.style.padding, str):
                 padding_str = container.style.padding.strip().lower()
                 if 'calc(' not in padding_str:
-                    # Split on whitespace - this handles multiple spaces correctly
                     values = padding_str.split()
                     if len(values) == 1:
                         val = parse_css_value(values[0])
@@ -432,7 +429,6 @@ class UI():
             if hasattr(container.style, 'margin') and isinstance(container.style.margin, str):
                 margin_str = container.style.margin.strip().lower()
                 if 'calc(' not in margin_str:
-                    # Split on whitespace - this handles multiple spaces correctly
                     values = margin_str.split()
                     
                     if len(values) == 1:
