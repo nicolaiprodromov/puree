@@ -143,11 +143,9 @@ def draw_all_text():
             blf.clipping(instance.font_id, xmin, ymin, xmax, ymax)
             blf.enable(instance.font_id, blf.CLIPPING)
         
-        # Set text size and get dimensions
         blf.size(instance.font_id, instance.size)
         text_width, text_height = blf.dimensions(instance.font_id, instance.text)
         
-        # Calculate position based on alignment
         x_pos = instance.position[0]
         y_pos = instance.position[1]
         
@@ -155,7 +153,6 @@ def draw_all_text():
             container_width = instance.mask[2]
             container_height = instance.mask[3]
             
-            # Horizontal alignment - adjust X based on text anchor point
             if instance.align_h == 'LEFT':
                 x_pos = instance.mask[0]
             elif instance.align_h == 'CENTER':
@@ -163,7 +160,6 @@ def draw_all_text():
             elif instance.align_h == 'RIGHT':
                 x_pos = instance.mask[0] + container_width - text_width
             
-            # Vertical alignment - adjust Y based on text anchor point
             if instance.align_v == 'TOP':
                 y_pos = instance.mask[1]
             elif instance.align_v == 'CENTER':
@@ -171,10 +167,8 @@ def draw_all_text():
             elif instance.align_v == 'BOTTOM':
                 y_pos = instance.mask[1] + container_height - text_height
         
-        # Convert to Blender's flipped Y coordinate
         flipped_y = viewport_height - y_pos - text_height
         
-        # Position and draw
         blf.position(instance.font_id, x_pos, flipped_y, 0)
         blf.color(instance.font_id, *instance.color)
         blf.draw(instance.font_id, instance.text)
@@ -184,7 +178,7 @@ def draw_all_text():
 
 class DrawTextOP(bpy.types.Operator):
     bl_idname = "xwz.draw_text"
-    bl_label = "Add Text Instance"
+    bl_label  = "Add Text Instance"
 
     container_id: bpy.props.StringProperty(name="Container ID", default="root")
     text        : bpy.props.StringProperty(name="Text", default="New Text")
@@ -373,12 +367,9 @@ class UpdateTextOP(bpy.types.Operator):
 def register():
     global font_manager
     
-    # Ensure fonts are loaded/reloaded when addon is (re)enabled
     if font_manager is None:
-        # After unregister was called - recreate the singleton
         font_manager = FontManager()
     elif font_manager._initialized:
-        # Addon was previously loaded - reload fonts
         font_manager.reload_fonts()
     
     bpy.utils.register_class(DrawTextOP)
@@ -389,14 +380,12 @@ def register():
 def unregister():
     global _draw_handle, _text_instances, font_manager
     
-    # Force clear all text instances
     _text_instances.clear()
     
     if _draw_handle is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
-    # Unload fonts and reset the singleton
     FontManager.reset_instance()
     font_manager = None
     

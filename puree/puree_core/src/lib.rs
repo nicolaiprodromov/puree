@@ -14,7 +14,6 @@ use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_colo
             interpolate_color_py, rotate_gradient_py};
 use file_watcher::PyFileWatcher;
 
-/// Main entry point for the Rust module
 #[pymodule]
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<HitDetector>()?;
@@ -34,7 +33,6 @@ fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Batch hover detection for all containers
 #[pyfunction]
 fn detect_hover_batch(
     py: Python,
@@ -67,7 +65,6 @@ fn detect_hover_batch(
     Ok(results.to_object(py))
 }
 
-/// Batch click detection with hierarchy checking
 #[pyfunction]
 fn detect_clicks_batch(
     py: Python,
@@ -110,7 +107,6 @@ fn detect_clicks_batch(
     Ok(result_dict.into())
 }
 
-/// Fast container flattening
 #[pyfunction]
 fn flatten_containers_fast(
     py: Python,

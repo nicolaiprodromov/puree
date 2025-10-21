@@ -34,16 +34,9 @@ class Container():
         self._dirty        : bool  = False
     
     def __getattr__(self, name):
-        """
-        Enable property-based access to:
-        1. Child containers by their id (e.g., app.theme.root.bg.body)
-        2. Style properties (e.g., container.text_scale delegates to container.style.text_scale)
-        """
-        # Avoid infinite recursion by checking if we're accessing core attributes
         if name in ('children', 'style', '__dict__'):
             raise AttributeError(f"'Container' object has no attribute '{name}'")
         
-        # First, search for a child container with matching id
         try:
             children = object.__getattribute__(self, 'children')
             for child in children:
@@ -52,7 +45,6 @@ class Container():
         except AttributeError:
             pass
         
-        # If not found in children, try to get from style object
         try:
             style = object.__getattribute__(self, 'style')
             if style and hasattr(style, name):
@@ -60,16 +52,9 @@ class Container():
         except AttributeError:
             pass
         
-        # If not found anywhere, raise AttributeError
         raise AttributeError(f"'Container' object has no attribute or child named '{name}'")
     
     def __setattr__(self, name, value):
-        """
-        Enable property-based setting of style properties.
-        If the attribute doesn't exist on Container but exists on style,
-        delegate to the style object.
-        """
-        # List of Container's own attributes that should be set directly
         container_attrs = {
             'id', 'parent', 'children', 'style', 'data', 'img', 'text', 'font',
             'layer', 'passive', 'click', 'toggle', 'scroll', 'hover', 'hoverout',
@@ -77,20 +62,16 @@ class Container():
             '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty'
         }
         
-        # If it's a Container attribute, set it directly
         if name in container_attrs:
             object.__setattr__(self, name, value)
-        # Otherwise, try to set it on the style object if it exists there
         else:
             try:
                 style = object.__getattribute__(self, 'style')
                 if style and hasattr(style, name):
                     setattr(style, name, value)
                 else:
-                    # If style doesn't have it either, set it on container
                     object.__setattr__(self, name, value)
             except AttributeError:
-                # If style doesn't exist yet, set it on container
                 object.__setattr__(self, name, value)
     
     def mark_dirty(self):

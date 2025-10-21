@@ -28,7 +28,6 @@ impl ContainerProcessor {
         }
     }
     
-    /// Fast flattening of container hierarchy from node_flat_abs
     pub fn flatten_tree(&mut self, py: Python, root_container: &PyDict, node_flat_abs: &PyDict) -> PyResult<PyObject> {
         self.containers.clear();
         self.id_to_index.clear();
@@ -46,7 +45,6 @@ impl ContainerProcessor {
         Ok(result.into())
     }
     
-    /// Update container positions in bulk
     pub fn update_positions_bulk(
         &mut self,
         _py: Python,
@@ -70,7 +68,6 @@ impl ContainerProcessor {
         Ok(())
     }
     
-    /// Get containers as Python list
     pub fn get_containers(&self, py: Python) -> PyResult<PyObject> {
         let result = PyList::empty(py);
         
@@ -82,7 +79,6 @@ impl ContainerProcessor {
         Ok(result.into())
     }
     
-    /// Batch update container states
     pub fn update_states_bulk(
         &mut self,
         container_ids: Vec<String>,
