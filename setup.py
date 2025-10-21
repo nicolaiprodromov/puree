@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import os
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -14,7 +13,7 @@ setup(
     url                           = "https://github.com/nicolaiprodromov/puree",
     packages                      = find_packages(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: User Interfaces",
         "License :: OSI Approved :: MIT License",
