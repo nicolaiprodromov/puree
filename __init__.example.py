@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 import os
 from puree import register as xwz_ui_register, unregister as xwz_ui_unregister

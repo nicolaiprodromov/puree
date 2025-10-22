@@ -1,0 +1,15 @@
+root{
+    flex-direction : column;
+    justify-content: start;
+    align-items    : start;
+    width          : 100%;
+    height         : 100%;
+    color          : rgba(0,0,0,0);
+}
+
+test_box{
+    width          : 90%;
+    height         : 140px;
+    border-radius  : 8px;
+    color          : #FFFFFF;
+}

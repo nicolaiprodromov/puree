@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import sys
 import os
 import re

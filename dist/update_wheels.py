@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import sys
 from pathlib import Path
