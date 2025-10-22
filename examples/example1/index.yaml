@@ -1,3 +1,15 @@
+# Example 1 [CORE UI VOL. I]
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree/wiki
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
+
 app:
   selected_theme: test_theme1
   default_theme : test_theme1
@@ -21,47 +33,80 @@ app:
           
           header1:
             data          : '[header]'
-            title         : Puree UI Showcase
-            subtitle      : All Features Demo
-            title_color   : rgb(255, 255, 255)
-            subtitle_color: rgb(176, 176, 176)
-            bg_color      : rgb(20, 20, 20)
-            logo_size     : 60px
+            title         : Puree UI Example I
+            subtitle      : Basic Features Demo
+            title_color   : rgb(245, 248, 250)
+            subtitle_color: rgba(181, 188, 199, 0.9)
+            bg_color      : '#1a1d24'
+            bg_color1     : '#1f222a'
+            logo_size     : 100px
 
-          left_side_interactions:
-            style: left_side_interactions
+          content_container:
+            style: content_container
 
-            hover_test_button:
-              data          : '[button]'
-              tb_icon_value : 'hover'
-              bg_color      : '#2b2b2b'
-              hover_bg_color: '#202020'
-              click_bg_color: '#111111'
-              tb_text_value : Hover me!
+            left_side_interactions:
+              style: left_side_interactions
 
-            click_test_button:
-              data          : '[button]'
-              tb_icon_value : 'click'
-              bg_color      : '#2b2b2b'
-              hover_bg_color: '#202020'
-              click_bg_color: '#111111'
-              tb_text_value : Click me!
+              hover_test_button:
+                data          : '[button]'
+                tb_icon_value : 'hover'
+                bg_color      : '#252830'
+                hover_bg_color: '#353942'
+                click_bg_color: '#353942'
+                tb_text_value : Hover me!
 
-            toggle_test_button:
-              data          : '[button]'
-              tb_icon_value : 'toggle'
-              bg_color      : '#2b2b2b'
-              hover_bg_color: '#202020'
-              click_bg_color: '#111111'
-              tb_text_value : Toggle me!
+              click_test_button:
+                data          : '[button]'
+                tb_icon_value : 'click'
+                bg_color      : '#252830'
+                hover_bg_color: '#353942'
+                click_bg_color: '#4a5664'
+                tb_text_value : Click me!
 
-            text_input_test:
-              data              : '[txt_input]'
-              ti_icon_img       : 'light_off'
-              ti_label_txt      : 'This is an example text input box multi-line field'
-              ti_label_font     : 'NeueMontreal-Regular'
-              ti_input_font     : 'NeueMontreal-Italic'
-              ti_footer_txt     : 'Example footer with icon.'
-              ti_footer_icon_img: 'light_on'
+              toggle_test_button:
+                data          : '[button]'
+                tb_icon_value : 'toggle'
+                bg_color      : '#252830'
+                hover_bg_color: '#353942'
+                click_bg_color: '#4a5664'
+                tb_text_value : Toggle me!
+
+              text_input_test:
+                data              : '[txt_input]'
+                ti_icon_img       : 'light_off'
+                ti_label_txt      : 'This is an example text input box multi-line field'
+                ti_label_font     : 'NeueMontreal-Regular'
+                ti_input_font     : 'NeueMontreal-Italic'
+                ti_footer_txt     : 'Example footer with icon.'
+                ti_footer_icon_img: 'light_on'
+
+              bottom_text_box:
+                style: bottom_text_box
+                bottom_text:
+                  style: bottom_text
+                  text: 'This is an example of a simple text component.'
+                  font: 'NeueMontreal-Regular'
+
+            right_side_interaction:
+              style: right_side_interaction
+
+              default_label:
+                data         : '[label]'
+                tl_icon_img  : 'dial'
+                tl_text_value: 'Default Label'
+                tl_font_value: 'NeueMontreal-Regular'
+                margin_value : 0px 0px 10px 0px
+                icon_size    : 21px
+
+              simple_label:
+                data               : '[label]'
+                tl_icon_img        : 'star_on'
+                tl_text_value      : 'Simple Label'
+                tl_font_value      : 'NeueMontreal-Bold'
+                bg_color           : '#252830'
+                border_radius_value: 8px
+                margin_value       : 0px 0px 10px 0px
+                icon_size          : 21px
+                tl_description_value: 'This is a stylized label with a description.'
 
 

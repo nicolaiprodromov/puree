@@ -1,20 +1,25 @@
+// TEXT INPUT COMPONENT [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
 
-$label_border_color : rgb(200, 200, 200) !default;
-$label_border_width : 1px !default;
-$icon_radius        : 20px !default;
-$input_box_color    : rgb(50, 50, 50) !default;
-$footer_border_color: rgb(200, 200, 200) !default;
-$footer_border_width: 1px !default;
-$footer_action_color: rgb(100, 150, 255) !default;
+$footer_action_color: rgb(186, 186, 186) !default;
 $footer_action_scale: 12px !default;
-
-
-$transparent       : rgba(0, 0, 0, 0) !default;
-$border_radii      : 7px !default;
-$bg_color          : rgb(39, 39, 39) !default;
-$text_color_value  : whitesmoke !default;
-$text_scale_value  : 16px !default;
-$text_input_padding: 15px !default;
+$transparent        : rgba(0, 0, 0, 0) !default;
+$border_radii       : 10px !default;
+$bg_color           : #252830 !default;
+$bg_label_color     : #353942 !default;
+$bg_footer_color    : #353942 !default;
+$text_color_value   : #f0f3f6 !default;
+$text_scale_value   : 16px !default;
+$text_input_padding : 35px !default;
 
 .txt_input{
     width          : 100%;
@@ -31,8 +36,7 @@ $text_input_padding: 15px !default;
 .txt_input_label_box{
     width          : 100%;
     height         : 40px;
-    color          : rgb(55,55,55);
-    border-radius  : $border_radii;
+    color          : $bg_label_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
@@ -64,7 +68,6 @@ $text_input_padding: 15px !default;
     width        : 100%;
     height       : 150px;
     color        : $bg_color;
-    border-radius: $border_radii;
     padding      : $text_input_padding;
     text-color   : $text_color_value;
     text-scale   : $text_scale_value;
@@ -75,7 +78,7 @@ $text_input_padding: 15px !default;
 .txt_input_ti_footer{
     width          : 100%;
     height         : 40px;
-    color          : $bg_color;
+    color          : $bg_footer_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
@@ -87,7 +90,7 @@ $text_input_padding: 15px !default;
     width       : 100%;
     height      : 100%;
     color       : $transparent;
-    text-color  : rgba(255, 255, 255, 0.15);
+    text-color  : $footer_action_color;
     text-scale  : 12px;
     text-align-h: left;
     text-align-v: center;

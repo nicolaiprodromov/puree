@@ -1,3 +1,15 @@
+// BUTTON COMPONENT [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
 $transparent: rgba(0,0,0,0) !default;
 
 $bg_color       : rgba(0,0,0,0) !default;
@@ -13,19 +25,19 @@ $click_grd_rot  : 0deg !default;
 $button_width        : 100% !default;
 $button_height       : 40px !default;
 $button_bottom_margin: 10px !default;
+$padding_value       : 8px 15px 8px 15px !default;
+$border_radii        : 8px !default;
 
-$radial_color       : #70e813 !default;
-$radial_border_color: rgba(0,0,0,0) !default;
+$text_color_value: #f0f3f6 !default;
+$text_scale_value: 17px !default;
+
+$icon_radius: 15px !default;
+
+$radial_color       : #4a5664 !default;
+$radial_border_color: rgba(74, 86, 100, 0.3) !default;
 $radial_radius      : 15px !default;
 $radial_border_width: 1px !default;
 
-$icon_radius        : 15px !default;
-
-$text_color_value: #ffffff !default;
-$text_scale_value: 17px !default;
-
-$border_radii : 8px !default;
-$padding_value: 8px 15px 8px 15px !default;
 
 .button {
     width                   : $button_width;
