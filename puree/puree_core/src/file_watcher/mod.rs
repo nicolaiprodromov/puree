@@ -9,7 +9,6 @@
 // ║  ██   ██   ████████   ████████  ║
 // ╚═════════════════════════════════╝
 use notify::{Watcher, RecursiveMode, Result as NotifyResult, Event, EventKind};
-use notify::event::{ModifyKind, CreateKind, RemoveKind};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::collections::{HashMap, HashSet};
@@ -61,20 +60,12 @@ impl Default for WatcherConfig {
     }
 }
 
-/// Middleware trait for processing file changes
-pub trait FileChangeMiddleware: Send + Sync {
-    fn on_change(&self, change: &FileChange) -> bool;
-    fn priority(&self) -> i32 { 0 }
-}
-
-/// Core file watcher that monitors directories for changes
 pub struct FileWatcher {
     watcher: Option<Box<dyn Watcher + Send>>,
     config: WatcherConfig,
     watched_paths: HashSet<PathBuf>,
     event_sender: Sender<FileChange>,
     event_receiver: Receiver<FileChange>,
-    middleware_chain: Vec<Arc<dyn FileChangeMiddleware>>,
     last_events: Arc<Mutex<HashMap<PathBuf, Instant>>>,
 }
 
@@ -88,15 +79,8 @@ impl FileWatcher {
             watched_paths: HashSet::new(),
             event_sender: tx,
             event_receiver: rx,
-            middleware_chain: Vec::new(),
             last_events: Arc::new(Mutex::new(HashMap::new())),
         }
-    }
-    
-    /// Add a middleware handler to the processing chain
-    pub fn add_middleware(&mut self, middleware: Arc<dyn FileChangeMiddleware>) {
-        self.middleware_chain.push(middleware);
-        self.middleware_chain.sort_by_key(|m| -m.priority());
     }
     
     /// Start watching a directory path
@@ -107,15 +91,15 @@ impl FileWatcher {
             return Ok(());
         }
         
-        // Initialize watcher if not already created
         if self.watcher.is_none() {
             let tx = self.event_sender.clone();
             let last_events = Arc::clone(&self.last_events);
             let debounce_duration = Duration::from_millis(self.config.debounce_ms);
+            let config = self.config.clone();
             
             let watcher = notify::recommended_watcher(move |res: NotifyResult<Event>| {
                 if let Ok(event) = res {
-                    Self::handle_event(event, &tx, &last_events, debounce_duration);
+                    Self::handle_event(event, &tx, &last_events, debounce_duration, &config);
                 }
             })?;
             
@@ -142,25 +126,11 @@ impl FileWatcher {
         Ok(())
     }
     
-    /// Process pending file change events through middleware chain
     pub fn process_events(&self) -> Vec<FileChange> {
         let mut processed_changes = Vec::new();
         
-        // Drain all pending events
         while let Ok(change) = self.event_receiver.try_recv() {
-            let mut should_propagate = true;
-            
-            // Run through middleware chain
-            for middleware in &self.middleware_chain {
-                if !middleware.on_change(&change) {
-                    should_propagate = false;
-                    break;
-                }
-            }
-            
-            if should_propagate {
-                processed_changes.push(change);
-            }
+            processed_changes.push(change);
         }
         
         processed_changes
@@ -172,11 +142,15 @@ impl FileWatcher {
         sender: &Sender<FileChange>,
         last_events: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
         debounce_duration: Duration,
+        config: &WatcherConfig,
     ) {
         let now = Instant::now();
         
         for path in event.paths {
-            // Debounce: ignore events that happen too quickly
+            if !path.is_file() {
+                continue;
+            }
+            
             {
                 let mut last_events_map = last_events.lock().unwrap();
                 if let Some(last_time) = last_events_map.get(&path) {
@@ -187,8 +161,7 @@ impl FileWatcher {
                 last_events_map.insert(path.clone(), now);
             }
             
-            // Determine change type based on file extension and event kind
-            let change_type = Self::classify_change(&path, &event.kind);
+            let change_type = Self::classify_change(&path, &event.kind, config);
             
             if let Some(change_type) = change_type {
                 let change = FileChange {
@@ -203,34 +176,27 @@ impl FileWatcher {
     }
     
     /// Classify a file change based on path and event kind
-    fn classify_change(path: &Path, kind: &EventKind) -> Option<ChangeType> {
+    fn classify_change(path: &Path, kind: &EventKind, config: &WatcherConfig) -> Option<ChangeType> {
         let extension = path.extension()?.to_str()?;
         
         match kind {
-            EventKind::Modify(ModifyKind::Data(_)) => {
+            EventKind::Modify(_) | EventKind::Create(_) => {
                 match extension {
-                    "yaml" | "yml" => Some(ChangeType::YamlModified),
-                    "css" | "scss" => Some(ChangeType::StyleModified),
-                    "py" => Some(ChangeType::ScriptModified),
-                    "png" | "jpg" | "jpeg" | "svg" => Some(ChangeType::AssetModified),
-                    _ => None,
-                }
-            }
-            EventKind::Create(CreateKind::File) => {
-                match extension {
-                    "yaml" | "yml" => {
-                        if Self::is_component_path(path) {
+                    "yaml" | "yml" if config.watch_yaml => {
+                        if Self::is_component_path(path) && matches!(kind, EventKind::Create(_)) {
                             Some(ChangeType::ComponentAdded)
                         } else {
                             Some(ChangeType::YamlModified)
                         }
                     }
-                    "css" | "scss" => Some(ChangeType::StyleModified),
+                    "css" | "scss" if config.watch_styles => Some(ChangeType::StyleModified),
+                    "py" if config.watch_scripts => Some(ChangeType::ScriptModified),
+                    "png" | "jpg" | "jpeg" | "svg" if config.watch_assets => Some(ChangeType::AssetModified),
                     _ => None,
                 }
             }
-            EventKind::Remove(RemoveKind::File) => {
-                if Self::is_component_path(path) {
+            EventKind::Remove(_) => {
+                if config.watch_components && Self::is_component_path(path) {
                     Some(ChangeType::ComponentRemoved)
                 } else {
                     None
@@ -344,87 +310,5 @@ impl PyFileWatcher {
         let mut pending = self.pending_changes.lock().unwrap();
         pending.clear();
         Ok(())
-    }
-}
-
-/// Built-in middleware for logging changes
-pub struct LoggingMiddleware;
-
-impl FileChangeMiddleware for LoggingMiddleware {
-    fn on_change(&self, change: &FileChange) -> bool {
-        println!(
-            "[FileWatcher] {:?} change detected: {}",
-            change.change_type,
-            change.path.display()
-        );
-        true
-    }
-    
-    fn priority(&self) -> i32 {
-        -100 // Low priority, runs last
-    }
-}
-
-/// Middleware for filtering specific file types
-pub struct FileTypeFilter {
-    allowed_extensions: HashSet<String>,
-}
-
-impl FileTypeFilter {
-    pub fn new(extensions: Vec<&str>) -> Self {
-        Self {
-            allowed_extensions: extensions.iter().map(|s| s.to_string()).collect(),
-        }
-    }
-}
-
-impl FileChangeMiddleware for FileTypeFilter {
-    fn on_change(&self, change: &FileChange) -> bool {
-        if let Some(ext) = change.path.extension() {
-            if let Some(ext_str) = ext.to_str() {
-                return self.allowed_extensions.contains(ext_str);
-            }
-        }
-        false
-    }
-    
-    fn priority(&self) -> i32 {
-        100 // High priority, filter early
-    }
-}
-
-/// Middleware for coalescing multiple rapid changes to the same file
-pub struct CoalescingMiddleware {
-    seen_files: Arc<Mutex<HashMap<PathBuf, Instant>>>,
-    window_ms: u64,
-}
-
-impl CoalescingMiddleware {
-    pub fn new(window_ms: u64) -> Self {
-        Self {
-            seen_files: Arc::new(Mutex::new(HashMap::new())),
-            window_ms,
-        }
-    }
-}
-
-impl FileChangeMiddleware for CoalescingMiddleware {
-    fn on_change(&self, change: &FileChange) -> bool {
-        let mut seen = self.seen_files.lock().unwrap();
-        let now = Instant::now();
-        
-        if let Some(last_seen) = seen.get(&change.path) {
-            let elapsed = now.duration_since(*last_seen);
-            if elapsed < Duration::from_millis(self.window_ms) {
-                return false; // Skip this change, too soon
-            }
-        }
-        
-        seen.insert(change.path.clone(), now);
-        true
-    }
-    
-    fn priority(&self) -> i32 {
-        50 // Medium-high priority
     }
 }
