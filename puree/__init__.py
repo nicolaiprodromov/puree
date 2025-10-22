@@ -1,18 +1,24 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
-
 __version__ = "0.1.0"
-
 _ADDON_ROOT = None
 
 def set_addon_root(path):
-    """Set the addon root directory where static/, assets/, fonts/ are located"""
     global _ADDON_ROOT
     _ADDON_ROOT = path
 
 def get_addon_root():
-    """Get the addon root directory, falling back to package parent if not set"""
     global _ADDON_ROOT
     if _ADDON_ROOT is not None:
         return _ADDON_ROOT
@@ -20,20 +26,33 @@ def get_addon_root():
 
 def _try_start_ui():
     import bpy
+    from .space_config import parse_space_config, validate_current_configuration
+    
+    wm = bpy.context.window_manager
+    conf_path = wm.get("xwz_ui_conf_path", "index.yaml")
+    
+    if not parse_space_config(conf_path):
+        print("Failed to parse space configuration, retrying...")
+        return 0.5
+    
+    config_status = validate_current_configuration()
+    
+    if not config_status['space_available']:
+        target_space = config_status.get('target_space', 'Unknown')
+        print(f"Target space '{target_space}' not available yet, retrying...")
+        return 0.5
+    
+    area = config_status['area']
+    region = config_status['region']
+    
+    if not (area and region):
+        print("Found target space but no WINDOW region, retrying...")
+        return 0.5
+    
     for window in bpy.context.window_manager.windows:
         screen = window.screen
-        for area in screen.areas:
-            if area.type == 'VIEW_3D':
-                region = None
-                for r in area.regions:
-                    if r.type == 'WINDOW':
-                        region = r
-                        break
-                
-                if not region:
-                    print("Found 3D View but no WINDOW region, retrying...")
-                    return 0.5
-                
+        for screen_area in screen.areas:
+            if screen_area == area:
                 override = {
                     'window': window,
                     'screen': screen,
@@ -43,14 +62,17 @@ def _try_start_ui():
                 try:
                     with bpy.context.temp_override(**override):
                         bpy.ops.xwz.start_ui()
-                    print("Puree UI auto-started successfully")
+                    target_space = config_status.get('target_space', 'Unknown')
+                    print(f"Puree UI auto-started successfully in {target_space}")
                     return None
                 except Exception as e:
                     print(f"Failed to auto-start Puree UI: {e}")
                     import traceback
                     traceback.print_exc()
                     return None
-    print("No 3D View found yet, retrying...")
+    
+    target_space = config_status.get('target_space', 'Unknown')
+    print(f"Target space '{target_space}' found but not accessible, retrying...")
     return 0.5
 
 def auto_start_ui_handler(dummy):

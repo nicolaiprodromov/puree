@@ -1,3 +1,13 @@
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
 use notify::{Watcher, RecursiveMode, Result as NotifyResult, Event, EventKind};
 use notify::event::{ModifyKind, CreateKind, RemoveKind};
 use std::path::{Path, PathBuf};

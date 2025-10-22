@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 from bpy.types import Panel, PropertyGroup, UIList
 from bpy.props import CollectionProperty, StringProperty, IntProperty, BoolProperty
@@ -74,57 +84,6 @@ def update_container_hierarchy():
     
     build_tree(0, 0)
 
-class XWZ_PT_panel(Panel):
-    bl_label       = "puree"
-    bl_idname      = "XWZ_PT_panel"
-    bl_space_type  = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category    = "puree"
-    
-    @classmethod
-    def poll(cls, context):
-        return context.window_manager.xwz_debug_panel
-    
-    def draw(self, context):
-        layout = self.layout
-        
-        if render._render_data and render._render_data.running:
-            layout.label(text="Running", icon='PLAY')
-            
-            box = layout.box()
-            col = box.column(align=True)
-            col.separator()
-            col.label(text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
-            col.label(text=f"FPS: {render._render_data.compute_fps:.1f}")
-            
-            layout.separator()
-            layout.operator("xwz.stop_ui", icon='PAUSE')
-            
-            layout.separator()
-            layout.label(text="Container Hierarchy:", icon='OUTLINER')
-            
-            from . import parser_op
-            if parser_op._container_json_data:
-                update_container_hierarchy()
-                
-                wm = context.window_manager
-                layout.template_list(
-                    "XWZ_UL_container_hierarchy",
-                    "",
-                    wm,
-                    "xwz_container_hierarchy",
-                    wm,
-                    "xwz_container_hierarchy_index",
-                    rows=10
-                )
-            
-        else:
-            layout.label(text="Paused", icon='PAUSE')
-            layout.operator("xwz.start_ui", icon='PLAY')
-        
-        layout.separator()
-        layout.label(text="This is a debug panel.")
-
 class XWZ_OT_toggle_debug_outline(bpy.types.Operator):
     bl_idname = "xwz.toggle_debug_outline"
     bl_label = "Toggle Debug Outline"
@@ -146,8 +105,9 @@ class XWZ_OT_toggle_debug_outline(bpy.types.Operator):
 def register():
     bpy.utils.register_class(ContainerItem)
     bpy.utils.register_class(XWZ_UL_container_hierarchy)
-    bpy.utils.register_class(XWZ_PT_panel)
     bpy.utils.register_class(XWZ_OT_toggle_debug_outline)
+    
+    register_dynamic_panel()
     
     bpy.types.WindowManager.xwz_container_hierarchy = CollectionProperty(type=ContainerItem)
     bpy.types.WindowManager.xwz_container_hierarchy_index = IntProperty()
@@ -156,7 +116,96 @@ def unregister():
     del bpy.types.WindowManager.xwz_container_hierarchy_index
     del bpy.types.WindowManager.xwz_container_hierarchy
     
+    unregister_dynamic_panel()
+    
     bpy.utils.unregister_class(XWZ_OT_toggle_debug_outline)
-    bpy.utils.unregister_class(XWZ_PT_panel)
     bpy.utils.unregister_class(XWZ_UL_container_hierarchy)
     bpy.utils.unregister_class(ContainerItem)
+
+_current_panel_class = None
+
+def register_dynamic_panel():
+    global _current_panel_class
+    
+    # Get target space
+    target_space = 'VIEW_3D'  # Default
+    try:
+        from .space_config import get_target_space
+        space = get_target_space()
+        if space:
+            target_space = space
+    except:
+        pass
+    
+    # Unregister existing panel if any
+    unregister_dynamic_panel()
+    
+    # Create new panel class with correct space_type
+    class XWZ_PT_dynamic_panel(Panel):
+        bl_label       = "puree"
+        bl_idname      = "XWZ_PT_dynamic_panel"
+        bl_space_type  = target_space
+        bl_region_type = 'UI'
+        bl_category    = "puree"
+        
+        @classmethod
+        def poll(cls, context):
+            return context.window_manager.xwz_debug_panel
+        
+        def draw(self, context):
+            # Same draw method as the original panel
+            layout = self.layout
+            
+            if render._render_data and render._render_data.running:
+                layout.label(text="Running", icon='PLAY')
+                layout.operator("xwz.stop_ui", icon='PAUSE')
+                
+                box = layout.box()
+                col = box.column(align=True)
+                col.separator()
+                col.label(text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
+                col.label(text=f"FPS: {render._render_data.compute_fps:.1f}")
+                
+                box = layout.box()
+                col = box.column(align=True)
+                col.label(text="Container Hierarchy:", icon='OUTLINER')
+                
+                from . import parser_op
+                if parser_op._container_json_data:
+                    update_container_hierarchy()
+                    
+                    wm = context.window_manager
+                    col.template_list(
+                        "XWZ_UL_container_hierarchy",
+                        "",
+                        wm,
+                        "xwz_container_hierarchy",
+                        wm,
+                        "xwz_container_hierarchy_index",
+                        rows=10
+                    )
+                
+            else:
+                layout.label(text="Paused", icon='PAUSE')
+                layout.operator("xwz.start_ui", icon='PLAY')
+            
+            layout.label(text=f"Debug panel in {target_space}")
+    
+    _current_panel_class = XWZ_PT_dynamic_panel
+    bpy.utils.register_class(XWZ_PT_dynamic_panel)
+    
+    print(f"Registered debug panel for space: {target_space}")
+
+def unregister_dynamic_panel():
+    global _current_panel_class
+    
+    if _current_panel_class:
+        try:
+            bpy.utils.unregister_class(_current_panel_class)
+        except:
+            pass
+        _current_panel_class = None
+
+def update_panel_space():
+    """Call this function when the space configuration changes"""
+    register_dynamic_panel()

@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import sys
 from typing import List, Dict, Any
@@ -11,8 +21,6 @@ if native_binaries_dir not in sys.path:
 try:
     import puree_rust_core
 except ImportError as e:
-    print("=" * 70)
-    print("❌ CRITICAL ERROR: Puree Rust Core Missing")
     print(f"Import error: {e}")
     raise RuntimeError("Puree requires the core modules") from e
 
@@ -220,3 +228,22 @@ class PyFileWatcher:
     
     def clear_changes(self):
         self._watcher.clear_changes()
+
+
+class ConfigParser:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._parser = puree_rust_core.ConfigParser()
+        return cls._instance
+    
+    def parse_yaml(self, yaml_content: str):
+        return self._parser.parse_yaml(yaml_content)
+    
+    def validate_space(self, space_name: str = None):
+        return self._parser.validate_space(space_name)
+    
+    def get_supported_spaces(self) -> List[str]:
+        return self._parser.get_supported_spaces()

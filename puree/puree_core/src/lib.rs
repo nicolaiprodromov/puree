@@ -1,3 +1,13 @@
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
 #![allow(non_local_definitions)]
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -7,12 +17,15 @@ mod hit_detection;
 mod css;
 mod color;
 mod file_watcher;
+mod space_mapper;
+mod config_parser;
 
 use hit_detection::{HitDetector, ContainerProcessor};
 use css::{CSSParser, SCSSCompiler};
 use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_color_py, 
             interpolate_color_py, rotate_gradient_py};
 use file_watcher::PyFileWatcher;
+use config_parser::{ConfigParser, ConfigParseResult, ThemeConfigData, SpaceValidationResult};
 
 #[pymodule]
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -22,6 +35,10 @@ fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<SCSSCompiler>()?;
     m.add_class::<ColorProcessor>()?;
     m.add_class::<PyFileWatcher>()?;
+    m.add_class::<ConfigParser>()?;
+    m.add_class::<ConfigParseResult>()?;
+    m.add_class::<ThemeConfigData>()?;
+    m.add_class::<SpaceValidationResult>()?;
     m.add_function(wrap_pyfunction!(detect_hover_batch, m)?)?;
     m.add_function(wrap_pyfunction!(detect_clicks_batch, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_containers_fast, m)?)?;

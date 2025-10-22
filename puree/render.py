@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 import gpu
 import os
@@ -60,6 +70,7 @@ class RenderPipeline:
         self.pbos            = []
         self.pbo_index       = 0
         self.pbo_count       = 3
+        self.force_initial_draw = True  # Force first draw regardless of changes
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -386,6 +397,11 @@ class RenderPipeline:
         """Check if texture needs updating and update state. Called from modal loop."""
         changed = False
         
+        # Force initial draw if this is the first check
+        if self.force_initial_draw:
+            self.force_initial_draw = False
+            changed = True
+        
         if (abs(self.mouse_pos[0] - self.last_mouse_pos[0]) > 0.001 or 
             abs(self.mouse_pos[1] - self.last_mouse_pos[1]) > 0.001):
             self.last_mouse_pos = self.mouse_pos.copy()
@@ -465,13 +481,14 @@ class RenderPipeline:
         except Exception:
             return False
     def initialize(self):
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                for region in area.regions:
-                    if region.type == 'WINDOW':
-                        self.region_size = (region.width, region.height)
-                        break
-                break
+        from .space_config import find_target_area_and_region
+        
+        area, region = find_target_area_and_region()
+        if area and region:
+            self.region_size = (region.width, region.height)
+        else:
+            print("Warning: Target space not found, using fallback size")
+            self.region_size = (800, 600)
         
         if not self.load_container_data():
             return False
@@ -500,9 +517,21 @@ class RenderPipeline:
         self.needs_texture_update = True
         
         self.add_drawing_callback()
+        
+        # Force initial render to ensure content appears immediately
+        self.run_compute_shader()
+        self.texture_needs_readback = True
+        
         return True
     def add_drawing_callback(self):
-        self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(
+        from .space_config import get_space_class
+        
+        space_class = get_space_class()
+        if not space_class:
+            print("Warning: No valid space class found, falling back to SpaceView3D")
+            space_class = bpy.types.SpaceView3D
+        
+        self.draw_handler = space_class.draw_handler_add(
             self.draw_texture, (), 'WINDOW', 'POST_PIXEL'
         )
     def draw_texture(self):
@@ -597,7 +626,13 @@ class RenderPipeline:
         self.running = False
         
         if self.draw_handler:
-            bpy.types.SpaceView3D.draw_handler_remove(self.draw_handler, 'WINDOW')
+            from .space_config import get_space_class
+            
+            space_class = get_space_class()
+            if not space_class:
+                space_class = bpy.types.SpaceView3D
+            
+            space_class.draw_handler_remove(self.draw_handler, 'WINDOW')
             self.draw_handler = None
         
         if self.blender_texture:
@@ -835,6 +870,22 @@ class XWZ_OT_start_ui(Operator):
             print(f"Hot reload initialization failed: {e}")
             self.report({'INFO'}, "UI Started (hot reload disabled)")
         
+        # Update debug panel to appear in the correct space
+        try:
+            from . import panel
+            panel.update_panel_space()
+        except Exception as e:
+            print(f"Failed to update debug panel space: {e}")
+        
+        # Force initial redraw to ensure UI appears immediately
+        from .space_config import get_target_space
+        target_space = get_target_space()
+        if target_space:
+            for area in context.screen.areas:
+                if area.type == target_space:
+                    area.tag_redraw()
+                    break
+        
         return {'RUNNING_MODAL'}
     
     def modal(self, context, event):
@@ -857,15 +908,19 @@ class XWZ_OT_start_ui(Operator):
                     
                     _render_data.run_compute_shader()
                     
+                    from .space_config import get_target_space
+                    target_space = get_target_space()
+                    
                     for area in context.screen.areas:
-                        if area.type == 'VIEW_3D':
+                        if area.type == target_space:
                             area.tag_redraw()
         
         if event.type == 'TIMER':
-            area = context.area
-            region = context.region
+            from .space_config import find_target_area_and_region
             
-            if area and region:
+            target_area, target_region = find_target_area_and_region()
+            
+            if target_area and target_region:
                 global _hot_reload_enabled
                 if _hot_reload_enabled:
                     try:
@@ -877,7 +932,7 @@ class XWZ_OT_start_ui(Operator):
 
                 _render_data.update_fps()
 
-                size_changed = _render_data.update_region_size(region.width, region.height)
+                size_changed = _render_data.update_region_size(target_region.width, target_region.height)
 
                 texture_changed = _render_data.check_if_changed()
                 
@@ -974,8 +1029,11 @@ class XWZ_OT_start_ui(Operator):
                     
                     _render_data.run_compute_shader()
             
+            from .space_config import get_target_space
+            target_space = get_target_space()
+            
             for area in context.screen.areas:
-                if area.type == 'VIEW_3D':
+                if area.type == target_space:
                     area.tag_redraw()
 
         elif event.type in {'ESC'}:
@@ -1034,8 +1092,11 @@ class XWZ_OT_stop_ui(Operator):
         except Exception:
             pass
 
+        from .space_config import get_target_space
+        target_space = get_target_space()
+        
         for area in context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 area.tag_redraw()
             
         self.report({'INFO'}, "Compute shader demo stopped")
