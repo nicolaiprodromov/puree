@@ -1,48 +1,88 @@
-$title_color   : #ffffff !default;
-$subtitle_color: #ffba00 !default;
-$bg_color      : #1a1a1a !default;
-$logo_size     : 60px !default;
+// HEADER COMPONENT [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
+
+$transparent: rgba(0, 0, 0, 0);
+$bg_color   : #1a1d24 !default;
+$bg_color1  : #1a1d24 !default;
+
+$header_width  : 100% !default;
+$header_height : 90px !default;
+$header_padding: 15px 28px 15px 23px !default;
+
+$title_color   : #f5f8fa !default;
+$title_scale   : 23px !default;
+$subtitle_color: #8c96a5 !default;
+$subtitle_scale: 16px !default;
+
+$separator_height: 1px !default;
+$separator_length: 100% !default;
+$separator_color : #3a3d45 !default;
+$separator_margin: 4px 0px 6px 0px !default;
+
+$logo_size: 60px !default;
+
 
 .header {
-    display        : flex;
-    flex-direction : row;
-    width          : 100%;
-    height         : 80px;
-    padding        : 20px;
-    border-radius  : 8px;
+    width          : $header_width;
+    height         : $header_height;
+    color          : $bg_color;
+    color-1        : $bg_color1;
+    color-gradient-rot: 90deg;
+    padding        : $header_padding;
     align-items    : center;
     justify-content: space-between;
-    color          : $bg_color;
 }
 
 .header_text_box {
-    display       : flex;
-    flex-direction: column;
-    height        : 100%;
-    width         : 50%;
-    color         : rgba(0,0,0,0);
+    display        : flex;
+    flex-direction : column;
+    align-items    : start;
+    justify-content: space-between;
+    height         : 100%;
+    width          : 70%;
+    color          : $transparent;
 }
 
 .header_text {
-    color       : rgba(0,0,0,0);
-    text-scale  : 32px;
+    height      : $title_scale;
+    color       : $transparent;
+    text-scale  : $title_scale;
     text-color  : $title_color;
     text-align-h: left;
     text-align-v: center;
-    height      : 40px;
+}
+
+.header_separator{
+    width : $separator_length;
+    height: $separator_height;
+    color : $transparent;
+    color : $separator_color;
+    margin: $separator_margin;
 }
 
 .header_text1 {
-    color       : rgba(0,0,0,0);
-    text-scale  : 16px;
+    height      : $subtitle_scale;
+    color       : $transparent;
+    text-scale  : $subtitle_scale;
     text-color  : $subtitle_color;
     text-align-h: left;
     text-align-v: center;
-    height      : 20px;
 }
 
 .header_logoh {
-    width : $logo_size;
-    height: $logo_size;
-    color : rgba(0,0,0,0);
+    width      : $logo_size;
+    height     : $logo_size;
+    color      : $transparent;
+    img-align-h: center;
+    img-align-v: center;
 }
