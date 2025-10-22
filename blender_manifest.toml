@@ -41,7 +41,6 @@ paths_exclude_pattern = [
   "*.pyc",
   
   ".git/",
-  ".vscode/",
   "dist/",
   "docs/",
   ".gitignore",
