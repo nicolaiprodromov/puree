@@ -1,3 +1,13 @@
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
 use pyo3::prelude::*;
 use std::f32::consts::PI;
 use palette::{Srgba, LinSrgba};

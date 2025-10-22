@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import re
 import yaml
@@ -66,36 +76,69 @@ class UI():
         return data
     
     def parse_toml(self, path=None, base_dir=None):
-        data     = self.load_conf_file(path)
-        ui_data  = data.get('app', {})
-        theme    = ui_data['theme']
-
-        self.selected_theme        = ui_data['selected_theme']
-        self.default_theme         = ui_data['default_theme']
-
-        self.theme_index = -1
-        for _theme_ in theme:
-            if _theme_['name'] == self.selected_theme:
-                self.theme_index = theme.index(_theme_)
-                break
-        if self.theme_index == -1:
+        from .space_config import get_parsed_config
+        
+        space_config = get_parsed_config()
+        if space_config and space_config.theme_data:
+            theme_data = space_config.theme_data
+            
+            self.selected_theme = theme_data.name
+            self.default_theme = theme_data.name
+            self.theme_index = 0
+            
+            self.theme.name = theme_data.name
+            self.theme.author = theme_data.author
+            self.theme.version = theme_data.version
+            self.theme.scripts = theme_data.scripts
+            self.theme.style_files = theme_data.styles
+            self.theme.default_font = theme_data.default_font
+            self.theme.components = theme_data.components
+            
+            data = self.load_conf_file(path)
+            ui_data = data.get('app', {})
+            theme = ui_data['theme']
+            
+            selected_theme = None
             for _theme_ in theme:
-                if _theme_['name'] == self.default_theme:
+                if _theme_['name'] == theme_data.name:
+                    selected_theme = _theme_
+                    break
+            
+            if selected_theme:
+                root = selected_theme['root']
+            else:
+                root = {}
+        else:
+            data = self.load_conf_file(path)
+            ui_data = data.get('app', {})
+            theme = ui_data['theme']
+
+            self.selected_theme = ui_data['selected_theme']
+            self.default_theme = ui_data['default_theme']
+
+            self.theme_index = -1
+            for _theme_ in theme:
+                if _theme_['name'] == self.selected_theme:
                     self.theme_index = theme.index(_theme_)
                     break
-        if self.theme_index == -1:
-            self.theme_index   = 0
-            self.default_theme = theme[0]['name']
+            if self.theme_index == -1:
+                for _theme_ in theme:
+                    if _theme_['name'] == self.default_theme:
+                        self.theme_index = theme.index(_theme_)
+                        break
+            if self.theme_index == -1:
+                self.theme_index = 0
+                self.default_theme = theme[0]['name']
 
-        root = ui_data['theme'][self.theme_index]['root']
+            root = ui_data['theme'][self.theme_index]['root']
 
-        self.theme.name         = theme[self.theme_index]['name']
-        self.theme.author       = theme[self.theme_index]['author']
-        self.theme.version      = theme[self.theme_index]['version']
-        self.theme.scripts      = theme[self.theme_index]['scripts']
-        self.theme.style_files  = theme[self.theme_index]['styles']
-        self.theme.default_font = theme[self.theme_index]['default_font']
-        self.theme.components   = theme[self.theme_index]['components']
+            self.theme.name = theme[self.theme_index]['name']
+            self.theme.author = theme[self.theme_index]['author']
+            self.theme.version = theme[self.theme_index]['version']
+            self.theme.scripts = theme[self.theme_index]['scripts']
+            self.theme.style_files = theme[self.theme_index]['styles']
+            self.theme.default_font = theme[self.theme_index]['default_font']
+            self.theme.components = theme[self.theme_index]['components']
 
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
