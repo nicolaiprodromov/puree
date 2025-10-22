@@ -94,7 +94,7 @@ Click here for installation commands
 | `make release VERSION=x.y.z` / `just release x.y.z` | Complete release workflow: bumps version, commits, pushes, and creates GitHub release |
 
 > [!NOTE]
-> Before bumping version, make sure all changes are commited.
+> Before bumping version, make sure all changes are committed.
 
 ## Contribution Guidelines
 
