@@ -855,7 +855,9 @@ class XWZ_OT_start_ui(Operator):
             from . import get_addon_root
             
             addon_dir = get_addon_root()
-            if setup_hot_reload(addon_dir):
+            wm = context.window_manager
+            
+            if setup_hot_reload(addon_dir, wm.xwz_ui_conf_path):
                 register_default_callbacks()
                 manager = get_hot_reload_manager()
                 manager.enable()
