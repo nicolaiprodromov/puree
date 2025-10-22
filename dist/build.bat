@@ -1,3 +1,13 @@
+@REM Created by XWZ
+@REM ◕‿◕ Distributed for free at:
+@REM https://github.com/nicolaiprodromov/puree
+@REM ╔═════════════════════════════════╗
+@REM ║  ██   ██  ██      ██  ████████  ║
+@REM ║   ██ ██   ██  ██  ██       ██   ║
+@REM ║    ███    ██  ██  ██     ██     ║
+@REM ║   ██ ██   ██  ██  ██   ██       ║
+@REM ║  ██   ██   ████████   ████████  ║
+@REM ╚═════════════════════════════════╝
 @echo off
 setlocal enabledelayedexpansion
 
