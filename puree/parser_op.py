@@ -144,9 +144,34 @@ def sync_dirty_containers():
     if XWZ_UI is None or not _container_json_data:
         return False
     
-    has_dirty = check_dirty_containers(XWZ_UI.theme.root)
-    if not has_dirty:
+    dirty_nodes = collect_dirty_containers(XWZ_UI.theme.root)
+    if not dirty_nodes:
         return False
+    
+    for container in dirty_nodes:
+        if container._layout_node is not None:
+            container._layout_node.mark_dirty()
+    
+    if XWZ_UI.root_node and len(dirty_nodes) > 0:
+        from .parser import node_flat_abs
+        from stretchable import Edge
+        
+        XWZ_UI.root_node.compute_layout(XWZ_UI.canvas_size)
+        
+        def update_layout_data(container, node):
+            border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            
+            node_flat_abs[container.id] = {
+                'x': border_box_abs.x,
+                'y': border_box_abs.y,
+                'width': border_box_abs.width,
+                'height': border_box_abs.height
+            }
+            
+            for i, child_container in enumerate(container.children):
+                update_layout_data(child_container, node[i])
+        
+        update_layout_data(XWZ_UI.theme.root, XWZ_UI.root_node)
     
     XWZ_UI.abs_json_data = []
     XWZ_UI.flatten_node_tree()
@@ -164,6 +189,14 @@ def sync_dirty_containers():
     clear_dirty_flags(XWZ_UI.theme.root)
     
     return True
+
+def collect_dirty_containers(container):
+    dirty = []
+    if hasattr(container, '_dirty') and container._dirty:
+        dirty.append(container)
+    for child in container.children:
+        dirty.extend(collect_dirty_containers(child))
+    return dirty
 
 def check_dirty_containers(container):
     if hasattr(container, '_dirty') and container._dirty:

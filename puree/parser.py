@@ -370,6 +370,8 @@ class UI():
                 'height' : edge_used_abs.height
             }
             
+            container._layout_node = node
+            
             for i, _container in enumerate(container.children):
                 get_all_nodes(_container, node[i])
 
