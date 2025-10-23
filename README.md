@@ -273,52 +273,91 @@ Puree follows a hybrid Rust/Python pipeline optimized for performance:
 <br>
 
 ```mermaid
-graph LR
-    subgraph INPUT["Inputs"]
-        A[YAML/SCSS]
-        I[Mouse/Scroll]
-        K[Python]
-        M[File Watch]
-    end
-    
-    subgraph CPU["CPU - Rust"]
-        B[Parser]
-        C[Container<br/>Tree]
-        D[Layout]
-        E[Flatten]
-    end
-    
-    subgraph HIT["Hit Detection"]
-        J[Detector]
-    end
-    
-    subgraph GPU["GPU - GLSL"]
-        G1[Compute]
-        G2[SDF]
-        G3[Composite]
-    end
-    
-    A --> B --> C
-    K --> C
-    C --> D --> E
-    E --> G1 --> G2 --> G3
-    G3 --> H[Texture]
-    H --> N[Viewport]
-    I --> J --> C
-    M -.-> B
-    H -.-> J
-    N -.-> C
-    
+flowchart LR
+ subgraph INPUT["Inputs"]
+        A["YAML/SCSS"]
+        I["Mouse/Scroll"]
+        K["Python"]
+        M["File Watch"]
+  end
+ subgraph CPU["CPU - Rust"]
+        B["Parser"]
+        C["Container<br>Tree"]
+        D["Layout"]
+        E["Flatten"]
+  end
+ subgraph HIT["Hit Detection"]
+        J["Detector"]
+  end
+ subgraph GPU["GPU - GLSL"]
+        G1["Compute"]
+        G2["SDF"]
+        G3["Composite"]
+  end
+    A --> B
+    B --> C
+    K L_K_C_0@--> C
+    C L_C_D_0@--> D
+    D L_D_E_0@--> E
+    E L_E_G1_0@--> G1
+    G1 --> G2
+    G2 --> G3
+    G3 L_G3_H_0@--> H["Texture"]
+    H L_H_n1_0@==> n1["Display"]
+    I L_I_J_0@--> J
+    J L_J_C_0@--> C
+    M L_M_B_0@-.-> B
+    H L_H_J_0@-.-> J
+    n1 L_n1_C_0@--> C
+
+    n1@{ shape: display}
+    style A fill:#AA00FF,color:#FFFFFF
+    style I fill:#AA00FF,color:#FFFFFF,stroke:none
+    style K fill:#AA00FF,color:#FFFFFF
+    style M fill:#AA00FF,color:#FFFFFF
+    style B fill:#000,color:#fff
+    style C fill:#2962FF,color:#FFFFFF
+    style D fill:#00C853,color:#FFFFFF
+    style E fill:#000,color:#fff
+    style J fill:#FF6D00,color:#fff
+    style G1 fill:#000,color:#fff
+    style G2 fill:#000,color:#fff
+    style G3 fill:#000,color:#fff
+    style H fill:#FFD600,color:#000000
+    style n1 fill:#D50000,color:#FFFFFF
     style INPUT fill:#0a1929,stroke:#1e3a5f,color:#fff
     style CPU fill:#0a1929,stroke:#1e3a5f,color:#fff
     style HIT fill:#0a1929,stroke:#1e3a5f,color:#fff
     style GPU fill:#0a1929,stroke:#1e3a5f,color:#fff
-    style B fill:#000,color:#fff
-    style E fill:#000,color:#fff
-    style J fill:#000,color:#fff
-    style G1 fill:#000,color:#fff
-    style G2 fill:#000,color:#fff
-    style G3 fill:#000,color:#fff
+    linkStyle 0 stroke:#FFFFFF,fill:none
+    linkStyle 1 stroke:#FFFFFF,fill:none
+    linkStyle 2 stroke:#AA00FF,fill:none
+    linkStyle 3 stroke:#2962FF,fill:none
+    linkStyle 4 stroke:#2962FF,fill:none
+    linkStyle 5 stroke:#2962FF,fill:none
+    linkStyle 6 stroke:#2962FF,fill:none
+    linkStyle 7 stroke:#2962FF,fill:none
+    linkStyle 8 stroke:#2962FF,fill:none
+    linkStyle 9 stroke:#D50000,fill:none
+    linkStyle 10 stroke:#FF6D00,fill:none
+    linkStyle 11 stroke:#FF6D00,fill:none
+    linkStyle 12 stroke:#AA00FF,fill:none
+    linkStyle 13 stroke:#FF6D00,fill:none
+    linkStyle 14 stroke:#D50000,fill:none
+
+    L_K_C_0@{ animation: slow } 
+    L_C_D_0@{ animation: slow } 
+    L_D_E_0@{ animation: slow } 
+    L_E_G1_0@{ animation: slow } 
+    L_G3_H_0@{ animation: fast } 
+    L_H_n1_0@{ animation: fast } 
+    L_I_J_0@{ animation: fast } 
+    L_J_C_0@{ animation: fast } 
+    L_M_B_0@{ animation: slow } 
+    L_H_J_0@{ animation: fast } 
+    L_n1_C_0@{ animation: slow } 
+
+
 ```
 
 <br>
