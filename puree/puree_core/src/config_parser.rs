@@ -73,7 +73,7 @@ impl ConfigParser {
 
             let default_font = theme_value.get("default_font")
                 .and_then(|v| v.as_str())
-                .unwrap_or("NeueMontreal-Regular")
+                .unwrap_or("default")
                 .to_string();
 
             let scripts = theme_value.get("scripts")

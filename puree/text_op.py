@@ -93,7 +93,7 @@ class TextInstance:
         self.text = new_text
         self._trigger_redraw()
     def update_font(self, new_font_name):
-        if new_font_name in font_manager.get_available_fonts():
+        if new_font_name == "default" or new_font_name in font_manager.get_available_fonts():
             self.font_name = new_font_name
             self.font_id = font_manager.get_font_id(new_font_name)
             self._trigger_redraw()
@@ -112,7 +112,7 @@ class TextInstance:
     def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, align_h=None, align_v=None):
         if text is not None:
             self.text = text
-        if font_name is not None and font_name in font_manager.get_available_fonts():
+        if font_name is not None and (font_name == "default" or font_name in font_manager.get_available_fonts()):
             self.font_name = font_name
             self.font_id = font_manager.get_font_id(font_name)
         if size is not None:
@@ -194,7 +194,7 @@ class DrawTextOP(bpy.types.Operator):
     text        : bpy.props.StringProperty(name="Text", default="New Text")
     font_name   : bpy.props.EnumProperty(
         name    = "Font",
-        items   = lambda self, context: [(name, name, "") for name in font_manager.get_available_fonts()] or [("default", "Default", "")],
+        items   = lambda self, context: [("default", "Default (Blender)", "")] + [(name, name, "") for name in font_manager.get_available_fonts()],
         default = 0
     )
     size       : bpy.props.IntProperty(name="Size", default=20, min=1, max=200)
@@ -294,6 +294,7 @@ class UpdateTextOP(bpy.types.Operator):
     font_name  : bpy.props.EnumProperty(
         name="Font",
         items=lambda self, context: [("__NOCHANGE__", "No Change", "Don't change the font")] + 
+              [("default", "Default (Blender)", "")] + 
               [(name, name, "") for name in font_manager.get_available_fonts()],
         default=0
     )
@@ -324,7 +325,7 @@ class UpdateTextOP(bpy.types.Operator):
                 if self.text:
                     kwargs['text'] = self.text
                 
-                if self.font_name != "__NOCHANGE__" and self.font_name in font_manager.get_available_fonts():
+                if self.font_name != "__NOCHANGE__" and (self.font_name == "default" or self.font_name in font_manager.get_available_fonts()):
                     kwargs['font_name'] = self.font_name
                 
                 if self.size != -1:

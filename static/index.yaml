@@ -8,8 +8,6 @@ app:
 
       space: VIEW_3D
 
-      default_font: NeueMontreal-Regular
-
       scripts:
         - static/script.py
       styles:
