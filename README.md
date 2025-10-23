@@ -274,27 +274,51 @@ Puree follows a hybrid Rust/Python pipeline optimized for performance:
 
 ```mermaid
 graph LR
-    A[YAML + SCSS] --> B[Rust Parser]
-    B --> C[Container Tree]
-    C --> D[Stretchable Layout]
-    D --> E[Rust Flattener]
-    E --> F[GPU Buffers]
-    F --> G[GLSL Compute]
-    G --> H[UI Texture]
+    subgraph INPUT["Inputs"]
+        A[YAML/SCSS]
+        I[Mouse/Scroll]
+        K[Python]
+        M[File Watch]
+    end
     
-    I[Mouse/Scroll] --> J[Rust Hit Detector]
-    J --> C
+    subgraph CPU["CPU - Rust"]
+        B[Parser]
+        C[Container<br/>Tree]
+        D[Layout]
+        E[Flatten]
+    end
     
-    K[Python Scripts] --> L[Compiler Hook]
-    L --> C
+    subgraph HIT["Hit Detection"]
+        J[Detector]
+    end
     
-    M[File Watcher] -.-> B
-    H --> N[Blender Viewport]
+    subgraph GPU["GPU - GLSL"]
+        G1[Compute]
+        G2[SDF]
+        G3[Composite]
+    end
     
-    style B fill:#000
-    style E fill:#000
-    style G fill:#000
-    style J fill:#000
+    A --> B --> C
+    K --> C
+    C --> D --> E
+    E --> G1 --> G2 --> G3
+    G3 --> H[Texture]
+    H --> N[Viewport]
+    I --> J --> C
+    M -.-> B
+    H -.-> J
+    N -.-> C
+    
+    style INPUT fill:#0a1929,stroke:#1e3a5f,color:#fff
+    style CPU fill:#0a1929,stroke:#1e3a5f,color:#fff
+    style HIT fill:#0a1929,stroke:#1e3a5f,color:#fff
+    style GPU fill:#0a1929,stroke:#1e3a5f,color:#fff
+    style B fill:#000,color:#fff
+    style E fill:#000,color:#fff
+    style J fill:#000,color:#fff
+    style G1 fill:#000,color:#fff
+    style G2 fill:#000,color:#fff
+    style G3 fill:#000,color:#fff
 ```
 
 <br>
@@ -302,17 +326,9 @@ graph LR
 This architecture enables:
 
 - **Native performance** – Critical paths run in compiled Rust code
-- **Hot reload** – Rust file watcher auto-updates on YAML/SCSS changes
-- **GPU acceleration** – All rendering happens in compute shaders
-- **Reactive layouts** – Automatic recompute on viewport resize
-
-| Feature | Description |
-|---------|-------------|
-| *Declarative UI Design* | Define your interface structure using YAML configuration files with HTML-like nesting |
-| *GPU-Accelerated Rendering* | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
-| *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
-| *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
-| *Web-Inspired Architecture* | Familiar paradigm for developers coming from web development |
+- **Hot reload**         – Rust file watcher auto-updates on YAML/SCSS changes
+- **GPU acceleration**   – All rendering & parallel computation happens in shaders
+- **Reactive layouts**   – Automatic layout recompute on interactions, viewport resize, etc.
 
 
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
