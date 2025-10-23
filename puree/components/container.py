@@ -214,7 +214,7 @@ class ContainerDefault():
         self.img          = ""
         self.aspect_ratio = False
         self.text         = ""
-        self.font         = 'NeueMontreal-Regular'
+        self.font         = 'default'
 
         self.layer   = 0
         self.passive = False
