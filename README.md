@@ -1,61 +1,102 @@
 <div align="center">
-
 <img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/Asset%204.png?raw=true" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
 *A declarative UI framework for Blender addons and much more*
 
-</div>
-
-<div align="center">
-
 [![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
-</div>
-
-*Puree UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+*`puree` UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
 
-> Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> `puree` is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
-<div align="center">
+</div>
+
+---
+
+## Why does Blender need a UI framework?
+
+Blender's native UI excels at tool panels but wasn't designed for complex, stateful interfaces. puree exists because:
+
+### *GPU API Constraints*
+
+Blender's `gpu` module provides Python bindings for GPU rendering, but with architectural limitations that constrain certain rendering approaches.
+
+- The [`gpu.types.GPUShader`](https://docs.blender.org/api/current/gpu.types.html#gpu.types.GPUShader) API enforces vertex + fragment shader pairs for traditional geometry rendering. This works for drawing meshes but requires additional overhead for UI operations like filling thousands of rectangles per frame.
+
+- While Blender 4.2+ added [compute shader support](https://docs.blender.org/api/current/gpu.html#custom-compute-shader-using-image-store-and-vertex-fragment-shader), the Python API currently exposes compute shaders primarily for image-based operations using `imageStore()`. Direct binding of Shader Storage Buffer Objects (SSBOs) for custom data-parallel algorithms is not available through the Python API—this technique is needed for efficient UI rendering where container properties (position, color, border radius) must be processed in parallel.
+
+### *Why Abstraction Matters*
+
+Like browsers evolving from DOM manipulation to high-level frameworks like React, Blender needs higher-level abstractions. Native `bpy.types.UILayout` handles tool panels, but complex UIs need state management and component patterns. puree provides these abstractions with GPU acceleration. Focus on *what* your UI does, not *how* to draw it.
+
+### *Design Patterns*
+
+puree replaces Blender's imperative `bpy.types.Panel` approach with declarative component trees using YAML/SCSS separation. Flexbox layouts via **Stretchable** (Rust) and GPU-accelerated hit detection enable real-time interactivity like hover states and smooth transitions.
+
+### *Developer Ergonomics*
+
+Imperative UI code couples structure with styling, changing a button's color means editing Python logic. puree separates concerns architecturally: YAML defines component hierarchy, SCSS handles presentation via selectors. This mirrors the separation of HTML/CSS, enabling style changes without touching code and true component reusability across contexts.
+
+### *Different Approaches*
+
+Native `bpy.types.Panel` offers API stability; web views (CEF/Electron) provide familiar tech with higher overhead; raw OpenGL gives full control but requires building everything from scratch. puree provides high-level abstractions (YAML/SCSS, flexbox) with direct GPU access.
+
+---
 
 ## What is puree good for?
 
-From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown-type (and soon true markdown rendering!) rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
+*From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu.*
+
+Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
 
 <div align="center">
 
-<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/example1.gif?raw=true" alt="Example 1 UI GIF" width="100%"/>
+<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example1.mp4" controls width="100%">
+</video>
+
+^
+
+*Example usage with hot reload for fast iterations*
+
+<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example2.mp4" controls width="100%">
+</video>
+
+^
+
+*Slightly more complex interface*
+
+<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example3.mp4" controls width="100%">
+</video>
+
+^
+
+*Scene object tracking example*
 
 </div>
 
-## Key Features
-
-| Feature | Description |
-|---------|-------------|
-| *Declarative UI Design* | Define your interface structure using YAML configuration files with HTML-like nesting |
-| *GPU-Accelerated Rendering* | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
-| *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
-| *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
-| *Web-Inspired Architecture* | Familiar paradigm for developers coming from web development |
-
-</div>
-
-<div align="center">
+---
 
 ## Quick Start
 
-</div>
+Here's a short tutorial to get you started with Puree:
 
-Here's a minimal example to get you started with Puree:
+<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example4.mp4" controls width="50%">
+</video>
 
 > [!IMPORTANT]
 > It's not recommend to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
+
+> [!WARNING]
+> ### **puree is in beta - WIP**
+> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> - The API is not 90% stable, some breaking changes will happen.
+
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 
@@ -69,7 +110,7 @@ Here's a minimal example to get you started with Puree:
     my_addon/x
         ├── static/
         │   ├── index.yaml
-        │   └── style.css
+        │   └── style.scss
         └── __init__.py <-- your addon entry point
     ```
 
@@ -90,7 +131,11 @@ Here's a minimal example to get you started with Puree:
     blender_version_min = "your_addon_version_blend_min"
 
     license = [
-    "your_addon_license",
+    "SPDX:GPL-3.0-or-later",
+    ]
+
+    copyright = [
+    "your_copyright_year your_name",
     ]
 
     platforms = [
@@ -101,24 +146,13 @@ Here's a minimal example to get you started with Puree:
     ]
 
     wheels = [
+    "./wheels/PyYAML-6.0.2-cp311-cp311-win_amd64.whl",
     "./wheels/attrs-25.3.0-py3-none-any.whl",
     "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
-    "./wheels/linkify_it_py-2.0.3-py3-none-any.whl",
-    "./wheels/markdown_it_py-4.0.0-py3-none-any.whl",
-    "./wheels/mdit_py_plugins-0.5.0-py3-none-any.whl",
-    "./wheels/mdurl-0.1.2-py3-none-any.whl",
     "./wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
-    "./wheels/platformdirs-4.5.0-py3-none-any.whl",
-    "./wheels/puree_ui-0.0.8-py3-none-any.whl",
-    "./wheels/pygments-2.19.2-py3-none-any.whl",
-    "./wheels/PyYAML-6.0.2-cp311-cp311-win_amd64.whl",
-    "./wheels/rich-14.1.0-py3-none-any.whl",
+    "./wheels/puree_ui-0.1.2-py3-none-any.whl",
     "./wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
-    "./wheels/textual-6.2.1-py3-none-any.whl",
-    "./wheels/tinycss2-1.4.0-py3-none-any.whl",
     "./wheels/typing_extensions-4.15.0-py3-none-any.whl",
-    "./wheels/uc_micro_py-1.0.3-py3-none-any.whl",
-    "./wheels/webencodings-0.5.1-py2.py3-none-any.whl"
     ]
 
     [build]
@@ -177,42 +211,50 @@ Here's a minimal example to get you started with Puree:
 
     ```yaml
     app:
-      selected_theme: default
-      default_theme: default
-      theme:
-        - name: default
-          author: you
-          version: 1.0.0
-          default_font: NeueMontreal-Regular
-          styles:
-            - static/style.css
-          scripts: []
-          components: ""
-          root:
-            style: root
-            hello:
-              style: hello_box
-              text: Hello, Puree!
+        selected_theme: xwz_default
+        default_theme: xwz_default
+        theme:
+            - name: xwz_default
+            author: xwz
+            version: 1.0.0
+
+            space: VIEW_3D
+
+            default_font: NeueMontreal-Regular
+
+            scripts:
+                - static/script.py
+            styles:
+                - static/style.scss
+            components: static/components/
+
+            root:
+                style: root
+                test_box:
+                    style: test_box
+                    text : Red Box
     ```
 
-6. **Style it in `style.css`:**
+6. **Style it in `style.scss`:**
 
-    ```css
-    root {
+    ```scss
+    root{
+        flex-direction : column;
+        justify-content: center;
+        align-items    : center;
         width          : 100%;
         height         : 100%;
-        display        : flex;
-        align-items    : center;
-        justify-content: center;
+        color          : rgba(0,0,0,0);
     }
 
-    hello_box {
-        width           : 300px;
-        height          : 100px;
-        background-color: #3498db;
-        border-radius   : 10px;
-        text-color      : #ffffff;
-        text-scale      : 24px;
+    test_box{
+        width       : 300px;
+        height      : 300px;
+        color       : #ff0000;
+        text-color  : #fff;
+        text-scale  : 40px;
+        text-align-h: center;
+        text-align-v: center;
     }
     ```
 
@@ -222,65 +264,66 @@ Here's a minimal example to get you started with Puree:
 
 9. Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
 
-<div align="center">
+---
 
 ## How it works
 
-</div>
+Puree follows a hybrid Rust/Python pipeline optimized for performance:
 
-Puree follows a render pipeline inspired by modern web browsers:
+1. **Parse** – Rust-native parsers process YAML/SCSS into styled container trees
+2. **Layout** – Stretchable flexbox engine computes responsive layouts  
+3. **Flatten** – Rust optimizes container hierarchy into GPU-ready buffers
+4. **Render** – ModernGL compute shaders generate UI texture with full effects
+5. **Interact** – Rust hit detection handles all mouse/scroll events in real-time
 
-1. **Parse** – YAML/CSS files are loaded and parsed into container tree with styles
-2. **Layout** – Stretchable computes flexbox layouts with viewport-aware sizing
-3. **Compile** – Optional Python scripts transform the UI tree
-4. **Render** – ModernGL compute shader generates GPU texture with all visual effects
-5. **Event** – Mouse/scroll events update container states and trigger re-renders
+<br>
 
 ```mermaid
 graph LR
-    A[YAML + CSS] --> B[Parser]
+    A[YAML + SCSS] --> B[Rust Parser]
     B --> C[Container Tree]
     C --> D[Stretchable Layout]
-    D --> E[Flattened Data]
+    D --> E[Rust Flattener]
     E --> F[GPU Buffers]
-    F --> G[Compute Shader]
+    F --> G[GLSL Compute]
     G --> H[UI Texture]
     
-    I[Mouse/Scroll] --> J[Event Handlers]
-    J --> K[Hit Detection]
-    K --> C
+    I[Mouse/Scroll] --> J[Rust Hit Detector]
+    J --> C
     
-    L[Python Scripts] --> M[Compiler]
-    M --> C
+    K[Python Scripts] --> L[Compiler Hook]
+    L --> C
     
+    M[File Watcher] -.-> B
     H --> N[Blender Viewport]
     
-    style A fill:#000
-    style C fill:#000
-    style D fill:#000
+    style B fill:#000
+    style E fill:#000
     style G fill:#000
-    style H fill:#000
-    style K fill:#000
+    style J fill:#000
 ```
 
+<br>
+
 This architecture enables:
-- **Reactive updates** – Layout recomputes on viewport resize
-- **GPU acceleration** – All rendering in compute shaders
-- **Script integration** – Python scripts can modify UI at runtime
-- **Event propagation** – Interactions flow through container hierarchy
+
+- **Native performance** – Critical paths run in compiled Rust code
+- **Hot reload** – Rust file watcher auto-updates on YAML/SCSS changes
+- **GPU acceleration** – All rendering happens in compute shaders
+- **Reactive layouts** – Automatic recompute on viewport resize
+
+| Feature | Description |
+|---------|-------------|
+| *Declarative UI Design* | Define your interface structure using YAML configuration files with HTML-like nesting |
+| *GPU-Accelerated Rendering* | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
+| *Responsive Layouts* | Automatic layout computation using the Stretchable flexbox engine |
+| *Interactive Components* | Built-in support for hover states, click events, scrolling, and toggle interactions |
+| *Web-Inspired Architecture* | Familiar paradigm for developers coming from web development |
+
 
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
-<div align="center">
-
 ## Support & Issues
-
-</div>
-
-> [!WARNING]
-> ### **puree is in beta - WIP**
-> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
-> - The API is not stable and **breaking changes are expected** in future releases.
 
 ### Getting Help
 
@@ -295,38 +338,10 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 - Blender version and OS
 - Relevant error messages or screenshots
 
-<div align="center">
-
 ## Built With
 
-</div>
+<a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-2B2B2B?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-2B2B2B?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://pyo3.rs/"><img src="https://img.shields.io/badge/PyO3-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
 
-<p align="center">
-  <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-E87D0D?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5C2D91?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-5586A4?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-FF6B6B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/Kozea/tinycss2"><img src="https://img.shields.io/badge/TinyCSS2-264DE4?style=flat-square&logo=css3&logoColor=white&logoSize=auto" height="28"/></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://yaml.org/"><img src="https://img.shields.io/badge/YAML-CB171E?style=flat-square&logo=yaml&logoColor=white&logoSize=auto" height="28"/></a>
-</p>
-
-<div align="center">
-
-*Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
+> *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
 
 <img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/munky.gif?raw=true" width="100px">
-
-</div>
-
-</div>
