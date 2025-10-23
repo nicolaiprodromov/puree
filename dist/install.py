@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import socket
 import json
 import sys
@@ -44,9 +54,7 @@ def install_addon(package_file, package_id):
         
         python_code = f"""import bpy
 try:
-    print('Installing extension...')
     result = bpy.ops.extensions.package_install_files(filepath=r'{package_file}', repo='user_default', enable_on_install=True)
-    print('Extension installation result:', result)
     print('Extension {package_id} installed and enabled successfully')
 except Exception as e:
     print('Installation failed:', str(e))
@@ -67,8 +75,6 @@ except Exception as e:
         
         if response_obj.get('status') == 'success':
             print('Installation successful!')
-            if 'result' in response_obj and 'result' in response_obj['result']:
-                print(response_obj['result']['result'])
             return True
         else:
             print('Installation failed:', response_obj.get('message', 'Unknown error'))
@@ -106,12 +112,10 @@ try:
     try:
         import addon_utils
         addon_utils.disable('{package_id}')
-        print('Addon disabled via addon_utils')
     except:
         # Method 2: Try preferences disable
         try:
             bpy.ops.preferences.addon_disable(module='{package_id}')
-            print('Addon disabled via preferences')
         except:
             print('Could not disable addon, continuing with uninstall...')
     
@@ -139,9 +143,7 @@ try:
                 print('Extension uninstalled successfully')
                 uninstalled = True
         
-        if uninstalled:
-            print('Extension {package_id} uninstalled successfully')
-        else:
+        if not uninstalled:
             print('Warning: Could not uninstall extension, it may not be installed or already removed')
             
     except Exception as e:
@@ -172,8 +174,6 @@ except Exception as e:
         
         if response_obj.get('status') == 'success':
             print('Uninstallation successful!')
-            if 'result' in response_obj and 'result' in response_obj['result']:
-                print(response_obj['result']['result'])
             return True
         else:
             print('Uninstallation failed:', response_obj.get('message', 'Unknown error'))
@@ -222,16 +222,11 @@ if __name__ == '__main__':
             print(f'Error: Package file not found: {package_file}')
             print('Please run build.bat first to create the package.')
             sys.exit(1)
-        
-        print(f'Package found: {package_file}')
-        print('Connecting to Blender MCP server on port 9876...')
-        
+
         success = install_addon(package_file, package_id)
         
     elif action == 'uninstall':
         print(f'Uninstalling addon: {addon_name} (ID: {package_id})')
-        print('Connecting to Blender MCP server on port 9876...')
-        
         success = uninstall_addon(package_id)
     
     sys.exit(0 if success else 1)

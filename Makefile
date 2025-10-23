@@ -1,16 +1,34 @@
-.PHONY: build install uninstall deploy wheels build_package bump release
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
+.PHONY: build install uninstall deploy wheels build_package bump release build_rust
 
 ifeq ($(OS),Windows_NT)
 PYTHON := python
 TIMEOUT := timeout /t 1 /nobreak
 BUILD := build.bat
+BUILD_CORE := build.bat
 SED := powershell -Command "(Get-Content
 else
 PYTHON := python3
 TIMEOUT := sleep 1
 BUILD := ./build.sh
+BUILD_CORE := ./build.sh
 SED := sed -i
 endif
+
+build_core:
+	@cd puree/puree_core && $(BUILD_CORE)
+
+build_package:
+	@cd dist && $(PYTHON) build_package.py
 
 build:
 	@cd dist && $(BUILD)
@@ -23,15 +41,15 @@ uninstall:
 
 wheels:
 	@pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
-	@$(PYTHON) update_wheels.py
+	@$(PYTHON) dist/update_wheels.py
 
-build_package:
-	@cd dist && $(PYTHON) build_package.py
 
 deploy:
+	make build_core
+	@$(TIMEOUT)
 	make build_package
 	@$(TIMEOUT)
-    make build
+	make build
 	@$(TIMEOUT)
 	make uninstall
 	@$(TIMEOUT)

@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import sys
 import shutil
@@ -15,14 +25,8 @@ def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     os.chdir(project_root)
     
-    print("Downloading dependency wheels...")
-    wheels_dir = os.path.join(project_root, "wheels")
-    os.makedirs(wheels_dir, exist_ok=True)
-    run_command(f"pip download --only-binary=:all: --python-version 3.11 --dest \"{wheels_dir}\" puree-ui")
+    print("\nBuilding Python package")
     
-    print("\nBuilding Python package...")
-    
-    print("Cleaning up old packages...")
     for tarball in glob.glob("dist/*.tar.gz"):
         os.remove(tarball)
         print(f"Removed {tarball}")
@@ -30,15 +34,12 @@ def main():
         os.remove(old_wheel)
         print(f"Removed {old_wheel}")
     
-    print("Building package with setuptools...")
     python_cmd = "python" if sys.platform == "win32" else "python3"
     run_command(f"{python_cmd} setup.py sdist bdist_wheel")
     
-    print("Copying wheel to root wheels/ folder...")
     wheels_dir = os.path.join(project_root, "wheels")
     os.makedirs(wheels_dir, exist_ok=True)
     
-    print("Removing old puree_ui wheels...")
     for old_wheel in glob.glob(os.path.join(wheels_dir, "puree_ui-*.whl")):
         os.remove(old_wheel)
         print(f"Removed old wheel: {os.path.basename(old_wheel)}")
@@ -48,7 +49,6 @@ def main():
         shutil.copy2(wheel, dest)
         print(f"Copied {os.path.basename(wheel)} to wheels/")
     
-    print("Cleaning up build artifacts...")
     if os.path.exists("build"):
         shutil.rmtree("build")
         print("Removed build/")
@@ -57,7 +57,6 @@ def main():
         shutil.rmtree(egg_info)
         print(f"Removed {egg_info}")
     
-    print("Package built successfully!")
 
 if __name__ == "__main__":
     main()

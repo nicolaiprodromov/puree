@@ -1,0 +1,32 @@
+app:
+  selected_theme: example3
+  default_theme: example3
+  theme:
+    - name: example3
+      author: xwz
+      version: 1.0.0
+      default_font: NeueMontreal-Regular
+      scripts:
+        - examples/example3/script.py
+      styles:
+        - examples/example3/style.scss
+      components: examples/example3/components/
+
+
+
+      root:
+        style: root
+        
+        container_opacity_test1:
+          style: container_opacity_test1
+        
+        container_opacity_test2:
+          style: container_opacity_test2
+        
+          container_opacity_test3:
+            style: container_opacity_test3
+            
+          container_opacity_test4:
+            style: container_opacity_test4
+        
+          

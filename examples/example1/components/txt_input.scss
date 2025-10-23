@@ -1,19 +1,29 @@
-$transparent        : rgba(0, 0, 0, 0) !default;
-$border_radii       : 5px !default;
-$label_border_color : rgb(200, 200, 200) !default;
-$label_border_width : 1px !default;
-$icon_radius        : 20px !default;
-$text_color_value   : rgb(255, 255, 255) !default;
-$text_scale_value   : 14px !default;
-$input_box_color    : rgb(50, 50, 50) !default;
-$footer_border_color: rgb(200, 200, 200) !default;
-$footer_border_width: 1px !default;
-$footer_action_color: rgb(100, 150, 255) !default;
+// TEXT INPUT COMPONENT [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
+$footer_action_color: rgb(186, 186, 186) !default;
 $footer_action_scale: 12px !default;
+$transparent        : rgba(0, 0, 0, 0) !default;
+$border_radii       : 10px !default;
+$bg_color           : #252830 !default;
+$bg_label_color     : #353942 !default;
+$bg_footer_color    : #353942 !default;
+$text_color_value   : #f0f3f6 !default;
+$text_scale_value   : 16px !default;
+$text_input_padding : 35px !default;
 
 .txt_input{
     width          : 100%;
-    height         : 140px;
+    height         : 210px;
     color          : $transparent;
     border-radius  : $border_radii;
     padding        : 0px;
@@ -25,13 +35,13 @@ $footer_action_scale: 12px !default;
 
 .txt_input_label_box{
     width          : 100%;
-    height         : 30px;
-    color          : #161616;
-    margin-bottom  : 5px;
+    height         : 40px;
+    color          : $bg_label_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
     justify-content: start;
+    padding        : 0px 10px;
 }
 
 .txt_input_ti_icon{
@@ -41,6 +51,7 @@ $footer_action_scale: 12px !default;
     margin-right: 10px;
     img-align-h : center;
     img-align-v : center;
+    img-opacity : 0.25;
 }
 
 .txt_input_ti_label{
@@ -55,10 +66,9 @@ $footer_action_scale: 12px !default;
 
 .txt_input_input_box{
     width        : 100%;
-    height       : 250px;
-    color        : #161616;
-    border-radius: $border_radii;
-    padding      : 14px;
+    height       : 150px;
+    color        : $bg_color;
+    padding      : $text_input_padding;
     text-color   : $text_color_value;
     text-scale   : $text_scale_value;
     text-align-h : left;
@@ -67,13 +77,12 @@ $footer_action_scale: 12px !default;
 
 .txt_input_ti_footer{
     width          : 100%;
-    height         : 20px;
-    color          : #161616;
+    height         : 40px;
+    color          : $bg_footer_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
     justify-content: start;
-    margin-top     : 5px;
     padding        : 0px 10px;
 }
 
@@ -81,7 +90,7 @@ $footer_action_scale: 12px !default;
     width       : 100%;
     height      : 100%;
     color       : $transparent;
-    text-color  : rgb(147, 147, 147);
+    text-color  : $footer_action_color;
     text-scale  : 12px;
     text-align-h: left;
     text-align-v: center;
@@ -103,4 +112,5 @@ $footer_action_scale: 12px !default;
     color      : $transparent;
     img-align-h: center;
     img-align-v: center;
+    img-opacity: 0.1;
 }

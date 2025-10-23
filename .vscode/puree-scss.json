@@ -1,0 +1,119 @@
+{
+  "version": 1.1,
+  "properties": [
+    {
+      "name": "img-align-h",
+      "description": "Horizontal alignment for images in puree UI components",
+      "values": [
+        {"name": "left", "description": "Align image to the left"},
+        {"name": "center", "description": "Center align image horizontally"},
+        {"name": "right", "description": "Align image to the right"}
+      ]
+    },
+    {
+      "name": "img-align-v",
+      "description": "Vertical alignment for images in puree UI components",
+      "values": [
+        {"name": "top", "description": "Align image to the top"},
+        {"name": "center", "description": "Center align image vertically"},
+        {"name": "bottom", "description": "Align image to the bottom"}
+      ]
+    },
+    {
+      "name": "text-align-h",
+      "description": "Horizontal text alignment for puree UI components",
+      "values": [
+        {"name": "left", "description": "Align text to the left"},
+        {"name": "center", "description": "Center align text horizontally"},
+        {"name": "right", "description": "Align text to the right"}
+      ]
+    },
+    {
+      "name": "text-align-v",
+      "description": "Vertical text alignment for puree UI components",
+      "values": [
+        {"name": "top", "description": "Align text to the top"},
+        {"name": "center", "description": "Center align text vertically"},
+        {"name": "bottom", "description": "Align text to the bottom"}
+      ]
+    },
+    {
+      "name": "text-color",
+      "description": "Text color property for puree UI components",
+      "syntax": "<color>"
+    },
+    {
+      "name": "text-scale",
+      "description": "Text size/scale property for puree UI components",
+      "syntax": "<length>"
+    },
+    {
+      "name": "color-1",
+      "description": "Secondary color for gradient backgrounds in puree UI",
+      "syntax": "<color>"
+    },
+    {
+      "name": "color-gradient-rot",
+      "description": "Gradient rotation angle for background gradients",
+      "syntax": "<angle>"
+    },
+    {
+      "name": "hover-color",
+      "description": "Primary hover background color for interactive elements",
+      "syntax": "<color>"
+    },
+    {
+      "name": "hover-color-1",
+      "description": "Secondary hover color for gradient backgrounds",
+      "syntax": "<color>"
+    },
+    {
+      "name": "hover-color-gradient-rot",
+      "description": "Gradient rotation angle for hover state backgrounds",
+      "syntax": "<angle>"
+    },
+    {
+      "name": "click-color",
+      "description": "Primary click/active background color for interactive elements",
+      "syntax": "<color>"
+    },
+    {
+      "name": "click-color-1",
+      "description": "Secondary click/active color for gradient backgrounds",
+      "syntax": "<color>"
+    },
+    {
+      "name": "click-color-gradient-rot",
+      "description": "Gradient rotation angle for click/active state backgrounds",
+      "syntax": "<angle>"
+    },
+    {
+      "name": "img-opacity",
+      "description": "Opacity level for images in components",
+      "syntax": "<number>",
+      "values": [
+        {"name": "0", "description": "Fully transparent"},
+        {"name": "0.1", "description": "10% opacity"},
+        {"name": "0.25", "description": "25% opacity"},
+        {"name": "0.5", "description": "50% opacity"},
+        {"name": "1", "description": "Fully opaque"}
+      ]
+    },
+    {
+      "name": "mask",
+      "description": "Enable or disable masking for containers",
+      "values": [
+        {"name": "true", "description": "Enable masking"},
+        {"name": "false", "description": "Disable masking"}
+      ]
+    },
+    {
+      "name": "aspect-ratio",
+      "description": "Maintain aspect ratio for images and containers",
+      "values": [
+        {"name": "true", "description": "Maintain aspect ratio"},
+        {"name": "false", "description": "Allow distortion"}
+      ]
+    }
+  ]
+}

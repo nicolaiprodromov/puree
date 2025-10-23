@@ -5,6 +5,7 @@
 *.aep
 assets/*.svg
 docs.aep_AME/
+docs/.bgpu.md
 
 *.zip
 *.tar.gz
@@ -12,14 +13,21 @@ docs.aep_AME/
 *.7z
 *.log
 
+build/
+*.whl
+
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.vscode/
 *.egg-info/
 .eggs/
 *.egg
+*.so
+*$py.class
+*.py[cod]
 
-build/
-*.whl
+/puree/puree_core/target/
+/puree/native_binaries/
+**/*.rs.bk
+Cargo.lock

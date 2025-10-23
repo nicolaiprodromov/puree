@@ -1,13 +1,23 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import sys
 import re
 
 def update_version(version):
-    manifest_path = 'blender_manifest.toml'
-    init_path = '__init__.py'
-    setup_path = 'setup.py'
-    pyproject_path = 'pyproject.toml'
+    manifest_path   = 'blender_manifest.toml'
+    init_path       = '__init__.py'
+    setup_path      = 'setup.py'
+    pyproject_path  = 'pyproject.toml'
+    cargo_toml_path = 'puree/puree_core/Cargo.toml'
     
-    # Update blender_manifest.toml
     with open(manifest_path, 'r') as f:
         manifest_content = f.read()
     
@@ -18,7 +28,6 @@ def update_version(version):
         flags=re.MULTILINE
     )
     
-    # Update puree_ui wheel filename
     manifest_content = re.sub(
         r'"\./wheels/puree_ui-[^"]*-py3-none-any\.whl"',
         f'"./wheels/puree_ui-{version}-py3-none-any.whl"',
@@ -28,7 +37,6 @@ def update_version(version):
     with open(manifest_path, 'w') as f:
         f.write(manifest_content)
     
-    # Update __init__.py
     with open(init_path, 'r') as f:
         init_content = f.read()
     
@@ -42,7 +50,6 @@ def update_version(version):
     with open(init_path, 'w') as f:
         f.write(init_content)
     
-    # Update setup.py
     with open(setup_path, 'r') as f:
         setup_content = f.read()
     
@@ -55,7 +62,6 @@ def update_version(version):
     with open(setup_path, 'w') as f:
         f.write(setup_content)
     
-    # Update pyproject.toml
     with open(pyproject_path, 'r') as f:
         pyproject_content = f.read()
     
@@ -68,6 +74,19 @@ def update_version(version):
     
     with open(pyproject_path, 'w') as f:
         f.write(pyproject_content)
+    
+    with open(cargo_toml_path, 'r') as f:
+        cargo_content = f.read()
+    
+    cargo_content = re.sub(
+        r'^version\s*=\s*"[^"]*"',
+        f'version = "{version}"',
+        cargo_content,
+        flags=re.MULTILINE
+    )
+    
+    with open(cargo_toml_path, 'w') as f:
+        f.write(cargo_content)
     
     print(f"Version updated to {version} in all files")
 

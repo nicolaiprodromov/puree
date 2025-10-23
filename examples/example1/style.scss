@@ -1,4 +1,17 @@
-$bg-dark      : #393939;
+// Example 1 [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
+$bg-dark      : #0f1014;
+$transparent  : rgba(0, 0, 0, 0);
 $border-radius: 8px;
 
 .showcase_root {
@@ -12,13 +25,23 @@ $border-radius: 8px;
 }
 
 .showcase_bg{
-    flex-direction  : column;
-    width           : 600px;
-    height          : 500px;
-    background-color: $bg-dark;
-    border-radius   : $border-radius;
-    justify-content : start;
-    align-items     : start;
+    flex-direction : column;
+    width          : 800px;
+    height         : 500px;
+    color          : $bg-dark;
+    border-radius  : $border-radius;
+    justify-content: start;
+    align-items    : start;
+}
+
+.content_container{
+    width          : 100%;
+    height         : 100%;
+    display        : flex;
+    flex-direction : row;
+    align-items    : start;
+    justify-content: start;
+    color          : $transparent;
 }
 
 .left_side_interactions{
@@ -30,19 +53,69 @@ $border-radius: 8px;
     align-items    : start;
     justify-content: start;
     padding        : 10px;
-    color          : #1c213a;
-    color-1        : #09090a;
-    color-gradient-rot: 123deg;
+    color          : #1a1d24;
 }
 
 .text_input_test{
+    width        : 100%;
+    height       : 30px;
+    border-radius: 300px;
+    padding      : 10px;
+    text-scale   : 16px;
+    text-color   : #ffffff;
+    text-align-h : left;
+    text-align-v : center;
+    color        : #111111;
+}
+
+.bottom_text_box{
+    height         : 30px;
     width          : 100%;
-    height         : 40px;
-    border-radius  : 300px;
+    color          : $transparent;
+    padding        : 5px;
+    display        : flex;
+    flex-direction : column;
+    align-items    : start;
+    justify-content: start;
+}
+
+.bottom_text{
+    width       : 100%;
+    height      : 100%;
+    color       : $transparent;
+    text-color  : rgba(181, 188, 199, 0.9);
+    text-scale  : 14px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.right_side_interaction{
+    width          : 50%;
+    height         : 100%;
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: start;
     padding        : 10px;
-    text-scale     : 16px;
-    text-color     : #ffffff;
-    text-align-h   : left;
-    text-align-v   : center;
-    color          : #111111;
+    color          : $transparent;
+}
+
+.dial_container{
+    width          : 250px;
+    height         : 250px;
+    color          : $transparent;
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+}
+
+.dial_box{
+    width          : 200px;
+    height         : 200px;
+    color          : $transparent;
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+    img-align-h    : center;
+    img-align-v    : center;
 }

@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 from __future__ import annotations
 from typing import Optional, List
 
@@ -32,18 +42,12 @@ class Container():
         self._scroll_value : float = 0.0
         
         self._dirty        : bool  = False
+        self._layout_node  : Optional[object] = None
     
     def __getattr__(self, name):
-        """
-        Enable property-based access to:
-        1. Child containers by their id (e.g., app.theme.root.bg.body)
-        2. Style properties (e.g., container.text_scale delegates to container.style.text_scale)
-        """
-        # Avoid infinite recursion by checking if we're accessing core attributes
         if name in ('children', 'style', '__dict__'):
             raise AttributeError(f"'Container' object has no attribute '{name}'")
         
-        # First, search for a child container with matching id
         try:
             children = object.__getattribute__(self, 'children')
             for child in children:
@@ -52,7 +56,6 @@ class Container():
         except AttributeError:
             pass
         
-        # If not found in children, try to get from style object
         try:
             style = object.__getattribute__(self, 'style')
             if style and hasattr(style, name):
@@ -60,41 +63,118 @@ class Container():
         except AttributeError:
             pass
         
-        # If not found anywhere, raise AttributeError
         raise AttributeError(f"'Container' object has no attribute or child named '{name}'")
     
     def __setattr__(self, name, value):
-        """
-        Enable property-based setting of style properties.
-        If the attribute doesn't exist on Container but exists on style,
-        delegate to the style object.
-        """
-        # List of Container's own attributes that should be set directly
         container_attrs = {
             'id', 'parent', 'children', 'style', 'data', 'img', 'text', 'font',
             'layer', 'passive', 'click', 'toggle', 'scroll', 'hover', 'hoverout',
             '_toggle_value', '_toggled', '_clicked', '_hovered',
-            '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty'
+            '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty', '_layout_node'
         }
         
-        # If it's a Container attribute, set it directly
         if name in container_attrs:
             object.__setattr__(self, name, value)
-        # Otherwise, try to set it on the style object if it exists there
         else:
             try:
                 style = object.__getattribute__(self, 'style')
                 if style and hasattr(style, name):
                     setattr(style, name, value)
                 else:
-                    # If style doesn't have it either, set it on container
                     object.__setattr__(self, name, value)
             except AttributeError:
-                # If style doesn't exist yet, set it on container
                 object.__setattr__(self, name, value)
     
     def mark_dirty(self):
         self._dirty = True
+    
+    @staticmethod
+    def is_layout_property(name):
+        layout_properties = {
+            'width', 'height', 'display', 'position', 'overflow', 'scrollbar_width',
+            'padding', 'padding_top', 'padding_right', 'padding_bottom', 'padding_left',
+            'margin', 'margin_top', 'margin_right', 'margin_bottom', 'margin_left',
+            'border', 'border_width',
+            'align_items', 'justify_items', 'align_self', 'justify_self',
+            'align_content', 'justify_content',
+            'size', 'min_size', 'max_size', 'aspect_ratio',
+            'flex_wrap', 'flex_direction', 'flex_grow', 'flex_shrink', 'flex_basis',
+            'grid_auto_flow', 'grid_template_rows', 'grid_template_columns',
+            'grid_auto_rows', 'grid_auto_columns', 'grid_row', 'grid_column',
+            'gap'
+        }
+        return name in layout_properties
+    
+    def set_property(self, name, value):
+        if self.is_layout_property(name):
+            self.mark_dirty()
+            if self._layout_node is not None:
+                from stretchable import Style
+                from stretchable.style import PCT, PT
+                from stretchable.style.geometry.length import LengthPointsPercentAuto
+                from stretchable.style.geometry.size import SizePointsPercentAuto
+                
+                current_style = self._layout_node.style
+                new_style_dict = {}
+                
+                for attr in ['display', 'overflow_x', 'overflow_y', 'position', 'align_items', 
+                            'justify_items', 'align_self', 'justify_self', 'align_content', 
+                            'justify_content', 'gap', 'padding', 'border', 'margin', 'size',
+                            'min_size', 'max_size', 'aspect_ratio', 'flex_wrap', 'flex_direction',
+                            'flex_grow', 'flex_shrink', 'flex_basis']:
+                    if hasattr(current_style, attr):
+                        new_style_dict[attr] = getattr(current_style, attr)
+                
+                if name == 'width' or name == 'height':
+                    value_str = str(value).lower()
+                    if 'px' in value_str:
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace('px', '')) * PT)
+                    elif '%' in value_str:
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace('%', '')) * PCT)
+                    else:
+                        length_val = LengthPointsPercentAuto.from_any(0 * PT)
+                    
+                    current_size = new_style_dict.get('size')
+                    if name == 'width':
+                        new_style_dict['size'] = SizePointsPercentAuto(width=length_val, height=current_size.height if current_size else LengthPointsPercentAuto.from_any(0 * PT))
+                    else:
+                        new_style_dict['size'] = SizePointsPercentAuto(width=current_size.width if current_size else LengthPointsPercentAuto.from_any(0 * PT), height=length_val)
+                
+                elif name in ['margin_top', 'margin_right', 'margin_bottom', 'margin_left']:
+                    from stretchable.style.geometry.rect import RectPointsPercentAuto
+                    
+                    value_str = str(value).lower()
+                    if 'px' in value_str:
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace('px', '')) * PT)
+                    elif '%' in value_str:
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace('%', '')) * PCT)
+                    else:
+                        length_val = LengthPointsPercentAuto.from_any(0 * PT)
+                    
+                    current_margin = new_style_dict.get('margin')
+                    if current_margin:
+                        top = current_margin.top if hasattr(current_margin, 'top') else LengthPointsPercentAuto.from_any(0 * PT)
+                        right = current_margin.right if hasattr(current_margin, 'right') else LengthPointsPercentAuto.from_any(0 * PT)
+                        bottom = current_margin.bottom if hasattr(current_margin, 'bottom') else LengthPointsPercentAuto.from_any(0 * PT)
+                        left = current_margin.left if hasattr(current_margin, 'left') else LengthPointsPercentAuto.from_any(0 * PT)
+                    else:
+                        top = right = bottom = left = LengthPointsPercentAuto.from_any(0 * PT)
+                    
+                    if name == 'margin_top':
+                        top = length_val
+                    elif name == 'margin_right':
+                        right = length_val
+                    elif name == 'margin_bottom':
+                        bottom = length_val
+                    elif name == 'margin_left':
+                        left = length_val
+                    
+                    new_style_dict['margin'] = RectPointsPercentAuto(top=top, right=right, bottom=bottom, left=left)
+                
+                self._layout_node.style = Style(**new_style_dict)
+                self._layout_node.mark_dirty()
+        
+        setattr(self, name, value)
     
     def get_by_id(self, target_id):
         if self.id == target_id or self.id.endswith(f"_{target_id}"):

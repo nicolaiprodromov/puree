@@ -1,3 +1,15 @@
+# HEADER COMPONENT [CORE UI VOL. I]
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree/wiki
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
+
 header:
   style: header
   text_box:
@@ -6,10 +18,12 @@ header:
       style: header_text
       text: "{{title, 'Puree UI Kit'}}"
       font: NeueMontreal-BoldItalic
+    separator:
+      style: header_separator
     text1:
       style: header_text1
       text: "{{subtitle, 'Declarative UI for Blender'}}"
       font: NeueMontreal-Italic
   logoh:
     style: header_logoh
-    img: loggoui2
+    img: xwz_logo

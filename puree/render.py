@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 import gpu
 import os
@@ -5,6 +15,7 @@ import time
 import moderngl as mgl
 from .components.container import container_default
 import numpy as np
+import traceback
 
 from gpu_extras.batch import batch_for_shader
 from bpy.types import Operator, Panel
@@ -16,20 +27,27 @@ from . import parser_op
 
 _render_data = None
 _modal_timer = None
+_hot_reload_enabled = False
+_debug_outlined_containers = set()
 
 class RenderPipeline:
     def __init__(self):
         self.mgl_context     = None
         self.compute_shader  = None
+        self.outline_shader  = None
         self.mouse_buffer    = None
         self.container_buffer = None
         self.viewport_buffer = None
         self.output_texture  = None
+        self.outline_texture = None
+        self.debug_outline_buffer = None
+        self.debug_outline_count_buffer = None
         self.blender_texture = None
         self.gpu_shader      = None
         self.batch           = None
         self.draw_handler    = None
         self.running         = False
+        self.debug_outlined_containers = set()
         self.mouse_pos       = [0.5, 0.5]
         self.start_time      = time.time()
         self.texture_size    = (1920, 1080)
@@ -46,8 +64,13 @@ class RenderPipeline:
         self.last_mouse_pos = [0.5, 0.5]
         self.last_click_value = 0.0
         self.last_scroll_value = 0.0
+        self.click_frames_remaining = 0
         self.last_container_update = 0
         self.conf_path = 'xwz.ui.toml'
+        self.pbos            = []
+        self.pbo_index       = 0
+        self.pbo_count       = 3
+        self.force_initial_draw = True  # Force first draw regardless of changes
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -59,7 +82,6 @@ class RenderPipeline:
                 return False
         return False
     def load_shader_file(self, filename):
-        # Shader files are in the puree package directory
         package_dir = os.path.dirname(os.path.abspath(__file__))
         shader_path = os.path.join(package_dir, "shaders", filename)
         try:
@@ -88,6 +110,16 @@ class RenderPipeline:
             return False
         try:
             self.compute_shader = self.mgl_context.compute_shader(shader_source)
+            return True
+        except Exception:
+            return False
+    
+    def create_outline_shader(self):
+        shader_source = self.load_shader_file("outline.glsl")
+        if not shader_source:
+            return False
+        try:
+            self.outline_shader = self.mgl_context.compute_shader(shader_source)
             return True
         except Exception:
             return False
@@ -148,6 +180,25 @@ class RenderPipeline:
                 4
             )
             self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
+            
+            pixel_size = self.texture_size[0] * self.texture_size[1] * 4
+            self.pbos = []
+            for i in range(self.pbo_count):
+                pbo = self.mgl_context.buffer(reserve=pixel_size)
+                self.pbos.append(pbo)
+            
+            self.outline_texture = self.mgl_context.texture(
+                self.texture_size, 
+                4
+            )
+            self.outline_texture.filter = (mgl.NEAREST, mgl.NEAREST)
+            
+            outline_ids = np.array([], dtype=np.int32)
+            self.debug_outline_buffer = self.mgl_context.buffer(reserve=400)
+            
+            outline_count = np.array([0], dtype=np.int32)
+            self.debug_outline_count_buffer = self.mgl_context.buffer(outline_count.tobytes())
+            
             return True
         except Exception:
             return False
@@ -226,13 +277,11 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
         
         if size_changed:
-            # Recompute layout with new viewport size
             updated_container_data = parser_op.recompute_layout((w, h))
             
             if updated_container_data:
                 self.container_data = updated_container_data
                 
-                # Rebuild container buffer with new layout
                 container_array = []
                 for i, container in enumerate(self.container_data):
                     container_struct = [
@@ -292,6 +341,16 @@ class RenderPipeline:
                 )
                 self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
                 self.needs_texture_update = True
+                
+                for pbo in self.pbos:
+                    self._safe_release_moderngl_object(pbo)
+                self.pbos = []
+                
+                pixel_size = self.texture_size[0] * self.texture_size[1] * 4
+                for i in range(self.pbo_count):
+                    pbo = self.mgl_context.buffer(reserve=pixel_size)
+                    self.pbos.append(pbo)
+                self.pbo_index = 0
         
         return size_changed
     def update_click_value(self, value):
@@ -338,6 +397,11 @@ class RenderPipeline:
         """Check if texture needs updating and update state. Called from modal loop."""
         changed = False
         
+        # Force initial draw if this is the first check
+        if self.force_initial_draw:
+            self.force_initial_draw = False
+            changed = True
+        
         if (abs(self.mouse_pos[0] - self.last_mouse_pos[0]) > 0.001 or 
             abs(self.mouse_pos[1] - self.last_mouse_pos[1]) > 0.001):
             self.last_mouse_pos = self.mouse_pos.copy()
@@ -345,6 +409,11 @@ class RenderPipeline:
         
         if self.click_value != self.last_click_value:
             self.last_click_value = self.click_value
+            self.click_frames_remaining = 3
+            changed = True
+        
+        if self.click_frames_remaining > 0:
+            self.click_frames_remaining -= 1
             changed = True
         
         current_scroll = float(scroll_state.scroll_value)
@@ -361,8 +430,21 @@ class RenderPipeline:
         return changed
     
     def has_texture_changed(self):
-        """Check if texture needs readback. Called from draw_texture."""
         return self.texture_needs_readback
+    
+    def update_debug_outline_buffers(self):
+        if not self.debug_outline_buffer or not self.debug_outline_count_buffer:
+            return
+        
+        outlined_ids = [int(cid) for cid in self.debug_outlined_containers]
+        
+        outline_count = np.array([len(outlined_ids)], dtype=np.int32)
+        self.debug_outline_count_buffer.write(outline_count.tobytes())
+        
+        if len(outlined_ids) > 0:
+            outline_data = np.array(outlined_ids, dtype=np.int32)
+            self.debug_outline_buffer.write(outline_data.tobytes())
+    
     def run_compute_shader(self):
         if not (self.compute_shader and self.mouse_buffer and self.container_buffer and 
                 self.viewport_buffer and self.output_texture):
@@ -379,23 +461,42 @@ class RenderPipeline:
 
             self.compute_shader.run(groups_x, groups_y, 1)
             
+            if self.outline_shader and len(self.debug_outlined_containers) > 0:
+                self.update_debug_outline_buffers()
+                
+                self.output_texture.bind_to_image(0, read=True, write=False)
+                self.outline_texture.bind_to_image(1, read=False, write=True)
+                self.container_buffer.bind_to_storage_buffer(2)
+                self.viewport_buffer.bind_to_storage_buffer(3)
+                self.debug_outline_buffer.bind_to_storage_buffer(4)
+                self.debug_outline_count_buffer.bind_to_storage_buffer(5)
+                
+                self.outline_shader.run(groups_x, groups_y, 1)
+                
+                temp = self.output_texture
+                self.output_texture = self.outline_texture
+                self.outline_texture = temp
+            
             return True
         except Exception:
             return False
     def initialize(self):
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                for region in area.regions:
-                    if region.type == 'WINDOW':
-                        self.region_size = (region.width, region.height)
-                        break
-                break
+        from .space_config import find_target_area_and_region
+        
+        area, region = find_target_area_and_region()
+        if area and region:
+            self.region_size = (region.width, region.height)
+        else:
+            print("Warning: Target space not found, using fallback size")
+            self.region_size = (800, 600)
         
         if not self.load_container_data():
             return False
         if not self.init_moderngl_context():
             return False
         if not self.create_compute_shader():
+            return False
+        if not self.create_outline_shader():
             return False
         if not self.create_buffers_and_textures():
             return False
@@ -416,9 +517,21 @@ class RenderPipeline:
         self.needs_texture_update = True
         
         self.add_drawing_callback()
+        
+        # Force initial render to ensure content appears immediately
+        self.run_compute_shader()
+        self.texture_needs_readback = True
+        
         return True
     def add_drawing_callback(self):
-        self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(
+        from .space_config import get_space_class
+        
+        space_class = get_space_class()
+        if not space_class:
+            print("Warning: No valid space class found, falling back to SpaceView3D")
+            space_class = bpy.types.SpaceView3D
+        
+        self.draw_handler = space_class.draw_handler_add(
             self.draw_texture, (), 'WINDOW', 'POST_PIXEL'
         )
     def draw_texture(self):
@@ -445,36 +558,66 @@ class RenderPipeline:
                     gpu.state.depth_test_set('LESS_EQUAL')
                 return
             
-            texture_data = self.output_texture.read()
+            if not self.pbos or len(self.pbos) < self.pbo_count:
+                return
             
-            float_data = np.frombuffer(texture_data, dtype=np.uint8).astype(np.float32) / 255.0
-            
-            buffer = gpu.types.Buffer('FLOAT', len(float_data), float_data)
-            
-            if self.blender_texture:
-                del self.blender_texture
-            
-            self.blender_texture = gpu.types.GPUTexture(
-                self.texture_size,
-                format = 'RGBA8',
-                data   = buffer
-            )
-            
-            gpu.state.blend_set('ALPHA')
-            gpu.state.depth_test_set('NONE')
-            
-            self.gpu_shader.bind()
-            self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
-            self.gpu_shader.uniform_float("opacity", 1.0)
-            
-            gpu.matrix.push()
-            gpu.matrix.load_identity()
-            
-            self.batch.draw(self.gpu_shader)
-            gpu.matrix.pop()
-            
-            gpu.state.blend_set('NONE')
-            gpu.state.depth_test_set('LESS_EQUAL')
+            advanced = False
+            try:
+                current_pbo = self.pbos[self.pbo_index]
+                self.output_texture.read_into(current_pbo)
+
+                read_index = (self.pbo_index + 2) % self.pbo_count
+                read_pbo = self.pbos[read_index]
+
+                texture_data = read_pbo.read()
+
+                expected_size = self.texture_size[0] * self.texture_size[1] * 4
+                if len(texture_data) != expected_size:
+                    if len(texture_data) > expected_size:
+                        texture_data = texture_data[:expected_size]
+                    else:
+                        raise RuntimeError(f"texture_data too small: {len(texture_data)} < {expected_size}")
+
+                texture_array = np.frombuffer(texture_data, dtype=np.uint8)
+                texture_float = np.multiply(texture_array, 0.00392156862745098, dtype=np.float32)
+                
+                buffer = gpu.types.Buffer('FLOAT', len(texture_float), texture_float)
+
+                if self.blender_texture:
+                    try:
+                        del self.blender_texture
+                    except Exception:
+                        pass
+
+                self.blender_texture = gpu.types.GPUTexture(
+                    self.texture_size,
+                    format = 'RGBA8',
+                    data   = buffer
+                )
+
+                advanced = True
+                self.texture_needs_readback = False
+
+                gpu.state.blend_set('ALPHA')
+                gpu.state.depth_test_set('NONE')
+
+                self.gpu_shader.bind()
+                self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
+                self.gpu_shader.uniform_float("opacity", 1.0)
+
+                gpu.matrix.push()
+                gpu.matrix.load_identity()
+
+                self.batch.draw(self.gpu_shader)
+                gpu.matrix.pop()
+
+                gpu.state.blend_set('NONE')
+                gpu.state.depth_test_set('LESS_EQUAL')
+            except Exception as e:
+                traceback.print_exc()
+            finally:
+                if advanced:
+                    self.pbo_index = (self.pbo_index + 1) % self.pbo_count
             
         except Exception:
             pass
@@ -483,7 +626,13 @@ class RenderPipeline:
         self.running = False
         
         if self.draw_handler:
-            bpy.types.SpaceView3D.draw_handler_remove(self.draw_handler, 'WINDOW')
+            from .space_config import get_space_class
+            
+            space_class = get_space_class()
+            if not space_class:
+                space_class = bpy.types.SpaceView3D
+            
+            space_class.draw_handler_remove(self.draw_handler, 'WINDOW')
             self.draw_handler = None
         
         if self.blender_texture:
@@ -502,8 +651,21 @@ class RenderPipeline:
             self.viewport_buffer = None
         if self._safe_release_moderngl_object(self.output_texture):
             self.output_texture = None
+        if self._safe_release_moderngl_object(self.outline_texture):
+            self.outline_texture = None
+        if self._safe_release_moderngl_object(self.debug_outline_buffer):
+            self.debug_outline_buffer = None
+        if self._safe_release_moderngl_object(self.debug_outline_count_buffer):
+            self.debug_outline_count_buffer = None
         if self._safe_release_moderngl_object(self.compute_shader):
             self.compute_shader = None
+        if self._safe_release_moderngl_object(self.outline_shader):
+            self.outline_shader = None
+        
+        for pbo in self.pbos:
+            self._safe_release_moderngl_object(pbo)
+        self.pbos = []
+        self.pbo_index = 0
         
         if self.mgl_context:
             try:
@@ -530,7 +692,6 @@ class RenderPipeline:
             mouse_state.unregister_callback(self.on_mouse_event)
             self.mouse_callback_registered = False
     def update_container_buffer_full(self, hit_container_data):
-        """Update entire container buffer with current interaction states"""
         if not self.container_buffer or not hit_container_data:
             return False
         
@@ -615,8 +776,9 @@ class XWZ_OT_start_ui(Operator):
             _render_data = None
             return {'CANCELLED'}
 
+        # Start native-optimized hit detection
         try:
-             bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
+            bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start hit detect modal: {e}")
 
@@ -648,7 +810,8 @@ class XWZ_OT_start_ui(Operator):
                 mask_height  = block['mask_height'],
                 aspect_ratio = block['aspect_ratio'],
                 align_h      = block.get('align_h', 'LEFT').upper(),
-                align_v      = block.get('align_v', 'TOP').upper()
+                align_v      = block.get('align_v', 'TOP').upper(),
+                opacity      = block.get('opacity', 1.0)
             )
         
         for _container_id in parser_op.text_blocks:
@@ -687,7 +850,44 @@ class XWZ_OT_start_ui(Operator):
                 align_v      = block.get('align_v', 'TOP').upper()
             )
 
-        self.report({'INFO'}, "UI Started")
+        try:
+            from .hot_reload import setup_hot_reload, register_default_callbacks, get_hot_reload_manager
+            from . import get_addon_root
+            
+            addon_dir = get_addon_root()
+            wm = context.window_manager
+            
+            if setup_hot_reload(addon_dir, wm.xwz_ui_conf_path):
+                register_default_callbacks()
+                manager = get_hot_reload_manager()
+                manager.enable()
+                
+                global _hot_reload_enabled
+                _hot_reload_enabled = True
+                
+                self.report({'INFO'}, "UI Started with hot reload enabled")
+            else:
+                self.report({'INFO'}, "UI Started (hot reload unavailable)")
+        except Exception as e:
+            print(f"Hot reload initialization failed: {e}")
+            self.report({'INFO'}, "UI Started (hot reload disabled)")
+        
+        # Update debug panel to appear in the correct space
+        try:
+            from . import panel
+            panel.update_panel_space()
+        except Exception as e:
+            print(f"Failed to update debug panel space: {e}")
+        
+        # Force initial redraw to ensure UI appears immediately
+        from .space_config import get_target_space
+        target_space = get_target_space()
+        if target_space:
+            for area in context.screen.areas:
+                if area.type == target_space:
+                    area.tag_redraw()
+                    break
+        
         return {'RUNNING_MODAL'}
     
     def modal(self, context, event):
@@ -697,7 +897,6 @@ class XWZ_OT_start_ui(Operator):
             self.cancel(context)
             return {'CANCELLED'}
         
-        # Handle window deactivate to catch resize events
         if event.type == 'WINDOW_DEACTIVATE':
             area = context.area
             region = context.region
@@ -711,25 +910,36 @@ class XWZ_OT_start_ui(Operator):
                     
                     _render_data.run_compute_shader()
                     
+                    from .space_config import get_target_space
+                    target_space = get_target_space()
+                    
                     for area in context.screen.areas:
-                        if area.type == 'VIEW_3D':
+                        if area.type == target_space:
                             area.tag_redraw()
         
         if event.type == 'TIMER':
-            area = context.area
-            region = context.region
+            from .space_config import find_target_area_and_region
             
-            if area and region:
+            target_area, target_region = find_target_area_and_region()
+            
+            if target_area and target_region:
+                global _hot_reload_enabled
+                if _hot_reload_enabled:
+                    try:
+                        from .hot_reload import get_hot_reload_manager
+                        manager = get_hot_reload_manager()
+                        manager.check_for_changes()
+                    except Exception as e:
+                        print(f"Hot reload error: {e}")
+
                 _render_data.update_fps()
-                
-                size_changed = _render_data.update_region_size(region.width, region.height)
+
+                size_changed = _render_data.update_region_size(target_region.width, target_region.height)
 
                 texture_changed = _render_data.check_if_changed()
                 
-                # Check if script callbacks modified container state
                 state_synced = parser_op.sync_dirty_containers()
                 if state_synced:
-                    # Container state changed via scripts, need to update
                     from . import hit_op
                     from . import text_op
                     new_data = parser_op._container_json_data
@@ -745,7 +955,6 @@ class XWZ_OT_start_ui(Operator):
                     
                     hit_op._container_data = new_data
                     
-                    # Update text instances with new text content
                     for text_instance in text_op._text_instances:
                         container_id = text_instance.container_id
                         if container_id in parser_op.text_blocks:
@@ -761,7 +970,6 @@ class XWZ_OT_start_ui(Operator):
                                 align_v=block.get('align_v', 'CENTER').upper()
                             )
                     
-                    # Update text input instances with new layout
                     from . import text_input_op
                     for input_instance in text_input_op._text_input_instances:
                         container_id = input_instance.container_id
@@ -783,7 +991,6 @@ class XWZ_OT_start_ui(Operator):
                                 align_v=block.get('align_v', 'TOP').upper()
                             )
                     
-                    # Update image instances with new image content
                     from . import img_op
                     for image_instance in img_op._image_instances:
                         container_id = image_instance.container_id
@@ -796,14 +1003,13 @@ class XWZ_OT_start_ui(Operator):
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
                                 aspect_ratio=block['aspect_ratio'],
                                 align_h=block.get('align_h', 'LEFT').upper(),
-                                align_v=block.get('align_v', 'TOP').upper()
+                                align_v=block.get('align_v', 'TOP').upper(),
+                                opacity=block.get('opacity', 1.0)
                             )
                     
                     texture_changed = True
                 
-                # Run compute shader if viewport resized or other state changed
                 if texture_changed or size_changed:
-                    # If size changed, update hit_op's container data reference
                     if size_changed:
                         from . import hit_op
                         new_data = parser_op._container_json_data
@@ -825,8 +1031,11 @@ class XWZ_OT_start_ui(Operator):
                     
                     _render_data.run_compute_shader()
             
+            from .space_config import get_target_space
+            target_space = get_target_space()
+            
             for area in context.screen.areas:
-                if area.type == 'VIEW_3D':
+                if area.type == target_space:
                     area.tag_redraw()
 
         elif event.type in {'ESC'}:
@@ -856,7 +1065,7 @@ class XWZ_OT_stop_ui(Operator):
     bl_description = "Stop puree UI"
     
     def execute(self, context):
-        global _render_data, _modal_timer
+        global _render_data, _modal_timer, _hot_reload_enabled
         
         if _modal_timer:
             context.window_manager.event_timer_remove(_modal_timer)
@@ -865,6 +1074,14 @@ class XWZ_OT_stop_ui(Operator):
         if _render_data:
             _render_data.cleanup()
             _render_data = None
+
+        if _hot_reload_enabled:
+            try:
+                from .hot_reload import cleanup_hot_reload
+                cleanup_hot_reload()
+                _hot_reload_enabled = False
+            except Exception as e:
+                print(f"Hot reload cleanup error: {e}")
 
         bpy.ops.xwz.hit_stop()
         scroll_state.stop_scrolling()
@@ -877,8 +1094,11 @@ class XWZ_OT_stop_ui(Operator):
         except Exception:
             pass
 
+        from .space_config import get_target_space
+        target_space = get_target_space()
+        
         for area in context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 area.tag_redraw()
             
         self.report({'INFO'}, "Compute shader demo stopped")

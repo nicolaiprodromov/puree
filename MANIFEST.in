@@ -3,3 +3,4 @@ include LICENSE
 include requirements.txt
 recursive-include puree/shaders *.glsl
 recursive-include puree/wheels *.whl
+recursive-include puree/native_binaries *.so *.pyd *.dylib
