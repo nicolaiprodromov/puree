@@ -11,7 +11,7 @@ If you need help with this project, please try the following:
 ### Documentation
 
 - Check the [README](README.md) for setup and usage instructions
-- Review any existing documentation in the repository
+- Check the [Full Documentation](https://nicolaiprodromov.github.io/puree/) for a deep dive into puree.
 
 ### Issues
 

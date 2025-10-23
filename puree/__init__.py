@@ -1,41 +1,58 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 
-# Export public API
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
-
-# Global variable to store the addon root directory
-# This is separate from the package directory when puree is installed as a wheel
+__version__ = "0.1.0"
 _ADDON_ROOT = None
 
 def set_addon_root(path):
-    """Set the addon root directory where static/, assets/, fonts/ are located"""
     global _ADDON_ROOT
     _ADDON_ROOT = path
 
 def get_addon_root():
-    """Get the addon root directory, falling back to package parent if not set"""
     global _ADDON_ROOT
     if _ADDON_ROOT is not None:
         return _ADDON_ROOT
-    # Fallback: assume addon structure (package is in same directory as resources)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def _try_start_ui():
     import bpy
+    from .space_config import parse_space_config, validate_current_configuration
+    
+    wm = bpy.context.window_manager
+    conf_path = wm.get("xwz_ui_conf_path", "index.yaml")
+    
+    if not parse_space_config(conf_path):
+        print("Failed to parse space configuration, retrying...")
+        return 0.5
+    
+    config_status = validate_current_configuration()
+    
+    if not config_status['space_available']:
+        target_space = config_status.get('target_space', 'Unknown')
+        print(f"Target space '{target_space}' not available yet, retrying...")
+        return 0.5
+    
+    area = config_status['area']
+    region = config_status['region']
+    
+    if not (area and region):
+        print("Found target space but no WINDOW region, retrying...")
+        return 0.5
+    
     for window in bpy.context.window_manager.windows:
         screen = window.screen
-        for area in screen.areas:
-            if area.type == 'VIEW_3D':
-                region = None
-                for r in area.regions:
-                    if r.type == 'WINDOW':
-                        region = r
-                        break
-                
-                if not region:
-                    print("Found 3D View but no WINDOW region, retrying...")
-                    return 0.5
-                
+        for screen_area in screen.areas:
+            if screen_area == area:
                 override = {
                     'window': window,
                     'screen': screen,
@@ -45,14 +62,17 @@ def _try_start_ui():
                 try:
                     with bpy.context.temp_override(**override):
                         bpy.ops.xwz.start_ui()
-                    print("Puree UI auto-started successfully")
+                    target_space = config_status.get('target_space', 'Unknown')
+                    print(f"Puree UI auto-started successfully in {target_space}")
                     return None
                 except Exception as e:
                     print(f"Failed to auto-start Puree UI: {e}")
                     import traceback
                     traceback.print_exc()
                     return None
-    print("No 3D View found yet, retrying...")
+    
+    target_space = config_status.get('target_space', 'Unknown')
+    print(f"Target space '{target_space}' found but not accessible, retrying...")
     return 0.5
 
 def auto_start_ui_handler(dummy):
@@ -68,8 +88,10 @@ def register():
     from .text_op import register as txt_register
     from .text_input_op import register as txt_input_register
     from .img_op  import register as img_register
-    from .hit_op  import register as hit_register
     from .panel   import register as panel_register
+    from .hit_op import register as hit_register
+    
+    hit_register()
     
     bpy.types.WindowManager.xwz_ui_conf_path = bpy.props.StringProperty(
         name        = "XWZ UI Config Path",
@@ -92,7 +114,6 @@ def register():
     txt_input_register()
     img_register()
     panel_register()
-    hit_register()
 
     if auto_start_ui_handler not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(auto_start_ui_handler)
@@ -104,8 +125,10 @@ def unregister():
     from .text_op import unregister as txt_unregister
     from .text_input_op import unregister as txt_input_unregister
     from .img_op  import unregister as img_unregister
-    from .hit_op  import unregister as hit_unregister
     from .panel   import unregister as panel_unregister
+    from .hit_op import unregister as hit_unregister
+    
+    hit_unregister()
     
     if auto_start_ui_handler in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(auto_start_ui_handler)
@@ -129,7 +152,6 @@ def unregister():
     del bpy.types.WindowManager.xwz_debug_panel
     del bpy.types.WindowManager.xwz_auto_start
 
-    hit_unregister()
     panel_unregister()
     img_unregister()
     txt_input_unregister()

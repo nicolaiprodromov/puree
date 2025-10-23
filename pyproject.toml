@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "puree-ui"
-version = "0.1.0"
+version = "0.1.2"
 description = "XWZ Puree UI framework for Blender"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,16 +23,8 @@ classifiers = [
 dependencies = [
     "moderngl==5.12.0",
     "glcontext==3.0.0",
-    "textual==6.2.1",
-    "rich==14.1.0",
     "stretchable==1.1.7",
-    "tinycss2==1.4.0",
-    "webencodings==0.5.1",
-    "libsass==0.23.0",
     "PyYAML==6.0.2",
-    "markdown-it-py==4.0.0",
-    "mdurl==0.1.2",
-    "pygments==2.19.2",
     "typing-extensions==4.15.0",
     "attrs==25.3.0",
 ]
@@ -45,4 +37,4 @@ Repository = "https://github.com/nicolaiprodromov/puree"
 packages = ["puree", "puree.components"]
 
 [tool.setuptools.package-data]
-puree = ["shaders/*.glsl", "wheels/*.whl"]
+puree = ["shaders/*.glsl", "wheels/*.whl", "native_binaries/*.so", "native_binaries/*.pyd", "native_binaries/*.dylib"]

@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 import os
 from .parser    import UI
@@ -123,13 +133,10 @@ def recompute_layout(canvas_size):
     if XWZ_UI is None:
         return None
     
-    # Recompute layout with new canvas size
     updated_data = XWZ_UI.recompute_layout(canvas_size)
     
-    # Update global container data
     _container_json_data = updated_data
     
-    # Update text and image blocks with new layout
     text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     text_input_extractor = TextInputExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
@@ -142,30 +149,44 @@ def recompute_layout(canvas_size):
     return _container_json_data
 
 def sync_dirty_containers():
-    """
-    Sync container state from live Container objects to _container_json_data
-    without full layout recomputation. This is called when scripts modify
-    container properties (like colors, text, images) via event handlers.
-    """
     global XWZ_UI, _container_json_data, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
     
     if XWZ_UI is None or not _container_json_data:
         return False
     
-    # Check if any containers are dirty
-    has_dirty = check_dirty_containers(XWZ_UI.theme.root)
-    if not has_dirty:
+    dirty_nodes = collect_dirty_containers(XWZ_UI.theme.root)
+    if not dirty_nodes:
         return False
     
-    # Sync live Container tree state to flattened json data
-    # by reusing the existing abs_json_data structure
+    for container in dirty_nodes:
+        if container._layout_node is not None:
+            container._layout_node.mark_dirty()
+    
+    if XWZ_UI.root_node and len(dirty_nodes) > 0:
+        from .parser import node_flat_abs
+        from stretchable import Edge
+        
+        XWZ_UI.root_node.compute_layout(XWZ_UI.canvas_size)
+        
+        def update_layout_data(container, node):
+            border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            
+            node_flat_abs[container.id] = {
+                'x': border_box_abs.x,
+                'y': border_box_abs.y,
+                'width': border_box_abs.width,
+                'height': border_box_abs.height
+            }
+            
+            for i, child_container in enumerate(container.children):
+                update_layout_data(child_container, node[i])
+        
+        update_layout_data(XWZ_UI.theme.root, XWZ_UI.root_node)
+    
     XWZ_UI.abs_json_data = []
     XWZ_UI.flatten_node_tree()
     _container_json_data = XWZ_UI.abs_json_data
     
-    # Regenerate text and image blocks to pick up changes
-    # This ensures that changes to container.text and container.img
-    # are reflected in the rendered output
     text_extractor = TextExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     text_input_extractor = TextInputExtractor(XWZ_UI, XWZ_UI.abs_json_data)
     image_extractor = ImageExtractor(XWZ_UI, XWZ_UI.abs_json_data)
@@ -175,13 +196,19 @@ def sync_dirty_containers():
     image_blocks = image_extractor.image_blocks
     image_blocks_relative = image_extractor.image_blocks_relative
     
-    # Clear dirty flags
     clear_dirty_flags(XWZ_UI.theme.root)
     
     return True
 
+def collect_dirty_containers(container):
+    dirty = []
+    if hasattr(container, '_dirty') and container._dirty:
+        dirty.append(container)
+    for child in container.children:
+        dirty.extend(collect_dirty_containers(child))
+    return dirty
+
 def check_dirty_containers(container):
-    """Recursively check if any container in tree is marked dirty"""
     if hasattr(container, '_dirty') and container._dirty:
         return True
     for child in container.children:
@@ -190,7 +217,6 @@ def check_dirty_containers(container):
     return False
 
 def clear_dirty_flags(container):
-    """Recursively clear all dirty flags in container tree"""
     if hasattr(container, '_dirty'):
         container._dirty = False
     for child in container.children:

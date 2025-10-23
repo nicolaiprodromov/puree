@@ -5,15 +5,19 @@ app:
     - name: xwz_default
       author: xwz
       version: 1.0.0
+
+      space: VIEW_3D
+
       default_font: NeueMontreal-Regular
+
       scripts:
         - static/script.py
       styles:
-        - static/style.css
+        - static/style.scss
       components: static/components/
+
       root:
         style: root
-        text_input_test:
-          data: '<INPUT>|Type your text here...'
-          style: tt_input    
-          font : NeueMontreal-BoldItalic    
+        test_box:
+          style: test_box
+          text : Red Box

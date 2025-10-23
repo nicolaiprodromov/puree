@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 from __future__ import annotations
 from typing import Optional, List
 
@@ -31,6 +41,7 @@ class Style():
 
         self.img_align_h            : str         = 'LEFT'
         self.img_align_v            : str         = 'TOP'
+        self.img_opacity            : float       = 1.0
 
         self.border_radius            : float       = 0.0
         self.border_width             : float       = 0.0
@@ -42,7 +53,6 @@ class Style():
         self.box_shadow_offset: List[float] = [0.0, 0.0, 0.0]
         self.box_shadow_blur  : float       = 0.0
 
-        # STRECHABLE PROPERTIES -------------------------------------------------------------------------------------------
         self.display         : str  = 'FLEX'
         self.overflow        : str  = 'HIDDEN'
         self.scrollbar_width : float = 0.0

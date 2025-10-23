@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import bpy
 import gpu
@@ -78,8 +88,47 @@ class ImageManager:
 
 image_manager = ImageManager()
 
+# Shared shader cache - compiled once and reused by all instances
+_image_shader_with_opacity = None
+
+def get_image_shader_with_opacity():
+    """Get or create the shared image shader that supports opacity"""
+    global _image_shader_with_opacity
+    
+    if _image_shader_with_opacity is None:
+        vertex_shader = '''
+            uniform mat4 ModelViewProjectionMatrix;
+            in vec2 pos;
+            in vec2 texCoord;
+            out vec2 uvInterp;
+            
+            void main()
+            {
+                uvInterp = texCoord;
+                gl_Position = ModelViewProjectionMatrix * vec4(pos, 0.0, 1.0);
+            }
+        '''
+        
+        fragment_shader = '''
+            uniform sampler2D image;
+            uniform float opacity;
+            in vec2 uvInterp;
+            out vec4 fragColor;
+            
+            void main()
+            {
+                vec4 texColor = texture(image, uvInterp);
+                // Apply opacity to the entire color (including RGB for premultiplied alpha)
+                fragColor = vec4(texColor.rgb * opacity, texColor.a * opacity);
+            }
+        '''
+        
+        _image_shader_with_opacity = gpu.types.GPUShader(vertex_shader, fragment_shader)
+    
+    return _image_shader_with_opacity
+
 class ImageInstance:
-    def __init__(self, container_id, image_name=None, pos=[50, 50], size=[100, 100], mask=None, aspect_ratio=True, align_h='LEFT', align_v='TOP'):
+    def __init__(self, container_id, image_name=None, pos=[50, 50], size=[100, 100], mask=None, aspect_ratio=True, align_h='LEFT', align_v='TOP', opacity=1.0):
         self.id           = len(_image_instances)
         self.container_id = container_id
         self.image_name   = image_name
@@ -90,7 +139,8 @@ class ImageInstance:
         self.aspect_ratio = aspect_ratio
         self.align_h      = align_h
         self.align_v      = align_v
-        self.shader       = gpu.shader.from_builtin('IMAGE')
+        self.opacity      = max(0.0, min(1.0, opacity))  # Clamp between 0 and 1
+        self.shader       = get_image_shader_with_opacity()  # Use shared shader
         self.batch        = None
         self._create_batch()
     
@@ -155,7 +205,11 @@ class ImageInstance:
         self.aspect_ratio = new_aspect_ratio
         self._trigger_redraw()
     
-    def update_all(self, image_name=None, size=None, pos=None, mask=None, aspect_ratio=None, align_h=None, align_v=None):
+    def update_opacity(self, new_opacity):
+        self.opacity = max(0.0, min(1.0, new_opacity))
+        self._trigger_redraw()
+    
+    def update_all(self, image_name=None, size=None, pos=None, mask=None, aspect_ratio=None, align_h=None, align_v=None, opacity=None):
         if image_name is not None and image_name in image_manager.get_available_images():
             self.image_name = image_name
             self.texture = image_manager.get_texture(image_name)
@@ -172,6 +226,8 @@ class ImageInstance:
             self.align_h = align_h
         if align_v is not None:
             self.align_v = align_v
+        if opacity is not None:
+            self.opacity = max(0.0, min(1.0, opacity))
         self._trigger_redraw()
     
     def _trigger_redraw(self):
@@ -236,6 +292,7 @@ def draw_all_images():
         
         instance.shader.bind()
         instance.shader.uniform_sampler("image", instance.texture)
+        instance.shader.uniform_float("opacity", instance.opacity)
         
         gpu.matrix.push_projection()
         gpu.matrix.load_projection_matrix(matrix)
@@ -282,6 +339,7 @@ class DrawImageOP(bpy.types.Operator):
         items=[('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
         default='TOP'
     )
+    opacity     : bpy.props.FloatProperty(name="Opacity", default=1.0, min=0.0, max=1.0)
     
     def execute(self, context):
         global _draw_handle, _image_instances
@@ -298,7 +356,8 @@ class DrawImageOP(bpy.types.Operator):
             mask=mask,
             aspect_ratio=self.aspect_ratio,
             align_h=self.align_h,
-            align_v=self.align_v
+            align_v=self.align_v,
+            opacity=self.opacity
         )
         _image_instances.append(new_instance)
         
@@ -395,6 +454,7 @@ class UpdateImageOP(bpy.types.Operator):
         items=[('__NOCHANGE__', 'No Change', ''), ('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
         default='__NOCHANGE__'
     )
+    opacity: bpy.props.FloatProperty(name="Opacity", default=-1.0, min=-1.0, max=1.0)  # -1 = no change
     
     def execute(self, context):
         for instance in _image_instances:
@@ -444,6 +504,10 @@ class UpdateImageOP(bpy.types.Operator):
                 if self.align_v != '__NOCHANGE__':
                     kwargs['align_v'] = self.align_v
                 
+                # Check opacity
+                if self.opacity != -1.0:
+                    kwargs['opacity'] = max(0.0, min(1.0, self.opacity))
+                
                 if kwargs:
                     instance.update_all(**kwargs)
                     updated_props = list(kwargs.keys())
@@ -473,7 +537,7 @@ def register():
     bpy.utils.register_class(UpdateImageOP)
 
 def unregister():
-    global _draw_handle, _image_instances, image_manager
+    global _draw_handle, _image_instances, image_manager, _image_shader_with_opacity
     
     # Force clear all image instances
     _image_instances.clear()
@@ -481,6 +545,9 @@ def unregister():
     if _draw_handle is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
+    
+    # Clear the cached shader
+    _image_shader_with_opacity = None
     
     # Unload images and reset the singleton
     ImageManager.reset_instance()

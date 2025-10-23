@@ -1,7 +1,16 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import os
 import re
 import yaml
-import math
 
 from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
@@ -12,91 +21,15 @@ from stretchable.style.props import AlignItems, JustifyContent
 from stretchable.style.props import Display, Position
 from stretchable.style.geometry.rect import RectPointsPercent
 from stretchable.style.geometry.length import LengthPointsPercent
-from tinycss2 import ast
-from tinycss2 import parse_stylesheet, parse_declaration_list
-from textual.color import Color
 
 from .components.container import Container
 from .components.style import Style
-from .scss_compiler import SCSSCompiler
+from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler, ColorProcessor
 
 node_flat = {}
 node_flat_abs = {}
 
-def gamma_correct(value):
-    return math.pow(value, 2.2)
-
-def apply_gamma_correction(r, g, b, a):
-    return [
-        gamma_correct(r),
-        gamma_correct(g),
-        gamma_correct(b),
-        a 
-    ]
-
-class CSSParser:
-    def __init__(self):
-        self.styles = {}
-        self.variables = {}
-    
-    def _extract_variables(self, styles):
-        variables = {}
-        for selector, declarations in styles.items():
-            for prop, value in declarations.items():
-                if prop.startswith('--'):
-                    variables[prop] = value
-        return variables
-    
-    def _resolve_variables(self, value, variables, visited=None):
-        import re
-        if visited is None:
-            visited = set()
-        
-        var_pattern = r'var\(([^)]+)\)'
-        
-        def replace_var(match):
-            var_name = match.group(1).strip()
-            if var_name in visited:
-                return match.group(0)
-            if var_name in variables:
-                new_visited = visited.copy()
-                new_visited.add(var_name)
-                resolved_value = variables[var_name]
-                result = self._resolve_variables(resolved_value, variables, new_visited)
-                return result
-            return match.group(0)
-        
-        resolved = re.sub(var_pattern, replace_var, value)
-        resolved = ' '.join(resolved.split())
-        return resolved
-    
-    def parse(self, css_string):
-        self.styles = {}
-        rules = parse_stylesheet(css_string)
-        
-        for rule in rules:
-            if hasattr(rule, 'content'):
-                selector = ''.join(token.serialize() for token in rule.prelude).strip()
-                declarations = {}
-                
-                content_str = ''.join(token.serialize() for token in rule.content)
-                decl_list = parse_declaration_list(content_str)
-                
-                for decl in decl_list:
-                    if isinstance(decl, ast.Declaration):
-                        value = ''.join(token.serialize() for token in decl.value).strip()
-                        declarations[decl.name] = value
-                
-                self.styles[selector] = declarations
-        
-        self.variables = self._extract_variables(self.styles)
-        
-        for selector, declarations in self.styles.items():
-            for prop, value in declarations.items():
-                if not prop.startswith('--'):
-                    self.styles[selector][prop] = self._resolve_variables(value, self.variables)
-        
-        return self.styles
+color_processor = ColorProcessor()
 
 class Settings():
     def __init__(self):
@@ -143,36 +76,69 @@ class UI():
         return data
     
     def parse_toml(self, path=None, base_dir=None):
-        data     = self.load_conf_file(path)
-        ui_data  = data.get('app', {})
-        theme    = ui_data['theme']
-
-        self.selected_theme        = ui_data['selected_theme']
-        self.default_theme         = ui_data['default_theme']
-
-        self.theme_index = -1
-        for _theme_ in theme:
-            if _theme_['name'] == self.selected_theme:
-                self.theme_index = theme.index(_theme_)
-                break
-        if self.theme_index == -1:
+        from .space_config import get_parsed_config
+        
+        space_config = get_parsed_config()
+        if space_config and space_config.theme_data:
+            theme_data = space_config.theme_data
+            
+            self.selected_theme = theme_data.name
+            self.default_theme = theme_data.name
+            self.theme_index = 0
+            
+            self.theme.name = theme_data.name
+            self.theme.author = theme_data.author
+            self.theme.version = theme_data.version
+            self.theme.scripts = theme_data.scripts
+            self.theme.style_files = theme_data.styles
+            self.theme.default_font = theme_data.default_font
+            self.theme.components = theme_data.components
+            
+            data = self.load_conf_file(path)
+            ui_data = data.get('app', {})
+            theme = ui_data['theme']
+            
+            selected_theme = None
             for _theme_ in theme:
-                if _theme_['name'] == self.default_theme:
+                if _theme_['name'] == theme_data.name:
+                    selected_theme = _theme_
+                    break
+            
+            if selected_theme:
+                root = selected_theme['root']
+            else:
+                root = {}
+        else:
+            data = self.load_conf_file(path)
+            ui_data = data.get('app', {})
+            theme = ui_data['theme']
+
+            self.selected_theme = ui_data['selected_theme']
+            self.default_theme = ui_data['default_theme']
+
+            self.theme_index = -1
+            for _theme_ in theme:
+                if _theme_['name'] == self.selected_theme:
                     self.theme_index = theme.index(_theme_)
                     break
-        if self.theme_index == -1:
-            self.theme_index   = 0
-            self.default_theme = theme[0]['name']
+            if self.theme_index == -1:
+                for _theme_ in theme:
+                    if _theme_['name'] == self.default_theme:
+                        self.theme_index = theme.index(_theme_)
+                        break
+            if self.theme_index == -1:
+                self.theme_index = 0
+                self.default_theme = theme[0]['name']
 
-        root = ui_data['theme'][self.theme_index]['root']
+            root = ui_data['theme'][self.theme_index]['root']
 
-        self.theme.name         = theme[self.theme_index]['name']
-        self.theme.author       = theme[self.theme_index]['author']
-        self.theme.version      = theme[self.theme_index]['version']
-        self.theme.scripts      = theme[self.theme_index]['scripts']
-        self.theme.style_files  = theme[self.theme_index]['styles']
-        self.theme.default_font = theme[self.theme_index]['default_font']
-        self.theme.components   = theme[self.theme_index]['components']
+            self.theme.name = theme[self.theme_index]['name']
+            self.theme.author = theme[self.theme_index]['author']
+            self.theme.version = theme[self.theme_index]['version']
+            self.theme.scripts = theme[self.theme_index]['scripts']
+            self.theme.style_files = theme[self.theme_index]['styles']
+            self.theme.default_font = theme[self.theme_index]['default_font']
+            self.theme.components = theme[self.theme_index]['components']
 
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
@@ -314,7 +280,7 @@ class UI():
         float_props = [
             'border_radius', 'border_width',
             'text_scale', 'text_x', 'text_y',
-            'box_shadow_blur'
+            'box_shadow_blur', 'img_opacity'
             ]
 
         rotation_props = [
@@ -335,9 +301,12 @@ class UI():
             ]
 
         if attr_name in color_props:
-            value_color = Color.parse(attr_value)
-            srgb_normalized = [value_color.r / 255.0, value_color.g / 255.0, value_color.b / 255.0, value_color.a]
-            attr_value = apply_gamma_correction(*srgb_normalized)
+            try:
+                attr_value = color_processor.parse_color(attr_value)
+            except Exception as e:
+                print(f"⚠️  Color parsing failed for '{attr_name}' = '{attr_value}': {e}")
+                print(f"   Using default black color")
+                attr_value = [0.0, 0.0, 0.0, 1.0]
 
         elif attr_name in float_props:
             attr_value = float(attr_value.replace('px', '').strip())
@@ -444,6 +413,8 @@ class UI():
                 'height' : edge_used_abs.height
             }
             
+            container._layout_node = node
+            
             for i, _container in enumerate(container.children):
                 get_all_nodes(_container, node[i])
 
@@ -470,7 +441,6 @@ class UI():
             if hasattr(container.style, 'padding') and isinstance(container.style.padding, str):
                 padding_str = container.style.padding.strip().lower()
                 if 'calc(' not in padding_str:
-                    # Split on whitespace - this handles multiple spaces correctly
                     values = padding_str.split()
                     if len(values) == 1:
                         val = parse_css_value(values[0])
@@ -504,7 +474,6 @@ class UI():
             if hasattr(container.style, 'margin') and isinstance(container.style.margin, str):
                 margin_str = container.style.margin.strip().lower()
                 if 'calc(' not in margin_str:
-                    # Split on whitespace - this handles multiple spaces correctly
                     values = margin_str.split()
                     
                     if len(values) == 1:
@@ -684,7 +653,6 @@ class UI():
         get_all_nodes(self.theme.root, self.root_node)
 
     def recompute_layout(self, canvas_size):
-        """Recompute layout with new canvas size and regenerate flattened data"""
         global node_flat, node_flat_abs
         
         node_flat.clear()
@@ -696,11 +664,6 @@ class UI():
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
-            content_box    = node.get_box(Edge.CONTENT, relative=True)
-            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
-            padding_box    = node.get_box(Edge.PADDING, relative=True)
-            margin_box     = node.get_box(Edge.MARGIN, relative=True)
-            margin_box_abs = node.get_box(Edge.MARGIN, relative=False)
             
             edge_used, edge_used_abs = border_box, border_box_abs
 
@@ -730,149 +693,68 @@ class UI():
         return self.abs_json_data
 
     def flatten_node_tree(self):
-        container_id_to_index = {}
-
-        container_id_to_index[self.theme.root.id] = 0
-
-        def get_indices(container):
-            for container in container.children:
-                container_id_to_index[container.id] = len(container_id_to_index)
-                get_indices(container)
-
-        get_indices(self.theme.root)
-
-        def flatten_conts(container):
-            x = y = width = height = 0
-            node         = node_flat.get(container.id)
-            parent_index = -1
-            if container.parent and container.parent.id in container_id_to_index:
-                parent_index = container_id_to_index[container.parent.id]
-            if node:
-                x, y          = node['x'], node['y']
-                width, height = node['width'], node['height']
-                overflow_value = False if container.style.overflow == 'HIDDEN' else True
-                container_data = {
-                    "id"                       : container.id,
-                    "style"                    : container.style.id,
-                    "display"                  : True if container.style.display != Display.NONE else False,
-                    "overflow"                 : overflow_value,
-                    "data"                     : container.data,
-                    "img"                      : container.img,
-                    "aspect_ratio"             : container.style.aspect_ratio,
-                    "text"                     : container.text,
-                    "font"                     : container.font,
-                    "position"                 : [x, y],
-                    "size"                     : [width, height],
-                    "color"                    : list(container.style.color),
-                    "color_1"                  : list(container.style.color_1),
-                    "color_gradient_rot"       : container.style.color_gradient_rot,
-                    "hover_color"              : list(container.style.hover_color),
-                    "hover_color_1"            : list(container.style.hover_color_1),
-                    "hover_color_gradient_rot" : container.style.hover_color_gradient_rot,
-                    "click_color"              : list(container.style.click_color),
-                    "click_color_1"            : list(container.style.click_color_1),
-                    "click_color_gradient_rot" : container.style.click_color_gradient_rot,
-                    "border_color"             : list(container.style.border_color),
-                    "border_color_1"           : list(container.style.border_color_1),
-                    "border_color_gradient_rot": container.style.border_color_gradient_rot,
-                    "border_radius"            : container.style.border_radius,
-                    "border_width"             : container.style.border_width,
-                    "text_color"               : list(container.style.text_color),
-                    "text_color_1"             : list(container.style.text_color_1),
-                    "text_color_gradient_rot"  : container.style.text_color_gradient_rot,
-                    "text_scale"               : container.style.text_scale,
-                    "text_x"                   : container.style.text_x,
-                    "text_y"                   : container.style.text_y,
-                    "box_shadow_color"         : list(container.style.box_shadow_color),
-                    "box_shadow_offset"        : list(container.style.box_shadow_offset),
-                    "box_shadow_blur"          : container.style.box_shadow_blur,
-                    "parent"                   : parent_index,
-                    "passive"                  : container.passive,
-                    "children"                 : [container_id_to_index[child.id] for child in container.children] if container.children else [],
-                    "click"                    : container.click,
-                    "toggle"                   : container.toggle,
-                    "scroll"                   : container.scroll,
-                    "_scroll_value"            : container._scroll_value,
-                    "hover"                    : container.hover,
-                    "hoverout"                 : container.hoverout,
-                    "_clicked"                 : False,
-                    "_prev_clicked"            : False,
-                    "_toggle_value"            : False,
-                    "_toggled"                 : False,
-                    "_prev_toggled"            : False,
-                    "_hovered"                 : False,
-                    "_prev_hovered"            : False
-                }
-                self.json_data.append(container_data)
-            for child in container.children:
-                flatten_conts(child)
-
-        flatten_conts(self.theme.root)
-
-        def flatten_conts_abs(container):
-            x = y = width = height = 0
-            node         = node_flat_abs.get(container.id)
-            parent_index = -1
-            if container.parent and container.parent.id in container_id_to_index:
-                parent_index = container_id_to_index[container.parent.id]
-            if node:
-                x, y          = node['x'], node['y']
-                width, height = node['width'], node['height']
-                container_data = {
-                    "id"                       : container.id,
-                    "style"                    : container.style.id,
-                    "display"                  : True if container.style.display != Display.NONE else False,
-                    "overflow"                 : False if container.style.overflow == 'HIDDEN' else True,
-                    "data"                     : container.data,
-                    "img"                      : container.img,
-                    "aspect_ratio"             : container.style.aspect_ratio,
-                    "text"                     : container.text,
-                    "font"                     : container.font,
-                    "position"                 : [x, y],
-                    "size"                     : [width, height],
-                    "color"                    : list(container.style.color),
-                    "color_1"                  : list(container.style.color_1),
-                    "color_gradient_rot"       : container.style.color_gradient_rot,
-                    "hover_color"              : list(container.style.hover_color),
-                    "hover_color_1"            : list(container.style.hover_color_1),
-                    "hover_color_gradient_rot" : container.style.hover_color_gradient_rot,
-                    "click_color"              : list(container.style.click_color),
-                    "click_color_1"            : list(container.style.click_color_1),
-                    "click_color_gradient_rot" : container.style.click_color_gradient_rot,
-                    "border_color"             : list(container.style.border_color),
-                    "border_color_1"           : list(container.style.border_color_1),
-                    "border_color_gradient_rot": container.style.border_color_gradient_rot,
-                    "border_radius"            : container.style.border_radius,
-                    "border_width"             : container.style.border_width,
-                    "text_color"               : list(container.style.text_color),
-                    "text_color_1"             : list(container.style.text_color_1),
-                    "text_color_gradient_rot"  : container.style.text_color_gradient_rot,
-                    "text_scale"               : container.style.text_scale,
-                    "text_x"                   : container.style.text_x,
-                    "text_y"                   : container.style.text_y,
-                    "box_shadow_color"         : list(container.style.box_shadow_color),
-                    "box_shadow_offset"        : list(container.style.box_shadow_offset),
-                    "box_shadow_blur"          : container.style.box_shadow_blur,
-                    "parent"                   : parent_index,
-                    "passive"                  : container.passive,
-                    "children"                 : [container_id_to_index[child.id] for child in container.children] if container.children else [],
-                    "click"                    : container.click,
-                    "toggle"                   : container.toggle,
-                    "scroll"                   : container.scroll,
-                    "_scroll_value"            : container._scroll_value,
-                    "hover"                    : container.hover,
-                    "hoverout"                 : container.hoverout,
-                    "_clicked"                 : False,
-                    "_prev_clicked"            : False,
-                    "_toggle_value"            : False,
-                    "_toggled"                 : False,
-                    "_prev_toggled"            : False,
-                    "_hovered"                 : False,
-                    "_prev_hovered"            : False
-                }
-                self.abs_json_data.append(container_data)
-            for child in container.children:
-                flatten_conts_abs(child)
-
-        flatten_conts_abs(self.theme.root)
+        container_processor = ContainerProcessor()
+        
+        container_dict = self._container_to_dict(self.theme.root)
+        
+        self.json_data = container_processor.flatten_tree(container_dict, node_flat)
+        self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
+    
+    def _container_to_dict(self, container):
+        def ensure_string(val):
+            if isinstance(val, str):
+                return val
+            elif hasattr(val, 'name'):
+                return val.name
+            else:
+                return str(val)
+        
+        display_str = ensure_string(container.style.display)
+        overflow_str = ensure_string(container.style.overflow)
+        
+        container_dict = {
+            'id': container.id,
+            'style': {
+                'id': container.style.id if hasattr(container.style, 'id') else '',
+                'display': display_str,
+                'overflow': overflow_str,
+                'color': list(container.style.color),
+                'color_1': list(container.style.color_1),
+                'color_gradient_rot': float(container.style.color_gradient_rot),
+                'hover_color': list(container.style.hover_color),
+                'hover_color_1': list(container.style.hover_color_1),
+                'hover_color_gradient_rot': float(container.style.hover_color_gradient_rot),
+                'click_color': list(container.style.click_color),
+                'click_color_1': list(container.style.click_color_1),
+                'click_color_gradient_rot': float(container.style.click_color_gradient_rot),
+                'border_color': list(container.style.border_color),
+                'border_color_1': list(container.style.border_color_1),
+                'border_color_gradient_rot': float(container.style.border_color_gradient_rot),
+                'border_radius': float(container.style.border_radius),
+                'border_width': float(container.style.border_width),
+                'text_color': list(container.style.text_color),
+                'text_color_1': list(container.style.text_color_1),
+                'text_color_gradient_rot': float(container.style.text_color_gradient_rot),
+                'text_scale': float(container.style.text_scale),
+                'text_x': float(container.style.text_x),
+                'text_y': float(container.style.text_y),
+                'box_shadow_color': list(container.style.box_shadow_color),
+                'box_shadow_offset': list(container.style.box_shadow_offset),
+                'box_shadow_blur': float(container.style.box_shadow_blur),
+                'aspect_ratio': bool(container.style.aspect_ratio),
+            },
+            'data': str(container.data),
+            'img': str(container.img),
+            'text': str(container.text),
+            'font': str(container.font),
+            'passive': bool(container.passive),
+            'click': container.click,
+            'toggle': container.toggle,
+            'scroll': container.scroll,
+            '_scroll_value': float(container._scroll_value),
+            'hover': container.hover,
+            'hoverout': container.hoverout,
+            'children': [self._container_to_dict(child) for child in container.children]
+        }
+        return container_dict
  

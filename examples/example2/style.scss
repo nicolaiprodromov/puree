@@ -1,0 +1,49 @@
+// Example 2 [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
+$transparent: rgba(0,0,0,0);
+
+.root {
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    width          : 100%;
+    height         : 100%;
+    color          : $transparent;
+}
+
+.playground{
+    width : 100%;
+    height: 100%;
+    color : $transparent;
+}
+
+.vizor{
+    position     : absolute;
+    width        : 300px;
+    height       : 300px;
+    color        : $transparent;
+    border-color : rgb(18, 18, 18);
+    border-width : 7px;
+    border-radius: 5px;
+}
+
+.vizor_text{
+    width       : 300px;
+    height      : 30px;
+    position    : absolute;
+    color       : $transparent;
+    text-scale  : 30px;
+    text-align-h: left;
+    text-align-v: center;
+    margin-top  : -45px;
+}

@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import bpy
 import blf
 import time
@@ -377,7 +387,7 @@ def draw_all_text_inputs():
 
 class KeyboardHandler(bpy.types.Operator):
     bl_idname = "xwz.text_input_keyboard"
-    bl_label = "Text Input Keyboard Handler"
+    bl_label  = "Text Input Keyboard Handler"
     
     def invoke(self, context, event):
         global _keyboard_handler_running
@@ -507,19 +517,19 @@ class CreateTextInputOP(bpy.types.Operator):
     bl_idname = "xwz.create_text_input"
     bl_label = "Create Text Input"
     
-    container_id: bpy.props.StringProperty(name="Container ID", default="root")
-    placeholder: bpy.props.StringProperty(name="Placeholder", default="Type here...")
-    font_name: bpy.props.StringProperty(name="Font Name", default="")
-    size: bpy.props.IntProperty(name="Size", default=20, min=1, max=200)
-    x_pos: bpy.props.IntProperty(name="X Position", default=50)
-    y_pos: bpy.props.IntProperty(name="Y Position", default=50)
-    color: bpy.props.FloatVectorProperty(name="Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0))
-    cursor_color: bpy.props.FloatVectorProperty(name="Cursor Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0))
+    container_id   : bpy.props.StringProperty(name="Container ID", default="root")
+    placeholder    : bpy.props.StringProperty(name="Placeholder", default="Type here...")
+    font_name      : bpy.props.StringProperty(name="Font Name", default="")
+    size           : bpy.props.IntProperty(name="Size", default=20, min=1, max=200)
+    x_pos          : bpy.props.IntProperty(name="X Position", default=50)
+    y_pos          : bpy.props.IntProperty(name="Y Position", default=50)
+    color          : bpy.props.FloatVectorProperty(name="Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0))
+    cursor_color   : bpy.props.FloatVectorProperty(name="Cursor Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0))
     selection_color: bpy.props.FloatVectorProperty(name="Selection Color", subtype='COLOR', size=4, default=(0.3, 0.5, 0.8, 0.3))
-    mask_x: bpy.props.IntProperty(name="Mask X", default=0)
-    mask_y: bpy.props.IntProperty(name="Mask Y", default=0)
-    mask_width: bpy.props.IntProperty(name="Mask Width", default=0)
-    mask_height: bpy.props.IntProperty(name="Mask Height", default=0)
+    mask_x         : bpy.props.IntProperty(name="Mask X", default=0)
+    mask_y         : bpy.props.IntProperty(name="Mask Y", default=0)
+    mask_width     : bpy.props.IntProperty(name="Mask Width", default=0)
+    mask_height    : bpy.props.IntProperty(name="Mask Height", default=0)
     align_h: bpy.props.EnumProperty(
         name="Horizontal Align",
         items=[('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],
@@ -574,7 +584,7 @@ class CreateTextInputOP(bpy.types.Operator):
 
 class RemoveTextInputOP(bpy.types.Operator):
     bl_idname = "xwz.remove_text_input"
-    bl_label = "Remove Text Input"
+    bl_label  = "Remove Text Input"
     
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
     
@@ -620,7 +630,7 @@ class ClearTextInputsOP(bpy.types.Operator):
 
 class FocusTextInputOP(bpy.types.Operator):
     bl_idname = "xwz.focus_text_input"
-    bl_label = "Focus Text Input"
+    bl_label  = "Focus Text Input"
     
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
     
@@ -642,7 +652,7 @@ class FocusTextInputOP(bpy.types.Operator):
 
 class BlurTextInputOP(bpy.types.Operator):
     bl_idname = "xwz.blur_text_input"
-    bl_label = "Blur Text Input"
+    bl_label  = "Blur Text Input"
     
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
     
@@ -660,7 +670,7 @@ class BlurTextInputOP(bpy.types.Operator):
 
 class GetTextInputValueOP(bpy.types.Operator):
     bl_idname = "xwz.get_text_input_value"
-    bl_label = "Get Text Input Value"
+    bl_label  = "Get Text Input Value"
     
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
     
@@ -677,7 +687,7 @@ class GetTextInputValueOP(bpy.types.Operator):
 
 class SetTextInputValueOP(bpy.types.Operator):
     bl_idname = "xwz.set_text_input_value"
-    bl_label = "Set Text Input Value"
+    bl_label  = "Set Text Input Value"
     
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
     text: bpy.props.StringProperty(name="Text", default="")
@@ -698,21 +708,21 @@ class SetTextInputValueOP(bpy.types.Operator):
 
 class UpdateTextInputOP(bpy.types.Operator):
     bl_idname = "xwz.update_text_input"
-    bl_label = "Update Text Input"
+    bl_label  = "Update Text Input"
     
-    instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
-    placeholder: bpy.props.StringProperty(name="Placeholder", default="")
-    font_name: bpy.props.StringProperty(name="Font Name", default="")
-    size: bpy.props.IntProperty(name="Size", default=-1, min=-1, max=200)
-    x_pos: bpy.props.IntProperty(name="X Position", default=-999999)
-    y_pos: bpy.props.IntProperty(name="Y Position", default=-999999)
-    color: bpy.props.FloatVectorProperty(name="Color", subtype='COLOR', size=4, default=(-1, -1, -1, -1))
-    cursor_color: bpy.props.FloatVectorProperty(name="Cursor Color", subtype='COLOR', size=4, default=(-1, -1, -1, -1))
+    instance_id    : bpy.props.IntProperty(name="Instance ID", default=0, min=0)
+    placeholder    : bpy.props.StringProperty(name="Placeholder", default="")
+    font_name      : bpy.props.StringProperty(name="Font Name", default="")
+    size           : bpy.props.IntProperty(name="Size", default=-1, min=-1, max=200)
+    x_pos          : bpy.props.IntProperty(name="X Position", default=-999999)
+    y_pos          : bpy.props.IntProperty(name="Y Position", default=-999999)
+    color          : bpy.props.FloatVectorProperty(name="Color", subtype='COLOR', size=4, default=(-1, -1, -1, -1))
+    cursor_color   : bpy.props.FloatVectorProperty(name="Cursor Color", subtype='COLOR', size=4, default=(-1, -1, -1, -1))
     selection_color: bpy.props.FloatVectorProperty(name="Selection Color", subtype='COLOR', size=4, default=(-1, -1, -1, -1))
-    mask_x: bpy.props.IntProperty(name="Mask X", default=-999999)
-    mask_y: bpy.props.IntProperty(name="Mask Y", default=-999999)
-    mask_width: bpy.props.IntProperty(name="Mask Width", default=-1)
-    mask_height: bpy.props.IntProperty(name="Mask Height", default=-1)
+    mask_x         : bpy.props.IntProperty(name="Mask X", default=-999999)
+    mask_y         : bpy.props.IntProperty(name="Mask Y", default=-999999)
+    mask_width     : bpy.props.IntProperty(name="Mask Width", default=-1)
+    mask_height    : bpy.props.IntProperty(name="Mask Height", default=-1)
     align_h: bpy.props.EnumProperty(
         name="Horizontal Align",
         items=[('__NOCHANGE__', 'No Change', ''), ('LEFT', 'Left', ''), ('CENTER', 'Center', ''), ('RIGHT', 'Right', '')],

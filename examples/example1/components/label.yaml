@@ -1,0 +1,69 @@
+# LABEL COMPONENT [CORE UI VOL. I]
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree/wiki
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
+
+label:
+  style: label
+
+
+  tl_icon_box:
+    style: label_icon_box
+    
+    tl_icon:
+      style: label_icon
+      img: "{{tl_icon_img, 'dial'}}"
+
+  tl_text_box:
+    style: label_text_box
+
+    tl_text:
+      style: label_text
+      text: "{{tl_text_value, 'Label Text'}}"
+      font: "{{tl_font_value, 'NeueMontreal-Regular'}}"
+
+    tl_underline:
+      style: label_underline
+
+
+    tl_description_box:
+      style: label_description_box
+
+      tl_description_icon_box:
+        style: label_description_icon_box
+
+        tl_description_icon:
+          style: label_description_icon
+          img: "{{tl_description_icon_img, 'eye_on'}}"
+
+      tl_desp_box:
+        style: label_desp_box
+
+        tl_description:
+          style: label_description
+          text: "{{tl_description_value, 'This is a longer label description.'}}"
+          font: "{{tl_description_font_value, 'NeueMontreal-Regular'}}"
+      
+        tl_tags_box:
+          style: label_tags_box
+
+          tl_tags_box1:
+            style: label_tags_box_inner
+            tl_tag1:
+              style: label_tag
+              text: "{{tl_tag1_value, 'Tag 1'}}"
+              font: "{{tl_tag1_font_value, 'NeueMontreal-Italic'}}"
+          
+          tl_tags_box2:
+            style: label_tags_box_inner
+            tl_tag2:
+              style: label_tag
+              text: "{{tl_tag2_value, 'Tag 2'}}"
+              font: "{{tl_tag2_font_value, 'NeueMontreal-Italic'}}"

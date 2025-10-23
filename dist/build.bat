@@ -1,3 +1,13 @@
+@REM Created by XWZ
+@REM ◕‿◕ Distributed for free at:
+@REM https://github.com/nicolaiprodromov/puree
+@REM ╔═════════════════════════════════╗
+@REM ║  ██   ██  ██      ██  ████████  ║
+@REM ║   ██ ██   ██  ██  ██       ██   ║
+@REM ║    ███    ██  ██  ██     ██     ║
+@REM ║   ██ ██   ██  ██  ██   ██       ║
+@REM ║  ██   ██   ████████   ████████  ║
+@REM ╚═════════════════════════════════╝
 @echo off
 setlocal enabledelayedexpansion
 
@@ -5,9 +15,7 @@ set build_dir=%cd%
 cd /d "%~dp0\.."
 set addon_dir=%cd%
 
-echo Working from: %addon_dir%
-
-echo Searching for Blender installation...
+echo working from: %addon_dir%
 
 set "blender_exe="
 set "latest_version="
@@ -79,7 +87,7 @@ pause
 exit /b 1
 
 :found_blender
-echo Found Blender %latest_version% at: %blender_exe%
+echo %latest_version% at: %blender_exe%
 
 for /f "usebackq tokens=1* delims==" %%a in (`findstr /r "^name" blender_manifest.toml`) do (
     set "addon_name=%%b"
@@ -95,28 +103,24 @@ for /f "usebackq tokens=1* delims==" %%a in (`findstr /r "^version" blender_mani
 
 set addon_name=%addon_name: =_%
 
-echo Building addon: %addon_name% version %version%
+echo building: %addon_name% version %version%
 
 if not exist "%addon_dir%\dist" mkdir "%addon_dir%\dist"
 
-echo Cleaning up old zip files...
 del /q "%addon_dir%\dist\*.zip" 2>nul
 
 set output_file=%addon_dir%\dist\%addon_name%_%version%.zip
 
-echo Building extension using Blender %latest_version%...
 "%blender_exe%" --background --command extension build --source-dir "%addon_dir%" --output-filepath "%output_file%"
 
 if exist "%output_file%" (
-    echo.
+    echo ---------------------
     echo Build successful!
     echo Output: %output_file%
 ) else (
-    echo.
+    echo ---------------------
     echo Build failed!
     exit /b 1
 )
 
 cd /d "%build_dir%"
-
-echo.
