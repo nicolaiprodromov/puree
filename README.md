@@ -60,23 +60,17 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 <video src="docs/images/example1.mp4" controls width="100%">
 </video>
 
-^
-
-*Example usage with hot reload for fast iterations*
+[*Example usage with hot reload for fast iterations*](https://youtu.be/moDWxOJ27fE?si=tnEKvIn6RMQNcraj)
 
 <video src="docs/images/example2.mp4" controls width="100%">
 </video>
 
-^
-
-*Slightly more complex interface*
+[*Slightly more complex interface*](https://youtu.be/9Xn1MqDesqQ?si=nvzfTDF6uEu73VLC)
 
 <video src="docs/images/example3.mp4" controls width="100%">
 </video>
 
-^
-
-*Scene object tracking example*
+[*Scene object tracking example*](https://youtu.be/43_a7iXoEj4?si=DoZpDfxBQ6YlxP_u)
 
 </div>
 
