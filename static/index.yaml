@@ -6,7 +6,7 @@ app:
       author: xwz
       version: 1.0.0
 
-      space: NODE_EDITOR
+      space: VIEW_3D
 
       default_font: NeueMontreal-Regular
 
@@ -20,4 +20,4 @@ app:
         style: root
         test_box:
           style: test_box
-        
+          text : Red Box
