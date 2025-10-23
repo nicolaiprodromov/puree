@@ -57,21 +57,21 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 
 <div align="center">
 
-<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example1.mp4" controls width="100%">
+<video src="docs/images/example1.mp4" controls width="100%">
 </video>
 
 ^
 
 *Example usage with hot reload for fast iterations*
 
-<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example2.mp4" controls width="100%">
+<video src="docs/images/example2.mp4" controls width="100%">
 </video>
 
 ^
 
 *Slightly more complex interface*
 
-<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example3.mp4" controls width="100%">
+<video src="docs/images/example3.mp4" controls width="100%">
 </video>
 
 ^
@@ -86,7 +86,7 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 
 Here's a short tutorial to get you started with Puree:
 
-<video src="https://raw.githubusercontent.com/nicolaiprodromov/puree/refs/heads/master/docs/images/example4.mp4" controls width="50%">
+<video src="docs/images/example4.mp4" controls width="50%">
 </video>
 
 > [!IMPORTANT]

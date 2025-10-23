@@ -18,7 +18,7 @@ def update_version(version):
     pyproject_path  = 'pyproject.toml'
     cargo_toml_path = 'puree/puree_core/Cargo.toml'
     
-    with open(manifest_path, 'r') as f:
+    with open(manifest_path, 'r', encoding='utf-8') as f:
         manifest_content = f.read()
     
     manifest_content = re.sub(
@@ -34,10 +34,10 @@ def update_version(version):
         manifest_content
     )
     
-    with open(manifest_path, 'w') as f:
+    with open(manifest_path, 'w', encoding='utf-8') as f:
         f.write(manifest_content)
     
-    with open(init_path, 'r') as f:
+    with open(init_path, 'r', encoding='utf-8') as f:
         init_content = f.read()
     
     version_tuple = '(' + ', '.join(version.split('.')) + ')'
@@ -47,10 +47,10 @@ def update_version(version):
         init_content
     )
     
-    with open(init_path, 'w') as f:
+    with open(init_path, 'w', encoding='utf-8') as f:
         f.write(init_content)
     
-    with open(setup_path, 'r') as f:
+    with open(setup_path, 'r', encoding='utf-8') as f:
         setup_content = f.read()
     
     setup_content = re.sub(
@@ -59,10 +59,10 @@ def update_version(version):
         setup_content
     )
     
-    with open(setup_path, 'w') as f:
+    with open(setup_path, 'w', encoding='utf-8') as f:
         f.write(setup_content)
     
-    with open(pyproject_path, 'r') as f:
+    with open(pyproject_path, 'r', encoding='utf-8') as f:
         pyproject_content = f.read()
     
     pyproject_content = re.sub(
@@ -72,10 +72,10 @@ def update_version(version):
         flags=re.MULTILINE
     )
     
-    with open(pyproject_path, 'w') as f:
+    with open(pyproject_path, 'w', encoding='utf-8') as f:
         f.write(pyproject_content)
     
-    with open(cargo_toml_path, 'r') as f:
+    with open(cargo_toml_path, 'r', encoding='utf-8') as f:
         cargo_content = f.read()
     
     cargo_content = re.sub(
@@ -85,7 +85,7 @@ def update_version(version):
         flags=re.MULTILINE
     )
     
-    with open(cargo_toml_path, 'w') as f:
+    with open(cargo_toml_path, 'w', encoding='utf-8') as f:
         f.write(cargo_content)
     
     print(f"Version updated to {version} in all files")
