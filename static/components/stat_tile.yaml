@@ -1,0 +1,22 @@
+stat_tile:
+  style: stat_tile
+
+  stat_tile_head:
+    style: stat_tile_head
+
+    stat_tile_label:
+      style: stat_tile_label
+      text: "{{stat_label, 'Signal'}}"
+      font: "{{stat_label_font, 'NeueMontreal-Regular'}}"
+      passive: true
+
+    stat_tile_icon:
+      style: stat_tile_icon
+      img: "{{stat_icon, 'dial'}}"
+      passive: true
+
+  stat_tile_value:
+    style: stat_tile_value
+    text: "{{stat_value, '01'}}"
+    font: "{{stat_value_font, 'NeueMontreal-BoldItalic'}}"
+    passive: true

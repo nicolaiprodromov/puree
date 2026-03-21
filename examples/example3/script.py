@@ -54,6 +54,11 @@ def main(self, app):
         target.text = value
         target.mark_dirty()
 
+    def get_toggle_value(container):
+        if isinstance(container, dict):
+            return container.get('_toggle_value', False) is True
+        return getattr(container, '_toggle_value', False) is True
+
     def update_spotlight_text():
         if state['spotlight_on']:
             set_text('spotlight_toggle_action_chip_label', 'Spotlight on')
@@ -103,7 +108,7 @@ def main(self, app):
         apply_mode('runtime')
 
     def toggle_spotlight(container):
-        state['spotlight_on'] = container['_toggle_value'] is True
+        state['spotlight_on'] = get_toggle_value(container)
 
         if state['spotlight_on']:
             set_text('spotlight_title', 'The spotlight layer pushes the interface into showcase mode.')

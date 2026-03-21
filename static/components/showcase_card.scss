@@ -1,0 +1,95 @@
+$card_bg: rgba(14, 19, 30, 0.9) !default;
+$card_bg1: rgba(17, 33, 52, 0.92) !default;
+$card_border: rgba(255, 255, 255, 0.08) !default;
+$card_tag_bg: rgba(107, 172, 255, 0.14) !default;
+$card_tag_text: rgba(217, 233, 255, 0.92) !default;
+$card_title_color: #f4f7ff !default;
+$card_body_color: rgba(214, 225, 244, 0.72) !default;
+$card_metric_color: rgba(244, 247, 255, 0.9) !default;
+
+.showcase_card {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    background-color: $card_bg;
+    color-1: $card_bg1;
+    color-gradient-rot: 145deg;
+    border-width: 1px;
+    border-color: $card_border;
+    border-radius: 22px;
+
+    &:hover {
+        background-color: rgba(18, 24, 38, 0.96);
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+}
+
+.showcase_card_tag {
+    width: 82px;
+    height: 24px;
+    margin-bottom: 12px;
+    background-color: $card_tag_bg;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    text-color: $card_tag_text;
+    text-scale: 11px;
+    text-align-h: center;
+    text-align-v: center;
+}
+
+.showcase_card_title {
+    width: 100%;
+    height: 34px;
+    margin-bottom: 10px;
+    background-color: transparent;
+    text-color: $card_title_color;
+    text-scale: 15px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.showcase_card_body {
+    width: 100%;
+    height: 32px;
+    margin-bottom: 12px;
+    background-color: transparent;
+    text-color: $card_body_color;
+    text-scale: 12px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.showcase_card_footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 16px;
+    background-color: transparent;
+}
+
+.showcase_card_icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    background-color: transparent;
+    img-align-h: center;
+    img-align-v: center;
+    img-opacity: 0.82;
+}
+
+.showcase_card_metric {
+    width: 140px;
+    height: 100%;
+    background-color: transparent;
+    text-color: $card_metric_color;
+    text-scale: 11px;
+    text-align-h: left;
+    text-align-v: center;
+}

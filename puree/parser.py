@@ -176,7 +176,7 @@ class UI():
                         component_params = {}
                         for param_name, param_value in attr_value.items():
                             if not isinstance(param_value, dict) and param_name != 'data':
-                                component_params[param_name] = param_value
+                                component_params[param_name] = str(param_value)
                         
                         for root, dirs, files in os.walk(component_dir):
                             for filename in files:

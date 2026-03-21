@@ -1,0 +1,27 @@
+input_shell:
+  style: input_shell
+
+  input_shell_label_row:
+    style: input_shell_label_row
+
+    input_shell_icon:
+      style: input_shell_icon
+      img: "{{input_icon, 'user'}}"
+      passive: true
+
+    input_shell_label:
+      style: input_shell_label
+      text: "{{input_label, 'Prompt'}}"
+      font: "{{input_label_font, 'NeueMontreal-Bold'}}"
+      passive: true
+
+  input_shell_box:
+    style: input_shell_box
+    data: "<INPUT>|{{input_placeholder, 'Type here...'}}"
+    font: "{{input_font, 'NeueMontreal-Regular'}}"
+
+  input_shell_footer:
+    style: input_shell_footer
+    text: "{{input_footer, 'Interactive input is part of the same UI surface.'}}"
+    font: "{{input_footer_font, 'NeueMontreal-Italic'}}"
+    passive: true
