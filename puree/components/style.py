@@ -18,7 +18,7 @@ class Style():
         self.width  : float = 0.0
         self.height : float = 0.0
 
-        self.color              : List[float] = [0.0, 0.0, 0.0, 1.0]
+        self.color              : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.color_1            : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.color_gradient_rot : float       = 0.0
         

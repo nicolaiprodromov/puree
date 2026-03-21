@@ -153,6 +153,8 @@ class UI():
                         child_container.id = attr_name
                     else:
                         child_container.id = f"{parent_container.id}_{attr_name}"
+                    # Always add YAML key as a class so CSS can target it
+                    child_container.classes = [attr_name]
                     child_container.parent = parent_container
                     parent_container.children.append(child_container)
                     
@@ -363,8 +365,11 @@ class UI():
         # Populate classes from style attribute before cascade
         def populate_classes(container):
             if hasattr(container, 'style') and container.style and isinstance(container.style, str):
+                style_class = container.style
                 if not container.classes:
-                    container.classes = [container.style]
+                    container.classes = [style_class]
+                elif style_class not in container.classes:
+                    container.classes.append(style_class)
             for child in container.children:
                 populate_classes(child)
         populate_classes(self.theme.root)
