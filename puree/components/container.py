@@ -17,8 +17,9 @@ class Container():
         self.parent   : Optional[Container]       = []
         self.children : Optional[List[Container]] = []
 
-        self.style : Optional[str] = ""
-        self.data  : Optional[str] = ""
+        self.style   : Optional[str] = ""
+        self.classes : List[str]     = []
+        self.data    : Optional[str] = ""
         self.img   : Optional[str] = ""
         self.text  : Optional[str] = ""
         self.font  : Optional[str] = ""

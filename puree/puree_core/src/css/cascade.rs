@@ -43,10 +43,12 @@ const INHERITED_PROPERTIES: &[&str] = &["text-color", "text-scale", "text-align-
 
 fn map_property_name(css_name: &str) -> &str {
     match css_name {
-        "color" => "text-color",
+        // Only map unambiguous standard CSS names that don't exist in puree
         "background-color" => "color",
         "font-size" => "text-scale",
         "text-align" => "text-align-h",
+        // `color` is intentionally NOT remapped — in puree it means background fill,
+        // and existing SCSS uses it that way. Users use `text-color` explicitly.
         _ => css_name,
     }
 }

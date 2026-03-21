@@ -24,7 +24,7 @@ from stretchable.style.geometry.length import LengthPointsPercent
 
 from .components.container import Container
 from .components.style import Style
-from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler, ColorProcessor
+from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler, ColorProcessor, CSSCascade
 
 node_flat = {}
 node_flat_abs = {}
@@ -156,7 +156,13 @@ class UI():
                     
                     for child_attr_name, child_attr_value in attr_value.items():
                         if not isinstance(child_attr_value, dict):
-                            if hasattr(child_container, child_attr_name):
+                            if child_attr_name == 'class':
+                                # Support class: "foo bar" as space-separated class list
+                                if isinstance(child_attr_value, str):
+                                    child_container.classes = child_attr_value.split()
+                                elif isinstance(child_attr_value, list):
+                                    child_container.classes = child_attr_value
+                            elif hasattr(child_container, child_attr_name):
                                 if not (child_attr_name == 'data' and has_component_data):
                                     setattr(child_container, child_attr_name.replace('-', '_'), child_attr_value)
                     
@@ -347,6 +353,8 @@ class UI():
                     style_str += f.read()
         
         css_string = style_str
+
+        # ── Legacy path: parse CSS into named Style objects ──────────
         parser = CSSParser()
         styles = parser.parse(css_string)
         for selector, declarations in styles.items():
@@ -357,10 +365,14 @@ class UI():
                 attr_name, attr_value = self.parse_container_props_from_style(prop, value)
                 setattr(style_obj, attr_name, attr_value)
             self.theme.styles.__dict__[selector_clean] = style_obj
+
         def apply_styles_to_containers(container):
+            # Populate classes from style attribute for cascade matching
             if hasattr(container, 'style') and container.style:
                 style_name = container.style
                 if isinstance(style_name, str):
+                    if not container.classes:
+                        container.classes = [style_name]
                     if hasattr(self.theme.styles, style_name):
                         original_style = getattr(self.theme.styles, style_name)
                         style_copy = Style()
@@ -386,6 +398,91 @@ class UI():
             for child in container.children:
                 apply_styles_to_containers(child)
         apply_styles_to_containers(self.theme.root)
+
+        # ── Cascade path: resolve CSS selectors against container tree ──
+        self._apply_cascade(css_string)
+
+    def _build_container_list(self):
+        """Build flat list of containers with parent indices for CSSCascade."""
+        flat = []
+        index_map = {}
+
+        def walk(container, parent_idx):
+            idx = len(flat)
+            index_map[container.id] = idx
+            classes = list(container.classes) if container.classes else []
+            # Legacy: treat `style` string as a CSS class
+            if hasattr(container, 'style') and isinstance(container.style, str) and container.style:
+                if container.style not in classes:
+                    classes.append(container.style)
+            flat.append({
+                "id": container.id,
+                "classes": classes,
+                "parent_idx": parent_idx
+            })
+            for child in container.children:
+                walk(child, idx)
+
+        walk(self.theme.root, -1)
+        return flat, index_map
+
+    def _apply_cascade(self, css_string):
+        """Run CSSCascade resolver and apply results to container Style objects."""
+        try:
+            cascade = CSSCascade()
+            cascade.parse_css(css_string)
+        except Exception as e:
+            print(f"⚠️  CSSCascade parse_css failed: {e}")
+            return
+
+        flat_containers, index_map = self._build_container_list()
+        if not flat_containers:
+            return
+
+        for state in ("normal", "hover", "active"):
+            try:
+                resolved = cascade.resolve(flat_containers, state)
+            except Exception as e:
+                print(f"⚠️  CSSCascade resolve({state}) failed: {e}")
+                continue
+
+            if not resolved:
+                continue
+
+            for container_id, props in resolved.items():
+                container = self._find_container(container_id)
+                if container is None:
+                    continue
+
+                # Ensure container has a Style object
+                if not hasattr(container, 'style') or not isinstance(container.style, Style):
+                    container.style = Style()
+                    container.style.id = container_id
+
+                for prop, value in props.items():
+                    attr_name, attr_value = self.parse_container_props_from_style(prop, value)
+                    if state == "normal":
+                        setattr(container.style, attr_name, attr_value)
+                    elif state == "hover":
+                        hover_attr = f"hover_{attr_name}" if not attr_name.startswith("hover_") else attr_name
+                        if hasattr(container.style, hover_attr):
+                            setattr(container.style, hover_attr, attr_value)
+                    elif state == "active":
+                        click_attr = f"click_{attr_name}" if not attr_name.startswith("click_") else attr_name
+                        if hasattr(container.style, click_attr):
+                            setattr(container.style, click_attr, attr_value)
+
+    def _find_container(self, container_id):
+        """Find a container by ID in the tree."""
+        def search(container):
+            if container.id == container_id:
+                return container
+            for child in container.children:
+                found = search(child)
+                if found:
+                    return found
+            return None
+        return search(self.theme.root)
 
     def create_node_tree(self, canvas_size=(800, 600)):
         def get_all_nodes(container, node):

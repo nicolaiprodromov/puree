@@ -247,3 +247,14 @@ class ConfigParser:
     
     def get_supported_spaces(self) -> List[str]:
         return self._parser.get_supported_spaces()
+
+
+class CSSCascade:
+    def __init__(self):
+        self._cascade = puree_rust_core.CSSCascade()
+
+    def parse_css(self, css_string: str):
+        self._cascade.parse_css(css_string)
+
+    def resolve(self, containers: list, state: str = "normal") -> Dict[str, Dict[str, str]]:
+        return self._cascade.resolve(containers, state)
