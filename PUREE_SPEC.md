@@ -1,0 +1,689 @@
+# Puree UI Specification for LLMs
+
+> This document is the authoritative reference for generating Puree UI code.
+> Puree is a GPU-accelerated UI framework for Blender that uses YAML for structure,
+> SCSS/CSS for styling, and Python for interactivity. It follows **standard CSS conventions**
+> with a few Blender-specific extensions.
+
+---
+
+## File Structure
+
+```
+my_addon/
+├── static/
+│   ├── index.yaml          # UI hierarchy (like index.html)
+│   ├── style.scss           # Styles (standard SCSS/CSS)
+│   ├── script.py            # Event handlers & interactivity
+│   └── components/          # Reusable components
+│       ├── button.yaml
+│       ├── button.scss
+│       ├── card.yaml
+│       └── card.scss
+├── assets/                  # Images (PNG, SVG)
+├── fonts/                   # Font files (.ttf, .otf)
+└── __init__.py              # Blender addon entry point
+```
+
+---
+
+## 1. YAML Structure (`index.yaml`)
+
+The YAML file defines the UI tree. Think of it as HTML but in YAML.
+
+### Minimal Example
+
+```yaml
+app:
+  selected_theme: my_theme
+  default_theme: my_theme
+
+  theme:
+    - name: my_theme
+      author: me
+      version: 1.0.0
+      default_font: NeueMontreal-Regular
+      styles:
+        - static/style.scss
+      scripts:
+        - static/script.py
+      components: static/components/
+
+      root:
+        class: root
+        sidebar:
+          class: sidebar
+          title:
+            class: sidebar_title
+            text: "Navigation"
+        main:
+          class: main_content
+          heading:
+            class: heading
+            text: "Welcome"
+          body:
+            class: body_text
+            text: "Hello from Puree!"
+```
+
+### Node Properties
+
+Each YAML node can have these properties:
+
+| Property   | Type   | Description                                        |
+|------------|--------|----------------------------------------------------|
+| `class`    | string | CSS class name(s) for styling (like HTML `class`)  |
+| `id`       | string | Unique ID for CSS `#id` selectors                  |
+| `text`     | string | Text content to display                            |
+| `font`     | string | Font name (without extension): `NeueMontreal-Bold` |
+| `img`      | string | Image name from `assets/` (without extension)      |
+| `data`     | string | Component reference: `'[component_name]'`          |
+| `passive`  | bool   | If true, element is non-interactive                |
+
+### Rules
+- Node names become the element's tag/ID in the tree
+- Node names must use **underscores** (no hyphens): `my_button` ✓, `my-button` ✗
+- Nesting creates parent-child relationships (like HTML nesting)
+- The `root` node is equivalent to `<body>` in HTML
+
+---
+
+## 2. CSS/SCSS Styling (`style.scss`)
+
+Puree uses **standard CSS property names**. Write styles exactly as you would for the web.
+
+### Selectors
+
+Puree supports standard CSS selectors:
+
+```scss
+// Class selector (most common)
+.sidebar { width: 250px; }
+
+// ID selector
+#main_header { font-size: 24px; }
+
+// Descendant selector
+.sidebar .nav_item { padding: 8px 16px; }
+
+// Child selector
+.sidebar > .title { font-weight: bold; }
+
+// Pseudo-classes
+.button:hover { background-color: #444; }
+.button:active { background-color: #666; }
+
+// Comma-separated (multiple selectors, same rules)
+.card, .panel { border-radius: 8px; }
+```
+
+### CSS Cascade & Specificity
+
+Rules follow standard CSS cascade:
+- More specific selectors override less specific ones
+- `#id` (100) > `.class` (10) > `element` (1)
+- Later rules override earlier rules at equal specificity
+- `!important` overrides all
+
+### Inheritance
+
+These properties **inherit** from parent (same as web CSS):
+- `color`, `font-size`, `font-family`, `text-align`, `visibility`
+
+These do **NOT** inherit:
+- `background-color`, `border`, `padding`, `margin`, `width`, `height`, `display`
+
+### Full Property Reference
+
+#### Colors & Backgrounds
+
+| CSS Property         | Type          | Default               | Description              |
+|----------------------|---------------|-----------------------|--------------------------|
+| `background-color`   | color         | `transparent`         | Fill/background color    |
+| `color`              | color         | `#ffffff` (inherited) | Text color               |
+
+**Puree gradient extension:**
+
+| CSS Property                     | Type   | Default       | Description                |
+|----------------------------------|--------|---------------|----------------------------|
+| `--background-color-2`           | color  | `transparent` | Gradient end color          |
+| `--background-gradient-rotation` | angle  | `0deg`        | Gradient angle              |
+
+#### Typography
+
+| CSS Property     | Type   | Default    | Description                                     |
+|------------------|--------|------------|-------------------------------------------------|
+| `font-size`      | length | `12px`     | Text size                                        |
+| `text-align`     | enum   | `left`     | Horizontal: `left`, `center`, `right`            |
+| `--text-align-v` | enum   | `center`   | Vertical: `top`, `center`, `bottom` (extension)  |
+| `--text-x`       | length | `0`        | Text horizontal offset (extension)               |
+| `--text-y`       | length | `0`        | Text vertical offset (extension)                 |
+
+#### Box Model
+
+| CSS Property       | Type   | Default    | Description                              |
+|--------------------|--------|------------|------------------------------------------|
+| `width`            | length | `0`        | Element width (`px`, `%`, `auto`)        |
+| `height`           | length | `0`        | Element height                            |
+| `padding`          | short  | `0`        | Padding (shorthand: `10px`, `10px 20px`) |
+| `margin`           | short  | `0`        | Margin (shorthand)                        |
+| `border-radius`    | length | `0`        | Corner radius                             |
+| `border-width`     | length | `0`        | Border width                              |
+| `border-color`     | color  | `transparent`| Border color                            |
+| `overflow`         | enum   | `hidden`   | `hidden`, `visible`                       |
+
+**Puree border gradient extension:**
+
+| CSS Property                   | Type  | Default       | Description               |
+|--------------------------------|-------|---------------|---------------------------|
+| `--border-color-2`             | color | `transparent` | Border gradient end color  |
+| `--border-gradient-rotation`   | angle | `0deg`        | Border gradient angle      |
+
+#### Box Shadow
+
+| CSS Property        | Type        | Default | Description                         |
+|---------------------|-------------|---------|-------------------------------------|
+| `box-shadow`        | shorthand   | none    | `offsetX offsetY blur color`        |
+
+Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
+
+#### Layout (Flexbox)
+
+| CSS Property      | Type  | Default    | Values                                                         |
+|-------------------|-------|------------|----------------------------------------------------------------|
+| `display`         | enum  | `flex`     | `flex`, `grid`, `block`, `none`                                |
+| `flex-direction`  | enum  | `row`      | `row`, `column`, `row-reverse`, `column-reverse`               |
+| `justify-content` | enum  | `start`    | `start`, `end`, `center`, `space-between`, `space-around`, `space-evenly` |
+| `align-items`     | enum  | `start`    | `start`, `end`, `center`, `baseline`, `stretch`                |
+| `align-content`   | enum  | `start`    | `start`, `end`, `center`, `stretch`, `space-between`, `space-around` |
+| `flex-wrap`       | enum  | `nowrap`   | `nowrap`, `wrap`, `wrap-reverse`                               |
+| `flex-grow`       | float | `0`        | Growth factor                                                  |
+| `flex-shrink`     | float | `1`        | Shrink factor                                                  |
+| `flex-basis`      | length| `0`        | Base size                                                      |
+| `gap`             | length| `0`        | Gap between flex/grid items                                    |
+
+#### Layout (Grid)
+
+| CSS Property             | Type   | Default  | Description                    |
+|--------------------------|--------|----------|--------------------------------|
+| `grid-template-rows`     | list   | none     | Row track sizes                |
+| `grid-template-columns`  | list   | none     | Column track sizes             |
+| `grid-auto-flow`         | enum   | `row`    | `row`, `column`                |
+| `grid-row`               | string | `auto`   | Row placement                  |
+| `grid-column`            | string | `auto`   | Column placement               |
+
+#### Positioning
+
+| CSS Property  | Type  | Default    | Values                  |
+|---------------|-------|------------|-------------------------|
+| `position`    | enum  | `relative` | `relative`, `absolute`  |
+
+#### Image (Extensions)
+
+| CSS Property     | Type  | Default | Description                          |
+|------------------|-------|---------|--------------------------------------|
+| `--img-align-h`  | enum  | `left`  | Image horizontal: `left`, `center`, `right` |
+| `--img-align-v`  | enum  | `top`   | Image vertical: `top`, `center`, `bottom`   |
+| `--img-opacity`  | float | `1.0`   | Image opacity                               |
+
+### Pseudo-Classes for Interactivity
+
+Instead of separate hover/click color properties, use standard pseudo-classes:
+
+```scss
+.button {
+  background-color: #252830;
+  color: #f0f3f6;
+  border-radius: 8px;
+  padding: 8px 15px;
+
+  &:hover {
+    background-color: #353942;
+  }
+
+  &:active {
+    background-color: #4a5664;
+  }
+}
+```
+
+**Supported pseudo-classes:**
+- `:hover` — mouse is over the element
+- `:active` — element is being clicked/pressed
+
+### SCSS Features
+
+All standard SCSS is supported (compiled via `grass`):
+- Variables: `$primary: #3498db;`
+- Nesting: `.parent { .child { } }`
+- Mixins: `@mixin`, `@include`
+- Partials & imports
+- `!default` for overridable component variables
+- `var(--name)` CSS custom properties
+
+### Color Formats
+
+All standard CSS color formats work:
+```scss
+color: #ff6600;
+color: rgb(255, 102, 0);
+color: rgba(255, 102, 0, 0.8);
+color: red;
+```
+
+> Colors are automatically converted from sRGB to linear color space for Blender's viewport.
+
+---
+
+## 3. Components
+
+Components are reusable YAML+SCSS templates with parameters.
+
+### Defining a Component
+
+**`components/card.yaml`:**
+```yaml
+card:
+  class: card
+  card_header:
+    class: card_header
+    text: "{{title, 'Card Title'}}"
+    font: NeueMontreal-Bold
+  card_body:
+    class: card_body
+    text: "{{content, 'Card content goes here.'}}"
+  card_footer:
+    class: card_footer
+    action_btn:
+      class: card_action
+      text: "{{action_text, 'Action'}}"
+```
+
+**`components/card.scss`:**
+```scss
+$card_bg: #1e2028 !default;
+$card_radius: 12px !default;
+
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  background-color: $card_bg;
+  border-radius: $card_radius;
+  padding: 16px;
+  gap: 8px;
+
+  &:hover {
+    background-color: lighten($card_bg, 5%);
+  }
+}
+
+.card_header {
+  font-size: 18px;
+  color: #f0f3f6;
+}
+
+.card_body {
+  font-size: 14px;
+  color: rgba(181, 188, 199, 0.9);
+}
+
+.card_action {
+  background-color: #3498db;
+  color: white;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  text-align: center;
+
+  &:hover {
+    background-color: #2980b9;
+  }
+
+  &:active {
+    background-color: #1f6da3;
+  }
+}
+```
+
+### Using Components
+
+```yaml
+root:
+  class: root
+  my_card:
+    data: '[card]'
+    title: User Profile
+    content: View and edit your profile settings.
+    action_text: Edit
+    card_bg: '#2a2d35'
+```
+
+### Parameter Syntax
+
+`{{parameter_name, 'default_value'}}`
+
+- Parameter names must be alphanumeric + underscores
+- Default value is **required** and must be **quoted**
+- YAML params override SCSS `$variables` of the same name
+
+### Namespacing
+
+When instantiated, component children get prefixed with the instance name:
+
+```yaml
+profile_card:
+  data: '[card]'
+# Creates: profile_card, profile_card_card_header, profile_card_card_body, etc.
+```
+
+This prevents ID collisions when using the same component multiple times.
+
+---
+
+## 4. Script (`script.py`)
+
+### Structure
+
+```python
+def main(self, app):
+    # Access elements via dot notation from root
+    button = app.theme.root.sidebar.nav_button
+
+    def on_click(container):
+        print(f"Clicked: {container.id}")
+
+    button.click.append(on_click)
+    return app  # MUST return app
+```
+
+### Event Types
+
+| Event       | Usage                            | Callback signature         |
+|-------------|----------------------------------|----------------------------|
+| `click`     | `el.click.append(fn)`            | `fn(container)`            |
+| `hover`     | `el.hover.append(fn)`            | `fn(container)`            |
+| `hoverout`  | `el.hoverout.append(fn)`         | `fn(container)`            |
+| `toggle`    | `el.toggle.append(fn)`           | `fn(container)`            |
+| `scroll`    | `el.scroll.append(fn)`           | `fn(container)`            |
+
+### Modifying Properties at Runtime
+
+```python
+def on_click(container):
+    label = app.theme.root.main.status_label
+    label.text = "Updated!"
+    label.mark_dirty()  # REQUIRED after property changes
+```
+
+### Showing/Hiding Elements
+
+```python
+def toggle_modal(container):
+    modal = app.theme.root.modal
+    modal.style.display = 'FLEX' if modal.style.display == 'NONE' else 'NONE'
+    modal.mark_dirty()
+```
+
+### Accessing Component Children
+
+```python
+# Component "my_card" using "[card]" template:
+# Access namespaced children:
+header = app.theme.root.my_card_card_header
+body = app.theme.root.my_card_card_body
+```
+
+---
+
+## 5. Complete Example
+
+### `index.yaml`
+```yaml
+app:
+  selected_theme: demo
+  default_theme: demo
+  theme:
+    - name: demo
+      author: example
+      version: 1.0.0
+      default_font: NeueMontreal-Regular
+      styles:
+        - static/style.scss
+      scripts:
+        - static/script.py
+      components: static/components/
+      root:
+        class: root
+        header:
+          class: header
+          logo:
+            class: logo
+            img: my_logo
+          title:
+            class: header_title
+            text: "My Application"
+            font: NeueMontreal-Bold
+        content:
+          class: content
+          sidebar:
+            class: sidebar
+            nav_home:
+              class: nav_item
+              text: "Home"
+            nav_settings:
+              class: nav_item
+              text: "Settings"
+          main:
+            class: main
+            welcome_card:
+              data: '[card]'
+              title: Welcome
+              content: Get started with Puree UI.
+              action_text: Learn More
+```
+
+### `style.scss`
+```scss
+$bg-dark: #0f1014;
+$bg-card: #1a1d24;
+$text-primary: #f0f3f6;
+$text-secondary: rgba(181, 188, 199, 0.9);
+$accent: #3498db;
+$radius: 8px;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 60px;
+  background-color: $bg-dark;
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  --img-align-h: center;
+  --img-align-v: center;
+}
+
+.header_title {
+  font-size: 20px;
+  color: $text-primary;
+}
+
+.content {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  height: 100%;
+  background-color: $bg-card;
+  padding: 10px;
+  gap: 4px;
+}
+
+.nav_item {
+  width: 100%;
+  height: 36px;
+  background-color: transparent;
+  color: $text-secondary;
+  font-size: 14px;
+  text-align: left;
+  --text-align-v: center;
+  border-radius: $radius;
+  padding: 0 12px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: $text-primary;
+  }
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  background-color: transparent;
+}
+```
+
+### `script.py`
+```python
+def main(self, app):
+    nav_home = app.theme.root.content.sidebar.nav_home
+    nav_settings = app.theme.root.content.sidebar.nav_settings
+
+    def go_home(container):
+        print("Navigate to Home")
+
+    def go_settings(container):
+        print("Navigate to Settings")
+
+    nav_home.click.append(go_home)
+    nav_settings.click.append(go_settings)
+    return app
+```
+
+---
+
+## 6. Puree-Specific Extensions (Custom Properties)
+
+Properties prefixed with `--` are Puree extensions not found in standard CSS:
+
+| Extension                        | Purpose                          |
+|----------------------------------|----------------------------------|
+| `--text-align-v`                 | Vertical text alignment          |
+| `--text-x`, `--text-y`          | Text position offsets            |
+| `--img-align-h`, `--img-align-v`| Image alignment within container |
+| `--img-opacity`                  | Image opacity                    |
+| `--background-color-2`           | Gradient second color            |
+| `--background-gradient-rotation` | Gradient rotation angle          |
+| `--border-color-2`               | Border gradient second color     |
+| `--border-gradient-rotation`     | Border gradient rotation         |
+
+---
+
+## 7. Common Patterns
+
+### Centered Container
+```scss
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+```
+
+### Scrollable List
+```scss
+.scroll_list {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;  // enables scrolling
+  width: 100%;
+  height: 300px;
+  gap: 4px;
+}
+```
+
+### Modal Overlay
+```scss
+.modal_overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal_box {
+  width: 400px;
+  height: 300px;
+  background-color: #1e2028;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+```
+
+### Gradient Button
+```scss
+.gradient_button {
+  background-color: #3498db;
+  --background-color-2: #2ecc71;
+  --background-gradient-rotation: 90deg;
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+
+  &:hover {
+    background-color: #2980b9;
+    --background-color-2: #27ae60;
+  }
+}
+```
+
+---
+
+## 8. Rules & Constraints
+
+1. **Node names use underscores**: `my_button` ✓, `my-button` ✗
+2. **Always return `app`** from `script.py`'s `main()` function
+3. **Call `mark_dirty()`** after modifying container properties at runtime
+4. **Component params need defaults**: `"{{name, 'default'}}"` — both quotes required
+5. **Component `data` uses brackets**: `data: '[card]'` — square brackets required
+6. **Font names omit extensions**: `font: NeueMontreal-Bold` (not `.ttf`)
+7. **Image names omit extensions**: `img: my_icon` (not `.png`)
+8. **Colors auto-convert**: sRGB in CSS → linear in Blender (automatic)
+9. **`passive: true`** makes an element completely non-interactive (no hover/click)
+10. **`display: none`** hides an element and removes it from layout
