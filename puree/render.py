@@ -395,11 +395,15 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
         
         if size_changed:
-            # Invalidate cached viewport sizes in hit_op and text_op
+            # Invalidate cached viewport sizes in hit_op, text_op, img_op, text_input_op
             from . import hit_op
             from . import text_op
+            from . import img_op
+            from . import text_input_op
             hit_op._cached_viewport_size = None
             text_op._cached_viewport_height = None
+            img_op._cached_viewport_height = None
+            text_input_op._cached_viewport_height = None
             
             updated_container_data = parser_op.recompute_layout((w, h))
             

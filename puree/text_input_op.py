@@ -20,6 +20,7 @@ _draw_handle = None
 _active_input_id = None
 _keyboard_handler_running = False
 _next_input_id = 0
+_cached_viewport_height = None
 
 class TextInputInstance:
     def __init__(self, container_id, placeholder="", font_name=None, size=20, pos=[50, 50], 
@@ -243,14 +244,18 @@ class TextInputInstance:
         return time.time() - self._last_refresh < self._refresh_delay
 
 def draw_all_text_inputs():
-    viewport_height = 0
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            for region in area.regions:
-                if region.type == 'WINDOW':
-                    viewport_height = region.height
-                    break
-            break
+    global _cached_viewport_height
+    
+    if _cached_viewport_height is None:
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'WINDOW':
+                        _cached_viewport_height = region.height
+                        break
+                break
+    
+    viewport_height = _cached_viewport_height or 0
     
     current_time = time.time()
     

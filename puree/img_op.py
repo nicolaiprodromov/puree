@@ -16,6 +16,7 @@ from mathutils import Matrix
 
 _image_instances = []
 _draw_handle = None
+_cached_viewport_height = None
 
 class ImageManager:
     _instance = None
@@ -240,14 +241,18 @@ class ImageInstance:
                 area.tag_redraw()
 
 def draw_all_images():
-    viewport_height = 0
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            for region in area.regions:
-                if region.type == 'WINDOW':
-                    viewport_height = region.height
-                    break
-            break
+    global _cached_viewport_height
+    
+    if _cached_viewport_height is None:
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'WINDOW':
+                        _cached_viewport_height = region.height
+                        break
+                break
+    
+    viewport_height = _cached_viewport_height or 0
     
     gpu.state.blend_set('ALPHA_PREMULT')
     
