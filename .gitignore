@@ -31,3 +31,6 @@ __pycache__/
 /puree/native_binaries/
 **/*.rs.bk
 Cargo.lock
+
+
+blender-mcp-addon/
