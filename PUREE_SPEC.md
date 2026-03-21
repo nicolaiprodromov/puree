@@ -50,19 +50,19 @@ app:
       components: static/components/
 
       root:
-        class: root
+        style: root
         sidebar:
-          class: sidebar
+          style: sidebar
           title:
-            class: sidebar_title
+            style: sidebar_title
             text: "Navigation"
         main:
-          class: main_content
+          style: main_content
           heading:
-            class: heading
+            style: heading
             text: "Welcome"
           body:
-            class: body_text
+            style: body_text
             text: "Hello from Puree!"
 ```
 
@@ -72,8 +72,8 @@ Each YAML node can have these properties:
 
 | Property   | Type   | Description                                        |
 |------------|--------|----------------------------------------------------|
-| `class`    | string | CSS class name(s) for styling (like HTML `class`)  |
-| `id`       | string | Unique ID for CSS `#id` selectors                  |
+| `style`    | string | CSS class name for styling (matched as `.classname` in SCSS) |
+| `class`    | string | Space-separated CSS class names (alternative to `style`)     |
 | `text`     | string | Text content to display                            |
 | `font`     | string | Font name (without extension): `NeueMontreal-Bold` |
 | `img`      | string | Image name from `assets/` (without extension)      |
@@ -90,7 +90,7 @@ Each YAML node can have these properties:
 
 ## 2. CSS/SCSS Styling (`style.scss`)
 
-Puree uses **standard CSS property names**. Write styles exactly as you would for the web.
+Puree uses **CSS/SCSS** with its own property names. The cascade engine supports selectors, specificity, and inheritance.
 
 ### Selectors
 
@@ -101,7 +101,7 @@ Puree supports standard CSS selectors:
 .sidebar { width: 250px; }
 
 // ID selector
-#main_header { font-size: 24px; }
+#main_header { text-scale: 24px; }
 
 // Descendant selector
 .sidebar .nav_item { padding: 8px 16px; }
@@ -110,8 +110,8 @@ Puree supports standard CSS selectors:
 .sidebar > .title { font-weight: bold; }
 
 // Pseudo-classes
-.button:hover { background-color: #444; }
-.button:active { background-color: #666; }
+.button:hover { color: #444; }
+.button:active { color: #666; }
 
 // Comma-separated (multiple selectors, same rules)
 .card, .panel { border-radius: 8px; }
@@ -127,42 +127,36 @@ Rules follow standard CSS cascade:
 
 ### Inheritance
 
-These properties **inherit** from parent (same as web CSS):
-- `color`, `font-size`, `font-family`, `text-align`, `visibility`
+These properties **inherit** from parent:
+- `text-color`, `text-scale`, `text-align-h`
 
 These do **NOT** inherit:
-- `background-color`, `border`, `padding`, `margin`, `width`, `height`, `display`
+- `color`, `border`, `padding`, `margin`, `width`, `height`, `display`
 
 ### Full Property Reference
 
 #### Colors & Backgrounds
 
-| CSS Property         | Type          | Default               | Description              |
+| Property             | Type          | Default               | Description              |
 |----------------------|---------------|-----------------------|--------------------------|
-| `background-color`   | color         | `transparent`         | Fill/background color    |
-| `color`              | color         | `transparent`         | **Background color** (puree convention — NOT text color) |
-| `text-color`         | color         | `#ffffff` (inherited) | Text color (puree extension)  |
+| `color`              | color         | `transparent`         | Background/fill color    |
+| `color-1`            | color         | `transparent`         | Gradient end color       |
+| `color-gradient-rot` | angle         | `0deg`                | Gradient angle           |
+| `text-color`         | color         | `#ffffff` (inherited) | Text color               |
+| `text-color-1`       | color         | `transparent`         | Text gradient end color  |
 
 > ⚠️ **Important**: In puree, `color` means **background/fill color**, not text color.
-> This differs from CSS standard where `color` means text. Use `text-color` for text.
-> `background-color` also maps to the background and is an alias for `color`.
-
-**Puree gradient extension:**
-
-| CSS Property                     | Type   | Default       | Description                |
-|----------------------------------|--------|---------------|----------------------------|
-| `--background-color-2`           | color  | `transparent` | Gradient end color          |
-| `--background-gradient-rotation` | angle  | `0deg`        | Gradient angle              |
+> Use `text-color` for text. `background-color` is accepted as an alias for `color`.
 
 #### Typography
 
-| CSS Property     | Type   | Default    | Description                                     |
+| Property         | Type   | Default    | Description                                     |
 |------------------|--------|------------|-------------------------------------------------|
-| `font-size`      | length | `12px`     | Text size                                        |
-| `text-align`     | enum   | `left`     | Horizontal: `left`, `center`, `right`            |
-| `--text-align-v` | enum   | `center`   | Vertical: `top`, `center`, `bottom` (extension)  |
-| `--text-x`       | length | `0`        | Text horizontal offset (extension)               |
-| `--text-y`       | length | `0`        | Text vertical offset (extension)                 |
+| `text-scale`     | length | `12px`     | Text size (`font-size` accepted as alias)        |
+| `text-align-h`   | enum   | `left`     | Horizontal: `left`, `center`, `right` (`text-align` accepted as alias) |
+| `--text-align-v` | enum   | `center`   | Vertical: `top`, `center`, `bottom`              |
+| `--text-x`       | length | `0`        | Text horizontal offset                           |
+| `--text-y`       | length | `0`        | Text vertical offset                             |
 
 #### Box Model
 
@@ -237,17 +231,17 @@ Instead of separate hover/click color properties, use standard pseudo-classes:
 
 ```scss
 .button {
-  background-color: #252830;
-  color: #f0f3f6;
+  color: #252830;
+  text-color: #f0f3f6;
   border-radius: 8px;
   padding: 8px 15px;
 
   &:hover {
-    background-color: #353942;
+    color: #353942;
   }
 
   &:active {
-    background-color: #4a5664;
+    color: #4a5664;
   }
 }
 ```
@@ -289,18 +283,18 @@ Components are reusable YAML+SCSS templates with parameters.
 **`components/card.yaml`:**
 ```yaml
 card:
-  class: card
+  style: card
   card_header:
-    class: card_header
+    style: card_header
     text: "{{title, 'Card Title'}}"
     font: NeueMontreal-Bold
   card_body:
-    class: card_body
+    style: card_body
     text: "{{content, 'Card content goes here.'}}"
   card_footer:
-    class: card_footer
+    style: card_footer
     action_btn:
-      class: card_action
+      style: card_action
       text: "{{action_text, 'Action'}}"
 ```
 
@@ -313,40 +307,40 @@ $card_radius: 12px !default;
   display: flex;
   flex-direction: column;
   width: 300px;
-  background-color: $card_bg;
+  color: $card_bg;
   border-radius: $card_radius;
   padding: 16px;
   gap: 8px;
 
   &:hover {
-    background-color: lighten($card_bg, 5%);
+    color: lighten($card_bg, 5%);
   }
 }
 
 .card_header {
-  font-size: 18px;
-  color: #f0f3f6;
+  text-scale: 18px;
+  text-color: #f0f3f6;
 }
 
 .card_body {
-  font-size: 14px;
-  color: rgba(181, 188, 199, 0.9);
+  text-scale: 14px;
+  text-color: rgba(181, 188, 199, 0.9);
 }
 
 .card_action {
-  background-color: #3498db;
-  color: white;
+  color: #3498db;
+  text-color: white;
   border-radius: 6px;
   padding: 6px 12px;
-  font-size: 14px;
-  text-align: center;
+  text-scale: 14px;
+  text-align-h: center;
 
   &:hover {
-    background-color: #2980b9;
+    color: #2980b9;
   }
 
   &:active {
-    background-color: #1f6da3;
+    color: #1f6da3;
   }
 }
 ```
@@ -355,7 +349,7 @@ $card_radius: 12px !default;
 
 ```yaml
 root:
-  class: root
+  style: root
   my_card:
     data: '[card]'
     title: User Profile
@@ -459,28 +453,28 @@ app:
         - static/script.py
       components: static/components/
       root:
-        class: root
+        style: root
         header:
-          class: header
+          style: header
           logo:
-            class: logo
+            style: logo
             img: my_logo
           title:
-            class: header_title
+            style: header_title
             text: "My Application"
             font: NeueMontreal-Bold
         content:
-          class: content
+          style: content
           sidebar:
-            class: sidebar
+            style: sidebar
             nav_home:
-              class: nav_item
+              style: nav_item
               text: "Home"
             nav_settings:
-              class: nav_item
+              style: nav_item
               text: "Settings"
           main:
-            class: main
+            style: main
             welcome_card:
               data: '[card]'
               title: Welcome
@@ -502,7 +496,7 @@ $radius: 8px;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background-color: transparent;
+  color: transparent;
 }
 
 .header {
@@ -511,7 +505,7 @@ $radius: 8px;
   align-items: center;
   width: 100%;
   height: 60px;
-  background-color: $bg-dark;
+  color: $bg-dark;
   padding: 0 20px;
   gap: 12px;
 }
@@ -524,8 +518,8 @@ $radius: 8px;
 }
 
 .header_title {
-  font-size: 20px;
-  color: $text-primary;
+  text-scale: 20px;
+  text-color: $text-primary;
 }
 
 .content {
@@ -540,7 +534,7 @@ $radius: 8px;
   flex-direction: column;
   width: 200px;
   height: 100%;
-  background-color: $bg-card;
+  color: $bg-card;
   padding: 10px;
   gap: 4px;
 }
@@ -548,21 +542,21 @@ $radius: 8px;
 .nav_item {
   width: 100%;
   height: 36px;
-  background-color: transparent;
-  color: $text-secondary;
-  font-size: 14px;
-  text-align: left;
+  color: transparent;
+  text-color: $text-secondary;
+  text-scale: 14px;
+  text-align-h: left;
   --text-align-v: center;
   border-radius: $radius;
   padding: 0 12px;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: $text-primary;
+    color: rgba(255, 255, 255, 0.05);
+    text-color: $text-primary;
   }
 
   &:active {
-    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -572,7 +566,7 @@ $radius: 8px;
   width: 100%;
   height: 100%;
   padding: 20px;
-  background-color: transparent;
+  color: transparent;
 }
 ```
 
@@ -643,7 +637,7 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
   position: absolute;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -652,7 +646,7 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 .modal_box {
   width: 400px;
   height: 300px;
-  background-color: #1e2028;
+  color: #1e2028;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -662,17 +656,17 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 ### Gradient Button
 ```scss
 .gradient_button {
-  background-color: #3498db;
+  color: #3498db;
   --background-color-2: #2ecc71;
   --background-gradient-rotation: 90deg;
   border-radius: 8px;
   padding: 10px 20px;
-  color: white;
-  font-size: 16px;
-  text-align: center;
+  text-color: white;
+  text-scale: 16px;
+  text-align-h: center;
 
   &:hover {
-    background-color: #2980b9;
+    color: #2980b9;
     --background-color-2: #27ae60;
   }
 }

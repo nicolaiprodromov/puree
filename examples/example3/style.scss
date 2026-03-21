@@ -1,0 +1,569 @@
+$bg_canvas: #040814;
+$bg_canvas_2: #071220;
+$shell_bg: rgba(8, 12, 22, 0.95);
+$shell_bg_2: rgba(11, 26, 41, 0.98);
+$panel_bg: rgba(14, 19, 30, 0.88);
+$panel_bg_2: rgba(15, 30, 48, 0.86);
+$panel_border: rgba(255, 255, 255, 0.08);
+$text_high: #f4f7ff;
+$text_mid: rgba(219, 228, 247, 0.78);
+$text_soft: rgba(186, 198, 226, 0.56);
+$accent_blue: rgba(107, 172, 255, 0.92);
+$accent_mint: rgba(120, 255, 215, 0.92);
+$accent_gold: rgba(255, 196, 135, 0.92);
+$accent_violet: rgba(201, 170, 255, 0.92);
+
+.root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: $bg_canvas;
+    color-1: $bg_canvas_2;
+    color-gradient-rot: 135deg;
+}
+
+.ambient_left {
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    margin-left: -460px;
+    margin-top: -200px;
+    background-color: rgba(52, 128, 255, 0.14);
+    border-radius: 999px;
+    box-shadow-color: rgba(52, 128, 255, 0.2);
+    box-shadow-offset: 0px 0px;
+    box-shadow-blur: 90px;
+}
+
+.ambient_right {
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    margin-left: 520px;
+    margin-top: 220px;
+    background-color: rgba(120, 255, 215, 0.12);
+    border-radius: 999px;
+    box-shadow-color: rgba(120, 255, 215, 0.18);
+    box-shadow-offset: 0px 0px;
+    box-shadow-blur: 88px;
+}
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 1120px;
+    height: 720px;
+    padding: 26px;
+    background-color: $shell_bg;
+    color-1: $shell_bg_2;
+    color-gradient-rot: 125deg;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.09);
+    border-radius: 30px;
+    box-shadow-color: rgba(0, 4, 12, 0.45);
+    box-shadow-offset: 0px 28px;
+    box-shadow-blur: 72px;
+}
+
+.topbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 72px;
+    margin-bottom: 18px;
+}
+
+.brand_cluster {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 320px;
+    height: 100%;
+}
+
+.brand_mark {
+    width: 56px;
+    height: 56px;
+    margin-right: 16px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color-1: rgba(98, 170, 255, 0.08);
+    color-gradient-rot: 135deg;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    img-align-h: center;
+    img-align-v: center;
+    img-opacity: 0.95;
+}
+
+.brand_copy {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    width: 220px;
+    height: 100%;
+}
+
+.brand_kicker {
+    width: 100%;
+    height: 18px;
+    background-color: transparent;
+    text-color: $text_soft;
+    text-scale: 12px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.brand_title {
+    width: 100%;
+    height: 28px;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 24px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.action_strip {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: end;
+    width: 500px;
+    height: 100%;
+}
+
+.nav_overview,
+.nav_components {
+    margin-right: 10px;
+}
+
+.content_row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 578px;
+}
+
+.stage_column {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 68%;
+    height: 100%;
+    margin-right: 18px;
+}
+
+.hero_panel {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 370px;
+    margin-bottom: 18px;
+    padding: 24px;
+    background-color: rgba(13, 18, 29, 0.96);
+    color-1: rgba(17, 39, 60, 0.9);
+    color-gradient-rot: 140deg;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    box-shadow-color: rgba(0, 8, 20, 0.3);
+    box-shadow-offset: 0px 20px;
+    box-shadow-blur: 46px;
+}
+
+.hero_ring {
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    margin-left: 360px;
+    margin-top: -70px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 1px;
+    border-color: rgba(120, 183, 255, 0.14);
+    border-radius: 999px;
+    box-shadow-color: rgba(120, 183, 255, 0.22);
+    box-shadow-offset: 0px 0px;
+    box-shadow-blur: 44px;
+}
+
+.hero_copy {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 154px;
+    background-color: transparent;
+}
+
+.hero_eyebrow {
+    width: 100%;
+    height: 18px;
+    margin-bottom: 12px;
+    background-color: transparent;
+    text-color: $accent_blue;
+    text-scale: 13px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.hero_heading {
+    width: 82%;
+    height: 68px;
+    margin-bottom: 14px;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 38px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.hero_body {
+    width: 76%;
+    height: 44px;
+    background-color: transparent;
+    text-color: $text_mid;
+    text-scale: 15px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.hero_actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 44px;
+    margin-bottom: 14px;
+}
+
+.cycle_story {
+    margin-right: 10px;
+}
+
+.hero_progress {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    width: 100%;
+    height: 26px;
+    margin-bottom: 14px;
+    background-color: transparent;
+}
+
+.progress_track {
+    width: 100%;
+    height: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+}
+
+.progress_fill {
+    width: 34%;
+    height: 100%;
+    background-color: rgba(111, 177, 255, 0.95);
+    color-1: rgba(120, 255, 215, 0.82);
+    color-gradient-rot: 90deg;
+    border-radius: 999px;
+}
+
+.hero_feature_row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 106px;
+    background-color: transparent;
+}
+
+.feature_components {
+    width: 49%;
+    height: 100%;
+    margin-right: 2%;
+}
+
+.feature_runtime {
+    width: 49%;
+    height: 100%;
+}
+
+.composer_panel {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 190px;
+    padding: 20px;
+    background-color: $panel_bg;
+    color-1: $panel_bg_2;
+    color-gradient-rot: 135deg;
+    border-width: 1px;
+    border-color: $panel_border;
+    border-radius: 24px;
+}
+
+.composer_header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 28px;
+    margin-bottom: 12px;
+}
+
+.composer_heading {
+    width: 220px;
+    height: 100%;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 16px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.composer_caption {
+    width: 340px;
+    height: 100%;
+    background-color: transparent;
+    text-color: $text_soft;
+    text-scale: 12px;
+    text-align-h: right;
+    text-align-v: center;
+}
+
+.notes_input {
+    width: 100%;
+    height: 98px;
+    margin-bottom: 12px;
+}
+
+.composer_footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 28px;
+}
+
+.composer_status {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 232px;
+    height: 100%;
+    padding: 0px 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+}
+
+.status_label {
+    width: 88px;
+    height: 100%;
+    margin-right: 10px;
+    background-color: transparent;
+    text-color: $text_soft;
+    text-scale: 12px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.status_value {
+    width: 100px;
+    height: 100%;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 13px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.composer_note {
+    width: 420px;
+    height: 100%;
+    background-color: transparent;
+    text-color: $text_soft;
+    text-scale: 12px;
+    text-align-h: right;
+    text-align-v: center;
+}
+
+.rail_column {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 32%;
+    height: 100%;
+}
+
+.metric_row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 90px;
+    margin-bottom: 12px;
+    background-color: transparent;
+}
+
+.speed_tile,
+.mode_tile {
+    width: 48.5%;
+    height: 100%;
+    margin-right: 3%;
+}
+
+.theme_tile,
+.input_tile {
+    width: 48.5%;
+    height: 100%;
+}
+
+.spotlight_panel {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 160px;
+    margin-bottom: 12px;
+    padding: 18px;
+    background-color: rgba(16, 16, 30, 0.94);
+    color-1: rgba(46, 25, 82, 0.92);
+    color-gradient-rot: 140deg;
+    border-width: 1px;
+    border-color: rgba(201, 170, 255, 0.14);
+    border-radius: 24px;
+}
+
+.spotlight_kicker {
+    width: 100%;
+    height: 16px;
+    margin-bottom: 10px;
+    background-color: transparent;
+    text-color: $accent_violet;
+    text-scale: 12px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.spotlight_title {
+    width: 100%;
+    height: 44px;
+    margin-bottom: 10px;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 24px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.spotlight_body {
+    width: 100%;
+    height: 52px;
+    background-color: transparent;
+    text-color: $text_mid;
+    text-scale: 13px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.detail_panel {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 202px;
+    padding: 18px;
+    background-color: rgba(12, 16, 25, 0.92);
+    color-1: rgba(17, 23, 35, 0.96);
+    color-gradient-rot: 135deg;
+    border-width: 1px;
+    border-color: $panel_border;
+    border-radius: 24px;
+}
+
+.detail_title {
+    width: 100%;
+    height: 18px;
+    margin-bottom: 14px;
+    background-color: transparent;
+    text-color: $text_high;
+    text-scale: 15px;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.detail_row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 34px;
+    margin-bottom: 8px;
+    background-color: transparent;
+}
+
+.detail_row_icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 12px;
+    background-color: transparent;
+    img-align-h: center;
+    img-align-v: center;
+    img-opacity: 0.76;
+}
+
+.detail_row_text {
+    width: 90%;
+    height: 100%;
+    background-color: transparent;
+    text-color: $text_mid;
+    text-scale: 12px;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.detail_badge {
+    width: 100%;
+    height: 28px;
+    margin-top: 6px;
+    padding: 0px 12px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    text-color: $text_soft;
+    text-scale: 12px;
+    text-align-h: center;
+    text-align-v: center;
+}

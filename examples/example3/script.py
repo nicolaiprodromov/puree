@@ -1,0 +1,129 @@
+def main(self, app):
+    modes = {
+        'overview': {
+            'eyebrow': 'Declarative GPU UI',
+            'heading': 'Interfaces with shader-grade polish.',
+            'body': 'Puree brings layout, scoped styles, components, and runtime behavior into one clean authoring flow.',
+            'status': 'Overview',
+            'note': 'Switch modes to change the story and see live state updates.',
+            'spotlight_title': 'Calm by default, dramatic on demand.',
+            'spotlight_body': 'Use the spotlight toggle to intensify the atmosphere while keeping the layout intact.',
+            'progress': '34%',
+            'step': '01',
+            'mode_tile': 'Base',
+            'input_tile': 'Live',
+        },
+        'components': {
+            'eyebrow': 'Reusable building blocks',
+            'heading': 'Scoped components, tuned per instance.',
+            'body': 'Each card, chip, tile, and field in this demo comes from reusable YAML and SCSS with local overrides.',
+            'status': 'Components',
+            'note': 'Component params let the same structure feel custom without duplicating the template.',
+            'spotlight_title': 'Namespaced pieces stay elegant at scale.',
+            'spotlight_body': 'The visual language shifts per instance while selectors remain contained and collision-free.',
+            'progress': '67%',
+            'step': '02',
+            'mode_tile': 'Scoped',
+            'input_tile': 'Param',
+        },
+        'runtime': {
+            'eyebrow': 'Python in the loop',
+            'heading': 'Runtime changes feel native to the layout.',
+            'body': 'Interaction handlers can rewrite copy, widths, and presentation state without rebuilding the entire surface.',
+            'status': 'Runtime',
+            'note': 'This mode is driven from script.py, including text swaps and the live progress indicator.',
+            'spotlight_title': 'State changes stay local and responsive.',
+            'spotlight_body': 'Puree lets the script update targeted nodes instead of forcing a heavy redraw path everywhere.',
+            'progress': '100%',
+            'step': '03',
+            'mode_tile': 'Live',
+            'input_tile': 'State',
+        },
+    }
+
+    state = {
+        'mode_order': ['overview', 'components', 'runtime'],
+        'mode': 'overview',
+        'spotlight_on': False,
+    }
+
+    def set_text(container_id, value):
+        target = app.get_by_id(container_id)
+        if target is None:
+            return
+        target.text = value
+        target.mark_dirty()
+
+    def update_spotlight_text():
+        if state['spotlight_on']:
+            set_text('spotlight_toggle_action_chip_label', 'Spotlight on')
+            set_text('theme_tile_stat_tile_value', 'Glow')
+        else:
+            set_text('spotlight_toggle_action_chip_label', 'Spotlight off')
+            set_text('theme_tile_stat_tile_value', 'Quiet')
+
+    def apply_mode(mode_name):
+        state['mode'] = mode_name
+        mode = modes[mode_name]
+
+        set_text('hero_eyebrow', mode['eyebrow'])
+        set_text('hero_heading', mode['heading'])
+        set_text('hero_body', mode['body'])
+        set_text('status_value', mode['status'])
+        set_text('composer_note', mode['note'])
+        set_text('spotlight_title', mode['spotlight_title'])
+        set_text('spotlight_body', mode['spotlight_body'])
+        set_text('speed_tile_stat_tile_value', mode['step'])
+        set_text('mode_tile_stat_tile_value', mode['mode_tile'])
+        set_text('input_tile_stat_tile_value', mode['input_tile'])
+
+        progress_fill = app.get_by_id('progress_fill')
+        if progress_fill is not None:
+            progress_fill.set_property('width', mode['progress'])
+
+        footer = app.get_by_id('notes_input_input_shell_footer')
+        if footer is not None:
+            footer.text = f"Mode: {mode['status']} | Spotlight: {'on' if state['spotlight_on'] else 'off'}"
+            footer.mark_dirty()
+
+        update_spotlight_text()
+
+    def cycle_story(container):
+        current_index = state['mode_order'].index(state['mode'])
+        next_index = (current_index + 1) % len(state['mode_order'])
+        apply_mode(state['mode_order'][next_index])
+
+    def enable_overview(container):
+        apply_mode('overview')
+
+    def enable_components(container):
+        apply_mode('components')
+
+    def enable_runtime(container):
+        apply_mode('runtime')
+
+    def toggle_spotlight(container):
+        state['spotlight_on'] = container['_toggle_value'] is True
+
+        if state['spotlight_on']:
+            set_text('spotlight_title', 'The spotlight layer pushes the interface into showcase mode.')
+            set_text('spotlight_body', 'Accent language becomes brighter and the story panel reads like a launch surface.')
+        else:
+            apply_mode(state['mode'])
+            return
+
+        footer = app.get_by_id('notes_input_input_shell_footer')
+        if footer is not None:
+            footer.text = f"Mode: {modes[state['mode']]['status']} | Spotlight: on"
+            footer.mark_dirty()
+
+        update_spotlight_text()
+
+    app.get_by_id('cycle_story').click.append(cycle_story)
+    app.get_by_id('nav_overview').click.append(enable_overview)
+    app.get_by_id('nav_components').click.append(enable_components)
+    app.get_by_id('nav_runtime').click.append(enable_runtime)
+    app.get_by_id('spotlight_toggle').toggle.append(toggle_spotlight)
+
+    apply_mode(state['mode'])
+    return app

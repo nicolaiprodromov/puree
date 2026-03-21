@@ -24,7 +24,7 @@ from stretchable.style.geometry.length import LengthPointsPercent
 
 from .components.container import Container
 from .components.style import Style
-from .native_bindings import ContainerProcessor, CSSParser, SCSSCompiler, ColorProcessor, CSSCascade
+from .native_bindings import ContainerProcessor, SCSSCompiler, ColorProcessor, CSSCascade
 
 node_flat = {}
 node_flat_abs = {}
@@ -140,6 +140,8 @@ class UI():
             self.theme.default_font = theme[self.theme_index]['default_font']
             self.theme.components = theme[self.theme_index]['components']
 
+        self._component_css = ""
+
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
 
@@ -196,16 +198,7 @@ class UI():
                                                 param_overrides=component_params,
                                                 component_name=component_base_name
                                             )
-                                            
-                                            css_parser = CSSParser()
-                                            component_styles = css_parser.parse(compiled_css)
-                                            for selector, declarations in component_styles.items():
-                                                style_obj = Style()
-                                                style_obj.id = selector
-                                                for prop, value in declarations.items():
-                                                    attr_name_parsed, attr_value_parsed = self.parse_container_props_from_style(prop, value)
-                                                    setattr(style_obj, attr_name_parsed, attr_value_parsed)
-                                                self.theme.styles.__dict__[selector] = style_obj
+                                            self._component_css += compiled_css
                                         
                                         def substitute_params(value, params):
                                             if not isinstance(value, str):
@@ -271,8 +264,6 @@ class UI():
 
         if attr_name.startswith('__'):
                     attr_name = attr_name[1:]
-
-        attr_name = attr_name.replace('background_color', 'color')
 
         color_props = [
             'color', 'color_1',
@@ -352,90 +343,23 @@ class UI():
                 with open(file_path, 'r') as f:
                     style_str += f.read()
         
-        css_string = style_str
+        # Collect component CSS too
+        style_str += self._component_css
 
-        # ── Legacy path: parse CSS into named Style objects ──────────
-        parser = CSSParser()
-        styles = parser.parse(css_string)
-        for selector, declarations in styles.items():
-            style_obj = Style()
-            selector_clean = selector.lstrip('.')
-            style_obj.id = selector_clean
-            for prop, value in declarations.items():
-                attr_name, attr_value = self.parse_container_props_from_style(prop, value)
-                setattr(style_obj, attr_name, attr_value)
-            self.theme.styles.__dict__[selector_clean] = style_obj
-
-        def apply_styles_to_containers(container):
-            # Populate classes from style attribute for cascade matching
-            if hasattr(container, 'style') and container.style:
-                style_name = container.style
-                if isinstance(style_name, str):
-                    if not container.classes:
-                        container.classes = [style_name]
-                    if hasattr(self.theme.styles, style_name):
-                        original_style = getattr(self.theme.styles, style_name)
-                        style_copy = Style()
-                        style_copy.id = original_style.id
-                        for attr_name in dir(original_style):
-                            if not attr_name.startswith('_'):
-                                try:
-                                    attr_value = getattr(original_style, attr_name)
-                                    if not callable(attr_value):
-                                        if isinstance(attr_value, list):
-                                            setattr(style_copy, attr_name, attr_value.copy())
-                                        else:
-                                            setattr(style_copy, attr_name, attr_value)
-                                except AttributeError:
-                                    pass
-                        container.style = style_copy
-                    else:
-                        print(f"Warning: Style '{style_name}' not found, using default")
-                        default_style = Style()
-                        setattr(default_style, 'width', "100%")
-                        setattr(default_style, 'height', "100%")
-                        container.style = default_style
+        # Populate classes from style attribute before cascade
+        def populate_classes(container):
+            if hasattr(container, 'style') and container.style and isinstance(container.style, str):
+                if not container.classes:
+                    container.classes = [container.style]
             for child in container.children:
-                apply_styles_to_containers(child)
-        apply_styles_to_containers(self.theme.root)
+                populate_classes(child)
+        populate_classes(self.theme.root)
 
-        # ── Cascade path: resolve CSS selectors against container tree ──
-        self._apply_cascade(css_string)
+        # Build container list and run cascade
+        cascade = CSSCascade()
+        cascade.parse_css(style_str)
 
-    def _build_container_list(self):
-        """Build flat list of containers with parent indices for CSSCascade."""
-        flat = []
-        index_map = {}
-
-        def walk(container, parent_idx):
-            idx = len(flat)
-            index_map[container.id] = idx
-            classes = list(container.classes) if container.classes else []
-            # Legacy: treat `style` string as a CSS class
-            if hasattr(container, 'style') and isinstance(container.style, str) and container.style:
-                if container.style not in classes:
-                    classes.append(container.style)
-            flat.append({
-                "id": container.id,
-                "classes": classes,
-                "parent_idx": parent_idx
-            })
-            for child in container.children:
-                walk(child, idx)
-
-        walk(self.theme.root, -1)
-        return flat, index_map
-
-    def _apply_cascade(self, css_string):
-        """Run CSSCascade resolver and apply results to container Style objects."""
-        try:
-            cascade = CSSCascade()
-            cascade.parse_css(css_string)
-        except Exception as e:
-            print(f"⚠️  CSSCascade parse_css failed: {e}")
-            return
-
-        flat_containers, index_map = self._build_container_list()
+        flat_containers = self._build_container_list()
         if not flat_containers:
             return
 
@@ -454,8 +378,7 @@ class UI():
                 if container is None:
                     continue
 
-                # Ensure container has a Style object
-                if not hasattr(container, 'style') or not isinstance(container.style, Style):
+                if not isinstance(container.style, Style):
                     container.style = Style()
                     container.style.id = container_id
 
@@ -471,6 +394,32 @@ class UI():
                         click_attr = f"click_{attr_name}" if not attr_name.startswith("click_") else attr_name
                         if hasattr(container.style, click_attr):
                             setattr(container.style, click_attr, attr_value)
+
+        # Ensure every container has a Style object
+        def ensure_styles(container):
+            if not isinstance(container.style, Style):
+                container.style = Style()
+                container.style.id = container.id
+            for child in container.children:
+                ensure_styles(child)
+        ensure_styles(self.theme.root)
+
+    def _build_container_list(self):
+        """Build flat list of containers with parent indices for CSSCascade."""
+        flat = []
+
+        def walk(container, parent_idx):
+            idx = len(flat)
+            flat.append({
+                "id": container.id,
+                "classes": list(container.classes) if container.classes else [],
+                "parent_idx": parent_idx
+            })
+            for child in container.children:
+                walk(child, idx)
+
+        walk(self.theme.root, -1)
+        return flat
 
     def _find_container(self, container_id):
         """Find a container by ID in the tree."""

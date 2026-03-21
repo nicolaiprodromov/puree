@@ -1,0 +1,369 @@
+app:
+  selected_theme: example3_theme
+  default_theme: example3_theme
+
+  theme:
+    - name: example3_theme
+      author: GitHub Copilot
+      version: 1.0.0
+      default_font: NeueMontreal-Regular
+      scripts:
+        - examples/example3/script.py
+      styles:
+        - examples/example3/style.scss
+      components: examples/example3/components/
+
+      root:
+        style: root
+
+        ambient_left:
+          style: ambient_left
+          passive: true
+
+        ambient_right:
+          style: ambient_right
+          passive: true
+
+        shell:
+          style: shell
+
+          topbar:
+            style: topbar
+
+            brand_cluster:
+              style: brand_cluster
+
+              brand_mark:
+                style: brand_mark
+                img: xwz_logo
+                passive: true
+
+              brand_copy:
+                style: brand_copy
+
+                brand_kicker:
+                  style: brand_kicker
+                  text: PUREE UI
+                  font: NeueMontreal-Bold
+                  passive: true
+
+                brand_title:
+                  style: brand_title
+                  text: Example III
+                  font: NeueMontreal-BoldItalic
+                  passive: true
+
+            action_strip:
+              style: action_strip
+
+              nav_overview:
+                data: '[action_chip]'
+                chip_icon: star_on
+                chip_text: Overview
+                chip_width: 150px
+                chip_bg: rgba(98, 170, 255, 0.14)
+                chip_bg1: rgba(61, 114, 255, 0.04)
+                chip_hover_bg: rgba(98, 170, 255, 0.22)
+                chip_hover_bg1: rgba(61, 114, 255, 0.12)
+                chip_click_bg: rgba(98, 170, 255, 0.3)
+                chip_click_bg1: rgba(61, 114, 255, 0.18)
+                chip_border: rgba(120, 183, 255, 0.3)
+
+              nav_components:
+                data: '[action_chip]'
+                chip_icon: toggle
+                chip_text: Components
+                chip_width: 160px
+                chip_bg: rgba(120, 255, 215, 0.12)
+                chip_bg1: rgba(67, 165, 138, 0.04)
+                chip_hover_bg: rgba(120, 255, 215, 0.18)
+                chip_hover_bg1: rgba(67, 165, 138, 0.1)
+                chip_click_bg: rgba(120, 255, 215, 0.25)
+                chip_click_bg1: rgba(67, 165, 138, 0.14)
+                chip_border: rgba(144, 255, 221, 0.26)
+
+              nav_runtime:
+                data: '[action_chip]'
+                chip_icon: click
+                chip_text: Runtime
+                chip_width: 146px
+                chip_bg: rgba(255, 190, 120, 0.12)
+                chip_bg1: rgba(255, 109, 62, 0.04)
+                chip_hover_bg: rgba(255, 190, 120, 0.18)
+                chip_hover_bg1: rgba(255, 109, 62, 0.1)
+                chip_click_bg: rgba(255, 190, 120, 0.26)
+                chip_click_bg1: rgba(255, 109, 62, 0.15)
+                chip_border: rgba(255, 196, 135, 0.26)
+
+          content_row:
+            style: content_row
+
+            stage_column:
+              style: stage_column
+
+              hero_panel:
+                style: hero_panel
+
+                hero_ring:
+                  style: hero_ring
+                  passive: true
+
+                hero_copy:
+                  style: hero_copy
+
+                  hero_eyebrow:
+                    style: hero_eyebrow
+                    text: Declarative GPU UI
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  hero_heading:
+                    style: hero_heading
+                    text: Interfaces with shader-grade polish.
+                    font: NeueMontreal-BoldItalic
+                    passive: true
+
+                  hero_body:
+                    style: hero_body
+                    text: Puree brings layout, scoped styles, components, and runtime behavior into one clean authoring flow.
+                    font: NeueMontreal-Regular
+                    passive: true
+
+                hero_actions:
+                  style: hero_actions
+
+                  cycle_story:
+                    data: '[action_chip]'
+                    chip_icon: hover
+                    chip_text: Cycle story
+                    chip_width: 176px
+                    chip_bg: rgba(255, 255, 255, 0.08)
+                    chip_bg1: rgba(255, 255, 255, 0.02)
+                    chip_hover_bg: rgba(255, 255, 255, 0.14)
+                    chip_hover_bg1: rgba(255, 255, 255, 0.06)
+                    chip_click_bg: rgba(255, 255, 255, 0.2)
+                    chip_click_bg1: rgba(255, 255, 255, 0.08)
+                    chip_border: rgba(255, 255, 255, 0.14)
+
+                  spotlight_toggle:
+                    data: '[action_chip]'
+                    chip_icon: light_on
+                    chip_text: Spotlight off
+                    chip_width: 176px
+                    chip_bg: rgba(173, 128, 255, 0.12)
+                    chip_bg1: rgba(99, 69, 176, 0.04)
+                    chip_hover_bg: rgba(173, 128, 255, 0.18)
+                    chip_hover_bg1: rgba(99, 69, 176, 0.1)
+                    chip_click_bg: rgba(173, 128, 255, 0.26)
+                    chip_click_bg1: rgba(99, 69, 176, 0.16)
+                    chip_border: rgba(201, 170, 255, 0.22)
+
+                hero_progress:
+                  style: hero_progress
+
+                  progress_track:
+                    style: progress_track
+                    passive: true
+
+                    progress_fill:
+                      style: progress_fill
+                      passive: true
+
+                hero_feature_row:
+                  style: hero_feature_row
+
+                  feature_components:
+                    data: '[showcase_card]'
+                    card_tag: Scoped
+                    card_title: Components stay reusable without leaking styles.
+                    card_body: Param overrides and namespaced selectors keep each instance self-contained.
+                    card_metric: YAML + SCSS
+                    card_icon: star_on
+                    card_bg: rgba(16, 22, 34, 0.86)
+                    card_bg1: rgba(19, 42, 68, 0.92)
+                    card_border: rgba(107, 172, 255, 0.18)
+                    card_tag_bg: rgba(98, 170, 255, 0.14)
+
+                  feature_runtime:
+                    data: '[showcase_card]'
+                    card_tag: Live
+                    card_title: Python updates the scene in place with minimal glue.
+                    card_body: Click targets can swap copy, widths, and states while keeping the layout stable.
+                    card_metric: Scriptable
+                    card_icon: light_on
+                    card_bg: rgba(19, 18, 30, 0.9)
+                    card_bg1: rgba(45, 25, 82, 0.9)
+                    card_border: rgba(188, 143, 255, 0.18)
+                    card_tag_bg: rgba(173, 128, 255, 0.14)
+
+              composer_panel:
+                style: composer_panel
+
+                composer_header:
+                  style: composer_header
+
+                  composer_heading:
+                    style: composer_heading
+                    text: Runtime input surface
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  composer_caption:
+                    style: composer_caption
+                    text: Text input, status feedback, and layout updates live together.
+                    font: NeueMontreal-Regular
+                    passive: true
+
+                notes_input:
+                  data: '[input_shell]'
+                  input_icon: user
+                  input_label: Prompt the canvas
+                  input_placeholder: Draft a scene note, UI state, or command idea here...
+                  input_footer: This field is interactive and styled like the rest of the interface.
+
+                composer_footer:
+                  style: composer_footer
+
+                  composer_status:
+                    style: composer_status
+
+                    status_label:
+                      style: status_label
+                      text: Focused mode
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    status_value:
+                      style: status_value
+                      text: Overview
+                      font: NeueMontreal-Bold
+                      passive: true
+
+                  composer_note:
+                    style: composer_note
+                    text: Switch modes to change the story and see live state updates.
+                    font: NeueMontreal-Italic
+                    passive: true
+
+            rail_column:
+              style: rail_column
+
+              metric_row_top:
+                style: metric_row
+
+                speed_tile:
+                  data: '[stat_tile]'
+                  stat_label: Story step
+                  stat_value: 01
+                  stat_icon: dial
+                  tile_bg: rgba(18, 23, 34, 0.9)
+                  tile_bg1: rgba(16, 38, 69, 0.92)
+                  tile_border: rgba(107, 172, 255, 0.18)
+
+                theme_tile:
+                  data: '[stat_tile]'
+                  stat_label: Spotlight
+                  stat_value: Quiet
+                  stat_icon: light_off
+                  tile_bg: rgba(18, 21, 32, 0.92)
+                  tile_bg1: rgba(27, 19, 54, 0.92)
+                  tile_border: rgba(181, 144, 255, 0.16)
+
+              metric_row_bottom:
+                style: metric_row
+
+                mode_tile:
+                  data: '[stat_tile]'
+                  stat_label: Active view
+                  stat_value: Base
+                  stat_icon: toggle
+                  tile_bg: rgba(18, 25, 27, 0.92)
+                  tile_bg1: rgba(18, 48, 45, 0.92)
+                  tile_border: rgba(120, 255, 215, 0.14)
+
+                input_tile:
+                  data: '[stat_tile]'
+                  stat_label: Input lane
+                  stat_value: Live
+                  stat_icon: user
+                  tile_bg: rgba(29, 22, 19, 0.9)
+                  tile_bg1: rgba(71, 32, 18, 0.92)
+                  tile_border: rgba(255, 196, 135, 0.16)
+
+              spotlight_panel:
+                style: spotlight_panel
+
+                spotlight_kicker:
+                  style: spotlight_kicker
+                  text: Spotlight
+                  font: NeueMontreal-Bold
+                  passive: true
+
+                spotlight_title:
+                  style: spotlight_title
+                  text: Calm by default, dramatic on demand.
+                  font: NeueMontreal-BoldItalic
+                  passive: true
+
+                spotlight_body:
+                  style: spotlight_body
+                  text: Toggle the spotlight to amplify the demo language without rebuilding the layout.
+                  font: NeueMontreal-Regular
+                  passive: true
+
+              detail_panel:
+                style: detail_panel
+
+                detail_title:
+                  style: detail_title
+                  text: What this example showcases
+                  font: NeueMontreal-Bold
+                  passive: true
+
+                detail_row_one:
+                  style: detail_row
+
+                  detail_row_one_icon:
+                    style: detail_row_icon
+                    img: eye_on
+                    passive: true
+
+                  detail_row_one_text:
+                    style: detail_row_text
+                    text: A layered visual system with gradients, shadows, icons, and adaptive sections.
+                    font: NeueMontreal-Regular
+                    passive: true
+
+                detail_row_two:
+                  style: detail_row
+
+                  detail_row_two_icon:
+                    style: detail_row_icon
+                    img: hover
+                    passive: true
+
+                  detail_row_two_text:
+                    style: detail_row_text
+                    text: Reusable components for chips, feature cards, stat tiles, and interactive input.
+                    font: NeueMontreal-Regular
+                    passive: true
+
+                detail_row_three:
+                  style: detail_row
+
+                  detail_row_three_icon:
+                    style: detail_row_icon
+                    img: click
+                    passive: true
+
+                  detail_row_three_text:
+                    style: detail_row_text
+                    text: Script-driven updates that change copy and layout without swapping the whole screen.
+                    font: NeueMontreal-Regular
+                    passive: true
+
+                detail_badge:
+                  style: detail_badge
+                  text: Designed to feel like a product surface, not a test harness.
+                  font: NeueMontreal-Italic
+                  passive: true
