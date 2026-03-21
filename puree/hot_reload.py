@@ -340,9 +340,7 @@ def trigger_ui_reload():
                 )
         
         render._render_data.update_container_buffer_full(hit_op._container_data)
-        render._render_data.run_compute_shader()
         
-        render._render_data.texture_needs_readback = True
         render._render_data.needs_texture_update = True
         render._render_data.force_initial_draw = True
         

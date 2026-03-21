@@ -32,7 +32,6 @@ _hot_reload_enabled = False
 _debug_outlined_containers = set()
 
 CONTAINER_STRIDE = 59
-_U8_TO_F32_SCALE = np.float32(1.0 / 255.0)
 
 class RenderPipeline:
     def __init__(self):
@@ -46,9 +45,6 @@ class RenderPipeline:
         self.outline_texture = None
         self.debug_outline_buffer = None
         self.debug_outline_count_buffer = None
-        self.blender_texture = None
-        self.gpu_shader      = None
-        self.batch           = None
         self.draw_handler    = None
         self.running         = False
         self.debug_outlined_containers = set()
@@ -64,7 +60,6 @@ class RenderPipeline:
         self.compute_fps     = 0.0
         self.last_frame_time = time.perf_counter()
         self.needs_texture_update = True
-        self.texture_needs_readback = True  # Flag for draw_texture to know if readback is needed
         self.last_mouse_pos = [0.5, 0.5]
         self.last_click_value = 0.0
         self.last_scroll_value = 0.0
@@ -74,13 +69,7 @@ class RenderPipeline:
         self._current_click_index = -1
         self.last_container_update = 0
         self.conf_path = 'xwz.ui.toml'
-        self.pbos            = []
-        self.pbo_index       = 0
-        self.pbo_count       = 3
-        self.force_initial_draw = True  # Force first draw regardless of changes
-        # Pre-allocated buffers for texture readback (avoid per-frame allocation)
-        self._texture_float_buf = None
-        self._texture_size_for_buf = None
+        self.force_initial_draw = True
         # Native rendering pipeline (replaces compute+PBO readback)
         self.native_shader   = None
         self.native_batch    = None
@@ -89,7 +78,7 @@ class RenderPipeline:
         self._data_needs_update = True
         # Hot reload throttle
         self._hot_reload_frame_counter = 0
-        self._hot_reload_check_interval = 30  # Check every 30 frames (~0.5s at 60fps)
+        self._hot_reload_check_interval = 30
         # Cached area/region lookup
         self._cached_target_area = None
         self._cached_target_region = None
@@ -170,12 +159,6 @@ class RenderPipeline:
             )
             self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
             
-            pixel_size = self.texture_size[0] * self.texture_size[1] * 4
-            self.pbos = []
-            for i in range(self.pbo_count):
-                pbo = self.mgl_context.buffer(reserve=pixel_size)
-                self.pbos.append(pbo)
-            
             self.outline_texture = self.mgl_context.texture(
                 self.texture_size, 
                 4
@@ -188,68 +171,6 @@ class RenderPipeline:
             outline_count = np.array([0], dtype=np.int32)
             self.debug_outline_count_buffer = self.mgl_context.buffer(outline_count.tobytes())
             
-            return True
-        except Exception:
-            return False
-    def create_blender_gpu_shader(self):
-        vert_source = self.load_shader_file("vertex.glsl")
-        frag_source = self.load_shader_file("fragment.glsl")
-        
-        if not (vert_source and frag_source):
-            return False
-            
-        try:
-            shader_info = gpu.types.GPUShaderCreateInfo()
-            
-            shader_info.vertex_in(0, 'VEC2', 'position')
-            shader_info.vertex_in(1, 'VEC2', 'texCoord_0')
-            
-            interface = gpu.types.GPUStageInterfaceInfo("default_interface")
-            interface.smooth('VEC2', 'fragTexCoord')
-            shader_info.vertex_out(interface)
-            
-            shader_info.sampler(0, 'FLOAT_2D', 'inputTexture')
-            shader_info.push_constant('FLOAT', 'opacity')
-            
-            shader_info.fragment_out(0, 'VEC4', 'fragColor')
-            
-            shader_info.vertex_source(vert_source)
-            shader_info.fragment_source(frag_source)
-            
-            self.gpu_shader = gpu.shader.create_from_info(shader_info)
-            return True
-        except Exception:
-            return False
-    def create_fullscreen_quad(self):
-        try:
-            vertices = [
-                (-1, -1),
-                ( 1, -1),
-                ( 1,  1),
-                (-1,  1),
-            ]
-            
-            texcoords = [
-                (0, 0),
-                (1, 0),
-                (1, 1),
-                (0, 1),
-            ]
-            
-            indices = [
-                (0, 1, 2),
-                (0, 2, 3),
-            ]
-            
-            self.batch = batch_for_shader(
-                self.gpu_shader, 
-                'TRIS',
-                {
-                    "position": vertices,
-                    "texCoord_0": texcoords,
-                },
-                indices=indices
-            )
             return True
         except Exception:
             return False
@@ -426,9 +347,6 @@ class RenderPipeline:
             self.viewport_buffer.write(viewport_data.tobytes())
         
         if size_changed and self.output_texture:
-            if self.blender_texture:
-                self.blender_texture = None
-            
             if self._safe_release_moderngl_object(self.output_texture):
                 self.texture_size = self.region_size
                 self.output_texture = self.mgl_context.texture(
@@ -436,17 +354,6 @@ class RenderPipeline:
                     4
                 )
                 self.output_texture.filter = (mgl.NEAREST, mgl.NEAREST)
-                self.needs_texture_update = True
-                
-                for pbo in self.pbos:
-                    self._safe_release_moderngl_object(pbo)
-                self.pbos = []
-                
-                pixel_size = self.texture_size[0] * self.texture_size[1] * 4
-                for i in range(self.pbo_count):
-                    pbo = self.mgl_context.buffer(reserve=pixel_size)
-                    self.pbos.append(pbo)
-                self.pbo_index = 0
         
         return size_changed
     def update_click_value(self, value):
@@ -488,8 +395,7 @@ class RenderPipeline:
             self.compute_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0.0
     
     def check_if_changed(self):
-        """Check if shader dispatch is needed. Mouse-only movement does NOT trigger dispatch;
-        hover/click state changes are detected by _detect_state_changes() instead."""
+        """Check if data texture rebuild is needed (layout/style changes, not hover)."""
         changed = False
         
         if self.force_initial_draw:
@@ -500,12 +406,7 @@ class RenderPipeline:
             self.needs_texture_update = False
             changed = True
         
-        self.texture_needs_readback = changed
-        
         return changed
-    
-    def has_texture_changed(self):
-        return self.texture_needs_readback
     
     def update_debug_outline_buffers(self):
         if not self.debug_outline_buffer or not self.debug_outline_count_buffer:
@@ -570,13 +471,11 @@ class RenderPipeline:
         
         # ModernGL context — kept for outline shader / future compute effects
         if not self.init_moderngl_context():
-            return False
-        if not self.create_compute_shader():
-            pass  # Non-fatal: compute path is no longer primary
-        if not self.create_outline_shader():
-            pass  # Non-fatal: debug only
-        if not self.create_buffers_and_textures():
-            pass  # Non-fatal: only needed for compute/outline path
+            pass  # Non-fatal: moderngl no longer required for primary rendering
+        if self.mgl_context:
+            self.create_compute_shader()
+            self.create_outline_shader()
+            self.create_buffers_and_textures()
         
         # Native rendering pipeline (primary path — zero readback)
         if not self.create_native_shader():
@@ -585,10 +484,6 @@ class RenderPipeline:
             return False
         if not self.create_data_texture(self.container_data):
             return False
-        
-        # Keep old fullscreen quad shader for potential fallback
-        self.create_blender_gpu_shader()
-        self.create_fullscreen_quad()
 
         scroll_state.register_callback(self.on_scroll)
         self.scroll_callback_registered = True
@@ -655,9 +550,6 @@ class RenderPipeline:
             space_class.draw_handler_remove(self.draw_handler, 'WINDOW')
             self.draw_handler = None
         
-        if self.blender_texture:
-            self.blender_texture = None
-        
         self.needs_texture_update = True
         self.last_mouse_pos = [0.5, 0.5]
         self.last_click_value = 0.0
@@ -681,11 +573,6 @@ class RenderPipeline:
             self.compute_shader = None
         if self._safe_release_moderngl_object(self.outline_shader):
             self.outline_shader = None
-        
-        for pbo in self.pbos:
-            self._safe_release_moderngl_object(pbo)
-        self.pbos = []
-        self.pbo_index = 0
         
         if self.mgl_context:
             try:
@@ -713,8 +600,6 @@ class RenderPipeline:
             self.mouse_callback_registered = False
         
         # Clear cached references
-        self._texture_float_buf = None
-        self._texture_size_for_buf = None
         self._cached_target_area = None
         self._cached_target_region = None
         self._cached_target_space = None
@@ -1034,8 +919,6 @@ class XWZ_OT_start_ui(Operator):
                     from .hit_op import _container_data
                     if _container_data:
                         _render_data.update_container_buffer_full(_container_data)
-                    
-                    _render_data.run_compute_shader()
                     
                     from .space_config import get_target_space
                     target_space = get_target_space()
