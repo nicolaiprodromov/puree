@@ -1,0 +1,166 @@
+// LABEL COMPONENT [CORE UI VOL. I]
+// Created by XWZ
+// ◕‿◕ Distributed for free at:
+// https://github.com/nicolaiprodromov/puree/wiki
+// ╔═════════════════════════════════╗
+// ║  ██   ██  ██      ██  ████████  ║
+// ║   ██ ██   ██  ██  ██       ██   ║
+// ║    ███    ██  ██  ██     ██     ║
+// ║   ██ ██   ██  ██  ██   ██       ║
+// ║  ██   ██   ████████   ████████  ║
+// ╚═════════════════════════════════╝
+
+$transparent: rgba(0, 0, 0, 0) !default;
+$bg_color   : rgb(0, 0, 0) !default;
+
+$width : 100% !default;
+$height: 180px !default;
+
+$margin_value: 0px !default;
+$padding_value: 10px 10px !default;
+$border_radius_value: 0px !default;
+
+$icon_size  : 40px !default;
+$icon_margin: 10px !default;
+
+$text_color : #f0f3f6 !default;
+$text_scale : 18px !default;
+$text_height: 25px !default;
+
+$underline_color : rgba(140, 150, 165, 0.3) !default;
+$underline_width : 80% !default;
+$underline_height: 1px !default;
+$underline_margin: 4px 0px 10px 0px !default;
+
+.label {
+    width          : $width;
+    height         : $height;
+    align-items    : center;
+    justify-content: start;
+    padding        : $padding_value;
+    color          : $bg_color;
+    border-radius  : $border_radius_value;
+    margin         : $margin_value;
+}
+
+.label_icon_box{
+    width          : $icon_size;
+    height         : 100%;
+    align-items    : center;
+    justify-content: center;
+    color          : $transparent;
+    padding        : 0px;
+    margin-right   : $icon_margin;
+}
+
+.label_icon {
+    width       : 100%;
+    height      : 100%;
+    color       : $transparent;
+    img-align-h : center;
+    img-align-v : top;
+    img-opacity : .321;
+    aspect-ratio: true;
+}
+
+.label_text_box {
+    width          : 100%;
+    height         : 100%;
+    flex-direction : column;
+    align-items    : start;
+    justify-content: center;
+    color          : $transparent;
+}
+
+.label_text {
+    width       : 100%;
+    height      : $text_height;
+    color       : $transparent;
+    text-color  : $text_color;
+    text-scale  : $text_scale;
+    text-align-h: left;
+    text-align-v: center;
+}
+
+.label_underline {
+    width : $underline_width;
+    height: $underline_height;
+    color : $underline_color;
+    margin: $underline_margin;
+}
+
+
+.label_description_box{
+    width          : 100%;
+    height         : 80%;
+    color          : $transparent;
+    align-items    : start;
+    justify-content: start;
+}
+
+.label_description_icon_box{
+    width          : $icon_size;
+    height         : 100%;
+    align-items    : start;
+    justify-content: start;
+    color          : $transparent;
+    padding        : 0px;
+    margin-right   : $icon_margin;
+}
+
+.label_description_icon{
+    width       : 100%;
+    height      : 100%;
+    color       : $transparent;
+    img-align-h : center;
+    img-align-v : top;
+    img-opacity : .123;
+    aspect-ratio: true;
+}
+
+
+.label_desp_box{
+    width          : 100%;
+    height         : 100%;
+    color          : $transparent;
+    align-items    : start;
+    justify-content: start;
+    flex-direction : column;
+}
+
+.label_description{
+    width       : 100%;
+    height      : 80%;
+    color       : $transparent;
+    text-color  : $text_color;
+    text-scale  : $text_scale;
+    text-align-h: left;
+    text-align-v: top;
+}
+
+.label_tags_box{
+    height: 20%;
+    width : 100%;
+    color : $transparent;
+}
+
+.label_tags_box_inner{
+    width          : 70px;
+    height         : 22px;
+    padding        : 2px 9px 2px 9px;
+    align-items    : center;
+    justify-content: center;
+    color          : rgba(68, 68, 68, 0.084);
+    margin-right   : 6px;
+    border-radius  : 300px;
+}
+
+.label_tag{
+    width        : 100%;
+    height       : 100%;
+    color        : $transparent;
+    text-color   : rgb(172, 172, 172);
+    text-scale   : 11px;
+    text-align-h : left;
+    text-align-v : center;
+}

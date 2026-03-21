@@ -96,34 +96,38 @@ def get_image_shader_with_opacity():
     global _image_shader_with_opacity
     
     if _image_shader_with_opacity is None:
-        vertex_shader = '''
-            uniform mat4 ModelViewProjectionMatrix;
-            in vec2 pos;
-            in vec2 texCoord;
-            out vec2 uvInterp;
-            
-            void main()
-            {
-                uvInterp = texCoord;
-                gl_Position = ModelViewProjectionMatrix * vec4(pos, 0.0, 1.0);
-            }
-        '''
-        
-        fragment_shader = '''
-            uniform sampler2D image;
-            uniform float opacity;
-            in vec2 uvInterp;
-            out vec4 fragColor;
-            
-            void main()
-            {
-                vec4 texColor = texture(image, uvInterp);
-                // Apply opacity to the entire color (including RGB for premultiplied alpha)
-                fragColor = vec4(texColor.rgb * opacity, texColor.a * opacity);
-            }
-        '''
-        
-        _image_shader_with_opacity = gpu.types.GPUShader(vertex_shader, fragment_shader)
+        vert_src = '''
+void main()
+{
+    uvInterp = texCoord;
+    gl_Position = ModelViewProjectionMatrix * vec4(pos, 0.0, 1.0);
+}
+'''
+        frag_src = '''
+void main()
+{
+    vec4 texColor = texture(image, uvInterp);
+    fragColor = vec4(texColor.rgb * opacity, texColor.a * opacity);
+}
+'''
+        shader_info = gpu.types.GPUShaderCreateInfo()
+        shader_info.vertex_in(0, 'VEC2', 'pos')
+        shader_info.vertex_in(1, 'VEC2', 'texCoord')
+        shader_info.push_constant('MAT4', 'ModelViewProjectionMatrix')
+        shader_info.sampler(0, 'FLOAT_2D', 'image')
+        shader_info.push_constant('FLOAT', 'opacity')
+
+        iface = gpu.types.GPUStageInterfaceInfo("img_opacity_iface")
+        iface.smooth('VEC2', 'uvInterp')
+        shader_info.vertex_out(iface)
+        shader_info.fragment_out(0, 'VEC4', 'fragColor')
+
+        shader_info.vertex_source(vert_src)
+        shader_info.fragment_source(frag_src)
+
+        _image_shader_with_opacity = gpu.shader.create_from_info(shader_info)
+        del shader_info
+        del iface
     
     return _image_shader_with_opacity
 

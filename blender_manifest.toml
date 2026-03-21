@@ -7,7 +7,7 @@ tagline    = "XWZ Puree UI"
 maintainer = "Nicolai Prodromov"
 type       = "add-on"
 
-blender_version_min = "4.2.0"
+blender_version_min = "5.1.0"
 
 license = [
   "SPDX:GPL-3.0-or-later",
@@ -25,12 +25,12 @@ platforms = [
   ]
 
 wheels = [
-  "./wheels/PyYAML-6.0.2-cp311-cp311-win_amd64.whl",
+  "./wheels/PyYAML-6.0.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
   "./wheels/attrs-25.3.0-py3-none-any.whl",
-  "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
-  "./wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
+  "./wheels/glcontext-3.0.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+  "./wheels/moderngl-5.12.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
   "./wheels/puree_ui-0.1.3-py3-none-any.whl",
-  "./wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
+  "./wheels/stretchable-1.1.7-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
   "./wheels/typing_extensions-4.15.0-py3-none-any.whl",
 ]
 

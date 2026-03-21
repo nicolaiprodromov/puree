@@ -13,6 +13,7 @@ import os
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
+_try_start_retries = 0
 
 def set_addon_root(path):
     global _ADDON_ROOT
@@ -29,10 +30,20 @@ def _try_start_ui():
     from .space_config import parse_space_config, validate_current_configuration
     
     wm = bpy.context.window_manager
-    conf_path = wm.get("xwz_ui_conf_path", "index.yaml")
+    conf_path = getattr(wm, "xwz_ui_conf_path", None)
+    if not conf_path:
+        print("No xwz_ui_conf_path set — auto-start skipped.")
+        return None
+    
+    global _try_start_retries
+    _try_start_retries += 1
     
     if not parse_space_config(conf_path):
-        print("Failed to parse space configuration, retrying...")
+        if _try_start_retries < 5:
+            print(f"Failed to parse space configuration for {conf_path} (attempt {_try_start_retries}), retrying...")
+        else:
+            print(f"Failed to parse space configuration for {conf_path} after {_try_start_retries} attempts. Auto-start disabled.")
+            return None  # Stop retrying
         return 0.5
     
     config_status = validate_current_configuration()
@@ -96,7 +107,7 @@ def register():
     bpy.types.WindowManager.xwz_ui_conf_path = bpy.props.StringProperty(
         name        = "XWZ UI Config Path",
         description = "Path to the configuration file for XWZ UI",
-        default     = "index.yaml"
+        default     = ""
     )
     bpy.types.WindowManager.xwz_debug_panel = bpy.props.BoolProperty(
         name        = "XWZ Debug Panel",
