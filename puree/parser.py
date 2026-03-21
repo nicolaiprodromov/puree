@@ -377,37 +377,49 @@ class UI():
         if not flat_containers:
             return
 
-        for state in ("normal", "hover", "active"):
+        # First pass: resolve normal state
+        normal_resolved = {}
+        try:
+            normal_resolved = cascade.resolve(flat_containers, "normal") or {}
+        except Exception as e:
+            print(f"⚠️  CSSCascade resolve(normal) failed: {e}")
+
+        for container_id, props in normal_resolved.items():
+            container = self._find_container(container_id)
+            if container is None:
+                continue
+            if not isinstance(container.style, Style):
+                container.style = Style()
+                container.style.id = container_id
+            for prop, value in props.items():
+                attr_name, attr_value = self.parse_container_props_from_style(prop, value)
+                setattr(container.style, attr_name, attr_value)
+
+        # Second pass: hover and active — only set properties that DIFFER from normal
+        for state, prefix in (("hover", "hover_"), ("active", "click_")):
             try:
-                resolved = cascade.resolve(flat_containers, state)
+                resolved = cascade.resolve(flat_containers, state) or {}
             except Exception as e:
                 print(f"⚠️  CSSCascade resolve({state}) failed: {e}")
-                continue
-
-            if not resolved:
                 continue
 
             for container_id, props in resolved.items():
                 container = self._find_container(container_id)
                 if container is None:
                     continue
-
                 if not isinstance(container.style, Style):
                     container.style = Style()
                     container.style.id = container_id
 
+                normal_props = normal_resolved.get(container_id, {})
                 for prop, value in props.items():
+                    # Skip if same as normal — don't override the sentinel defaults
+                    if normal_props.get(prop) == value:
+                        continue
                     attr_name, attr_value = self.parse_container_props_from_style(prop, value)
-                    if state == "normal":
-                        setattr(container.style, attr_name, attr_value)
-                    elif state == "hover":
-                        hover_attr = f"hover_{attr_name}" if not attr_name.startswith("hover_") else attr_name
-                        if hasattr(container.style, hover_attr):
-                            setattr(container.style, hover_attr, attr_value)
-                    elif state == "active":
-                        click_attr = f"click_{attr_name}" if not attr_name.startswith("click_") else attr_name
-                        if hasattr(container.style, click_attr):
-                            setattr(container.style, click_attr, attr_value)
+                    state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
+                    if hasattr(container.style, state_attr):
+                        setattr(container.style, state_attr, attr_value)
 
         # Ensure every container has a Style object
         def ensure_styles(container):
@@ -558,30 +570,33 @@ class UI():
         def parse_border_values(container):
             width_top = width_right = width_bottom = width_left = LengthPointsPercent.from_any(0 * PT)
             
-            if hasattr(container.style, 'border_width') and isinstance(container.style.border_width, str):
-                border_width_str = container.style.border_width.strip().lower()
-                if 'calc(' not in border_width_str:
-                    # Split on whitespace - this handles multiple spaces correctly
-                    values = border_width_str.split()
-                    
-                    if len(values) == 1:
-                        val = parse_css_value(values[0])
-                        width_top = width_right = width_bottom = width_left = val
-                    elif len(values) == 2:
-                        vertical = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        width_top = width_bottom = vertical
-                        width_right = width_left = horizontal
-                    elif len(values) == 3:
-                        width_top = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        width_bottom = parse_css_value(values[2])
-                        width_right = width_left = horizontal
-                    elif len(values) == 4:
-                        width_top = parse_css_value(values[0])
-                        width_right = parse_css_value(values[1])
-                        width_bottom = parse_css_value(values[2])
-                        width_left = parse_css_value(values[3])
+            bw = getattr(container.style, 'border_width', None)
+            if bw is not None:
+                if isinstance(bw, (int, float)):
+                    val = LengthPointsPercent.from_any(int(bw) * PT)
+                    width_top = width_right = width_bottom = width_left = val
+                elif isinstance(bw, str):
+                    border_width_str = bw.strip().lower()
+                    if 'calc(' not in border_width_str:
+                        values = border_width_str.split()
+                        if len(values) == 1:
+                            val = parse_css_value(values[0])
+                            width_top = width_right = width_bottom = width_left = val
+                        elif len(values) == 2:
+                            vertical = parse_css_value(values[0])
+                            horizontal = parse_css_value(values[1])
+                            width_top = width_bottom = vertical
+                            width_right = width_left = horizontal
+                        elif len(values) == 3:
+                            width_top = parse_css_value(values[0])
+                            horizontal = parse_css_value(values[1])
+                            width_bottom = parse_css_value(values[2])
+                            width_right = width_left = horizontal
+                        elif len(values) == 4:
+                            width_top = parse_css_value(values[0])
+                            width_right = parse_css_value(values[1])
+                            width_bottom = parse_css_value(values[2])
+                            width_left = parse_css_value(values[3])
             
             if hasattr(container.style, 'border') and isinstance(container.style.border, str):
                 border_str = container.style.border.strip().lower()

@@ -157,15 +157,22 @@ impl SCSSCompiler {
                     let selector = selector.trim();
                     if !selector.is_empty() {
                         let selector_clean = selector.trim_start_matches('.');
-                        
-                        let namespaced = if selector_clean == component_base_name {
-                            namespace.to_string()
-                        } else if selector_clean.starts_with(&format!("{}_", component_base_name)) {
-                            selector_clean.replacen(component_base_name, namespace, 1)
-                        } else if !selector_clean.starts_with(namespace) {
-                            format!("{}_{}", namespace, selector_clean)
+
+                        // Strip pseudo-classes before namespace matching, re-append after
+                        let (base, pseudo_suffix) = if let Some(idx) = selector_clean.find(':') {
+                            (&selector_clean[..idx], &selector_clean[idx..])
                         } else {
-                            selector_clean.to_string()
+                            (selector_clean, "")
+                        };
+                        
+                        let namespaced = if base == component_base_name {
+                            format!("{}{}", namespace, pseudo_suffix)
+                        } else if base.starts_with(&format!("{}_", component_base_name)) {
+                            format!("{}{}", base.replacen(component_base_name, namespace, 1), pseudo_suffix)
+                        } else if !base.starts_with(namespace) {
+                            format!("{}_{}{}", namespace, base, pseudo_suffix)
+                        } else {
+                            format!("{}{}", base, pseudo_suffix)
                         };
                         
                         namespaced_selectors.push(namespaced);
