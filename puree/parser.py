@@ -198,6 +198,15 @@ class UI():
                                                 param_overrides=component_params,
                                                 component_name=component_base_name
                                             )
+                                            # Component CSS comes out with bare selectors (no dot prefix).
+                                            # Prepend '.' so the cascade matches them as class selectors.
+                                            import re as _re
+                                            compiled_css = _re.sub(
+                                                r'^([a-zA-Z_][\w]*)([\s:{])',
+                                                r'.\1\2',
+                                                compiled_css,
+                                                flags=_re.MULTILINE
+                                            )
                                             self._component_css += compiled_css
                                         
                                         def substitute_params(value, params):
@@ -294,7 +303,12 @@ class UI():
         
         string_props = [
             'overflow', 'display', 'position',
-            'flex_direction', 'align_items', 'justify_content'
+            'flex_direction', 'flex_wrap',
+            'align_items', 'align_self', 'align_content',
+            'justify_content', 'justify_items', 'justify_self',
+            'text_align_h', 'text_align_v',
+            'img_align_h', 'img_align_v',
+            'grid_auto_flow', 'grid_row', 'grid_column'
             ]
 
         if attr_name in color_props:
