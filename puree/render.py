@@ -81,6 +81,12 @@ class RenderPipeline:
         # Pre-allocated buffers for texture readback (avoid per-frame allocation)
         self._texture_float_buf = None
         self._texture_size_for_buf = None
+        # Native rendering pipeline (replaces compute+PBO readback)
+        self.native_shader   = None
+        self.native_batch    = None
+        self.data_texture    = None
+        self.container_count = 0
+        self._data_needs_update = True
         # Hot reload throttle
         self._hot_reload_frame_counter = 0
         self._hot_reload_check_interval = 30  # Check every 30 frames (~0.5s at 60fps)
@@ -247,6 +253,135 @@ class RenderPipeline:
             return True
         except Exception:
             return False
+    # ── Native rendering pipeline (eliminates compute+PBO readback) ──
+    
+    def create_native_shader(self):
+        """Compile Blender-native vertex+fragment shader pair via GPUShaderCreateInfo."""
+        vert_source = self.load_shader_file("container_draw.vert")
+        frag_source = self.load_shader_file("container_draw.frag")
+        
+        if not (vert_source and frag_source):
+            return False
+        
+        try:
+            shader_info = gpu.types.GPUShaderCreateInfo()
+            
+            shader_info.vertex_in(0, 'FLOAT', 'containerIdx')
+            shader_info.vertex_in(1, 'VEC2', 'quadCorner')
+            
+            shader_info.push_constant('FLOAT', 'viewportWidth')
+            shader_info.push_constant('FLOAT', 'viewportHeight')
+            shader_info.push_constant('FLOAT', 'hoverIndex')
+            shader_info.push_constant('FLOAT', 'clickIndex')
+            
+            shader_info.sampler(0, 'FLOAT_2D', 'containerData')
+            
+            interface = gpu.types.GPUStageInterfaceInfo("container_interface")
+            interface.flat('FLOAT', 'vContainerIdx')
+            interface.smooth('VEC2', 'vPixelPos')
+            shader_info.vertex_out(interface)
+            
+            shader_info.fragment_out(0, 'VEC4', 'fragColor')
+            
+            shader_info.vertex_source(vert_source)
+            shader_info.fragment_source(frag_source)
+            
+            self.native_shader = gpu.shader.create_from_info(shader_info)
+            return True
+        except Exception:
+            traceback.print_exc()
+            return False
+    
+    def create_container_batch(self, count):
+        """Build static vertex batch for N containers. Rebuilt when container count changes."""
+        if not self.native_shader or count <= 0:
+            return False
+        
+        try:
+            vertices_idx = []
+            vertices_corner = []
+            indices = []
+            
+            for i in range(count):
+                base_v = i * 4
+                for cx, cy in [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]:
+                    vertices_idx.append(float(i))
+                    vertices_corner.append((cx, cy))
+                indices.extend([
+                    (base_v, base_v + 1, base_v + 2),
+                    (base_v, base_v + 2, base_v + 3),
+                ])
+            
+            self.native_batch = batch_for_shader(
+                self.native_shader, 'TRIS',
+                {"containerIdx": vertices_idx, "quadCorner": vertices_corner},
+                indices=indices,
+            )
+            self.container_count = count
+            return True
+        except Exception:
+            traceback.print_exc()
+            return False
+    
+    def _pack_container_data_texture(self, containers):
+        """Pack container data into flat float32 array for RGBA32F data texture.
+        Layout: 15 texels (60 floats) per container."""
+        n = len(containers)
+        data = np.zeros(n * 60, dtype=np.float32)
+        
+        vis_clips = self._precompute_visibility_and_clips(containers)
+        
+        for i, container in enumerate(containers):
+            struct = self._build_container_struct(container)
+            v, cx, cy, cw, ch = vis_clips[i]
+            struct[-5] = v
+            struct[-4] = cx
+            struct[-3] = cy
+            struct[-2] = cw
+            struct[-1] = ch
+            
+            offset = i * 60
+            data[offset:offset + 59] = struct
+        
+        return data
+    
+    def create_data_texture(self, containers):
+        """Create RGBA32F data texture from container data."""
+        n = len(containers)
+        if n == 0:
+            return False
+        
+        try:
+            data = self._pack_container_data_texture(containers)
+            tex_width = n * 15
+            
+            buf = gpu.types.Buffer('FLOAT', len(data), data)
+            self.data_texture = gpu.types.GPUTexture(
+                (tex_width, 1),
+                format='RGBA32F',
+                data=buf,
+            )
+            self._data_needs_update = False
+            return True
+        except Exception:
+            traceback.print_exc()
+            return False
+    
+    def update_data_texture(self, containers):
+        """Recreate data texture with updated container data (~16KB, negligible cost)."""
+        if self.data_texture:
+            try:
+                del self.data_texture
+            except Exception:
+                pass
+            self.data_texture = None
+        
+        n = len(containers)
+        if n != self.container_count:
+            self.create_container_batch(n)
+        
+        return self.create_data_texture(containers)
+    
     def update_mouse_position(self, mouse_x, mouse_y):
         self.mouse_pos[0] = max(0.0, min(1.0, mouse_x))
         self.mouse_pos[1] = max(0.0, min(1.0, 1.0 - mouse_y))
@@ -271,11 +406,14 @@ class RenderPipeline:
             if updated_container_data:
                 self.container_data = updated_container_data
                 
-                container_array = []
-                for i, container in enumerate(self.container_data):
-                    container_array.extend(self._build_container_struct(container))
+                # Update native data texture (primary path)
+                self.update_data_texture(self.container_data)
                 
+                # Update compute buffer if available (for outline shader)
                 if self.container_buffer:
+                    container_array = []
+                    for i, container in enumerate(self.container_data):
+                        container_array.extend(self._build_container_struct(container))
                     container_data_np = np.array(container_array, dtype=np.float32)
                     self.container_buffer.write(container_data_np.tobytes())
         
@@ -425,18 +563,28 @@ class RenderPipeline:
         
         if not self.load_container_data():
             return False
+        
+        # ModernGL context — kept for outline shader / future compute effects
         if not self.init_moderngl_context():
             return False
         if not self.create_compute_shader():
-            return False
+            pass  # Non-fatal: compute path is no longer primary
         if not self.create_outline_shader():
-            return False
+            pass  # Non-fatal: debug only
         if not self.create_buffers_and_textures():
+            pass  # Non-fatal: only needed for compute/outline path
+        
+        # Native rendering pipeline (primary path — zero readback)
+        if not self.create_native_shader():
             return False
-        if not self.create_blender_gpu_shader():
+        if not self.create_container_batch(len(self.container_data)):
             return False
-        if not self.create_fullscreen_quad():
+        if not self.create_data_texture(self.container_data):
             return False
+        
+        # Keep old fullscreen quad shader for potential fallback
+        self.create_blender_gpu_shader()
+        self.create_fullscreen_quad()
 
         scroll_state.register_callback(self.on_scroll)
         self.scroll_callback_registered = True
@@ -451,10 +599,6 @@ class RenderPipeline:
         
         self.add_drawing_callback()
         
-        # Force initial render to ensure content appears immediately
-        self.run_compute_shader()
-        self.texture_needs_readback = True
-        
         return True
     def add_drawing_callback(self):
         from .space_config import get_space_class
@@ -468,97 +612,31 @@ class RenderPipeline:
             self.draw_texture, (), 'WINDOW', 'POST_PIXEL'
         )
     def draw_texture(self):
-        if not (self.running and self.gpu_shader and self.batch and self.output_texture):
+        """Draw containers directly via native vertex+fragment shader. Zero readback."""
+        if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
-            
+        
         try:
-            if not self.has_texture_changed():
-                if self.blender_texture:
-                    gpu.state.blend_set('ALPHA')
-                    gpu.state.depth_test_set('NONE')
-                    
-                    self.gpu_shader.bind()
-                    self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
-                    self.gpu_shader.uniform_float("opacity", 1.0)
-                    
-                    gpu.matrix.push()
-                    gpu.matrix.load_identity()
-                    
-                    self.batch.draw(self.gpu_shader)
-                    gpu.matrix.pop()
-                    
-                    gpu.state.blend_set('NONE')
-                    gpu.state.depth_test_set('LESS_EQUAL')
-                return
+            gpu.state.blend_set('ALPHA_PREMULT')
+            gpu.state.depth_test_set('NONE')
             
-            if not self.pbos or len(self.pbos) < self.pbo_count:
-                return
+            self.native_shader.bind()
+            self.native_shader.uniform_sampler("containerData", self.data_texture)
+            self.native_shader.uniform_float("viewportWidth", float(self.region_size[0]))
+            self.native_shader.uniform_float("viewportHeight", float(self.region_size[1]))
+            self.native_shader.uniform_float("hoverIndex", float(self._current_hover_index))
+            self.native_shader.uniform_float("clickIndex", float(self._current_click_index))
             
-            advanced = False
-            try:
-                current_pbo = self.pbos[self.pbo_index]
-                self.output_texture.read_into(current_pbo)
-
-                read_index = (self.pbo_index + 2) % self.pbo_count
-                read_pbo = self.pbos[read_index]
-
-                texture_data = read_pbo.read()
-
-                expected_size = self.texture_size[0] * self.texture_size[1] * 4
-                if len(texture_data) != expected_size:
-                    if len(texture_data) > expected_size:
-                        texture_data = texture_data[:expected_size]
-                    else:
-                        raise RuntimeError(f"texture_data too small: {len(texture_data)} < {expected_size}")
-
-                texture_array = np.frombuffer(texture_data, dtype=np.uint8)
-                
-                # Reuse pre-allocated float32 buffer to avoid per-frame allocation
-                if self._texture_float_buf is None or self._texture_size_for_buf != self.texture_size:
-                    self._texture_float_buf = np.empty(expected_size, dtype=np.float32)
-                    self._texture_size_for_buf = self.texture_size
-                np.multiply(texture_array, _U8_TO_F32_SCALE, out=self._texture_float_buf)
-                
-                buffer = gpu.types.Buffer('FLOAT', len(self._texture_float_buf), self._texture_float_buf)
-
-                if self.blender_texture:
-                    try:
-                        del self.blender_texture
-                    except Exception:
-                        pass
-
-                self.blender_texture = gpu.types.GPUTexture(
-                    self.texture_size,
-                    format = 'RGBA8',
-                    data   = buffer
-                )
-
-                advanced = True
-                self.texture_needs_readback = False
-
-                gpu.state.blend_set('ALPHA')
-                gpu.state.depth_test_set('NONE')
-
-                self.gpu_shader.bind()
-                self.gpu_shader.uniform_sampler("inputTexture", self.blender_texture)
-                self.gpu_shader.uniform_float("opacity", 1.0)
-
-                gpu.matrix.push()
-                gpu.matrix.load_identity()
-
-                self.batch.draw(self.gpu_shader)
-                gpu.matrix.pop()
-
-                gpu.state.blend_set('NONE')
-                gpu.state.depth_test_set('LESS_EQUAL')
-            except Exception as e:
-                traceback.print_exc()
-            finally:
-                if advanced:
-                    self.pbo_index = (self.pbo_index + 1) % self.pbo_count
+            gpu.matrix.push()
+            gpu.matrix.load_identity()
             
+            self.native_batch.draw(self.native_shader)
+            gpu.matrix.pop()
+            
+            gpu.state.blend_set('NONE')
+            gpu.state.depth_test_set('LESS_EQUAL')
         except Exception:
-            pass
+            traceback.print_exc()
     
     def cleanup(self):
         self.running = False
@@ -637,6 +715,17 @@ class RenderPipeline:
         self._cached_target_region = None
         self._cached_target_space = None
         self._area_cache_valid = False
+        
+        # Clean up native pipeline resources
+        if self.data_texture:
+            try:
+                del self.data_texture
+            except Exception:
+                pass
+            self.data_texture = None
+        self.native_shader = None
+        self.native_batch = None
+        self.container_count = 0
     def _build_container_struct(self, container):
         """Build the 59-float struct for a single container (54 base + 5 precomputed)."""
         current_color = container.get('color', [1, 1, 1, 1])
@@ -745,30 +834,36 @@ class RenderPipeline:
         if hover_index != self._current_hover_index or click_index != self._current_click_index:
             self._current_hover_index = hover_index
             self._current_click_index = click_index
-            self.needs_texture_update = True
+            # Native pipeline: hover/click are push constants, no data texture rebuild needed.
+            # Only tag_redraw is needed (handled by modal loop via hover_changed return value).
             return True
         return False
 
     def update_container_buffer_full(self, hit_container_data):
-        if not self.container_buffer or not hit_container_data:
+        if not hit_container_data:
             return False
         
         try:
-            vis_clips = self._precompute_visibility_and_clips(hit_container_data)
+            # Update native data texture (primary rendering path)
+            self.update_data_texture(hit_container_data)
             
-            container_array = []
-            for i, container in enumerate(hit_container_data):
-                struct = self._build_container_struct(container)
-                v, cx, cy, cw, ch = vis_clips[i]
-                struct[-5] = v
-                struct[-4] = cx
-                struct[-3] = cy
-                struct[-2] = cw
-                struct[-1] = ch
-                container_array.extend(struct)
-            
-            container_data_np = np.array(container_array, dtype=np.float32)
-            self.container_buffer.write(container_data_np.tobytes())
+            # Also update compute shader buffer if available (for outline shader)
+            if self.container_buffer:
+                vis_clips = self._precompute_visibility_and_clips(hit_container_data)
+                
+                container_array = []
+                for i, container in enumerate(hit_container_data):
+                    struct = self._build_container_struct(container)
+                    v, cx, cy, cw, ch = vis_clips[i]
+                    struct[-5] = v
+                    struct[-4] = cx
+                    struct[-3] = cy
+                    struct[-2] = cw
+                    struct[-1] = ch
+                    container_array.extend(struct)
+                
+                container_data_np = np.array(container_array, dtype=np.float32)
+                self.container_buffer.write(container_data_np.tobytes())
             
             if self.viewport_buffer:
                 vp_data = np.array([
@@ -782,6 +877,7 @@ class RenderPipeline:
             
             return True
         except Exception:
+            traceback.print_exc()
             return False
 
 class XWZ_OT_start_ui(Operator):
@@ -956,6 +1052,9 @@ class XWZ_OT_start_ui(Operator):
                 target_area = _render_data._cached_target_area
                 target_region = _render_data._cached_target_region
             
+            texture_changed = False
+            size_changed = False
+            
             if target_area and target_region:
                 # Throttle hot reload checks to every N frames instead of every frame
                 global _hot_reload_enabled
@@ -977,10 +1076,11 @@ class XWZ_OT_start_ui(Operator):
                     # Invalidate area cache on resize
                     _render_data._area_cache_valid = False
 
-                # Detect hover/click state changes from hit detection (sets needs_texture_update if changed)
+                # Detect hover/click state changes from hit detection
                 from . import hit_op
+                hover_changed = False
                 if hit_op._container_data:
-                    _render_data._detect_state_changes(hit_op._container_data)
+                    hover_changed = _render_data._detect_state_changes(hit_op._container_data)
 
                 texture_changed = _render_data.check_if_changed()
                 
@@ -1074,19 +1174,24 @@ class XWZ_OT_start_ui(Operator):
                     from .hit_op import _container_data
                     if _container_data:
                         _render_data.update_container_buffer_full(_container_data)
-                    
-                    _render_data.run_compute_shader()
             
-            # Use cached target space for redraw tagging
-            if not _render_data._cached_target_space:
-                from .space_config import get_target_space
-                _render_data._cached_target_space = get_target_space()
+            # Conditional tag_redraw — only redraw when something actually changed
+            # hover_changed only needs tag_redraw (push constants update), no data texture rebuild
+            needs_redraw = texture_changed or size_changed or hover_changed or _render_data.force_initial_draw
+            if _render_data.force_initial_draw:
+                _render_data.force_initial_draw = False
+                needs_redraw = True
             
-            if _render_data._cached_target_space:
-                for area in context.screen.areas:
-                    if area.type == _render_data._cached_target_space:
-                        area.tag_redraw()
-                        break
+            if needs_redraw:
+                if not _render_data._cached_target_space:
+                    from .space_config import get_target_space
+                    _render_data._cached_target_space = get_target_space()
+                
+                if _render_data._cached_target_space:
+                    for area in context.screen.areas:
+                        if area.type == _render_data._cached_target_space:
+                            area.tag_redraw()
+                            break
 
         elif event.type in {'ESC'}:
             self.cancel(context)
