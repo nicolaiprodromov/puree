@@ -140,7 +140,12 @@ These do **NOT** inherit:
 | CSS Property         | Type          | Default               | Description              |
 |----------------------|---------------|-----------------------|--------------------------|
 | `background-color`   | color         | `transparent`         | Fill/background color    |
-| `color`              | color         | `#ffffff` (inherited) | Text color               |
+| `color`              | color         | `transparent`         | **Background color** (puree convention — NOT text color) |
+| `text-color`         | color         | `#ffffff` (inherited) | Text color (puree extension)  |
+
+> ⚠️ **Important**: In puree, `color` means **background/fill color**, not text color.
+> This differs from CSS standard where `color` means text. Use `text-color` for text.
+> `background-color` also maps to the background and is an alias for `color`.
 
 **Puree gradient extension:**
 
