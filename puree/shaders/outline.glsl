@@ -59,7 +59,7 @@ struct Container {
 };
 
 Container getContainer(int index) {
-    int offset = index * 54;
+    int offset = index * 59;
     Container c;
     c.display = int(container_data[offset + 0]);
     c.position = vec2(container_data[offset + 1], container_data[offset + 2]);
@@ -84,6 +84,7 @@ Container getContainer(int index) {
     c.box_shadow_blur = container_data[offset + 48];
     c.box_shadow_color = vec4(container_data[offset + 49], container_data[offset + 50], container_data[offset + 51], container_data[offset + 52]);
     c.passive = int(container_data[offset + 53]);
+    // Skip precomputed fields (visible, clip_rect) at offsets 54-58 — not needed by outline shader
     return c;
 }
 

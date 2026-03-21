@@ -48,10 +48,13 @@ struct Container {
     float box_shadow_blur;
     vec4 box_shadow_color;
     int passive;
+    // Precomputed on CPU — eliminates per-pixel parent chain walks
+    int visible;         // 0 if this or any ancestor is hidden
+    vec4 clip_rect;      // (x, y, w, h) intersection of all ancestor bounds
 };
 
 Container getContainer(int index) {
-    int offset = index * 54;
+    int offset = index * 59;
     Container c;
     c.display = int(container_data[offset + 0]);
     c.position = vec2(container_data[offset + 1], container_data[offset + 2]);
@@ -76,12 +79,17 @@ Container getContainer(int index) {
     c.box_shadow_blur = container_data[offset + 48];
     c.box_shadow_color = vec4(container_data[offset + 49], container_data[offset + 50], container_data[offset + 51], container_data[offset + 52]);
     c.passive = int(container_data[offset + 53]);
+    c.visible = int(container_data[offset + 54]);
+    c.clip_rect = vec4(container_data[offset + 55], container_data[offset + 56],
+                       container_data[offset + 57], container_data[offset + 58]);
     return c;
 }
 
 layout(std430, binding = 2) restrict readonly buffer ViewportBuffer {
     vec2 viewportSize;
     float container_count_float;
+    float hover_index_float;
+    float click_index_float;
 };
 
 layout(std430, binding = 3) restrict writeonly buffer DebugBuffer {
@@ -91,7 +99,6 @@ layout(std430, binding = 3) restrict writeonly buffer DebugBuffer {
 layout(rgba8, binding = 4) restrict writeonly uniform image2D output_texture;
 
 // Interleaved Gradient Noise by Jorge Jimenez
-// From Call of Duty: Advanced Warfare presentation
 float gradientNoise(vec2 coord) {
     return fract(52.9829189 * fract(dot(coord, vec2(0.06711056, 0.00583715))));
 }
@@ -110,11 +117,8 @@ vec4 getGradientColor(vec4 color1, vec4 color2, float rotationDegrees, vec2 pixe
     float t = (projectedLength + maxProjection) / (2.0 * maxProjection);
     t = clamp(t, 0.0, 1.0);
     
-    // Apply the gradient interpolation
     vec4 gradientColor = mix(color1, color2, t);
     
-    // Add Interleaved Gradient Noise to eliminate banding
-    // Strength of 1/255 to match 8-bit precision, minus 0.5/255 to keep brightness neutral
     float noise = gradientNoise(pixelPos);
     float ditherStrength = (1.0 / 255.0);
     vec3 dither = vec3(noise * ditherStrength - ditherStrength * 0.5);
@@ -122,7 +126,6 @@ vec4 getGradientColor(vec4 color1, vec4 color2, float rotationDegrees, vec2 pixe
     return vec4(gradientColor.rgb + dither, gradientColor.a);
 }
 
-// SDF for rounded rectangle — uses container position directly to avoid redundant buffer load
 float containerSDFDirect(vec2 pixelPos, vec2 containerPos, vec2 containerSize, float borderRadius) {
     vec2 localPos = pixelPos - containerPos;
     float radius = min(borderRadius, min(containerSize.x, containerSize.y) * 0.5);
@@ -130,52 +133,10 @@ float containerSDFDirect(vec2 pixelPos, vec2 containerPos, vec2 containerSize, f
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - radius;
 }
 
-bool isPixelInAllParentBounds(vec2 pixelPos, int containerIndex, int container_count) {
-    if (containerIndex < 0 || containerIndex >= container_count) {
-        return true;
-    }
-    
-    Container currentContainer = getContainer(containerIndex);
-    int parentIndex = currentContainer.parent;
-    
-    while (parentIndex >= 0 && parentIndex < container_count) {
-        Container parent = getContainer(parentIndex);
-        
-        if (parent.overflow == 0) {
-            float parentSDF = containerSDFDirect(pixelPos, parent.position, parent.size, parent.border_radius);
-            if (parentSDF > 0.0) {
-                return false;
-            }
-        }
-        
-        parentIndex = parent.parent;
-    }
-    
-    return true;
-}
-
-bool isAnyParentHidden(int containerIndex, int container_count) {
-    int currentIndex = containerIndex;
-    
-    for (int depth = 0; depth < 10 && depth < container_count; depth++) {
-        if (currentIndex < 0 || currentIndex >= container_count) {
-            break;
-        }
-        
-        Container container = getContainer(currentIndex);
-        
-        if (container.display == 0) {
-            return true;
-        }
-        
-        if (container.parent < 0) {
-            break;
-        }
-        
-        currentIndex = container.parent;
-    }
-    
-    return false;
+// O(1) clip test using precomputed clip rectangle (replaces parent chain walk)
+bool isPixelInClipRect(vec2 pixelPos, vec4 clipRect) {
+    return pixelPos.x >= clipRect.x && pixelPos.x <= clipRect.x + clipRect.z &&
+           pixelPos.y >= clipRect.y && pixelPos.y <= clipRect.y + clipRect.w;
 }
 
 float sdfAntiAlias(float dist) {
@@ -214,7 +175,6 @@ vec4 renderContainer(vec2 pixelPos, Container container, bool isHovered, bool is
         return vec4(0.0);
     }
     
-    // If container is passive, ignore hover and click states
     if (container.passive != 0) {
         isHovered = false;
         isClicked = false;
@@ -237,13 +197,11 @@ vec4 renderContainer(vec2 pixelPos, Container container, bool isHovered, bool is
         }
     }
     
-    // Main container area with SDF anti-aliasing (no MSAA needed)
     if (dist <= 0.0) {
         float alpha = sdfAntiAlias(dist);
         return vec4(baseColor.rgb, baseColor.a * alpha);
     }
     
-    // Border with anti-aliasing
     if (dist <= container.border_width && container.border_color.a > 0.0 && container.border_width > 0.0) {
         vec4 borderColor = container.border_color;
         if (container.border_color_1.a > 0.0) {
@@ -267,10 +225,11 @@ void main() {
     }
     
     vec2 pixelPos = vec2(pixel_coords) + vec2(0.5);
-    vec2 mousePixelPos = mouse_pos * viewportSize;
-    bool isClicked = click_value > 0.0;
     
     int container_count = int(container_count_float);
+    // Hover/click indices computed on CPU (via Rust HitDetector)
+    int topmostHoverIndex = int(hover_index_float);
+    int topmostClickIndex = int(click_index_float);
     
     if (pixel_coords.x == 0 && pixel_coords.y == 0) {
         debug_values[0] = viewportSize.x;
@@ -302,45 +261,17 @@ void main() {
         return;
     }
     
-    // Single pass: determine topmost hover/click targets, then render all containers
-    // First find topmost hover and click containers (back-to-front, so last match wins)
-    int topmostClickIndex = -1;
-    int topmostHoverIndex = -1;
-    
-    for (int i = container_count - 1; i >= 0; i--) {
-        if (i >= 100) continue;
-        Container container = getContainer(i);
-        if (container.display == 0) continue;
-        if (isAnyParentHidden(i, container_count)) continue;
-        if (container.passive != 0) continue;
-        
-        // AABB early-out: skip if mouse is far from this container
-        vec2 localMouse = mousePixelPos - container.position;
-        vec2 halfSize = container.size * 0.5;
-        if (abs(localMouse.x - halfSize.x) > halfSize.x + container.border_radius &&
-            abs(localMouse.y - halfSize.y) > halfSize.y + container.border_radius) {
-            continue;
-        }
-        
-        float mouseSDF = containerSDFDirect(mousePixelPos, container.position, container.size, container.border_radius);
-        
-        if (mouseSDF <= 0.0 && isPixelInAllParentBounds(mousePixelPos, i, container_count)) {
-            if (topmostHoverIndex < 0) topmostHoverIndex = i;
-            if (isClicked && topmostClickIndex < 0) topmostClickIndex = i;
-            if (topmostHoverIndex >= 0 && (!isClicked || topmostClickIndex >= 0)) break;
-        }
-    }
-    
-    // Single rendering pass: composit all containers front-to-back order
-    // We iterate 0..N (parents first, children after) for correct layering
+    // Single rendering pass — no hover/click detection loop needed (done on CPU)
+    // Visibility and clip rects are precomputed on CPU: O(1) per container
     vec4 finalColor = vec4(0.0);
     
     for (int i = 0; i < container_count && i < 100; i++) {
         Container container = getContainer(i);
-        if (container.display == 0) continue;
-        if (isAnyParentHidden(i, container_count)) continue;
         
-        // AABB early-out: skip if pixel is far from this container (including shadow extent)
+        // Precomputed visibility replaces isAnyParentHidden() parent chain walk
+        if (container.visible == 0) continue;
+        
+        // AABB early-out: skip if pixel is far from this container
         vec2 localPos = pixelPos - container.position;
         vec2 halfSize = container.size * 0.5;
         float extent = max(container.border_width, container.box_shadow_blur) + 5.0;
@@ -349,7 +280,8 @@ void main() {
             continue;
         }
         
-        if (!isPixelInAllParentBounds(pixelPos, i, container_count)) {
+        // O(1) clip test replaces isPixelInAllParentBounds() parent chain walk
+        if (!isPixelInClipRect(pixelPos, container.clip_rect)) {
             continue;
         }
         
@@ -360,7 +292,7 @@ void main() {
             finalColor.a = finalColor.a + shadowColor.a * (1.0 - finalColor.a);
         }
         
-        // Container body + border
+        // Container body + border (hover/click from CPU-computed indices)
         bool hovered = (topmostHoverIndex == i);
         bool clicked = (topmostClickIndex == i);
         vec4 containerColor = renderContainer(pixelPos, container, hovered, clicked);

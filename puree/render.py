@@ -31,7 +31,7 @@ _modal_timer = None
 _hot_reload_enabled = False
 _debug_outlined_containers = set()
 
-CONTAINER_STRIDE = 54
+CONTAINER_STRIDE = 59
 _U8_TO_F32_SCALE = np.float32(1.0 / 255.0)
 
 class RenderPipeline:
@@ -69,6 +69,9 @@ class RenderPipeline:
         self.last_click_value = 0.0
         self.last_scroll_value = 0.0
         self.click_frames_remaining = 0
+        self._prev_container_states = {}
+        self._current_hover_index = -1
+        self._current_click_index = -1
         self.last_container_update = 0
         self.conf_path = 'xwz.ui.toml'
         self.pbos            = []
@@ -150,7 +153,7 @@ class RenderPipeline:
             container_data_np = np.array(container_array, dtype=np.float32)
             self.container_buffer = self.mgl_context.buffer(container_data_np.tobytes())
             
-            viewport_data = np.array([self.region_size[0], self.region_size[1], len(self.container_data)], dtype=np.float32)
+            viewport_data = np.array([self.region_size[0], self.region_size[1], len(self.container_data), -1.0, -1.0], dtype=np.float32)
             self.viewport_buffer = self.mgl_context.buffer(viewport_data.tobytes())
             
             self.texture_size = self.region_size
@@ -277,7 +280,7 @@ class RenderPipeline:
                     self.container_buffer.write(container_data_np.tobytes())
         
         if self.viewport_buffer:
-            viewport_data = np.array([w, h, len(self.container_data)], dtype=np.float32)
+            viewport_data = np.array([w, h, len(self.container_data), float(self._current_hover_index), float(self._current_click_index)], dtype=np.float32)
             self.viewport_buffer.write(viewport_data.tobytes())
         
         if size_changed and self.output_texture:
@@ -343,31 +346,12 @@ class RenderPipeline:
             self.compute_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0.0
     
     def check_if_changed(self):
-        """Check if texture needs updating and update state. Called from modal loop."""
+        """Check if shader dispatch is needed. Mouse-only movement does NOT trigger dispatch;
+        hover/click state changes are detected by _detect_state_changes() instead."""
         changed = False
         
-        # Force initial draw if this is the first check
         if self.force_initial_draw:
             self.force_initial_draw = False
-            changed = True
-        
-        if (abs(self.mouse_pos[0] - self.last_mouse_pos[0]) > 0.001 or 
-            abs(self.mouse_pos[1] - self.last_mouse_pos[1]) > 0.001):
-            self.last_mouse_pos = self.mouse_pos.copy()
-            changed = True
-        
-        if self.click_value != self.last_click_value:
-            self.last_click_value = self.click_value
-            self.click_frames_remaining = 3
-            changed = True
-        
-        if self.click_frames_remaining > 0:
-            self.click_frames_remaining -= 1
-            changed = True
-        
-        current_scroll = float(scroll_state.scroll_value)
-        if abs(current_scroll - self.last_scroll_value) > 0.001:
-            self.last_scroll_value = current_scroll
             changed = True
         
         if self.needs_texture_update:
@@ -654,7 +638,7 @@ class RenderPipeline:
         self._cached_target_space = None
         self._area_cache_valid = False
     def _build_container_struct(self, container):
-        """Build the 54-float struct for a single container."""
+        """Build the 59-float struct for a single container (54 base + 5 precomputed)."""
         current_color = container.get('color', [1, 1, 1, 1])
         current_color_1 = container.get('color_1', [1, 1, 1, 1])
         hover_color = container.get('hover_color', container_default.hover_color)
@@ -691,33 +675,110 @@ class RenderPipeline:
             shadow_offset[0], shadow_offset[1], shadow_offset[2],
             container.get('box_shadow_blur', 0.0),
             shadow_color[0], shadow_color[1], shadow_color[2], shadow_color[3],
-            int(container.get('passive', False))
+            int(container.get('passive', False)),
+            # Precomputed fields (defaults; overwritten by _precompute_visibility_and_clips)
+            1.0,                 # visible
+            0.0, 0.0,           # clip_x, clip_y
+            99999.0, 99999.0    # clip_w, clip_h
         ]
+
+    def _precompute_visibility_and_clips(self, containers):
+        """Precompute per-container visibility and clip rects on CPU.
+        Eliminates O(depth) parent chain walks per pixel in the shader."""
+        n = len(containers)
+        vw = float(self.region_size[0])
+        vh = float(self.region_size[1])
+        results = []
+        
+        for i in range(n):
+            c = containers[i]
+            if not c.get('display', False):
+                results.append((0.0, 0.0, 0.0, 0.0, 0.0))
+                continue
+            
+            visible = 1.0
+            clip_x, clip_y = 0.0, 0.0
+            clip_r, clip_b = vw, vh
+            
+            idx = i
+            for _ in range(20):
+                parent_idx = int(containers[idx].get('parent', -1))
+                if parent_idx < 0 or parent_idx >= n:
+                    break
+                parent = containers[parent_idx]
+                
+                if not parent.get('display', False):
+                    visible = 0.0
+                    break
+                
+                if not parent.get('overflow', False):
+                    pp = parent.get('position', [0, 0])
+                    ps = parent.get('size', [100, 100])
+                    px, py = float(pp[0]), float(pp[1])
+                    pw, ph = float(ps[0]), float(ps[1])
+                    clip_x = max(clip_x, px)
+                    clip_y = max(clip_y, py)
+                    clip_r = min(clip_r, px + pw)
+                    clip_b = min(clip_b, py + ph)
+                
+                idx = parent_idx
+            
+            clip_w = max(0.0, clip_r - clip_x)
+            clip_h = max(0.0, clip_b - clip_y)
+            results.append((visible, clip_x, clip_y, clip_w, clip_h))
+        
+        return results
+
+    def _detect_state_changes(self, container_data):
+        """Detect hover/click state changes. Sets needs_texture_update if changed."""
+        hover_index = -1
+        click_index = -1
+        
+        for i, c in enumerate(container_data):
+            h = c.get('_hovered', False)
+            k = c.get('_clicked', False)
+            if h and not c.get('passive', False):
+                hover_index = i
+            if k and not c.get('passive', False):
+                click_index = i
+        
+        if hover_index != self._current_hover_index or click_index != self._current_click_index:
+            self._current_hover_index = hover_index
+            self._current_click_index = click_index
+            self.needs_texture_update = True
+            return True
+        return False
 
     def update_container_buffer_full(self, hit_container_data):
         if not self.container_buffer or not hit_container_data:
             return False
         
         try:
-            container_array = []
-            updates_made = 0
+            vis_clips = self._precompute_visibility_and_clips(hit_container_data)
             
+            container_array = []
             for i, container in enumerate(hit_container_data):
-                state_changed = (
-                    container.get('_hovered', False) != container.get('_prev_hovered', False) or
-                    container.get('_clicked', False) != container.get('_prev_clicked', False)
-                )
-                
-                if state_changed:
-                    updates_made += 1
-                
-                container_array.extend(self._build_container_struct(container))
+                struct = self._build_container_struct(container)
+                v, cx, cy, cw, ch = vis_clips[i]
+                struct[-5] = v
+                struct[-4] = cx
+                struct[-3] = cy
+                struct[-2] = cw
+                struct[-1] = ch
+                container_array.extend(struct)
             
             container_data_np = np.array(container_array, dtype=np.float32)
             self.container_buffer.write(container_data_np.tobytes())
             
-            if updates_made > 0:
-                self.needs_texture_update = True
+            if self.viewport_buffer:
+                vp_data = np.array([
+                    float(self.region_size[0]),
+                    float(self.region_size[1]),
+                    float(len(hit_container_data)),
+                    float(self._current_hover_index),
+                    float(self._current_click_index)
+                ], dtype=np.float32)
+                self.viewport_buffer.write(vp_data.tobytes())
             
             return True
         except Exception:
@@ -915,6 +976,11 @@ class XWZ_OT_start_ui(Operator):
                 if size_changed:
                     # Invalidate area cache on resize
                     _render_data._area_cache_valid = False
+
+                # Detect hover/click state changes from hit detection (sets needs_texture_update if changed)
+                from . import hit_op
+                if hit_op._container_data:
+                    _render_data._detect_state_changes(hit_op._container_data)
 
                 texture_changed = _render_data.check_if_changed()
                 
