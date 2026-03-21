@@ -14,6 +14,8 @@ import os
 
 _text_instances = []
 _draw_handle = None
+_text_dims_cache = {}
+_cached_viewport_height = None
 
 class FontManager:
     _instance = None
@@ -89,16 +91,35 @@ class TextInstance:
         self.mask      = mask
         self.align_h   = align_h
         self.align_v   = align_v
+        self._cached_dims = None  # (text_width, text_height) cache
+        self._dims_key = None     # cache key: (text, font_id, size)
+    
+    def _get_dimensions(self):
+        """Get text dimensions, using cache when possible."""
+        key = (self.text, self.font_id, self.size)
+        if self._dims_key == key and self._cached_dims is not None:
+            return self._cached_dims
+        blf.size(self.font_id, self.size)
+        self._cached_dims = blf.dimensions(self.font_id, self.text)
+        self._dims_key = key
+        return self._cached_dims
+    
+    def _invalidate_dims_cache(self):
+        self._cached_dims = None
+        self._dims_key = None
     def update_text(self, new_text):
         self.text = new_text
+        self._invalidate_dims_cache()
         self._trigger_redraw()
     def update_font(self, new_font_name):
         if new_font_name == "default" or new_font_name in font_manager.get_available_fonts():
             self.font_name = new_font_name
             self.font_id = font_manager.get_font_id(new_font_name)
+            self._invalidate_dims_cache()
             self._trigger_redraw()
     def update_size(self, new_size):
         self.size = max(1, min(200, new_size))
+        self._invalidate_dims_cache()
         self._trigger_redraw()
     def update_position(self, new_pos):
         self.position = list(new_pos)
@@ -110,13 +131,18 @@ class TextInstance:
         self.mask = new_mask
         self._trigger_redraw()
     def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, align_h=None, align_v=None):
-        if text is not None:
+        dims_dirty = False
+        if text is not None and text != self.text:
             self.text = text
+            dims_dirty = True
         if font_name is not None and (font_name == "default" or font_name in font_manager.get_available_fonts()):
-            self.font_name = font_name
-            self.font_id = font_manager.get_font_id(font_name)
-        if size is not None:
+            if font_name != self.font_name:
+                self.font_name = font_name
+                self.font_id = font_manager.get_font_id(font_name)
+                dims_dirty = True
+        if size is not None and size != self.size:
             self.size = max(1, min(200, size))
+            dims_dirty = True
         if pos is not None:
             self.position = list(pos)
         if color is not None:
@@ -127,6 +153,8 @@ class TextInstance:
             self.align_h = align_h
         if align_v is not None:
             self.align_v = align_v
+        if dims_dirty:
+            self._invalidate_dims_cache()
         self._trigger_redraw()
     def _trigger_redraw(self):
         for area in bpy.context.screen.areas:
@@ -134,14 +162,19 @@ class TextInstance:
                 area.tag_redraw()
 
 def draw_all_text():
-    viewport_height = 0
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            for region in area.regions:
-                if region.type == 'WINDOW':
-                    viewport_height = region.height
-                    break
-            break
+    global _cached_viewport_height
+    
+    # Cache viewport height — only scan areas if not cached
+    if _cached_viewport_height is None:
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'WINDOW':
+                        _cached_viewport_height = region.height
+                        break
+                break
+    
+    viewport_height = _cached_viewport_height or 0
     
     for instance in _text_instances:
         # Set up clipping if mask exists
@@ -154,7 +187,7 @@ def draw_all_text():
             blf.enable(instance.font_id, blf.CLIPPING)
         
         blf.size(instance.font_id, instance.size)
-        text_width, text_height = blf.dimensions(instance.font_id, instance.text)
+        text_width, text_height = instance._get_dimensions()
         
         x_pos = instance.position[0]
         y_pos = instance.position[1]

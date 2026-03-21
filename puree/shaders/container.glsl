@@ -122,23 +122,15 @@ vec4 getGradientColor(vec4 color1, vec4 color2, float rotationDegrees, vec2 pixe
     return vec4(gradientColor.rgb + dither, gradientColor.a);
 }
 
-vec2 getContainerOrigin(int containerIndex) {
-    Container container = getContainer(containerIndex);
-    return container.position;
-}
-
-float containerSDF(vec2 pixelPos, Container container, int containerIndex) {
-    vec2 containerOrigin = getContainerOrigin(containerIndex);
-    vec2 localPos = pixelPos - containerOrigin;
-    vec2 size = container.size;
-    float radius = min(container.border_radius, min(size.x, size.y) * 0.5);
-    
-    vec2 d = abs(localPos - size * 0.5) - size * 0.5 + radius;
+// SDF for rounded rectangle — uses container position directly to avoid redundant buffer load
+float containerSDFDirect(vec2 pixelPos, vec2 containerPos, vec2 containerSize, float borderRadius) {
+    vec2 localPos = pixelPos - containerPos;
+    float radius = min(borderRadius, min(containerSize.x, containerSize.y) * 0.5);
+    vec2 d = abs(localPos - containerSize * 0.5) - containerSize * 0.5 + radius;
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - radius;
 }
 
-bool isPixelInAllParentBounds(vec2 pixelPos, int containerIndex) {
-    int container_count = int(container_count_float);
+bool isPixelInAllParentBounds(vec2 pixelPos, int containerIndex, int container_count) {
     if (containerIndex < 0 || containerIndex >= container_count) {
         return true;
     }
@@ -150,7 +142,7 @@ bool isPixelInAllParentBounds(vec2 pixelPos, int containerIndex) {
         Container parent = getContainer(parentIndex);
         
         if (parent.overflow == 0) {
-            float parentSDF = containerSDF(pixelPos, parent, parentIndex);
+            float parentSDF = containerSDFDirect(pixelPos, parent.position, parent.size, parent.border_radius);
             if (parentSDF > 0.0) {
                 return false;
             }
@@ -162,9 +154,8 @@ bool isPixelInAllParentBounds(vec2 pixelPos, int containerIndex) {
     return true;
 }
 
-bool isAnyParentHidden(int containerIndex) {
+bool isAnyParentHidden(int containerIndex, int container_count) {
     int currentIndex = containerIndex;
-    int container_count = int(container_count_float);
     
     for (int depth = 0; depth < 10 && depth < container_count; depth++) {
         if (currentIndex < 0 || currentIndex >= container_count) {
@@ -187,94 +178,40 @@ bool isAnyParentHidden(int containerIndex) {
     return false;
 }
 
-float boxShadowSDF(vec2 pixelPos, Container container, int containerIndex) {
-    vec2 containerOrigin = getContainerOrigin(containerIndex);
-    vec2 shadowOffset = container.box_shadow_offset.xy;
-    vec2 localPos = pixelPos - containerOrigin - shadowOffset;
-    vec2 size = container.size;
-    float radius = min(container.border_radius, min(size.x, size.y) * 0.5);
-    
-    vec2 d = abs(localPos - size * 0.5) - size * 0.5 + radius;
-    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - radius;
+float sdfAntiAlias(float dist) {
+    return clamp(0.5 - dist * 0.5, 0.0, 1.0);
 }
 
-float getPixelScale(vec2 coord, vec2 viewportSize) {
-    return 1.0;
-}
-
-float sdfAntiAlias(float dist, float pixelScale) {
-    float edgeWidth = pixelScale * 0.5;
-    return clamp(0.5 - dist / edgeWidth, 0.0, 1.0);
-}
-
-vec4 renderShadow(vec2 pixelPos, Container container, int containerIndex) {
-    if (container.display == 0) {
-        return vec4(0.0);
-    }
-    
-    if (isAnyParentHidden(containerIndex)) {
-        return vec4(0.0);
-    }
-    
+vec4 renderShadow(vec2 pixelPos, Container container) {
     if (container.box_shadow_color.a <= 0.0 || container.box_shadow_blur <= 0.0) {
         return vec4(0.0);
     }
     
-    if (!isPixelInAllParentBounds(pixelPos, containerIndex)) {
-        return vec4(0.0);
-    }
-    
-    float shadowDist = boxShadowSDF(pixelPos, container, containerIndex);
+    vec2 shadowOffset = container.box_shadow_offset.xy;
+    float shadowDist = containerSDFDirect(pixelPos, container.position + shadowOffset, container.size, container.border_radius);
     
     if (shadowDist > container.box_shadow_blur + 3.0) {
         return vec4(0.0);
     }
     
-    float containerDist = containerSDF(pixelPos, container, containerIndex);
+    float containerDist = containerSDFDirect(pixelPos, container.position, container.size, container.border_radius);
     if (containerDist <= container.border_width) {
         return vec4(0.0);
     }
     
-    float pixelScale = getPixelScale(pixelPos, viewportSize);
-    float softness = max(container.box_shadow_blur * 0.5, pixelScale);
+    float softness = max(container.box_shadow_blur * 0.5, 0.5);
     float alpha = 1.0 - smoothstep(-softness, container.box_shadow_blur, shadowDist);
     alpha = clamp(alpha, 0.0, 1.0);
     
     return vec4(container.box_shadow_color.rgb, container.box_shadow_color.a * alpha);
 }
 
-vec4 renderContainer(vec2 pixelPos, vec2 mousePixelPos, vec2 clickPixelPos, bool clicked, Container container, int containerIndex, bool blockClick, bool blockHover) {
-    if (container.display == 0) {
-        return vec4(0.0);
-    }
-    
-    if (isAnyParentHidden(containerIndex)) {
-        return vec4(0.0);
-    }
-    
-    if (!isPixelInAllParentBounds(pixelPos, containerIndex)) {
-        return vec4(0.0);
-    }
-    
-    float dist = containerSDF(pixelPos, container, containerIndex);
-    float outerBound = container.border_width + 3.0;
+vec4 renderContainer(vec2 pixelPos, Container container, bool isHovered, bool isClicked) {
+    float dist = containerSDFDirect(pixelPos, container.position, container.size, container.border_radius);
+    float outerBound = container.border_width + 1.5;
     
     if (dist > outerBound) {
         return vec4(0.0);
-    }
-    
-    bool isHovered = !blockHover && containerSDF(mousePixelPos, container, containerIndex) <= 0.0;
-    if (isHovered) {
-        if (!isPixelInAllParentBounds(mousePixelPos, containerIndex)) {
-            isHovered = false;
-        }
-    }
-    
-    bool isClicked = clicked && !blockClick && containerSDF(clickPixelPos, container, containerIndex) <= 0.0 && isHovered;
-    if (isClicked) {
-        if (!isPixelInAllParentBounds(clickPixelPos, containerIndex)) {
-            isClicked = false;
-        }
     }
     
     // If container is passive, ignore hover and click states
@@ -285,42 +222,36 @@ vec4 renderContainer(vec2 pixelPos, vec2 mousePixelPos, vec2 clickPixelPos, bool
     
     vec4 baseColor = container.color;
     if (container.color_1.a > 0.0) {
-        vec2 containerOrigin = getContainerOrigin(containerIndex);
-        baseColor = getGradientColor(container.color, container.color_1, container.color_gradient_rot, pixelPos, containerOrigin, container.size);
+        baseColor = getGradientColor(container.color, container.color_1, container.color_gradient_rot, pixelPos, container.position, container.size);
     }
     
     if (isClicked && container.click_color.a >= 0.0) {
         baseColor = container.click_color;
         if (container.click_color_1.a > 0.0) {
-            vec2 containerOrigin = getContainerOrigin(containerIndex);
-            baseColor = getGradientColor(container.click_color, container.click_color_1, container.click_color_gradient_rot, pixelPos, containerOrigin, container.size);
+            baseColor = getGradientColor(container.click_color, container.click_color_1, container.click_color_gradient_rot, pixelPos, container.position, container.size);
         }
     } else if (isHovered && container.hover_color.a >= 0.0) {
         baseColor = container.hover_color;
         if (container.hover_color_1.a > 0.0) {
-            vec2 containerOrigin = getContainerOrigin(containerIndex);
-            baseColor = getGradientColor(container.hover_color, container.hover_color_1, container.hover_color_gradient_rot, pixelPos, containerOrigin, container.size);
+            baseColor = getGradientColor(container.hover_color, container.hover_color_1, container.hover_color_gradient_rot, pixelPos, container.position, container.size);
         }
     }
     
-    float pixelScale = getPixelScale(pixelPos, viewportSize);
-    
-    // Main container area with antialiasing
+    // Main container area with SDF anti-aliasing (no MSAA needed)
     if (dist <= 0.0) {
-        float alpha = sdfAntiAlias(dist, pixelScale);
+        float alpha = sdfAntiAlias(dist);
         return vec4(baseColor.rgb, baseColor.a * alpha);
     }
     
-    // Border with antialiasing
+    // Border with anti-aliasing
     if (dist <= container.border_width && container.border_color.a > 0.0 && container.border_width > 0.0) {
         vec4 borderColor = container.border_color;
         if (container.border_color_1.a > 0.0) {
-            vec2 containerOrigin = getContainerOrigin(containerIndex);
-            borderColor = getGradientColor(container.border_color, container.border_color_1, container.border_color_gradient_rot, pixelPos, containerOrigin, container.size);
+            borderColor = getGradientColor(container.border_color, container.border_color_1, container.border_color_gradient_rot, pixelPos, container.position, container.size);
         }
         
         float borderDist = abs(dist - container.border_width * 0.5) - container.border_width * 0.5;
-        float borderAlpha = sdfAntiAlias(borderDist, pixelScale);
+        float borderAlpha = sdfAntiAlias(borderDist);
         return vec4(borderColor.rgb, borderColor.a * borderAlpha);
     }
     
@@ -335,36 +266,11 @@ void main() {
         return;
     }
     
-    // SIMPLIFIED: Direct 1:1 mapping since texture = viewport
     vec2 pixelPos = vec2(pixel_coords) + vec2(0.5);
-    vec2 viewportPixelPos = pixelPos; // No transformation needed!
     vec2 mousePixelPos = mouse_pos * viewportSize;
-    vec2 clickPixelPos = mouse_pos * viewportSize;
     bool isClicked = click_value > 0.0;
     
     int container_count = int(container_count_float);
-    
-    bool pixelNearAnyContainer = false;
-    for (int i = 0; i < container_count && i < 100; i++) {
-        Container container = getContainer(i);
-        if (container.display == 0) continue;
-        if (isAnyParentHidden(i)) continue;
-        
-        vec2 containerOrigin = getContainerOrigin(i);
-        vec2 localPos = viewportPixelPos - containerOrigin;
-        vec2 size = container.size;
-        float maxDist = max(size.x, size.y) * 0.5 + container.border_width + container.box_shadow_blur + 5.0;
-        
-        if (abs(localPos.x - size.x * 0.5) < maxDist && abs(localPos.y - size.y * 0.5) < maxDist) {
-            pixelNearAnyContainer = true;
-            break;
-        }
-    }
-    
-    if (!pixelNearAnyContainer) {
-        imageStore(output_texture, pixel_coords, vec4(0.0));
-        return;
-    }
     
     if (pixel_coords.x == 0 && pixel_coords.y == 0) {
         debug_values[0] = viewportSize.x;
@@ -396,142 +302,71 @@ void main() {
         return;
     }
     
+    // Single pass: determine topmost hover/click targets, then render all containers
+    // First find topmost hover and click containers (back-to-front, so last match wins)
     int topmostClickIndex = -1;
-    if (isClicked) {
-        for (int i = container_count - 1; i >= 0; i--) {
-            if (i >= 100) continue;
-            Container container = getContainer(i);
-            if (container.display == 0) continue;
-            if (isAnyParentHidden(i)) continue;
-            if (container.passive != 0) continue;  // Skip passive containers for click detection
-            
-            bool childClicked = containerSDF(clickPixelPos, container, i) <= 0.0;
-            
-            if (childClicked && isPixelInAllParentBounds(clickPixelPos, i)) {
-                topmostClickIndex = i;
-                break;
-            }
-        }
-    }
-    
     int topmostHoverIndex = -1;
+    
     for (int i = container_count - 1; i >= 0; i--) {
         if (i >= 100) continue;
         Container container = getContainer(i);
         if (container.display == 0) continue;
-        if (isAnyParentHidden(i)) continue;
-        if (container.passive != 0) continue;  // Skip passive containers for hover detection
+        if (isAnyParentHidden(i, container_count)) continue;
+        if (container.passive != 0) continue;
         
-        bool childHovered = containerSDF(mousePixelPos, container, i) <= 0.0;
+        // AABB early-out: skip if mouse is far from this container
+        vec2 localMouse = mousePixelPos - container.position;
+        vec2 halfSize = container.size * 0.5;
+        if (abs(localMouse.x - halfSize.x) > halfSize.x + container.border_radius &&
+            abs(localMouse.y - halfSize.y) > halfSize.y + container.border_radius) {
+            continue;
+        }
         
-        if (childHovered && isPixelInAllParentBounds(mousePixelPos, i)) {
-            topmostHoverIndex = i;
-            break;
+        float mouseSDF = containerSDFDirect(mousePixelPos, container.position, container.size, container.border_radius);
+        
+        if (mouseSDF <= 0.0 && isPixelInAllParentBounds(mousePixelPos, i, container_count)) {
+            if (topmostHoverIndex < 0) topmostHoverIndex = i;
+            if (isClicked && topmostClickIndex < 0) topmostClickIndex = i;
+            if (topmostHoverIndex >= 0 && (!isClicked || topmostClickIndex >= 0)) break;
         }
     }
     
+    // Single rendering pass: composit all containers front-to-back order
+    // We iterate 0..N (parents first, children after) for correct layering
     vec4 finalColor = vec4(0.0);
     
-    bool needsHighQuality = false;
     for (int i = 0; i < container_count && i < 100; i++) {
         Container container = getContainer(i);
-        float dist = containerSDF(viewportPixelPos, container, i);
-        if (abs(dist) < 2.0) {
-            needsHighQuality = true;
-            break;
-        }
-    }
-    
-    if (needsHighQuality) {
-        vec2 sampleOffsets[4] = vec2[4](
-            vec2(-0.25, -0.25), vec2(0.25, -0.25),
-            vec2(-0.25, 0.25),  vec2(0.25, 0.25)
-        );
+        if (container.display == 0) continue;
+        if (isAnyParentHidden(i, container_count)) continue;
         
-        vec4 accumulatedColor = vec4(0.0);
-        for (int s = 0; s < 4; s++) {
-            vec2 samplePos = viewportPixelPos + sampleOffsets[s];
-            
-            vec4 sampleColor = vec4(0.0);
-            
-            for (int i = 0; i < container_count && i < 100; i++) {
-                Container container = getContainer(i);
-                if (container.parent >= 0) continue;
-                
-                vec4 shadowColor = renderShadow(samplePos, container, i);
-                if (shadowColor.a > 0.0) {
-                    sampleColor.rgb = sampleColor.rgb * (1.0 - shadowColor.a) + shadowColor.rgb * shadowColor.a;
-                    sampleColor.a = sampleColor.a + shadowColor.a * (1.0 - sampleColor.a);
-                }
-                
-                bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
-                bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
-                vec4 containerColor = renderContainer(samplePos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
-                if (containerColor.a > 0.0) {
-                    sampleColor.rgb = sampleColor.rgb * (1.0 - containerColor.a) + containerColor.rgb * containerColor.a;
-                    sampleColor.a = sampleColor.a + containerColor.a * (1.0 - sampleColor.a);
-                }
-            }
-            
-            for (int i = 0; i < container_count && i < 100; i++) {
-                Container container = getContainer(i);
-                if (container.parent < 0) continue;
-                
-                vec4 shadowColor = renderShadow(samplePos, container, i);
-                if (shadowColor.a > 0.0) {
-                    sampleColor.rgb = sampleColor.rgb * (1.0 - shadowColor.a) + shadowColor.rgb * shadowColor.a;
-                    sampleColor.a = sampleColor.a + shadowColor.a * (1.0 - sampleColor.a);
-                }
-                
-                bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
-                bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
-                vec4 containerColor = renderContainer(samplePos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
-                if (containerColor.a > 0.0) {
-                    sampleColor.rgb = sampleColor.rgb * (1.0 - containerColor.a) + containerColor.rgb * containerColor.a;
-                    sampleColor.a = sampleColor.a + containerColor.a * (1.0 - sampleColor.a);
-                }
-            }
-            
-            accumulatedColor += sampleColor;
-        }
-        finalColor = accumulatedColor * 0.25;
-    } else {
-        for (int i = 0; i < container_count && i < 100; i++) {
-            Container container = getContainer(i);
-            if (container.parent >= 0) continue;
-            
-            vec4 shadowColor = renderShadow(viewportPixelPos, container, i);
-            if (shadowColor.a > 0.0) {
-                finalColor.rgb = finalColor.rgb * (1.0 - shadowColor.a) + shadowColor.rgb * shadowColor.a;
-                finalColor.a = finalColor.a + shadowColor.a * (1.0 - finalColor.a);
-            }
-            
-            bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
-            bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
-            vec4 containerColor = renderContainer(viewportPixelPos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
-            if (containerColor.a > 0.0) {
-                finalColor.rgb = finalColor.rgb * (1.0 - containerColor.a) + containerColor.rgb * containerColor.a;
-                finalColor.a = finalColor.a + containerColor.a * (1.0 - finalColor.a);
-            }
+        // AABB early-out: skip if pixel is far from this container (including shadow extent)
+        vec2 localPos = pixelPos - container.position;
+        vec2 halfSize = container.size * 0.5;
+        float extent = max(container.border_width, container.box_shadow_blur) + 5.0;
+        if (abs(localPos.x - halfSize.x) > halfSize.x + extent ||
+            abs(localPos.y - halfSize.y) > halfSize.y + extent) {
+            continue;
         }
         
-        for (int i = 0; i < container_count && i < 100; i++) {
-            Container container = getContainer(i);
-            if (container.parent < 0) continue;
-            
-            vec4 shadowColor = renderShadow(viewportPixelPos, container, i);
-            if (shadowColor.a > 0.0) {
-                finalColor.rgb = finalColor.rgb * (1.0 - shadowColor.a) + shadowColor.rgb * shadowColor.a;
-                finalColor.a = finalColor.a + shadowColor.a * (1.0 - finalColor.a);
-            }
-            
-            bool blockClick = topmostClickIndex >= 0 && topmostClickIndex != i;
-            bool blockHover = topmostHoverIndex >= 0 && topmostHoverIndex != i;
-            vec4 containerColor = renderContainer(viewportPixelPos, mousePixelPos, clickPixelPos, isClicked, container, i, blockClick, blockHover);
-            if (containerColor.a > 0.0) {
-                finalColor.rgb = finalColor.rgb * (1.0 - containerColor.a) + containerColor.rgb * containerColor.a;
-                finalColor.a = finalColor.a + containerColor.a * (1.0 - finalColor.a);
-            }
+        if (!isPixelInAllParentBounds(pixelPos, i, container_count)) {
+            continue;
+        }
+        
+        // Shadow
+        vec4 shadowColor = renderShadow(pixelPos, container);
+        if (shadowColor.a > 0.0) {
+            finalColor.rgb = finalColor.rgb * (1.0 - shadowColor.a) + shadowColor.rgb * shadowColor.a;
+            finalColor.a = finalColor.a + shadowColor.a * (1.0 - finalColor.a);
+        }
+        
+        // Container body + border
+        bool hovered = (topmostHoverIndex == i);
+        bool clicked = (topmostClickIndex == i);
+        vec4 containerColor = renderContainer(pixelPos, container, hovered, clicked);
+        if (containerColor.a > 0.0) {
+            finalColor.rgb = finalColor.rgb * (1.0 - containerColor.a) + containerColor.rgb * containerColor.a;
+            finalColor.a = finalColor.a + containerColor.a * (1.0 - finalColor.a);
         }
     }
     

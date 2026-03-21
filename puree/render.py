@@ -16,6 +16,7 @@ import moderngl as mgl
 from .components.container import container_default
 import numpy as np
 import traceback
+from collections import deque
 
 from gpu_extras.batch import batch_for_shader
 from bpy.types import Operator, Panel
@@ -29,6 +30,9 @@ _render_data = None
 _modal_timer = None
 _hot_reload_enabled = False
 _debug_outlined_containers = set()
+
+CONTAINER_STRIDE = 54
+_U8_TO_F32_SCALE = np.float32(1.0 / 255.0)
 
 class RenderPipeline:
     def __init__(self):
@@ -56,7 +60,7 @@ class RenderPipeline:
         self.mouse_callback_registered = False
         self.region_size     = (1, 1)
         self.container_data  = []
-        self.frame_times     = []
+        self.frame_times     = deque(maxlen=60)
         self.compute_fps     = 0.0
         self.last_frame_time = time.perf_counter()
         self.needs_texture_update = True
@@ -71,6 +75,17 @@ class RenderPipeline:
         self.pbo_index       = 0
         self.pbo_count       = 3
         self.force_initial_draw = True  # Force first draw regardless of changes
+        # Pre-allocated buffers for texture readback (avoid per-frame allocation)
+        self._texture_float_buf = None
+        self._texture_size_for_buf = None
+        # Hot reload throttle
+        self._hot_reload_frame_counter = 0
+        self._hot_reload_check_interval = 30  # Check every 30 frames (~0.5s at 60fps)
+        # Cached area/region lookup
+        self._cached_target_area = None
+        self._cached_target_region = None
+        self._cached_target_space = None
+        self._area_cache_valid = False
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -130,42 +145,7 @@ class RenderPipeline:
             
             container_array = []
             for i, container in enumerate(self.container_data):
-                container_struct = [
-                    int(container.get('display', False)),
-                    container.get('position', [0, 0])[0], container.get('position', [0, 0])[1],
-                    container.get('size', [100, 100])[0], container.get('size', [100, 100])[1],
-                    container.get('color', [1, 1, 1, 1])[0], container.get('color', [1, 1, 1, 1])[1], 
-                    container.get('color', [1, 1, 1, 1])[2], container.get('color', [1, 1, 1, 1])[3],
-                    container.get('color_1', [1, 1, 1, 1])[0], container.get('color_1', [1, 1, 1, 1])[1], 
-                    container.get('color_1', [1, 1, 1, 1])[2], container.get('color_1', [1, 1, 1, 1])[3],
-                    container.get('color_gradient_rot', 0.0),
-                    container.get('hover_color', container_default.hover_color)[0], container.get('hover_color', container_default.hover_color)[1], 
-                    container.get('hover_color', container_default.hover_color)[2], container.get('hover_color', container_default.hover_color)[3],
-                    container.get('hover_color_1', container_default.hover_color_1)[0], container.get('hover_color_1', container_default.hover_color_1)[1], 
-                    container.get('hover_color_1', container_default.hover_color_1)[2], container.get('hover_color_1', container_default.hover_color_1)[3],
-                    container.get('hover_color_gradient_rot', 0.0),
-                    container.get('click_color', container_default.click_color)[0], container.get('click_color', container_default.click_color)[1], 
-                    container.get('click_color', container_default.click_color)[2], container.get('click_color', container_default.click_color)[3],
-                    container.get('click_color_1', container_default.click_color_1)[0], container.get('click_color_1', container_default.click_color_1)[1], 
-                    container.get('click_color_1', container_default.click_color_1)[2], container.get('click_color_1', container_default.click_color_1)[3],
-                    container.get('click_color_gradient_rot', 0.0),
-                    container.get('border_color', [1, 1, 1, 1])[0], container.get('border_color', [1, 1, 1, 1])[1], 
-                    container.get('border_color', [1, 1, 1, 1])[2], container.get('border_color', [1, 1, 1, 1])[3],
-                    container.get('border_color_1', [1, 1, 1, 1])[0], container.get('border_color_1', [1, 1, 1, 1])[1], 
-                    container.get('border_color_1', [1, 1, 1, 1])[2], container.get('border_color_1', [1, 1, 1, 1])[3],
-                    container.get('border_color_gradient_rot', 0.0),
-                    container.get('border_radius', 0.0),
-                    container.get('border_width', 0.0),
-                    container.get('parent', -1),
-                    int(container.get('overflow', False)),
-                    container.get('box_shadow_offset', [0, 0, 0])[0], container.get('box_shadow_offset', [0, 0, 0])[1], 
-                    container.get('box_shadow_offset', [0, 0, 0])[2],
-                    container.get('box_shadow_blur', 0.0),
-                    container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
-                    int(container.get('passive', False))
-                ]
-                container_array.extend(container_struct)
+                container_array.extend(self._build_container_struct(container))
             
             container_data_np = np.array(container_array, dtype=np.float32)
             self.container_buffer = self.mgl_context.buffer(container_data_np.tobytes())
@@ -277,6 +257,12 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
         
         if size_changed:
+            # Invalidate cached viewport sizes in hit_op and text_op
+            from . import hit_op
+            from . import text_op
+            hit_op._cached_viewport_size = None
+            text_op._cached_viewport_height = None
+            
             updated_container_data = parser_op.recompute_layout((w, h))
             
             if updated_container_data:
@@ -284,42 +270,7 @@ class RenderPipeline:
                 
                 container_array = []
                 for i, container in enumerate(self.container_data):
-                    container_struct = [
-                        int(container.get('display', False)),
-                        container.get('position', [0, 0])[0], container.get('position', [0, 0])[1],
-                        container.get('size', [100, 100])[0], container.get('size', [100, 100])[1],
-                        container.get('color', [1, 1, 1, 1])[0], container.get('color', [1, 1, 1, 1])[1], 
-                        container.get('color', [1, 1, 1, 1])[2], container.get('color', [1, 1, 1, 1])[3],
-                        container.get('color_1', [1, 1, 1, 1])[0], container.get('color_1', [1, 1, 1, 1])[1], 
-                        container.get('color_1', [1, 1, 1, 1])[2], container.get('color_1', [1, 1, 1, 1])[3],
-                        container.get('color_gradient_rot', 0.0),
-                        container.get('hover_color', container_default.hover_color)[0], container.get('hover_color', container_default.hover_color)[1], 
-                        container.get('hover_color', container_default.hover_color)[2], container.get('hover_color', container_default.hover_color)[3],
-                        container.get('hover_color_1', container_default.hover_color_1)[0], container.get('hover_color_1', container_default.hover_color_1)[1], 
-                        container.get('hover_color_1', container_default.hover_color_1)[2], container.get('hover_color_1', container_default.hover_color_1)[3],
-                        container.get('hover_color_gradient_rot', 0.0),
-                        container.get('click_color', container_default.click_color)[0], container.get('click_color', container_default.click_color)[1], 
-                        container.get('click_color', container_default.click_color)[2], container.get('click_color', container_default.click_color)[3],
-                        container.get('click_color_1', container_default.click_color_1)[0], container.get('click_color_1', container_default.click_color_1)[1], 
-                        container.get('click_color_1', container_default.click_color_1)[2], container.get('click_color_1', container_default.click_color_1)[3],
-                        container.get('click_color_gradient_rot', 0.0),
-                        container.get('border_color', [1, 1, 1, 1])[0], container.get('border_color', [1, 1, 1, 1])[1], 
-                        container.get('border_color', [1, 1, 1, 1])[2], container.get('border_color', [1, 1, 1, 1])[3],
-                        container.get('border_color_1', [1, 1, 1, 1])[0], container.get('border_color_1', [1, 1, 1, 1])[1], 
-                        container.get('border_color_1', [1, 1, 1, 1])[2], container.get('border_color_1', [1, 1, 1, 1])[3],
-                        container.get('border_color_gradient_rot', 0.0),
-                        container.get('border_radius', 0.0),
-                        container.get('border_width', 0.0),
-                        container.get('parent', -1),
-                        int(container.get('overflow', False)),
-                        container.get('box_shadow_offset', [0, 0, 0])[0], container.get('box_shadow_offset', [0, 0, 0])[1], 
-                        container.get('box_shadow_offset', [0, 0, 0])[2],
-                        container.get('box_shadow_blur', 0.0),
-                        container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                        container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
-                        int(container.get('passive', False))
-                    ]
-                    container_array.extend(container_struct)
+                    container_array.extend(self._build_container_struct(container))
                 
                 if self.container_buffer:
                     container_data_np = np.array(container_array, dtype=np.float32)
@@ -386,8 +337,6 @@ class RenderPipeline:
         self.last_frame_time = current_time
         
         self.frame_times.append(frame_time)
-        if len(self.frame_times) > 60:
-            self.frame_times.pop(0)
         
         if len(self.frame_times) > 0:
             avg_frame_time = sum(self.frame_times) / len(self.frame_times)
@@ -579,9 +528,14 @@ class RenderPipeline:
                         raise RuntimeError(f"texture_data too small: {len(texture_data)} < {expected_size}")
 
                 texture_array = np.frombuffer(texture_data, dtype=np.uint8)
-                texture_float = np.multiply(texture_array, 0.00392156862745098, dtype=np.float32)
                 
-                buffer = gpu.types.Buffer('FLOAT', len(texture_float), texture_float)
+                # Reuse pre-allocated float32 buffer to avoid per-frame allocation
+                if self._texture_float_buf is None or self._texture_size_for_buf != self.texture_size:
+                    self._texture_float_buf = np.empty(expected_size, dtype=np.float32)
+                    self._texture_size_for_buf = self.texture_size
+                np.multiply(texture_array, _U8_TO_F32_SCALE, out=self._texture_float_buf)
+                
+                buffer = gpu.types.Buffer('FLOAT', len(self._texture_float_buf), self._texture_float_buf)
 
                 if self.blender_texture:
                     try:
@@ -691,6 +645,55 @@ class RenderPipeline:
         if self.mouse_callback_registered:
             mouse_state.unregister_callback(self.on_mouse_event)
             self.mouse_callback_registered = False
+        
+        # Clear cached references
+        self._texture_float_buf = None
+        self._texture_size_for_buf = None
+        self._cached_target_area = None
+        self._cached_target_region = None
+        self._cached_target_space = None
+        self._area_cache_valid = False
+    def _build_container_struct(self, container):
+        """Build the 54-float struct for a single container."""
+        current_color = container.get('color', [1, 1, 1, 1])
+        current_color_1 = container.get('color_1', [1, 1, 1, 1])
+        hover_color = container.get('hover_color', container_default.hover_color)
+        hover_color_1 = container.get('hover_color_1', container_default.hover_color_1)
+        click_color = container.get('click_color', container_default.click_color)
+        click_color_1 = container.get('click_color_1', container_default.click_color_1)
+        border_color = container.get('border_color', [1, 1, 1, 1])
+        border_color_1 = container.get('border_color_1', [1, 1, 1, 1])
+        position = container.get('position', [0, 0])
+        size = container.get('size', [100, 100])
+        shadow_offset = container.get('box_shadow_offset', [0, 0, 0])
+        shadow_color = container.get('box_shadow_color', [0, 0, 0, 0])
+        
+        return [
+            int(container.get('display', False)),
+            position[0], position[1],
+            size[0], size[1],
+            current_color[0], current_color[1], current_color[2], current_color[3],
+            current_color_1[0], current_color_1[1], current_color_1[2], current_color_1[3],
+            container.get('color_gradient_rot', 0.0),
+            hover_color[0], hover_color[1], hover_color[2], hover_color[3],
+            hover_color_1[0], hover_color_1[1], hover_color_1[2], hover_color_1[3],
+            container.get('hover_color_gradient_rot', 0.0),
+            click_color[0], click_color[1], click_color[2], click_color[3],
+            click_color_1[0], click_color_1[1], click_color_1[2], click_color_1[3],
+            container.get('click_color_gradient_rot', 0.0),
+            border_color[0], border_color[1], border_color[2], border_color[3],
+            border_color_1[0], border_color_1[1], border_color_1[2], border_color_1[3],
+            container.get('border_color_gradient_rot', 0.0),
+            container.get('border_radius', 0.0),
+            container.get('border_width', 0.0),
+            container.get('parent', -1),
+            int(container.get('overflow', False)),
+            shadow_offset[0], shadow_offset[1], shadow_offset[2],
+            container.get('box_shadow_blur', 0.0),
+            shadow_color[0], shadow_color[1], shadow_color[2], shadow_color[3],
+            int(container.get('passive', False))
+        ]
+
     def update_container_buffer_full(self, hit_container_data):
         if not self.container_buffer or not hit_container_data:
             return False
@@ -708,45 +711,8 @@ class RenderPipeline:
                 if state_changed:
                     updates_made += 1
                 
-                current_color = container.get('color', [1, 1, 1, 1]).copy()
-                current_color_1 = container.get('color_1', [1, 1, 1, 1]).copy()
-                
-                container_struct = [
-                    int(container.get('display', False)),
-                    container.get('position', [0, 0])[0], container.get('position', [0, 0])[1],
-                    container.get('size', [100, 100])[0], container.get('size', [100, 100])[1],
-                    current_color[0], current_color[1], current_color[2], current_color[3],
-                    current_color_1[0], current_color_1[1], current_color_1[2], current_color_1[3],
-                    container.get('color_gradient_rot', 0.0),
-                    container.get('hover_color', container_default.hover_color)[0], container.get('hover_color', container_default.hover_color)[1], 
-                    container.get('hover_color', container_default.hover_color)[2], container.get('hover_color', container_default.hover_color)[3],
-                    container.get('hover_color_1', container_default.hover_color_1)[0], container.get('hover_color_1', container_default.hover_color_1)[1], 
-                    container.get('hover_color_1', container_default.hover_color_1)[2], container.get('hover_color_1', container_default.hover_color_1)[3],
-                    container.get('hover_color_gradient_rot', 0.0),
-                    container.get('click_color', container_default.click_color)[0], container.get('click_color', container_default.click_color)[1], 
-                    container.get('click_color', container_default.click_color)[2], container.get('click_color', container_default.click_color)[3],
-                    container.get('click_color_1', container_default.click_color_1)[0], container.get('click_color_1', container_default.click_color_1)[1], 
-                    container.get('click_color_1', container_default.click_color_1)[2], container.get('click_color_1', container_default.click_color_1)[3],
-                    container.get('click_color_gradient_rot', 0.0),
-                    container.get('border_color', [1, 1, 1, 1])[0], container.get('border_color', [1, 1, 1, 1])[1], 
-                    container.get('border_color', [1, 1, 1, 1])[2], container.get('border_color', [1, 1, 1, 1])[3],
-                    container.get('border_color_1', [1, 1, 1, 1])[0], container.get('border_color_1', [1, 1, 1, 1])[1], 
-                    container.get('border_color_1', [1, 1, 1, 1])[2], container.get('border_color_1', [1, 1, 1, 1])[3],
-                    container.get('border_color_gradient_rot', 0.0),
-                    container.get('border_radius', 0.0),
-                    container.get('border_width', 0.0),
-                    container.get('parent', -1),
-                    int(container.get('overflow', False)),
-                    container.get('box_shadow_offset', [0, 0, 0])[0], container.get('box_shadow_offset', [0, 0, 0])[1], 
-                    container.get('box_shadow_offset', [0, 0, 0])[2],
-                    container.get('box_shadow_blur', 0.0),
-                    container.get('box_shadow_color', [0, 0, 0, 0])[0], container.get('box_shadow_color', [0, 0, 0, 0])[1], 
-                    container.get('box_shadow_color', [0, 0, 0, 0])[2], container.get('box_shadow_color', [0, 0, 0, 0])[3],
-                    int(container.get('passive', False))
-                ]
-                container_array.extend(container_struct)
+                container_array.extend(self._build_container_struct(container))
             
-            # Update entire buffer
             container_data_np = np.array(container_array, dtype=np.float32)
             self.container_buffer.write(container_data_np.tobytes())
             
@@ -918,23 +884,37 @@ class XWZ_OT_start_ui(Operator):
                             area.tag_redraw()
         
         if event.type == 'TIMER':
-            from .space_config import find_target_area_and_region
-            
-            target_area, target_region = find_target_area_and_region()
+            # Use cached area/region lookup — avoids per-frame linear scan
+            if not _render_data._area_cache_valid:
+                from .space_config import find_target_area_and_region
+                target_area, target_region = find_target_area_and_region()
+                _render_data._cached_target_area = target_area
+                _render_data._cached_target_region = target_region
+                _render_data._area_cache_valid = True
+            else:
+                target_area = _render_data._cached_target_area
+                target_region = _render_data._cached_target_region
             
             if target_area and target_region:
+                # Throttle hot reload checks to every N frames instead of every frame
                 global _hot_reload_enabled
                 if _hot_reload_enabled:
-                    try:
-                        from .hot_reload import get_hot_reload_manager
-                        manager = get_hot_reload_manager()
-                        manager.check_for_changes()
-                    except Exception as e:
-                        print(f"Hot reload error: {e}")
+                    _render_data._hot_reload_frame_counter += 1
+                    if _render_data._hot_reload_frame_counter >= _render_data._hot_reload_check_interval:
+                        _render_data._hot_reload_frame_counter = 0
+                        try:
+                            from .hot_reload import get_hot_reload_manager
+                            manager = get_hot_reload_manager()
+                            manager.check_for_changes()
+                        except Exception as e:
+                            print(f"Hot reload error: {e}")
 
                 _render_data.update_fps()
 
                 size_changed = _render_data.update_region_size(target_region.width, target_region.height)
+                if size_changed:
+                    # Invalidate area cache on resize
+                    _render_data._area_cache_valid = False
 
                 texture_changed = _render_data.check_if_changed()
                 
@@ -1031,12 +1011,16 @@ class XWZ_OT_start_ui(Operator):
                     
                     _render_data.run_compute_shader()
             
-            from .space_config import get_target_space
-            target_space = get_target_space()
+            # Use cached target space for redraw tagging
+            if not _render_data._cached_target_space:
+                from .space_config import get_target_space
+                _render_data._cached_target_space = get_target_space()
             
-            for area in context.screen.areas:
-                if area.type == target_space:
-                    area.tag_redraw()
+            if _render_data._cached_target_space:
+                for area in context.screen.areas:
+                    if area.type == _render_data._cached_target_space:
+                        area.tag_redraw()
+                        break
 
         elif event.type in {'ESC'}:
             self.cancel(context)

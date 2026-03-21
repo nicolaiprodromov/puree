@@ -17,6 +17,7 @@ from .native_bindings import HitDetector
 hit_modal_running = False
 _container_data = []
 _native_detector = None
+_cached_viewport_size = None
 
 class XWZ_OT_hit_detect(bpy.types.Operator):
     bl_idname  = "xwz.hit_detect"
@@ -51,6 +52,11 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         
         if not hit_modal_running:
             return {'FINISHED'}
+        
+        # Only process mouse-related events
+        if event.type not in {'MOUSEMOVE', 'LEFTMOUSE', 'RIGHTMOUSE', 'MIDDLEMOUSE', 
+                              'WHEELUPMOUSE', 'WHEELDOWNMOUSE', 'TRACKPADPAN', 'TIMER'}:
+            return {'PASS_THROUGH'}
         
         if not self._is_mouse_in_viewport():
             return {'PASS_THROUGH'}
@@ -140,11 +146,15 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
             return False
     
     def _get_viewport_size(self):
+        global _cached_viewport_size
+        if _cached_viewport_size is not None:
+            return _cached_viewport_size
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
                 for region in area.regions:
                     if region.type == 'WINDOW':
-                        return region.width, region.height
+                        _cached_viewport_size = (region.width, region.height)
+                        return _cached_viewport_size
         return 1920, 1080
     
     def _get_mouse_pos(self):
