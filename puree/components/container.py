@@ -175,7 +175,28 @@ class Container():
                 self._layout_node.style = Style(**new_style_dict)
                 self._layout_node.mark_dirty()
         
-        setattr(self, name, value)
+        # Style properties go to self.style with type conversion
+        color_props = {'color', 'color_1', 'hover_color', 'hover_color_1',
+                       'click_color', 'click_color_1', 'border_color', 'border_color_1',
+                       'text_color', 'text_color_1', 'box_shadow_color'}
+        if name in color_props and isinstance(value, str) and hasattr(self, 'style') and self.style is not None:
+            from .style import Style as PureeStyle
+            if isinstance(self.style, PureeStyle):
+                from ..native_bindings import ColorProcessor
+                cp = ColorProcessor()
+                try:
+                    parsed = cp.parse_color(value)
+                    setattr(self.style, name, parsed)
+                except Exception:
+                    setattr(self.style, name, value)
+                self.mark_dirty()
+                return
+        
+        if hasattr(self, 'style') and self.style is not None and hasattr(self.style, name):
+            setattr(self.style, name, value)
+            self.mark_dirty()
+        else:
+            setattr(self, name, value)
     
     def get_by_id(self, target_id):
         if self.id == target_id or self.id.endswith(f"_{target_id}"):
