@@ -21,7 +21,7 @@ mod space_mapper;
 mod config_parser;
 
 use hit_detection::{HitDetector, ContainerProcessor};
-use css::{CSSParser, SCSSCompiler};
+use css::{CSSCascade, CSSParser, SCSSCompiler};
 use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_color_py, 
             interpolate_color_py, rotate_gradient_py};
 use file_watcher::PyFileWatcher;
@@ -31,6 +31,7 @@ use config_parser::{ConfigParser, ConfigParseResult, ThemeConfigData, SpaceValid
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<HitDetector>()?;
     m.add_class::<ContainerProcessor>()?;
+    m.add_class::<CSSCascade>()?;
     m.add_class::<CSSParser>()?;
     m.add_class::<SCSSCompiler>()?;
     m.add_class::<ColorProcessor>()?;
