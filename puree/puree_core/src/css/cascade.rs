@@ -684,22 +684,65 @@ impl CSSCascade {
             resolved.push(props);
         }
 
-        // Inheritance pass
+        // Keyword resolution + inheritance pass
+        // Parents are always before children so we can resolve in order.
+        let inherited_set: std::collections::HashSet<&str> =
+            INHERITED_PROPERTIES.iter().copied().collect();
+
         for idx in 0..infos.len() {
             let parent = infos[idx].parent_idx;
-            if parent < 0 {
-                continue;
-            }
-            let pidx = parent as usize;
-            if pidx >= resolved.len() {
-                continue;
-            }
-            for &prop_name in INHERITED_PROPERTIES {
-                if resolved[idx].contains_key(prop_name) {
-                    continue;
+            let pidx = if parent >= 0 && (parent as usize) < resolved.len() {
+                Some(parent as usize)
+            } else {
+                None
+            };
+
+            // Resolve inherit / initial / unset keywords
+            let keywords: Vec<(String, String)> = resolved[idx]
+                .iter()
+                .filter(|(_, v)| {
+                    let lv = v.trim();
+                    lv == "inherit" || lv == "initial" || lv == "unset"
+                })
+                .map(|(k, v)| (k.clone(), v.trim().to_string()))
+                .collect();
+
+            for (prop, kw) in keywords {
+                match kw.as_str() {
+                    "initial" => {
+                        resolved[idx].remove(&prop);
+                    }
+                    "inherit" => {
+                        resolved[idx].remove(&prop);
+                        if let Some(pi) = pidx {
+                            if let Some(pv) = resolved[pi].get(&prop).cloned() {
+                                resolved[idx].insert(prop, pv);
+                            }
+                        }
+                    }
+                    "unset" => {
+                        resolved[idx].remove(&prop);
+                        if inherited_set.contains(prop.as_str()) {
+                            if let Some(pi) = pidx {
+                                if let Some(pv) = resolved[pi].get(&prop).cloned() {
+                                    resolved[idx].insert(prop, pv);
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
                 }
-                if let Some(parent_val) = resolved[pidx].get(prop_name).cloned() {
-                    resolved[idx].insert(prop_name.to_string(), parent_val);
+            }
+
+            // Normal CSS inheritance for inherited properties
+            if let Some(pi) = pidx {
+                for &prop_name in INHERITED_PROPERTIES {
+                    if resolved[idx].contains_key(prop_name) {
+                        continue;
+                    }
+                    if let Some(parent_val) = resolved[pi].get(prop_name).cloned() {
+                        resolved[idx].insert(prop_name.to_string(), parent_val);
+                    }
                 }
             }
         }
