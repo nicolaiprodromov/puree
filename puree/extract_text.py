@@ -45,6 +45,10 @@ class TextExtractor:
                 'text_decoration'         : getattr(container.style, 'text_decoration', 'NONE'),
                 'letter_spacing'          : float(getattr(container.style, 'letter_spacing', 0)),
                 'line_height'             : float(getattr(container.style, 'line_height', 0)),
+                'font_weight'             : getattr(container.style, 'font_weight', 'NORMAL'),
+                'font_style'              : getattr(container.style, 'font_style', 'NORMAL'),
+                'white_space'             : getattr(container.style, 'white_space', 'NORMAL'),
+                'text_overflow'           : getattr(container.style, 'text_overflow', 'CLIP'),
             }
         self.flat_index += 1
         for child in container.children:  

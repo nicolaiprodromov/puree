@@ -55,6 +55,47 @@ class FontManager:
     def get_available_fonts(self):
         return list(self.fonts.keys())
     
+    def resolve_font_variant(self, base_font_name, weight='NORMAL', style='NORMAL'):
+        """Resolve a font variant based on weight and style.
+        Returns a font_id for the best matching variant."""
+        if not base_font_name or base_font_name == 'default':
+            return self.get_font_id(base_font_name)
+        
+        # Extract family name by stripping known suffixes
+        family = base_font_name
+        for suffix in ('BoldItalic', 'LightItalic', 'Bold', 'Italic', 'Light', 'Regular'):
+            if family.endswith('-' + suffix):
+                family = family[:-len(suffix) - 1]
+                break
+        
+        # Map weight
+        weight_str = str(weight).upper()
+        if weight_str in ('BOLD', '700', '800', '900'):
+            weight_suffix = 'Bold'
+        elif weight_str in ('LIGHT', '300'):
+            weight_suffix = 'Light'
+        else:
+            weight_suffix = ''
+        
+        # Map style
+        style_suffix = 'Italic' if str(style).upper() == 'ITALIC' else ''
+        
+        # Build variant name: family-WeightStyle
+        if weight_suffix and style_suffix:
+            variant = f"{family}-{weight_suffix}{style_suffix}"
+        elif weight_suffix:
+            variant = f"{family}-{weight_suffix}"
+        elif style_suffix:
+            variant = f"{family}-{style_suffix}"
+        else:
+            variant = f"{family}-Regular"
+        
+        if variant in self.font_ids:
+            return self.font_ids[variant]
+        
+        # Fallback to the base font name as-is
+        return self.get_font_id(base_font_name)
+    
     def unload_fonts(self):
         for font_name, font_path in self.fonts.items():
             try:
@@ -81,12 +122,15 @@ font_manager = FontManager()
 
 class TextInstance:
     def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER',
-                 text_decoration='NONE', letter_spacing=0.0, line_height=0.0):
+                 text_decoration='NONE', letter_spacing=0.0, line_height=0.0,
+                 font_weight='NORMAL', font_style='NORMAL', white_space='NORMAL', text_overflow='CLIP'):
         self.container_id = container_id
         self.id        = len(_text_instances)
         self.text      = text
         self.font_name = font_name
-        self.font_id   = font_manager.get_font_id(self.font_name) if self.font_name else 0
+        self.font_weight = font_weight
+        self.font_style  = font_style
+        self.font_id   = font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style) if self.font_name else 0
         self.size      = size
         self.position  = pos
         self.color     = color
@@ -97,16 +141,21 @@ class TextInstance:
         self.text_decoration = text_decoration
         self.letter_spacing  = letter_spacing
         self.line_height     = line_height
+        self.white_space     = white_space
+        self.text_overflow   = text_overflow
         self._cached_dims = None
         self._dims_key = None
     
     def _get_dimensions(self):
         """Get text dimensions, using cache when possible."""
-        key = (self.text, self.font_id, self.size)
+        key = (self.text, self.font_id, self.size, self.letter_spacing)
         if self._dims_key == key and self._cached_dims is not None:
             return self._cached_dims
         blf.size(self.font_id, self.size)
-        self._cached_dims = blf.dimensions(self.font_id, self.text)
+        w, h = blf.dimensions(self.font_id, self.text)
+        if self.letter_spacing > 0 and len(self.text) > 1:
+            w += self.letter_spacing * (len(self.text) - 1)
+        self._cached_dims = (w, h)
         self._dims_key = key
         return self._cached_dims
     
@@ -137,7 +186,8 @@ class TextInstance:
         self.mask = new_mask
         self._trigger_redraw()
     def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, clip=None, align_h=None, align_v=None,
-                   text_decoration=None, letter_spacing=None, line_height=None):
+                   text_decoration=None, letter_spacing=None, line_height=None,
+                   font_weight=None, font_style=None, white_space=None, text_overflow=None):
         dims_dirty = False
         if text is not None and text != self.text:
             self.text = text
@@ -145,8 +195,16 @@ class TextInstance:
         if font_name is not None and (font_name == "default" or font_name in font_manager.get_available_fonts()):
             if font_name != self.font_name:
                 self.font_name = font_name
-                self.font_id = font_manager.get_font_id(font_name)
+                self.font_id = font_manager.resolve_font_variant(font_name, self.font_weight, self.font_style)
                 dims_dirty = True
+        if font_weight is not None and font_weight != self.font_weight:
+            self.font_weight = font_weight
+            self.font_id = font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style)
+            dims_dirty = True
+        if font_style is not None and font_style != self.font_style:
+            self.font_style = font_style
+            self.font_id = font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style)
+            dims_dirty = True
         if size is not None and size != self.size:
             self.size = max(1, min(200, size))
             dims_dirty = True
@@ -168,6 +226,10 @@ class TextInstance:
             self.letter_spacing = letter_spacing
         if line_height is not None:
             self.line_height = line_height
+        if white_space is not None:
+            self.white_space = white_space
+        if text_overflow is not None:
+            self.text_overflow = text_overflow
         if dims_dirty:
             self._invalidate_dims_cache()
         self._trigger_redraw()
@@ -257,6 +319,36 @@ def draw_all_text():
         blf.size(instance.font_id, instance.size)
         text_width, text_height = instance._get_dimensions()
         
+        # Resolve line height multiplier (0 means default 1.2)
+        lh_mult = instance.line_height if instance.line_height > 0 else 1.2
+        line_step = instance.size * lh_mult
+        
+        # Split text into lines based on white_space mode
+        ws = instance.white_space
+        raw_text = instance.text
+        if ws == 'PRE' and '\n' in raw_text:
+            lines = raw_text.split('\n')
+        elif ws == 'NOWRAP' or '\n' not in raw_text:
+            lines = [raw_text]
+        else:
+            # NORMAL: collapse whitespace, single line (wrapping handled below)
+            lines = [raw_text]
+        
+        # Compute total block dimensions for alignment
+        if len(lines) > 1:
+            line_widths = []
+            for ln in lines:
+                lw, _ = blf.dimensions(instance.font_id, ln)
+                if instance.letter_spacing > 0 and len(ln) > 1:
+                    lw += instance.letter_spacing * (len(ln) - 1)
+                line_widths.append(lw)
+            block_width = max(line_widths) if line_widths else text_width
+            block_height = text_height + line_step * (len(lines) - 1)
+        else:
+            block_width = text_width
+            block_height = text_height
+            line_widths = [text_width]
+        
         x_pos = instance.position[0]
         y_pos = instance.position[1]
         
@@ -268,27 +360,71 @@ def draw_all_text():
             if instance.align_h == 'LEFT':
                 x_pos = instance.mask[0]
             elif instance.align_h == 'CENTER':
-                x_pos = instance.mask[0] + (container_width - text_width) / 2
+                x_pos = instance.mask[0] + (container_width - block_width) / 2
             elif instance.align_h == 'RIGHT':
-                x_pos = instance.mask[0] + container_width - text_width
+                x_pos = instance.mask[0] + container_width - block_width
             
             if instance.align_v == 'TOP':
                 y_pos = instance.mask[1]
             elif instance.align_v == 'CENTER':
-                y_pos = instance.mask[1] + (container_height - text_height) / 2
+                y_pos = instance.mask[1] + (container_height - block_height) / 2
             elif instance.align_v == 'BOTTOM':
-                y_pos = instance.mask[1] + container_height - text_height
+                y_pos = instance.mask[1] + container_height - block_height
         
-        flipped_y = viewport_height - y_pos - text_height
+        # Text-overflow: ELLIPSIS truncation
+        container_w = instance.mask[2] if instance.mask and instance.mask[2] > 0 else 0
         
-        blf.position(instance.font_id, x_pos, flipped_y, 0)
         blf.color(instance.font_id, *instance.color)
-        blf.draw(instance.font_id, instance.text)
         
-        # Text decoration: underline, overline, line-through
-        decoration = getattr(instance, 'text_decoration', 'NONE')
-        if decoration and decoration != 'NONE' and text_width > 0:
-            _draw_text_decoration(x_pos, flipped_y, text_width, text_height, instance.size, instance.color, decoration)
+        for line_idx, line_text in enumerate(lines):
+            cur_lw = line_widths[line_idx] if line_idx < len(line_widths) else 0
+            draw_text = line_text
+            
+            # Apply ellipsis truncation if text overflows container
+            if instance.text_overflow == 'ELLIPSIS' and container_w > 0 and cur_lw > container_w:
+                ellipsis = '...'
+                ew, _ = blf.dimensions(instance.font_id, ellipsis)
+                avail = container_w - ew
+                truncated = ''
+                tw = 0
+                for ch in line_text:
+                    cw, _ = blf.dimensions(instance.font_id, ch)
+                    if instance.letter_spacing > 0 and truncated:
+                        cw += instance.letter_spacing
+                    if tw + cw > avail:
+                        break
+                    truncated += ch
+                    tw += cw
+                draw_text = truncated + ellipsis
+                cur_lw = tw + ew
+            
+            line_y = y_pos + line_step * line_idx
+            flipped_y = viewport_height - line_y - text_height
+            
+            # Per-line horizontal alignment for multi-line text
+            lx = x_pos
+            if len(lines) > 1 and instance.mask and instance.mask[2] > 0:
+                if instance.align_h == 'CENTER':
+                    lx = instance.mask[0] + (container_w - cur_lw) / 2
+                elif instance.align_h == 'RIGHT':
+                    lx = instance.mask[0] + container_w - cur_lw
+            
+            # Draw: char-by-char for letter_spacing, fast path otherwise
+            if instance.letter_spacing > 0 and len(draw_text) > 1:
+                cx = lx
+                for ch in draw_text:
+                    blf.position(instance.font_id, cx, flipped_y, 0)
+                    blf.draw(instance.font_id, ch)
+                    cw, _ = blf.dimensions(instance.font_id, ch)
+                    cx += cw + instance.letter_spacing
+            else:
+                blf.position(instance.font_id, lx, flipped_y, 0)
+                blf.draw(instance.font_id, draw_text)
+            
+            # Text decoration per line
+            decoration = getattr(instance, 'text_decoration', 'NONE')
+            if decoration and decoration != 'NONE' and cur_lw > 0:
+                _draw_text_decoration(lx, flipped_y, cur_lw, text_height, instance.size, instance.color, decoration)
         
         if use_scissor:
             gpu.state.scissor_test_set(False)
@@ -327,6 +463,10 @@ class DrawTextOP(bpy.types.Operator):
     text_decoration : bpy.props.StringProperty(name="Text Decoration", default="NONE")
     letter_spacing  : bpy.props.FloatProperty(name="Letter Spacing", default=0.0)
     line_height     : bpy.props.FloatProperty(name="Line Height", default=0.0)
+    font_weight     : bpy.props.StringProperty(name="Font Weight", default="NORMAL")
+    font_style      : bpy.props.StringProperty(name="Font Style", default="NORMAL")
+    white_space     : bpy.props.StringProperty(name="White Space", default="NORMAL")
+    text_overflow   : bpy.props.StringProperty(name="Text Overflow", default="CLIP")
     
     def execute(self, context):
         global _draw_handle, _text_instances
@@ -347,7 +487,11 @@ class DrawTextOP(bpy.types.Operator):
             align_v=self.align_v,
             text_decoration=self.text_decoration,
             letter_spacing=self.letter_spacing,
-            line_height=self.line_height
+            line_height=self.line_height,
+            font_weight=self.font_weight,
+            font_style=self.font_style,
+            white_space=self.white_space,
+            text_overflow=self.text_overflow
         )
         _text_instances.append(new_instance)
         

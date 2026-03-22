@@ -1102,38 +1102,65 @@ class RenderPipeline:
         """Start CSS transitions when hover state changes."""
         n = len(containers)
         
-        # Container being un-hovered: transition from hover colors back to normal
+        def _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover):
+            """Start transitions for all applicable properties on a container."""
+            t_prop = c.get('_transition_property', 'none')
+            
+            # background-color
+            hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
+            normal_bg = c.get('background_color', [0, 0, 0, 0])
+            if hover_bg[3] >= 0 and t_prop in ('all', 'background_color', 'background-color'):
+                current = self.transitions.get_value(cid, 'background_color')
+                if entering_hover:
+                    start = current if current else normal_bg
+                    self.transitions.start_transition(cid, 'background_color', start, hover_bg, t_dur, t_delay, t_timing)
+                else:
+                    start = current if current else hover_bg
+                    self.transitions.start_transition(cid, 'background_color', start, normal_bg, t_dur, t_delay, t_timing)
+            
+            # border-color
+            hover_bc = c.get('hover_border_color', [0, 0, 0, -1])
+            normal_bc = c.get('border_color', [0, 0, 0, 0])
+            if hover_bc[3] >= 0 and t_prop in ('all', 'border_color', 'border-color'):
+                current = self.transitions.get_value(cid, 'border_color')
+                if entering_hover:
+                    start = current if current else normal_bc
+                    self.transitions.start_transition(cid, 'border_color', start, hover_bc, t_dur, t_delay, t_timing)
+                else:
+                    start = current if current else hover_bc
+                    self.transitions.start_transition(cid, 'border_color', start, normal_bc, t_dur, t_delay, t_timing)
+            
+            # opacity
+            hover_op = c.get('hover_opacity', -1.0)
+            normal_op = c.get('opacity', 1.0)
+            if hover_op >= 0 and t_prop in ('all', 'opacity'):
+                current = self.transitions.get_value(cid, 'opacity')
+                if entering_hover:
+                    start = current if current is not None else normal_op
+                    self.transitions.start_transition(cid, 'opacity', start, hover_op, t_dur, t_delay, t_timing)
+                else:
+                    start = current if current is not None else hover_op
+                    self.transitions.start_transition(cid, 'opacity', start, normal_op, t_dur, t_delay, t_timing)
+        
+        # Container being un-hovered
         if 0 <= old_idx < n:
             c = containers[old_idx]
             cid = c.get('id', '')
-            t_prop = c.get('_transition_property', 'none')
             t_dur = c.get('_transition_duration', 0.0)
-            if t_prop != 'none' and t_dur > 0:
+            if c.get('_transition_property', 'none') != 'none' and t_dur > 0:
                 t_timing = c.get('_transition_timing_function', 'ease')
                 t_delay = c.get('_transition_delay', 0.0)
-                hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
-                normal_bg = c.get('background_color', [0, 0, 0, 0])
-                if hover_bg[3] >= 0 and (t_prop in ('all', 'background_color', 'background-color')):
-                    # Get current value (may be mid-transition)
-                    current = self.transitions.get_value(cid, 'background_color')
-                    start = current if current else hover_bg
-                    self.transitions.start_transition(cid, 'background_color', start, normal_bg, t_dur, t_delay, t_timing)
+                _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover=False)
         
-        # Container being hovered: transition from normal to hover colors
+        # Container being hovered
         if 0 <= new_idx < n:
             c = containers[new_idx]
             cid = c.get('id', '')
-            t_prop = c.get('_transition_property', 'none')
             t_dur = c.get('_transition_duration', 0.0)
-            if t_prop != 'none' and t_dur > 0:
+            if c.get('_transition_property', 'none') != 'none' and t_dur > 0:
                 t_timing = c.get('_transition_timing_function', 'ease')
                 t_delay = c.get('_transition_delay', 0.0)
-                hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
-                normal_bg = c.get('background_color', [0, 0, 0, 0])
-                if hover_bg[3] >= 0 and (t_prop in ('all', 'background_color', 'background-color')):
-                    current = self.transitions.get_value(cid, 'background_color')
-                    start = current if current else normal_bg
-                    self.transitions.start_transition(cid, 'background_color', start, hover_bg, t_dur, t_delay, t_timing)
+                _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover=True)
 
     def update_container_buffer_full(self, hit_container_data):
         if not hit_container_data:
@@ -1406,30 +1433,63 @@ class XWZ_OT_start_ui(Operator):
                 if transitions_active and hit_op._container_data:
                     for i, c in enumerate(hit_op._container_data):
                         cid = c.get('id', '')
+                        
+                        # background-color transition
                         bg = _render_data.transitions.get_value(cid, 'background_color')
                         if bg is not None:
-                            # Save original colors if not already saved
                             save_key = f'_orig_bg_{cid}'
                             if save_key not in _render_data._prev_container_states:
                                 _render_data._prev_container_states[save_key] = list(c.get('background_color', [0,0,0,0]))
                                 _render_data._prev_container_states[f'_orig_hover_{cid}'] = list(c.get('hover_background_color', [0,0,0,-1]))
                             c['background_color'] = bg
                             c['hover_background_color'] = [0, 0, 0, -1]
-                        else:
-                            # Per-container transition done — restore original colors
+                        
+                        # border-color transition
+                        bc = _render_data.transitions.get_value(cid, 'border_color')
+                        if bc is not None:
+                            save_key = f'_orig_bc_{cid}'
+                            if save_key not in _render_data._prev_container_states:
+                                _render_data._prev_container_states[save_key] = list(c.get('border_color', [0,0,0,0]))
+                            c['border_color'] = bc
+                        
+                        # opacity transition
+                        op = _render_data.transitions.get_value(cid, 'opacity')
+                        if op is not None:
+                            save_key = f'_orig_op_{cid}'
+                            if save_key not in _render_data._prev_container_states:
+                                _render_data._prev_container_states[save_key] = c.get('opacity', 1.0)
+                            c['opacity'] = op
+                        
+                        # Restore properties whose individual transitions are done
+                        if bg is None:
                             save_key = f'_orig_bg_{cid}'
                             if save_key in _render_data._prev_container_states:
                                 c['background_color'] = _render_data._prev_container_states.pop(save_key)
                                 c['hover_background_color'] = _render_data._prev_container_states.pop(f'_orig_hover_{cid}', [0,0,0,-1])
+                        if bc is None:
+                            save_key = f'_orig_bc_{cid}'
+                            if save_key in _render_data._prev_container_states:
+                                c['border_color'] = _render_data._prev_container_states.pop(save_key)
+                        if op is None:
+                            save_key = f'_orig_op_{cid}'
+                            if save_key in _render_data._prev_container_states:
+                                c['opacity'] = _render_data._prev_container_states.pop(save_key)
+                    
                     texture_changed = True
                 elif not transitions_active and _render_data._prev_container_states and hit_op._container_data:
                     # All transitions ended — restore any remaining saved originals
                     for i, c in enumerate(hit_op._container_data):
                         cid = c.get('id', '')
-                        save_key = f'_orig_bg_{cid}'
-                        if save_key in _render_data._prev_container_states:
-                            c['background_color'] = _render_data._prev_container_states.pop(save_key)
-                            c['hover_background_color'] = _render_data._prev_container_states.pop(f'_orig_hover_{cid}', [0,0,0,-1])
+                        for prefix, prop in [('_orig_bg_', 'background_color'), ('_orig_bc_', 'border_color')]:
+                            save_key = f'{prefix}{cid}'
+                            if save_key in _render_data._prev_container_states:
+                                c[prop] = _render_data._prev_container_states.pop(save_key)
+                        hover_key = f'_orig_hover_{cid}'
+                        if hover_key in _render_data._prev_container_states:
+                            c['hover_background_color'] = _render_data._prev_container_states.pop(hover_key)
+                        op_key = f'_orig_op_{cid}'
+                        if op_key in _render_data._prev_container_states:
+                            c['opacity'] = _render_data._prev_container_states.pop(op_key)
                     _render_data._prev_container_states.clear()
                     texture_changed = True
 

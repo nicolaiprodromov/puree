@@ -70,6 +70,12 @@ class Style():
         self.border_color             : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.border_color_2           : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.border_gradient_rot      : float       = 0.0
+        self.hover_border_color       : List[float] = [0.0, 0.0, 0.0, -1.0]
+        self.click_border_color       : List[float] = [0.0, 0.0, 0.0, -1.0]
+        self.hover_opacity            : float       = -1.0
+        self.click_opacity            : float       = -1.0
+        self.hover_color              : List[float] = [0.0, 0.0, 0.0, -1.0]
+        self.click_color              : List[float] = [0.0, 0.0, 0.0, -1.0]
         
         self.box_shadow_color : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.box_shadow_offset: List[float] = [0.0, 0.0, 0.0]
