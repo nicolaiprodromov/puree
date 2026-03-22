@@ -87,6 +87,17 @@ class RenderPipeline:
         self._cached_target_region = None
         self._cached_target_space = None
         self._area_cache_valid = False
+        # Scroll infrastructure: per-container scroll offsets
+        self._scroll_offsets = {}          # scrollable container index → [sx, sy]
+        self._original_positions = {}      # container index → original [x, y] from layout
+        self._container_id_to_index = {}   # container id → flat index
+        self._content_bounds = {}          # scrollable container index → [content_w, content_h]
+        self._scroll_accumulation = []     # per-container accumulated [sx, sy] from ancestors
+        self._scroll_pixels_per_tick = 40.0
+        self._scroll_changed = False
+        self._original_text_positions = {} # container_id → {text_x, text_y, mask_x, mask_y}
+        self._original_image_positions = {} # container_id → {x_pos, y_pos, mask_x, mask_y}
+        self._original_text_input_positions = {} # container_id → {x_pos, y_pos, mask_x, mask_y}
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -364,6 +375,34 @@ class RenderPipeline:
         self.click_value = value
         self.write_mouse_buffer()
     def on_scroll(self, delta, absolute_value):
+        """Route scroll event to deepest scrollable container under mouse."""
+        from . import hit_op
+        containers = hit_op._container_data
+        if containers and self._current_hover_index >= 0:
+            scrollable_idx = self._find_scrollable_ancestor(self._current_hover_index, containers)
+            if scrollable_idx >= 0:
+                offset = self._scroll_offsets.get(scrollable_idx, [0.0, 0.0])
+                pixel_delta = delta * self._scroll_pixels_per_tick
+                offset[1] = offset[1] + pixel_delta
+                
+                # Clamp to content bounds
+                bounds = self._content_bounds.get(scrollable_idx)
+                if bounds:
+                    container_size = containers[scrollable_idx].get('size', [0, 0])
+                    max_scroll_y = max(0.0, bounds[1] - float(container_size[1]))
+                    offset[1] = max(0.0, min(offset[1], max_scroll_y))
+                
+                self._scroll_offsets[scrollable_idx] = offset
+                
+                # Apply scroll to container positions
+                if self._apply_scroll_to_containers(containers):
+                    # Apply to text/image/text_input positions
+                    from . import parser_op
+                    self._apply_scroll_to_text(parser_op.text_blocks)
+                    self._apply_scroll_to_images(parser_op.image_blocks)
+                    self._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
+                    self._scroll_changed = True
+        
         self.write_mouse_buffer()
     def on_mouse_event(self, event_type, data):
         if event_type == 'mouse':
@@ -718,6 +757,18 @@ class RenderPipeline:
                     clip_r = min(clip_r, px + pw)
                     clip_b = min(clip_b, py + ph)
                 
+                # Also clip for overflow:scroll/auto (these clip like hidden but allow scrolling)
+                parent_overflow_type = parent.get('overflow_type', 'VISIBLE')
+                if parent_overflow_type in ('SCROLL', 'AUTO'):
+                    pp = parent.get('position', [0, 0])
+                    ps = parent.get('size', [100, 100])
+                    px, py = float(pp[0]), float(pp[1])
+                    pw, ph = float(ps[0]), float(ps[1])
+                    clip_x = max(clip_x, px)
+                    clip_y = max(clip_y, py)
+                    clip_r = min(clip_r, px + pw)
+                    clip_b = min(clip_b, py + ph)
+                
                 idx = pidx
             
             clip_w = max(0.0, clip_r - clip_x)
@@ -725,6 +776,214 @@ class RenderPipeline:
             results.append((visible, clip_x, clip_y, clip_w, clip_h, acc_opacity))
         
         return results
+
+    # ─── Scroll infrastructure ────────────────────────────────────────────
+    
+    def _cache_original_positions(self, containers):
+        """Cache original (unscrolled) positions after layout, compute content bounds."""
+        self._original_positions = {}
+        self._container_id_to_index = {}
+        for i, c in enumerate(containers):
+            pos = c.get('position', [0, 0])
+            self._original_positions[i] = [float(pos[0]), float(pos[1])]
+            self._container_id_to_index[c.get('id', '')] = i
+        self._compute_content_bounds(containers)
+    
+    def _cache_original_text_positions(self, text_blocks):
+        """Cache original text positions from layout for scroll adjustment."""
+        self._original_text_positions = {}
+        for cid, block in text_blocks.items():
+            self._original_text_positions[cid] = {
+                'text_x': block['text_x'],
+                'text_y': block['text_y'],
+                'mask_x': block['mask_x'],
+                'mask_y': block['mask_y'],
+            }
+    
+    def _cache_original_image_positions(self, image_blocks):
+        """Cache original image positions from layout for scroll adjustment."""
+        self._original_image_positions = {}
+        for cid, block in image_blocks.items():
+            self._original_image_positions[cid] = {
+                'x_pos': block['x_pos'],
+                'y_pos': block['y_pos'],
+                'mask_x': block['mask_x'],
+                'mask_y': block['mask_y'],
+            }
+    
+    def _compute_content_bounds(self, containers):
+        """Compute content bounds for each scrollable container (for scroll clamping)."""
+        self._content_bounds = {}
+        n = len(containers)
+        for i, c in enumerate(containers):
+            overflow_type = c.get('overflow_type', 'VISIBLE')
+            if overflow_type in ('SCROLL', 'AUTO'):
+                max_bottom = 0.0
+                max_right = 0.0
+                container_pos = c.get('position', [0, 0])
+                cx, cy = float(container_pos[0]), float(container_pos[1])
+                # BFS over all descendants
+                stack = list(c.get('children', []))
+                while stack:
+                    ci = stack.pop()
+                    if ci < 0 or ci >= n:
+                        continue
+                    child = containers[ci]
+                    child_pos = child.get('position', [0, 0])
+                    child_size = child.get('size', [0, 0])
+                    max_right = max(max_right, float(child_pos[0]) + float(child_size[0]) - cx)
+                    max_bottom = max(max_bottom, float(child_pos[1]) + float(child_size[1]) - cy)
+                    stack.extend(child.get('children', []))
+                self._content_bounds[i] = [max_right, max_bottom]
+    
+    def _find_scrollable_ancestor(self, idx, containers):
+        """Find the deepest container at or above idx with overflow:scroll/auto."""
+        current = idx
+        n = len(containers)
+        for _ in range(20):
+            if current < 0 or current >= n:
+                return -1
+            c = containers[current]
+            overflow_type = c.get('overflow_type', 'VISIBLE')
+            if overflow_type in ('SCROLL', 'AUTO'):
+                return current
+            parent = int(c.get('parent', -1))
+            if parent < 0:
+                return -1
+            current = parent
+        return -1
+    
+    def _compute_scroll_accumulation(self, containers):
+        """Compute accumulated scroll offset per container (from all scrollable ancestors)."""
+        n = len(containers)
+        acc = [[0.0, 0.0] for _ in range(n)]
+        for i in range(n):
+            parent_idx = int(containers[i].get('parent', -1))
+            if 0 <= parent_idx < n:
+                # Inherit parent's accumulated scroll
+                acc[i][0] = acc[parent_idx][0]
+                acc[i][1] = acc[parent_idx][1]
+                # If parent is scrollable, add its scroll offset
+                if parent_idx in self._scroll_offsets:
+                    acc[i][0] += self._scroll_offsets[parent_idx][0]
+                    acc[i][1] += self._scroll_offsets[parent_idx][1]
+            # position:fixed containers are NOT affected by ancestor scroll
+            if containers[i].get('position_type', 'RELATIVE') == 'FIXED':
+                acc[i] = [0.0, 0.0]
+        self._scroll_accumulation = acc
+        return acc
+    
+    def _apply_scroll_to_containers(self, containers):
+        """Apply scroll offsets to container positions using cached originals."""
+        if not self._scroll_offsets or not self._original_positions:
+            return False
+        acc = self._compute_scroll_accumulation(containers)
+        changed = False
+        for i, c in enumerate(containers):
+            sx, sy = acc[i]
+            if sx != 0.0 or sy != 0.0:
+                orig = self._original_positions.get(i, [0.0, 0.0])
+                c['position'] = [orig[0] - sx, orig[1] - sy]
+                changed = True
+            elif i in self._original_positions:
+                # Restore original position (in case scroll was removed)
+                orig = self._original_positions[i]
+                pos = c.get('position', [0, 0])
+                if float(pos[0]) != orig[0] or float(pos[1]) != orig[1]:
+                    c['position'] = [orig[0], orig[1]]
+                    changed = True
+        return changed
+    
+    def _apply_scroll_to_text(self, text_blocks):
+        """Apply scroll offsets to text positions (masks handled separately via scroll clip)."""
+        if not self._scroll_offsets or not self._original_text_positions:
+            return
+        for cid, block in text_blocks.items():
+            orig = self._original_text_positions.get(cid)
+            if not orig:
+                continue
+            idx = self._container_id_to_index.get(cid, -1)
+            if idx < 0 or idx >= len(self._scroll_accumulation):
+                continue
+            sx, sy = self._scroll_accumulation[idx]
+            block['text_x'] = int(orig['text_x'] - sx)
+            block['text_y'] = int(orig['text_y'] - sy)
+            # Don't scroll the mask — it will be set from scroll clip in the render loop
+    
+    def _apply_scroll_to_images(self, image_blocks):
+        """Apply scroll offsets to image positions (masks handled separately via scroll clip)."""
+        if not self._scroll_offsets or not self._original_image_positions:
+            return
+        for cid, block in image_blocks.items():
+            orig = self._original_image_positions.get(cid)
+            if not orig:
+                continue
+            idx = self._container_id_to_index.get(cid, -1)
+            if idx < 0 or idx >= len(self._scroll_accumulation):
+                continue
+            sx, sy = self._scroll_accumulation[idx]
+            block['x_pos'] = int(orig['x_pos'] - sx)
+            block['y_pos'] = int(orig['y_pos'] - sy)
+            # Don't scroll the mask — it will be set from scroll clip in the render loop
+    
+    def _cache_original_text_input_positions(self, text_input_blocks):
+        """Cache original text input positions from layout for scroll adjustment."""
+        self._original_text_input_positions = {}
+        for cid, block in text_input_blocks.items():
+            self._original_text_input_positions[cid] = {
+                'x_pos': block['x_pos'],
+                'y_pos': block['y_pos'],
+                'mask_x': block['mask_x'],
+                'mask_y': block['mask_y'],
+            }
+    
+    def _apply_scroll_to_text_inputs(self, text_input_blocks):
+        """Apply scroll offsets to text input positions (masks handled separately)."""
+        if not self._scroll_offsets or not self._original_text_input_positions:
+            return
+        for cid, block in text_input_blocks.items():
+            orig = self._original_text_input_positions.get(cid)
+            if not orig:
+                continue
+            idx = self._container_id_to_index.get(cid, -1)
+            if idx < 0 or idx >= len(self._scroll_accumulation):
+                continue
+            sx, sy = self._scroll_accumulation[idx]
+            block['x_pos'] = int(orig['x_pos'] - sx)
+            block['y_pos'] = int(orig['y_pos'] - sy)
+
+    def _get_scroll_clip_for_container(self, idx, containers):
+        """Get the clip rect for a container considering scrollable ancestors.
+        Returns (clip_x, clip_y, clip_w, clip_h) or None if no scroll ancestor."""
+        n = len(containers)
+        vw = float(self.region_size[0])
+        vh = float(self.region_size[1])
+        clip_x, clip_y = 0.0, 0.0
+        clip_r, clip_b = vw, vh
+        has_clip = False
+        
+        current = idx
+        for _ in range(20):
+            pidx = int(containers[current].get('parent', -1))
+            if pidx < 0 or pidx >= n:
+                break
+            parent = containers[pidx]
+            ot = parent.get('overflow_type', 'VISIBLE')
+            if ot in ('HIDDEN', 'SCROLL', 'AUTO'):
+                pp = parent.get('position', [0, 0])
+                ps = parent.get('size', [100, 100])
+                px, py = float(pp[0]), float(pp[1])
+                pw, ph = float(ps[0]), float(ps[1])
+                clip_x = max(clip_x, px)
+                clip_y = max(clip_y, py)
+                clip_r = min(clip_r, px + pw)
+                clip_b = min(clip_b, py + ph)
+                has_clip = True
+            current = pidx
+        
+        if has_clip:
+            return (int(clip_x), int(clip_y), int(max(0, clip_r - clip_x)), int(max(0, clip_b - clip_y)))
+        return None
 
     def _detect_state_changes(self, container_data):
         """Detect hover/click state changes. Sets needs_texture_update if changed."""
@@ -1008,6 +1267,23 @@ class XWZ_OT_start_ui(Operator):
                     
                     hit_op._container_data = new_data
                     
+                    # Cache original positions and text/image positions for scroll
+                    _render_data._cache_original_positions(new_data)
+                    _render_data._cache_original_text_positions(parser_op.text_blocks)
+                    if hasattr(parser_op, 'image_blocks'):
+                        _render_data._cache_original_image_positions(parser_op.image_blocks)
+                    if hasattr(parser_op, 'text_input_blocks'):
+                        _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
+                    
+                    # Reapply existing scroll offsets to new layout data
+                    if _render_data._scroll_offsets:
+                        _render_data._apply_scroll_to_containers(new_data)
+                        _render_data._apply_scroll_to_text(parser_op.text_blocks)
+                        if hasattr(parser_op, 'image_blocks'):
+                            _render_data._apply_scroll_to_images(parser_op.image_blocks)
+                        if hasattr(parser_op, 'text_input_blocks'):
+                            _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
+                    
                     for text_instance in text_op._text_instances:
                         container_id = text_instance.container_id
                         if container_id in parser_op.text_blocks:
@@ -1062,6 +1338,110 @@ class XWZ_OT_start_ui(Operator):
                     
                     texture_changed = True
                 
+                # Handle scroll-triggered updates
+                scroll_changed = _render_data._scroll_changed
+                if scroll_changed:
+                    _render_data._scroll_changed = False
+                    from . import hit_op
+                    from . import text_op
+                    if hit_op._container_data:
+                        # Update GPU texture with scroll-adjusted positions
+                        _render_data.update_data_texture(hit_op._container_data)
+                        
+                        # Update text positions
+                        for text_instance in text_op._text_instances:
+                            container_id = text_instance.container_id
+                            if container_id in parser_op.text_blocks:
+                                block = parser_op.text_blocks[container_id]
+                                # Use scroll clip for text mask if available
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
+                                scroll_clip = None
+                                if idx >= 0:
+                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                mask_x = block['mask_x']
+                                mask_y = block['mask_y']
+                                mask_w = block['mask_width']
+                                mask_h = block['mask_height']
+                                if scroll_clip:
+                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
+                                
+                                text_instance.update_all(
+                                    text=block['text'],
+                                    font_name=block['font'],
+                                    size=block['font_size'],
+                                    pos=[block['text_x'], block['text_y']],
+                                    color=block['color'],
+                                    mask=[mask_x, mask_y, mask_w, mask_h],
+                                    align_h=block.get('align_h', 'LEFT').upper(),
+                                    align_v=block.get('align_v', 'CENTER').upper()
+                                )
+                        
+                        # Update image positions
+                        from . import img_op
+                        for image_instance in img_op._image_instances:
+                            container_id = image_instance.container_id
+                            if container_id in parser_op.image_blocks:
+                                block = parser_op.image_blocks[container_id]
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
+                                scroll_clip = None
+                                if idx >= 0:
+                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                mask_x = block['mask_x']
+                                mask_y = block['mask_y']
+                                mask_w = block['mask_width']
+                                mask_h = block['mask_height']
+                                if scroll_clip:
+                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
+                                
+                                image_instance.update_all(
+                                    image_name=block['image_name'],
+                                    pos=[block['x_pos'], block['y_pos']],
+                                    size=[block['width'], block['height']],
+                                    mask=[mask_x, mask_y, mask_w, mask_h],
+                                    aspect_ratio=block['aspect_ratio'],
+                                    align_h=block.get('align_h', 'LEFT').upper(),
+                                    align_v=block.get('align_v', 'TOP').upper(),
+                                    opacity=block.get('opacity', 1.0)
+                                )
+                        
+                        # Update text input positions
+                        from . import text_input_op
+                        for input_instance in text_input_op._text_input_instances:
+                            container_id = input_instance.container_id
+                            if container_id in parser_op.text_input_blocks:
+                                block = parser_op.text_input_blocks[container_id]
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
+                                scroll_clip = None
+                                if idx >= 0:
+                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                mask_x = block['mask_x']
+                                mask_y = block['mask_y']
+                                mask_w = block['mask_width']
+                                mask_h = block['mask_height']
+                                if scroll_clip:
+                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
+                                
+                                bpy.ops.xwz.update_text_input(
+                                    instance_id=input_instance.id,
+                                    placeholder=block['placeholder'],
+                                    font_name=block['font'],
+                                    size=block['font_size'],
+                                    x_pos=block['x_pos'],
+                                    y_pos=block['y_pos'],
+                                    color=block['color'],
+                                    mask_x=mask_x,
+                                    mask_y=mask_y,
+                                    mask_width=mask_w,
+                                    mask_height=mask_h,
+                                    align_h=block.get('align_h', 'LEFT').upper(),
+                                    align_v=block.get('align_v', 'TOP').upper()
+                                )
+                    
+                    texture_changed = True
+                
                 if texture_changed or size_changed:
                     if size_changed:
                         from . import hit_op
@@ -1077,6 +1457,23 @@ class XWZ_OT_start_ui(Operator):
                                         new_data[i][key] = old_data[i][key]
                         
                         hit_op._container_data = new_data
+                        
+                        # Re-cache original positions after resize layout
+                        _render_data._cache_original_positions(new_data)
+                        _render_data._cache_original_text_positions(parser_op.text_blocks)
+                        if hasattr(parser_op, 'image_blocks'):
+                            _render_data._cache_original_image_positions(parser_op.image_blocks)
+                        if hasattr(parser_op, 'text_input_blocks'):
+                            _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
+                        
+                        # Reapply scroll offsets after resize
+                        if _render_data._scroll_offsets:
+                            _render_data._apply_scroll_to_containers(new_data)
+                            _render_data._apply_scroll_to_text(parser_op.text_blocks)
+                            if hasattr(parser_op, 'image_blocks'):
+                                _render_data._apply_scroll_to_images(parser_op.image_blocks)
+                            if hasattr(parser_op, 'text_input_blocks'):
+                                _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
                     
                     from .hit_op import _container_data
                     if _container_data:

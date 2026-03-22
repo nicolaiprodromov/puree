@@ -871,7 +871,7 @@ class UI():
 
             # Overflow (support separate overflow-x / overflow-y)
             overflow_map = {'visible': Overflow.VISIBLE, 'hidden': Overflow.HIDDEN,
-                           'scroll': Overflow.SCROLL, 'clip': Overflow.CLIP}
+                           'scroll': Overflow.SCROLL, 'auto': Overflow.SCROLL, 'clip': Overflow.CLIP}
             overflow_x_str = (s.overflow_x if hasattr(s, 'overflow_x') and s.overflow_x else s.overflow).lower()
             overflow_y_str = (s.overflow_y if hasattr(s, 'overflow_y') and s.overflow_y else s.overflow).lower()
             overflow_x_val = overflow_map.get(overflow_x_str, Overflow.VISIBLE)
@@ -1082,15 +1082,19 @@ class UI():
         self.json_data = container_processor.flatten_tree(container_dict, node_flat)
         self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
         
-        # Post-process: add visibility, opacity, z-index from Style (not in Rust struct)
+        # Post-process: add visibility, opacity, z-index, overflow_type from Style (not in Rust struct)
         visibility_map = {}
         opacity_map = {}
         zindex_map = {}
+        overflow_type_map = {}
+        position_type_map = {}
         def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
             opacity_map[container.id] = float(container.style.opacity)
             zindex_map[container.id] = int(container.style.z_index)
+            overflow_type_map[container.id] = container.style.overflow
+            position_type_map[container.id] = container.style.position
             for child in container.children:
                 collect_style_props(child)
         collect_style_props(self.theme.root)
@@ -1101,6 +1105,8 @@ class UI():
                 c['visibility'] = visibility_map.get(cid, 'VISIBLE')
                 c['opacity'] = opacity_map.get(cid, 1.0)
                 c['z_index'] = zindex_map.get(cid, 0)
+                c['overflow_type'] = overflow_type_map.get(cid, 'VISIBLE')
+                c['position_type'] = position_type_map.get(cid, 'RELATIVE')
             # Sort by z-index (stable sort preserves tree order within same z)
             # Build old→new index mapping and remap parent refs
             sorted_list = sorted(enumerate(data_list), key=lambda t: t[1].get('z_index', 0))
