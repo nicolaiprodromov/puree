@@ -351,7 +351,12 @@ class UI():
 
         elif attr_name == 'box_shadow_offset':
             values = attr_value.strip().split()
-            if len(values) == 2:
+            if len(values) >= 3:
+                x_offset = float(values[0].replace('px', '').strip())
+                y_offset = float(values[1].replace('px', '').strip())
+                spread = float(values[2].replace('px', '').strip())
+                attr_value = [x_offset, y_offset, spread]
+            elif len(values) == 2:
                 x_offset = float(values[0].replace('px', '').strip())
                 y_offset = float(values[1].replace('px', '').strip())
                 attr_value = [x_offset, y_offset, 0.0]

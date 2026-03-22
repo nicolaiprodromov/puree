@@ -422,11 +422,11 @@ fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
     let offset_x = numbers.first().cloned().unwrap_or_else(|| "0px".into());
     let offset_y = numbers.get(1).cloned().unwrap_or_else(|| "0px".into());
     let blur = numbers.get(2).cloned().unwrap_or_else(|| "0px".into());
-    // spread (numbers[3]) is ignored — puree doesn't support it
+    let spread = numbers.get(3).cloned().unwrap_or_else(|| "0px".into());
 
     vec![
         ("box-shadow-color".into(), if color_str.is_empty() { "#000".into() } else { color_str }),
-        ("box-shadow-offset".into(), format!("{} {}", offset_x, offset_y)),
+        ("box-shadow-offset".into(), format!("{} {} {}", offset_x, offset_y, spread)),
         ("box-shadow-blur".into(), blur),
     ]
 }

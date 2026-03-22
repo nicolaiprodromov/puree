@@ -14,7 +14,7 @@
 //   Texel 8:  border_r, border_g, border_b, border_a
 //   Texel 9:  border1_r, border1_g, border1_b, border1_a
 //   Texel 10: border_grad_rot, border_radius, border_width, parent
-//   Texel 11: overflow, shadow_x, shadow_y, shadow_z
+//   Texel 11: overflow, shadow_x, shadow_y, shadow_spread
 //   Texel 12: shadow_blur, shadow_r, shadow_g, shadow_b
 //   Texel 13: shadow_a, passive, visible, clip_x
 //   Texel 14: clip_y, clip_w, clip_h, opacity
@@ -88,6 +88,7 @@ void main() {
     float bRadius  = t10.y;
     float bWidth   = t10.z;
     vec2  shOff    = t11.yz;
+    float shSpread = t11.w;
     float shBlur   = t12.x;
     vec4  shColor  = vec4(t12.y, t12.z, t12.w, t13.x);
     float passive  = t13.y;
@@ -108,15 +109,27 @@ void main() {
 
     // --- Shadow ---
     vec4 shResult = vec4(0.0);
-    if (shColor.a > 0.0 && shBlur > 0.0) {
-        float sDist = containerSDF(px, pos + shOff, sz, bRadius);
+    float shBlurOrSpread = max(shBlur, abs(shSpread));
+    if (shColor.a > 0.0 && (shBlur > 0.0 || shSpread != 0.0)) {
+        // Spread expands the shadow shape: positive = larger, negative = smaller
+        vec2 shSz = sz + vec2(shSpread * 2.0);
+        vec2 shPos = pos + shOff - vec2(shSpread);
+        float shRad = max(bRadius + shSpread, 0.0);
+        float sDist = containerSDF(px, shPos, shSz, shRad);
         if (sDist <= shBlur + 3.0) {
             float cDist = containerSDF(px, pos, sz, bRadius);
             if (cDist > bWidth) {
-                float soft = max(shBlur * 0.5, 0.5);
-                float sA = clamp(1.0 - smoothstep(-soft, shBlur, sDist), 0.0, 1.0);
-                float finalA = shColor.a * sA;
-                shResult = vec4(shColor.rgb * finalA, finalA);
+                if (shBlur > 0.0) {
+                    float soft = max(shBlur * 0.5, 0.5);
+                    float sA = clamp(1.0 - smoothstep(-soft, shBlur, sDist), 0.0, 1.0);
+                    float finalA = shColor.a * sA;
+                    shResult = vec4(shColor.rgb * finalA, finalA);
+                } else {
+                    // No blur, hard edge (spread-only shadow)
+                    float sA = sdfAA(sDist);
+                    float finalA = shColor.a * sA;
+                    shResult = vec4(shColor.rgb * finalA, finalA);
+                }
             }
         }
     }
