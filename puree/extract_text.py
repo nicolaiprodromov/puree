@@ -32,7 +32,8 @@ class TextExtractor:
                 'mask_width'              : int(self.json_data[self.flat_index]['size'][0]),
                 'mask_height'             : int(self.json_data[self.flat_index]['size'][1]),
                 'align_h'                 : container.style.text_align,
-                'align_v'                 : container.style.text_align_v
+                'align_v'                 : container.style.text_align_v,
+                'opacity'                 : container.style.opacity
             }
         self.flat_index += 1
         for child in container.children:  

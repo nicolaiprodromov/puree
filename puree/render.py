@@ -254,15 +254,16 @@ class RenderPipeline:
         
         for i, container in enumerate(containers):
             struct = self._build_container_struct(container)
-            v, cx, cy, cw, ch = vis_clips[i]
-            struct[-5] = v
-            struct[-4] = cx
-            struct[-3] = cy
-            struct[-2] = cw
-            struct[-1] = ch
+            v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
+            struct[-6] = v
+            struct[-5] = cx
+            struct[-4] = cy
+            struct[-3] = cw
+            struct[-2] = ch
+            struct[-1] = acc_opacity
             
             offset = i * 60
-            data[offset:offset + 59] = struct
+            data[offset:offset + 60] = struct
         
         return data
     
@@ -616,7 +617,7 @@ class RenderPipeline:
         self.native_batch = None
         self.container_count = 0
     def _build_container_struct(self, container):
-        """Build the 59-float struct for a single container (54 base + 5 precomputed)."""
+        """Build the 60-float struct for a single container (54 base + 6 precomputed)."""
         bg_color = container.get('background_color', [1, 1, 1, 1])
         bg_color_2 = container.get('background_color_2', [1, 1, 1, 1])
         hover_bg_color = container.get('hover_background_color', container_default.hover_background_color)
@@ -657,38 +658,48 @@ class RenderPipeline:
             # Precomputed fields (defaults; overwritten by _precompute_visibility_and_clips)
             1.0,                 # visible
             0.0, 0.0,           # clip_x, clip_y
-            99999.0, 99999.0    # clip_w, clip_h
+            99999.0, 99999.0,   # clip_w, clip_h
+            1.0,                 # accumulated opacity
         ]
 
     def _precompute_visibility_and_clips(self, containers):
-        """Precompute per-container visibility and clip rects on CPU.
+        """Precompute per-container visibility, clip rects, and accumulated opacity on CPU.
         Eliminates O(depth) parent chain walks per pixel in the shader."""
         n = len(containers)
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
         results = []
+        # Cache accumulated opacity per index for parent lookups
+        acc_opacities = [1.0] * n
         
         for i in range(n):
             c = containers[i]
             if not c.get('display', False):
-                results.append((0.0, 0.0, 0.0, 0.0, 0.0))
+                results.append((0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
                 continue
             
             # visibility: hidden keeps layout space but doesn't render
             if c.get('visibility', '') == 'HIDDEN':
-                results.append((0.0, 0.0, 0.0, 0.0, 0.0))
+                results.append((0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
                 continue
             
             visible = 1.0
             clip_x, clip_y = 0.0, 0.0
             clip_r, clip_b = vw, vh
             
+            # Own opacity
+            own_opacity = float(c.get('opacity', 1.0))
+            parent_idx = int(c.get('parent', -1))
+            parent_opacity = acc_opacities[parent_idx] if 0 <= parent_idx < n else 1.0
+            acc_opacity = own_opacity * parent_opacity
+            acc_opacities[i] = acc_opacity
+            
             idx = i
             for _ in range(20):
-                parent_idx = int(containers[idx].get('parent', -1))
-                if parent_idx < 0 or parent_idx >= n:
+                pidx = int(containers[idx].get('parent', -1))
+                if pidx < 0 or pidx >= n:
                     break
-                parent = containers[parent_idx]
+                parent = containers[pidx]
                 
                 if not parent.get('display', False):
                     visible = 0.0
@@ -704,11 +715,11 @@ class RenderPipeline:
                     clip_r = min(clip_r, px + pw)
                     clip_b = min(clip_b, py + ph)
                 
-                idx = parent_idx
+                idx = pidx
             
             clip_w = max(0.0, clip_r - clip_x)
             clip_h = max(0.0, clip_b - clip_y)
-            results.append((visible, clip_x, clip_y, clip_w, clip_h))
+            results.append((visible, clip_x, clip_y, clip_w, clip_h, acc_opacity))
         
         return results
 

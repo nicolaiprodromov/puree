@@ -941,18 +941,22 @@ class UI():
         self.json_data = container_processor.flatten_tree(container_dict, node_flat)
         self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
         
-        # Post-process: add visibility from Style (not in Rust struct)
+        # Post-process: add visibility and opacity from Style (not in Rust struct)
         visibility_map = {}
-        def collect_visibility(container):
+        opacity_map = {}
+        def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
+            opacity_map[container.id] = float(container.style.opacity)
             for child in container.children:
-                collect_visibility(child)
-        collect_visibility(self.theme.root)
+                collect_style_props(child)
+        collect_style_props(self.theme.root)
         for c in self.json_data:
             c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
+            c['opacity'] = opacity_map.get(c.get('id', ''), 1.0)
         for c in self.abs_json_data:
             c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
+            c['opacity'] = opacity_map.get(c.get('id', ''), 1.0)
     
     def _container_to_dict(self, container):
         def ensure_string(val):
@@ -996,6 +1000,7 @@ class UI():
                 'box_shadow_offset': list(container.style.box_shadow_offset),
                 'box_shadow_blur': float(container.style.box_shadow_blur),
                 'aspect_ratio': bool(container.style.aspect_ratio),
+                'opacity': float(container.style.opacity),
             },
             'data': str(container.data),
             'img': str(container.img),

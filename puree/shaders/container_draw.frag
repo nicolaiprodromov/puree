@@ -17,7 +17,7 @@
 //   Texel 11: overflow, shadow_x, shadow_y, shadow_z
 //   Texel 12: shadow_blur, shadow_r, shadow_g, shadow_b
 //   Texel 13: shadow_a, passive, visible, clip_x
-//   Texel 14: clip_y, clip_w, clip_h, (padding)
+//   Texel 14: clip_y, clip_w, clip_h, opacity
 
 // Interleaved Gradient Noise (Jorge Jimenez) for dithered gradients
 float gradientNoise(vec2 coord) {
@@ -96,6 +96,7 @@ void main() {
     float clipY    = t14.x;
     float clipW    = t14.y;
     float clipH    = t14.z;
+    float opacity  = t14.w;
 
     // Early-out for hidden containers (safety net — vertex shader already culls these)
     if (display < 0.5 || visible < 0.5) discard;
@@ -164,6 +165,9 @@ void main() {
 
     // Composite body over shadow (both premultiplied)
     vec4 result = bodyResult + shResult * (1.0 - bodyResult.a);
+
+    // Apply accumulated opacity (premultiplied alpha)
+    result *= opacity;
 
     if (result.a < 0.004) discard;
     fragColor = result;
