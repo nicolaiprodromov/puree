@@ -42,8 +42,6 @@ struct Container {
     float border_color_gradient_rot;
     float border_radius;
     float border_width;
-    int parent;
-    int overflow;
     vec3 box_shadow_offset;
     float box_shadow_blur;
     vec4 box_shadow_color;
@@ -54,7 +52,7 @@ struct Container {
 };
 
 Container getContainer(int index) {
-    int offset = index * 59;
+    int offset = index * 64;
     Container c;
     c.display = int(container_data[offset + 0]);
     c.position = vec2(container_data[offset + 1], container_data[offset + 2]);
@@ -71,10 +69,9 @@ Container getContainer(int index) {
     c.border_color = vec4(container_data[offset + 32], container_data[offset + 33], container_data[offset + 34], container_data[offset + 35]);
     c.border_color_1 = vec4(container_data[offset + 36], container_data[offset + 37], container_data[offset + 38], container_data[offset + 39]);
     c.border_color_gradient_rot = container_data[offset + 40];
-    c.border_radius = container_data[offset + 41];
+    c.border_radius = container_data[offset + 41];  // TL corner; used as uniform radius in compute path
     c.border_width = container_data[offset + 42];
-    c.parent = int(container_data[offset + 43]);
-    c.overflow = int(container_data[offset + 44]);
+    // offsets 43-44: border_radius_tr, border_radius_br (not used in compute path)
     c.box_shadow_offset = vec3(container_data[offset + 45], container_data[offset + 46], container_data[offset + 47]);
     c.box_shadow_blur = container_data[offset + 48];
     c.box_shadow_color = vec4(container_data[offset + 49], container_data[offset + 50], container_data[offset + 51], container_data[offset + 52]);

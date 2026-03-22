@@ -2,7 +2,7 @@
 // SDF rendering with data texture lookup. Same visual output as the compute shader.
 // Outputs premultiplied alpha for correct hardware blending.
 //
-// Data texture layout per container (15 RGBA32F texels = 60 floats):
+// Data texture layout per container (16 RGBA32F texels = 64 floats):
 //   Texel 0:  display, pos_x, pos_y, size_x
 //   Texel 1:  size_y, color_r, color_g, color_b
 //   Texel 2:  color_a, color1_r, color1_g, color1_b
@@ -13,11 +13,12 @@
 //   Texel 7:  click1_g, click1_b, click1_a, click_grad_rot
 //   Texel 8:  border_r, border_g, border_b, border_a
 //   Texel 9:  border1_r, border1_g, border1_b, border1_a
-//   Texel 10: border_grad_rot, border_radius, border_width, parent
-//   Texel 11: overflow, shadow_x, shadow_y, shadow_spread
+//   Texel 10: border_grad_rot, radius_tl, border_width, radius_tr
+//   Texel 11: radius_br, shadow_x, shadow_y, shadow_spread
 //   Texel 12: shadow_blur, shadow_r, shadow_g, shadow_b
 //   Texel 13: shadow_a, passive, visible, clip_x
 //   Texel 14: clip_y, clip_w, clip_h, opacity
+//   Texel 15: radius_bl, 0, 0, 0
 
 // Interleaved Gradient Noise (Jorge Jimenez) for dithered gradients
 float gradientNoise(vec2 coord) {
@@ -37,10 +38,13 @@ vec4 getGradientColor(vec4 c1, vec4 c2, float rotDeg, vec2 pixel, vec2 origin, v
     return vec4(gc.rgb + vec3(n * ds - ds * 0.5), gc.a);
 }
 
-float containerSDF(vec2 pixel, vec2 pos, vec2 sz, float radius) {
-    vec2 local = pixel - pos;
-    float r = min(radius, min(sz.x, sz.y) * 0.5);
-    vec2 d = abs(local - sz * 0.5) - sz * 0.5 + r;
+float containerSDF(vec2 pixel, vec2 pos, vec2 sz, vec4 radii) {
+    vec2 rel = pixel - pos - sz * 0.5;
+    // Select corner radius based on quadrant: radii = (TL, TR, BR, BL)
+    vec2 r_pair = (rel.x > 0.0) ? radii.yz : radii.xw;  // right:(TR,BR) left:(TL,BL)
+    float r = (rel.y > 0.0) ? r_pair.y : r_pair.x;        // bottom or top
+    r = min(r, min(sz.x, sz.y) * 0.5);
+    vec2 d = abs(rel) - sz * 0.5 + r;
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
 }
 
@@ -50,9 +54,9 @@ float sdfAA(float dist) {
 
 void main() {
     int idx = int(vContainerIdx);
-    int texBase = idx * 15;
+    int texBase = idx * 16;
 
-    // Batch-read all 15 texels
+    // Batch-read all 16 texels
     vec4 t0  = texelFetch(containerData, ivec2(texBase + 0,  0), 0);
     vec4 t1  = texelFetch(containerData, ivec2(texBase + 1,  0), 0);
     vec4 t2  = texelFetch(containerData, ivec2(texBase + 2,  0), 0);
@@ -68,6 +72,7 @@ void main() {
     vec4 t12 = texelFetch(containerData, ivec2(texBase + 12, 0), 0);
     vec4 t13 = texelFetch(containerData, ivec2(texBase + 13, 0), 0);
     vec4 t14 = texelFetch(containerData, ivec2(texBase + 14, 0), 0);
+    vec4 t15 = texelFetch(containerData, ivec2(texBase + 15, 0), 0);
 
     // Unpack container properties
     float display  = t0.x;
@@ -85,7 +90,7 @@ void main() {
     vec4  bColor   = vec4(t8.x, t8.y, t8.z, t8.w);
     vec4  bColor1  = vec4(t9.x, t9.y, t9.z, t9.w);
     float bGradRot = t10.x;
-    float bRadius  = t10.y;
+    vec4  bRadii   = vec4(t10.y, t10.w, t11.x, t15.x);  // TL, TR, BR, BL
     float bWidth   = t10.z;
     vec2  shOff    = t11.yz;
     float shSpread = t11.w;
@@ -114,10 +119,10 @@ void main() {
         // Spread expands the shadow shape: positive = larger, negative = smaller
         vec2 shSz = sz + vec2(shSpread * 2.0);
         vec2 shPos = pos + shOff - vec2(shSpread);
-        float shRad = max(bRadius + shSpread, 0.0);
-        float sDist = containerSDF(px, shPos, shSz, shRad);
+        vec4 shRadii = max(bRadii + shSpread, 0.0);
+        float sDist = containerSDF(px, shPos, shSz, shRadii);
         if (sDist <= shBlur + 3.0) {
-            float cDist = containerSDF(px, pos, sz, bRadius);
+            float cDist = containerSDF(px, pos, sz, bRadii);
             if (cDist > bWidth) {
                 if (shBlur > 0.0) {
                     float soft = max(shBlur * 0.5, 0.5);
@@ -135,7 +140,7 @@ void main() {
     }
 
     // --- Container body + border ---
-    float dist = containerSDF(px, pos, sz, bRadius);
+    float dist = containerSDF(px, pos, sz, bRadii);
     float outerBound = bWidth + 1.5;
     vec4 bodyResult = vec4(0.0);
 

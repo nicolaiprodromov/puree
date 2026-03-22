@@ -62,6 +62,10 @@ class Style():
         self.opacity                : float       = 1.0
 
         self.border_radius            : float       = 0.0
+        self.border_radius_tl         : float       = 0.0
+        self.border_radius_tr         : float       = 0.0
+        self.border_radius_br         : float       = 0.0
+        self.border_radius_bl         : float       = 0.0
         self.border_width             : float       = 0.0
         self.border_color             : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.border_color_2           : List[float] = [0.0, 0.0, 0.0, 0.0]

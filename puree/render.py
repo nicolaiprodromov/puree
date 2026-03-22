@@ -31,7 +31,7 @@ _modal_timer = None
 _hot_reload_enabled = False
 _debug_outlined_containers = set()
 
-CONTAINER_STRIDE = 59
+CONTAINER_STRIDE = 64
 
 class RenderPipeline:
     def __init__(self):
@@ -260,24 +260,24 @@ class RenderPipeline:
     
     def _pack_container_data_texture(self, containers):
         """Pack container data into flat float32 array for RGBA32F data texture.
-        Layout: 15 texels (60 floats) per container."""
+        Layout: 16 texels (64 floats) per container."""
         n = len(containers)
-        data = np.zeros(n * 60, dtype=np.float32)
+        data = np.zeros(n * 64, dtype=np.float32)
         
         vis_clips = self._precompute_visibility_and_clips(containers)
         
         for i, container in enumerate(containers):
             struct = self._build_container_struct(container)
             v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
-            struct[-6] = v
-            struct[-5] = cx
-            struct[-4] = cy
-            struct[-3] = cw
-            struct[-2] = ch
-            struct[-1] = acc_opacity
+            struct[54] = v
+            struct[55] = cx
+            struct[56] = cy
+            struct[57] = cw
+            struct[58] = ch
+            struct[59] = acc_opacity
             
-            offset = i * 60
-            data[offset:offset + 60] = struct
+            offset = i * 64
+            data[offset:offset + 64] = struct
         
         return data
     
@@ -289,7 +289,7 @@ class RenderPipeline:
         
         try:
             data = self._pack_container_data_texture(containers)
-            tex_width = n * 15
+            tex_width = n * 16
             
             buf = gpu.types.Buffer('FLOAT', len(data), data)
             self.data_texture = gpu.types.GPUTexture(
@@ -680,7 +680,7 @@ class RenderPipeline:
         self.native_batch = None
         self.container_count = 0
     def _build_container_struct(self, container):
-        """Build the 60-float struct for a single container (54 base + 6 precomputed)."""
+        """Build the 64-float struct for a single container (58 base + 6 precomputed)."""
         bg_color = container.get('background_color', [1, 1, 1, 1])
         bg_color_2 = container.get('background_color_2', [1, 1, 1, 1])
         hover_bg_color = container.get('hover_background_color', container_default.hover_background_color)
@@ -693,6 +693,8 @@ class RenderPipeline:
         size = container.get('size', [100, 100])
         shadow_offset = container.get('box_shadow_offset', [0, 0, 0])
         shadow_color = container.get('box_shadow_color', [0, 0, 0, 0])
+        
+        br = container.get('border_radius', 0.0)
         
         return [
             int(container.get('display', False)),
@@ -710,10 +712,10 @@ class RenderPipeline:
             border_color[0], border_color[1], border_color[2], border_color[3],
             border_color_2[0], border_color_2[1], border_color_2[2], border_color_2[3],
             container.get('border_gradient_rot', 0.0),
-            container.get('border_radius', 0.0),
+            container.get('border_radius_tl', br),       # texel 10.y — radius TL
             container.get('border_width', 0.0),
-            container.get('parent', -1),
-            int(container.get('overflow', False)),
+            container.get('border_radius_tr', br),        # texel 10.w — radius TR
+            container.get('border_radius_br', br),        # texel 11.x — radius BR
             shadow_offset[0], shadow_offset[1], shadow_offset[2],
             container.get('box_shadow_blur', 0.0),
             shadow_color[0], shadow_color[1], shadow_color[2], shadow_color[3],
@@ -723,6 +725,9 @@ class RenderPipeline:
             0.0, 0.0,           # clip_x, clip_y
             99999.0, 99999.0,   # clip_w, clip_h
             1.0,                 # accumulated opacity
+            # Texel 15: radius_bl + padding
+            container.get('border_radius_bl', br),
+            0.0, 0.0, 0.0,
         ]
 
     def _precompute_visibility_and_clips(self, containers):
@@ -1146,12 +1151,12 @@ class RenderPipeline:
                 for i, container in enumerate(hit_container_data):
                     struct = self._build_container_struct(container)
                     v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
-                    struct[-6] = v
-                    struct[-5] = cx
-                    struct[-4] = cy
-                    struct[-3] = cw
-                    struct[-2] = ch
-                    struct[-1] = acc_opacity
+                    struct[54] = v
+                    struct[55] = cx
+                    struct[56] = cy
+                    struct[57] = cw
+                    struct[58] = ch
+                    struct[59] = acc_opacity
                     container_array.extend(struct)
                 
                 container_data_np = np.array(container_array, dtype=np.float32)
@@ -1256,6 +1261,10 @@ class XWZ_OT_start_ui(Operator):
                 text_decoration = block.get('text_decoration', 'NONE'),
                 letter_spacing  = block.get('letter_spacing', 0.0),
                 line_height     = block.get('line_height', 0.0),
+                font_weight     = block.get('font_weight', 'NORMAL'),
+                font_style      = block.get('font_style', 'NORMAL'),
+                white_space     = block.get('white_space', 'NORMAL'),
+                text_overflow   = block.get('text_overflow', 'CLIP'),
             )
         
         # Set scissor clips on text instances for scroll containers

@@ -204,6 +204,10 @@ impl ContainerProcessor {
                 border_color_2: self.extract_color_array(style_dict, "border_color_2")?,
                 border_gradient_rot: style_dict.get_item("border_gradient_rot")?.unwrap().extract::<f32>()?,
                 border_radius: style_dict.get_item("border_radius")?.unwrap().extract::<f32>()?,
+                border_radius_tl: style_dict.get_item("border_radius_tl")?.unwrap().extract::<f32>()?,
+                border_radius_tr: style_dict.get_item("border_radius_tr")?.unwrap().extract::<f32>()?,
+                border_radius_br: style_dict.get_item("border_radius_br")?.unwrap().extract::<f32>()?,
+                border_radius_bl: style_dict.get_item("border_radius_bl")?.unwrap().extract::<f32>()?,
                 border_width: style_dict.get_item("border_width")?.unwrap().extract::<f32>()?,
                 color: self.extract_color_array(style_dict, "color")?,
                 color_2: self.extract_color_array(style_dict, "color_2")?,
@@ -322,6 +326,10 @@ impl ContainerProcessor {
         
         dict.set_item("border_gradient_rot", container.border_gradient_rot)?;
         dict.set_item("border_radius", container.border_radius)?;
+        dict.set_item("border_radius_tl", container.border_radius_tl)?;
+        dict.set_item("border_radius_tr", container.border_radius_tr)?;
+        dict.set_item("border_radius_br", container.border_radius_br)?;
+        dict.set_item("border_radius_bl", container.border_radius_bl)?;
         dict.set_item("border_width", container.border_width)?;
         
         let color = PyList::new(py, &container.color);

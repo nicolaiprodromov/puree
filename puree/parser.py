@@ -290,7 +290,8 @@ class UI():
             ]
         
         float_props = [
-            'border_radius', 'border_width',
+            'border_radius', 'border_radius_tl', 'border_radius_tr',
+            'border_radius_br', 'border_radius_bl', 'border_width',
             'font_size', 'text_x', 'text_y',
             'box_shadow_blur', 'opacity',
             'flex_grow', 'flex_shrink', 'scrollbar_width',
@@ -1194,6 +1195,10 @@ class UI():
                 'border_color_2': list(container.style.border_color_2),
                 'border_gradient_rot': float(container.style.border_gradient_rot),
                 'border_radius': float(container.style.border_radius),
+                'border_radius_tl': float(container.style.border_radius_tl or container.style.border_radius),
+                'border_radius_tr': float(container.style.border_radius_tr or container.style.border_radius),
+                'border_radius_br': float(container.style.border_radius_br or container.style.border_radius),
+                'border_radius_bl': float(container.style.border_radius_bl or container.style.border_radius),
                 'border_width': float(container.style.border_width),
                 'color': list(container.style.color),
                 'color_2': list(container.style.color_2),

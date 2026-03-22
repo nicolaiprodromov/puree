@@ -370,6 +370,37 @@ fn expand_overflow(value: &str) -> Vec<(String, String)> {
         ]
     }
 }
+/// Parse `border-radius` shorthand into per-corner radius properties.
+/// Follows CSS spec: 1 value → all, 2 → TL+BR / TR+BL, 3 → TL / TR+BL / BR, 4 → TL TR BR BL.
+/// Also handles individual CSS longhands (border-top-left-radius, etc.).
+fn expand_border_radius(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value.is_empty() || value == "0" || value == "0px" {
+        return vec![
+            ("border-radius-tl".into(), "0".into()),
+            ("border-radius-tr".into(), "0".into()),
+            ("border-radius-br".into(), "0".into()),
+            ("border-radius-bl".into(), "0".into()),
+        ];
+    }
+
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    let (tl, tr, br, bl) = match parts.len() {
+        1 => (parts[0], parts[0], parts[0], parts[0]),
+        2 => (parts[0], parts[1], parts[0], parts[1]),
+        3 => (parts[0], parts[1], parts[2], parts[1]),
+        4 => (parts[0], parts[1], parts[2], parts[3]),
+        _ => (parts[0], parts[0], parts[0], parts[0]),
+    };
+
+    vec![
+        ("border-radius-tl".into(), tl.to_string()),
+        ("border-radius-tr".into(), tr.to_string()),
+        ("border-radius-br".into(), br.to_string()),
+        ("border-radius-bl".into(), bl.to_string()),
+    ]
+}
+
 /// Returns vec of (property_name, value) pairs.
 fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
     let value = value.trim();
@@ -818,6 +849,18 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
+                    // Expand border-radius shorthand into per-corner radii
+                    if prop_name == "border-radius" && value.contains(' ') {
+                        for (expanded_prop, expanded_val) in expand_border_radius(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
                     // Expand background shorthand into background-color (+ gradient props)
                     if prop_name == "background" {
                         for (expanded_prop, expanded_val) in expand_background(&value) {
@@ -878,7 +921,14 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    let mapped_name = strip_custom_prefix(prop_name);
+                    // Map CSS longhand border-radius property names to internal short names
+                    let mapped_name = match prop_name {
+                        "border-top-left-radius" => "border-radius-tl".to_string(),
+                        "border-top-right-radius" => "border-radius-tr".to_string(),
+                        "border-bottom-right-radius" => "border-radius-br".to_string(),
+                        "border-bottom-left-radius" => "border-radius-bl".to_string(),
+                        _ => strip_custom_prefix(prop_name),
+                    };
                     if is_important {
                         important_decls.insert(mapped_name, value);
                     } else {

@@ -5,15 +5,15 @@
 
 void main() {
     int idx = int(containerIdx);
-    int texBase = idx * 15;
+    int texBase = idx * 16;
 
     // Texel 0: display, pos_x, pos_y, size_x
     vec4 t0 = texelFetch(containerData, ivec2(texBase, 0), 0);
     // Texel 1: size_y, ...
     vec4 t1 = texelFetch(containerData, ivec2(texBase + 1, 0), 0);
-    // Texel 10: border_grad_rot, border_radius, border_width, parent
+    // Texel 10: border_grad_rot, radius_tl, border_width, radius_tr
     vec4 t10 = texelFetch(containerData, ivec2(texBase + 10, 0), 0);
-    // Texel 11: overflow, shadow_x, shadow_y, shadow_z
+    // Texel 11: radius_br, shadow_x, shadow_y, shadow_z
     vec4 t11 = texelFetch(containerData, ivec2(texBase + 11, 0), 0);
     // Texel 12: shadow_blur, ...
     vec4 t12 = texelFetch(containerData, ivec2(texBase + 12, 0), 0);
