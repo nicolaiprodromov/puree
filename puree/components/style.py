@@ -42,6 +42,9 @@ class Style():
         self.text_x                  : float       = 0.0
         self.text_y                  : float       = 0.0
         self.font_size               : float       = 12.0
+        self.font_family             : str         = ''
+        self.font_weight             : str         = 'NORMAL'
+        self.font_style              : str         = 'NORMAL'
         self.color                   : List[float] = [1.0, 1.0, 1.0, 1.0]
         self.color_2                 : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.color_gradient_rot      : float       = 0.0

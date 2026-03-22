@@ -311,6 +311,7 @@ class UI():
         string_props = [
             'overflow', 'display', 'position',
             'pointer_events', 'visibility',
+            'font_weight', 'font_style',
             'flex_direction', 'flex_wrap',
             'align_items', 'align_self', 'align_content',
             'justify_content', 'justify_items', 'justify_self',
@@ -325,6 +326,7 @@ class UI():
             'width', 'height', 'min_width', 'min_height', 'max_width', 'max_height',
             'top', 'right', 'bottom', 'left',
             'gap', 'row_gap', 'column_gap', 'flex_basis',
+            'font_family',
             'grid_template_rows', 'grid_template_columns',
             'grid_auto_rows', 'grid_auto_columns',
             'grid_row', 'grid_column'
@@ -998,7 +1000,7 @@ class UI():
             'data': str(container.data),
             'img': str(container.img),
             'text': str(container.text),
-            'font': str(container.font),
+            'font': str(container.style.font_family).strip().strip("'\"") if hasattr(container.style, 'font_family') and container.style.font_family else str(container.font),
             'passive': bool(container.passive) or (hasattr(container.style, 'pointer_events') and container.style.pointer_events == 'NONE'),
             'click': container.click,
             'toggle': container.toggle,

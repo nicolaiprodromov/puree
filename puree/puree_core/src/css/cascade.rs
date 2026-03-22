@@ -37,7 +37,7 @@ struct ContainerInfo {
 
 // ── Inherited properties (CSS-standard names) ─────────────────────
 
-const INHERITED_PROPERTIES: &[&str] = &["color", "font-size", "text-align"];
+const INHERITED_PROPERTIES: &[&str] = &["color", "font-size", "text-align", "font-family", "font-weight", "font-style", "pointer-events", "visibility"];
 
 // ── Strip `--` prefix from custom properties ──────────────────────
 
