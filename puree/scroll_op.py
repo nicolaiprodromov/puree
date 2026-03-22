@@ -38,8 +38,10 @@ class ScrollState:
         for callback in self.callbacks:
             try:
                 callback(delta, absolute_value)
-            except:
-                pass
+            except Exception as e:
+                import traceback
+                print(f"Scroll callback error: {e}")
+                traceback.print_exc()
     
     def register_callback(self, callback):
         if callback not in self.callbacks:

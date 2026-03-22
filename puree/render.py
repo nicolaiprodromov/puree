@@ -383,8 +383,6 @@ class RenderPipeline:
             return
         
         # Find the deepest hovered container (INCLUDING passive ones) for scroll routing.
-        # _current_hover_index only tracks non-passive containers, but scroll needs to work
-        # even when the mouse is over passive children inside a scrollable area.
         hovered_idx = -1
         for i, c in enumerate(containers):
             if c.get('_hovered', False):
@@ -412,7 +410,6 @@ class RenderPipeline:
                 
                 # Apply scroll to container positions
                 if self._apply_scroll_to_containers(containers):
-                    # Apply to text/image/text_input positions
                     from . import parser_op
                     self._apply_scroll_to_text(parser_op.text_blocks)
                     self._apply_scroll_to_images(parser_op.image_blocks)

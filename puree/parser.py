@@ -862,7 +862,7 @@ class UI():
             except (ValueError, TypeError):
                 return SizePointsPercent.from_any(0 * PT)
 
-        def create_node(container):
+        def create_node(container, parent_overflow='VISIBLE'):
             if container.style is None:
                 default_style = Style()
                 setattr(default_style, 'width', "100%")
@@ -927,6 +927,13 @@ class UI():
             flex_shrink_val = float(s.flex_shrink) if s.flex_shrink else 1.0
             flex_basis_str = str(s.flex_basis).lower().strip()
             flex_basis_val = parse_css_value_auto(flex_basis_str)
+
+            # CSS parity: children of overflow:scroll/auto containers don't shrink.
+            # Browsers treat scroll containers as having unbounded space in the
+            # scroll direction, so flex-shrink never triggers. Taffy doesn't do
+            # this automatically, so we force flex_shrink=0 for direct children.
+            if parent_overflow in ('SCROLL', 'AUTO'):
+                flex_shrink_val = 0.0
 
             # Alignment
             align_items_val     = parse_align_items(s.align_items) if s.align_items else None
@@ -1038,8 +1045,11 @@ class UI():
                 **grid_kwargs,
             )
             
+            # Determine this container's overflow for passing to children
+            this_overflow = s.overflow.upper() if hasattr(s, 'overflow') and s.overflow else 'VISIBLE'
+
             for child in container.children:
-                child_node = create_node(child)
+                child_node = create_node(child, parent_overflow=this_overflow)
                 node.add(child_node)
 
             return node
