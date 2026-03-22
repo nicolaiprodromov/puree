@@ -587,13 +587,15 @@ class UI():
         # Viewport and font-size context for CSS units
         vw_unit = canvas_size[0] / 100.0  # 1vw = 1% of viewport width
         vh_unit = canvas_size[1] / 100.0  # 1vh = 1% of viewport height
+        vmin_unit = min(canvas_size[0], canvas_size[1]) / 100.0  # 1vmin = 1% of smaller dimension
+        vmax_unit = max(canvas_size[0], canvas_size[1]) / 100.0  # 1vmax = 1% of larger dimension
         root_font_size = 16.0  # default root font-size (rem base)
         if hasattr(self.theme, 'root') and self.theme.root.style:
             root_font_size = float(self.theme.root.style.font_size or 16.0)
 
         import re
         _calc_re = re.compile(r'calc\((.+)\)')
-        _unit_re = re.compile(r'(-?[\d.]+)\s*(px|%|rem|em|vw|vh)?')
+        _unit_re = re.compile(r'(-?[\d.]+)\s*(px|%|rem|em|vmin|vmax|vw|vh)?')
 
         def resolve_units(value_str, parent_font_size=16.0):
             """Resolve a CSS value string to pixels. Returns (px_value, is_percent, pct_value)."""
@@ -637,14 +639,18 @@ class UI():
                     return (num * vw_unit, False, 0.0)
                 elif unit == 'vh':
                     return (num * vh_unit, False, 0.0)
+                elif unit == 'vmin':
+                    return (num * vmin_unit, False, 0.0)
+                elif unit == 'vmax':
+                    return (num * vmax_unit, False, 0.0)
             return (0.0, False, 0.0)
 
         def parse_css_value(value_str):
             value_str = str(value_str).lower().strip()
             if value_str in ('auto', ''):
                 return AUTO
-            # Handle calc(), rem, em, vw, vh
-            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh')):
+            # Handle calc(), rem, em, vw, vh, vmin, vmax
+            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh', 'vmin', 'vmax')):
                 px_val, is_pct, pct_val = resolve_units(value_str)
                 if is_pct:
                     return LengthPointsPercent.from_any(pct_val * PCT)
@@ -666,7 +672,7 @@ class UI():
             value_str = str(value_str).lower().strip()
             if value_str in ('auto', ''):
                 return LengthPointsPercentAuto.from_any(AUTO)
-            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh')):
+            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh', 'vmin', 'vmax')):
                 px_val, is_pct, pct_val = resolve_units(value_str)
                 if is_pct:
                     return LengthPointsPercentAuto.from_any(pct_val * PCT)
