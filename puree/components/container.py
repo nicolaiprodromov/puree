@@ -17,7 +17,7 @@ class Container():
         self.parent   : Optional[Container]       = []
         self.children : Optional[List[Container]] = []
 
-        self.style   : Optional[str] = ""
+        self.style   : Optional['Style'] = None
         self.classes : List[str]     = []
         self.data    : Optional[str] = ""
         self.img   : Optional[str] = ""
@@ -195,20 +195,18 @@ class Container():
         color_props = {'color', 'color_1', 'hover_color', 'hover_color_1',
                        'click_color', 'click_color_1', 'border_color', 'border_color_1',
                        'text_color', 'text_color_1', 'box_shadow_color'}
-        if name in color_props and isinstance(value, str) and hasattr(self, 'style') and self.style is not None:
-            from .style import Style as PureeStyle
-            if isinstance(self.style, PureeStyle):
-                from ..native_bindings import ColorProcessor
-                cp = ColorProcessor()
-                try:
-                    parsed = cp.parse_color(value)
-                    setattr(self.style, name, parsed)
-                except Exception:
-                    setattr(self.style, name, value)
-                self.mark_dirty()
-                return
+        if name in color_props and isinstance(value, str) and self.style is not None:
+            from ..native_bindings import ColorProcessor
+            cp = ColorProcessor()
+            try:
+                parsed = cp.parse_color(value)
+                setattr(self.style, name, parsed)
+            except Exception:
+                setattr(self.style, name, value)
+            self.mark_dirty()
+            return
         
-        if hasattr(self, 'style') and self.style is not None and hasattr(self.style, name):
+        if self.style is not None and hasattr(self.style, name):
             setattr(self.style, name, value)
             self.mark_dirty()
         else:

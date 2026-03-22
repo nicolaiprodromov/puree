@@ -142,6 +142,16 @@ class UI():
 
         self._component_css = ""
 
+        def set_container_attr(container, attr_name, attr_value):
+            """Set a YAML attribute on a container, handling 'class' specially."""
+            if attr_name == 'class':
+                if isinstance(attr_value, str):
+                    container.classes = attr_value.split()
+                elif isinstance(attr_value, list):
+                    container.classes = attr_value
+            elif hasattr(container, attr_name):
+                setattr(container, attr_name.replace('-', '_'), attr_value)
+
         def load_container(container_data, parent_container):
             for attr_name, attr_value in container_data.items():
 
@@ -160,15 +170,9 @@ class UI():
                     
                     for child_attr_name, child_attr_value in attr_value.items():
                         if not isinstance(child_attr_value, dict):
-                            if child_attr_name == 'class':
-                                # Support class: "foo bar" as space-separated class list
-                                if isinstance(child_attr_value, str):
-                                    child_container.classes = child_attr_value.split()
-                                elif isinstance(child_attr_value, list):
-                                    child_container.classes = child_attr_value
-                            elif hasattr(child_container, child_attr_name):
-                                if not (child_attr_name == 'data' and has_component_data):
-                                    setattr(child_container, child_attr_name.replace('-', '_'), child_attr_value)
+                            if child_attr_name == 'data' and has_component_data:
+                                continue
+                            set_container_attr(child_container, child_attr_name, child_attr_value)
                     
                     if has_component_data:
                         component_ref = attr_value['data']
@@ -200,8 +204,6 @@ class UI():
                                                 param_overrides=component_params,
                                                 component_name=component_base_name
                                             )
-                                            # Component CSS comes out with bare selectors (no dot prefix).
-                                            # Prepend '.' so the cascade matches them as class selectors.
                                             import re as _re
                                             compiled_css = _re.sub(
                                                 r'^([a-zA-Z_][\w]*)([\s:{])',
@@ -224,41 +226,39 @@ class UI():
                                             
                                             return re.sub(pattern, replace_param, value)
                                         
-                                        def load_component_with_namespace(comp_data, parent, namespace_prefix, params):
+                                        def namespace_class(value):
+                                            """Remap component class names to namespaced equivalents."""
+                                            if value == component_base_name:
+                                                return child_container.id
+                                            elif value.startswith(component_base_name + '_'):
+                                                return value.replace(component_base_name, child_container.id, 1)
+                                            return value
+                                        
+                                        def load_component(comp_data, parent, params):
                                             for attr_name, attr_value in comp_data.items():
                                                 if isinstance(attr_value, dict):
-                                                    namespaced_child = Container()
-                                                    namespaced_child.id = f"{parent.id}_{attr_name}"
-                                                    namespaced_child.parent = parent
-                                                    parent.children.append(namespaced_child)
+                                                    comp_child = Container()
+                                                    comp_child.id = f"{parent.id}_{attr_name}"
+                                                    comp_child.parent = parent
+                                                    parent.children.append(comp_child)
                                                     
                                                     for child_attr_name, child_attr_value in attr_value.items():
                                                         if not isinstance(child_attr_value, dict):
-                                                            substituted_value = substitute_params(child_attr_value, params)
-                                                            # Handle class: (and legacy style:) with namespace remapping
-                                                            if child_attr_name in ('class', 'style') and isinstance(substituted_value, str):
-                                                                if substituted_value == component_base_name:
-                                                                    substituted_value = child_container.id
-                                                                elif substituted_value.startswith(component_base_name + '_'):
-                                                                    substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
-                                                                namespaced_child.classes = [substituted_value]
-                                                            elif hasattr(namespaced_child, child_attr_name):
-                                                                setattr(namespaced_child, child_attr_name.replace('-', '_'), substituted_value)
+                                                            substituted = substitute_params(child_attr_value, params)
+                                                            if child_attr_name == 'class' and isinstance(substituted, str):
+                                                                comp_child.classes = [namespace_class(substituted)]
+                                                            elif hasattr(comp_child, child_attr_name):
+                                                                setattr(comp_child, child_attr_name.replace('-', '_'), substituted)
                                                     
-                                                    load_component_with_namespace(attr_value, namespaced_child, namespaced_child.id, params)
+                                                    load_component(attr_value, comp_child, params)
                                                 else:
-                                                    substituted_value = substitute_params(attr_value, params)
-                                                    # Handle class: (and legacy style:) with namespace remapping
-                                                    if attr_name in ('class', 'style') and isinstance(substituted_value, str):
-                                                        if substituted_value == component_base_name:
-                                                            substituted_value = child_container.id
-                                                        elif substituted_value.startswith(component_base_name + '_'):
-                                                            substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
-                                                        parent.classes = [substituted_value]
+                                                    substituted = substitute_params(attr_value, params)
+                                                    if attr_name == 'class' and isinstance(substituted, str):
+                                                        parent.classes = [namespace_class(substituted)]
                                                     elif hasattr(parent, attr_name):
-                                                        setattr(parent, attr_name.replace('-', '_'), substituted_value)
+                                                        setattr(parent, attr_name.replace('-', '_'), substituted)
                                         
-                                        load_component_with_namespace(component_data[component_key], child_container, attr_name, component_params)
+                                        load_component(component_data[component_key], child_container, component_params)
                                         component_loaded = True
                                     break
                             if component_loaded:
@@ -267,8 +267,7 @@ class UI():
                         load_container(attr_value, child_container)
 
                 else:
-                    if hasattr(parent_container, attr_name):
-                        setattr(parent_container, attr_name.replace('-', '_'), attr_value)
+                    set_container_attr(parent_container, attr_name, attr_value)
 
 
         self.theme.root.id = "root"
@@ -276,9 +275,6 @@ class UI():
 
     def parse_container_props_from_style(self, attr_name, attr_value):
         attr_name = attr_name.replace('-', '_')
-
-        if attr_name.startswith('__'):
-                    attr_name = attr_name[1:]
 
         color_props = [
             'color', 'color_1',
@@ -365,18 +361,6 @@ class UI():
         
         # Collect component CSS too
         style_str += self._component_css
-
-        # Populate classes from style attribute before cascade
-        def populate_classes(container):
-            if hasattr(container, 'style') and container.style and isinstance(container.style, str):
-                style_class = container.style
-                if not container.classes:
-                    container.classes = [style_class]
-                elif style_class not in container.classes:
-                    container.classes.append(style_class)
-            for child in container.children:
-                populate_classes(child)
-        populate_classes(self.theme.root)
 
         # Build container list and run cascade
         cascade = CSSCascade()
@@ -624,7 +608,7 @@ class UI():
                         
             return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
         def create_node(container):
-            if not hasattr(container, 'style') or container.style is None or isinstance(container.style, str):
+            if container.style is None:
                 default_style = Style()
                 setattr(default_style, 'width', "100%")
                 setattr(default_style, 'height', "100%")
