@@ -81,8 +81,8 @@ class Style():
         
         self.align_items    : str = 'START'
         self.justify_items  : str = 'START'
-        self.align_self     : str = 'START'
-        self.justify_self   : str = 'START'
+        self.align_self     : str = ''
+        self.justify_self   : str = ''
         self.align_content  : str = 'START'
         self.justify_content: str = 'START'
         

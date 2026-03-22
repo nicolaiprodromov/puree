@@ -872,7 +872,7 @@ class UI():
             overflow_str = s.overflow.lower()
             overflow_map = {'visible': Overflow.VISIBLE, 'hidden': Overflow.HIDDEN,
                            'scroll': Overflow.SCROLL, 'clip': Overflow.CLIP}
-            overflow_val = overflow_map.get(overflow_str, Overflow.HIDDEN)
+            overflow_val = overflow_map.get(overflow_str, Overflow.VISIBLE)
 
             # Size
             width_pct  = parse_css_value(s.width)
