@@ -512,13 +512,74 @@ class UI():
                 get_all_nodes(_container, node[i])
 
             return
+        # Viewport and font-size context for CSS units
+        vw_unit = canvas_size[0] / 100.0  # 1vw = 1% of viewport width
+        vh_unit = canvas_size[1] / 100.0  # 1vh = 1% of viewport height
+        root_font_size = 16.0  # default root font-size (rem base)
+        if hasattr(self.theme, 'root') and self.theme.root.style:
+            root_font_size = float(self.theme.root.style.font_size or 16.0)
+
+        import re
+        _calc_re = re.compile(r'calc\((.+)\)')
+        _unit_re = re.compile(r'(-?[\d.]+)\s*(px|%|rem|em|vw|vh)?')
+
+        def resolve_units(value_str, parent_font_size=16.0):
+            """Resolve a CSS value string to pixels. Returns (px_value, is_percent, pct_value)."""
+            value_str = value_str.strip().lower()
+            # calc() — evaluate simple expressions
+            m = _calc_re.match(value_str)
+            if m:
+                expr = m.group(1)
+                # Tokenize and resolve each term
+                tokens = re.split(r'(\s*[+\-]\s*)', expr)
+                total = 0.0
+                op = '+'
+                for token in tokens:
+                    token = token.strip()
+                    if token in ('+', '-'):
+                        op = token
+                        continue
+                    if not token:
+                        continue
+                    px_val, is_pct, pct_val = resolve_units(token, parent_font_size)
+                    val = px_val
+                    if op == '-':
+                        total -= val
+                    else:
+                        total += val
+                return (total, False, 0.0)
+            
+            um = _unit_re.match(value_str)
+            if um:
+                num = float(um.group(1))
+                unit = um.group(2) or 'px'
+                if unit == 'px':
+                    return (num, False, 0.0)
+                elif unit == '%':
+                    return (0.0, True, num)
+                elif unit == 'rem':
+                    return (num * root_font_size, False, 0.0)
+                elif unit == 'em':
+                    return (num * parent_font_size, False, 0.0)
+                elif unit == 'vw':
+                    return (num * vw_unit, False, 0.0)
+                elif unit == 'vh':
+                    return (num * vh_unit, False, 0.0)
+            return (0.0, False, 0.0)
+
         def parse_css_value(value_str):
             value_str = str(value_str).lower().strip()
             if value_str in ('auto', ''):
                 return AUTO
-            if 'px' in value_str and 'calc(' not in value_str:
+            # Handle calc(), rem, em, vw, vh
+            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh')):
+                px_val, is_pct, pct_val = resolve_units(value_str)
+                if is_pct:
+                    return LengthPointsPercent.from_any(pct_val * PCT)
+                return LengthPointsPercent.from_any(px_val * PT)
+            if 'px' in value_str:
                 return LengthPointsPercent.from_any(float(value_str.replace('px', '')) * PT)
-            if '%' in value_str and 'calc(' not in value_str:
+            if '%' in value_str:
                 return LengthPointsPercent.from_any(float(value_str.replace('%', '')) * PCT)
             try:
                 num = float(value_str)
@@ -533,6 +594,11 @@ class UI():
             value_str = str(value_str).lower().strip()
             if value_str in ('auto', ''):
                 return LengthPointsPercentAuto.from_any(AUTO)
+            if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh')):
+                px_val, is_pct, pct_val = resolve_units(value_str)
+                if is_pct:
+                    return LengthPointsPercentAuto.from_any(pct_val * PCT)
+                return LengthPointsPercentAuto.from_any(px_val * PT)
             if 'px' in value_str:
                 return LengthPointsPercentAuto.from_any(float(value_str.replace('px', '')) * PT)
             if '%' in value_str:

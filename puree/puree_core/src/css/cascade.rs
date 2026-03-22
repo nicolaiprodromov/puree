@@ -744,6 +744,28 @@ impl CSSCascade {
                         resolved[idx].insert(prop_name.to_string(), parent_val);
                     }
                 }
+                // Custom properties (--*) are inherited by default in CSS
+                let parent_customs: Vec<(String, String)> = resolved[pi]
+                    .iter()
+                    .filter(|(k, _)| k.starts_with("--"))
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect();
+                for (k, v) in parent_customs {
+                    resolved[idx].entry(k).or_insert(v);
+                }
+            }
+        }
+
+        // var() resolution pass
+        for idx in 0..resolved.len() {
+            let props_snapshot: Vec<(String, String)> = resolved[idx]
+                .iter()
+                .filter(|(_, v)| v.contains("var("))
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+            for (prop, value) in props_snapshot {
+                let resolved_value = resolve_var(&value, &resolved[idx]);
+                resolved[idx].insert(prop, resolved_value);
             }
         }
 
@@ -761,6 +783,61 @@ impl CSSCascade {
 
         Ok(result.into())
     }
+}
+
+// ── var() resolution ───────────────────────────────────────────────
+
+fn resolve_var(value: &str, props: &HashMap<String, String>) -> String {
+    let mut result = value.to_string();
+    // Iteratively resolve var() references (max 10 depth to prevent cycles)
+    for _ in 0..10 {
+        if !result.contains("var(") {
+            break;
+        }
+        let mut new_result = String::new();
+        let mut chars = result.chars().peekable();
+        let mut changed = false;
+
+        while let Some(ch) = chars.next() {
+            if ch == 'v' {
+                let rest: String = std::iter::once(ch).chain(chars.clone()).take(4).collect();
+                if rest.starts_with("var(") {
+                    // consume "ar("
+                    chars.next(); chars.next(); chars.next();
+                    // read until matching )
+                    let mut depth = 1;
+                    let mut inner = String::new();
+                    while let Some(c) = chars.next() {
+                        if c == '(' { depth += 1; }
+                        if c == ')' {
+                            depth -= 1;
+                            if depth == 0 { break; }
+                        }
+                        inner.push(c);
+                    }
+                    // inner = "--name" or "--name, fallback"
+                    let (var_name, fallback) = if let Some(comma_pos) = inner.find(',') {
+                        let name = inner[..comma_pos].trim().to_string();
+                        let fb = inner[comma_pos + 1..].trim().to_string();
+                        (name, Some(fb))
+                    } else {
+                        (inner.trim().to_string(), None)
+                    };
+                    if let Some(val) = props.get(&var_name) {
+                        new_result.push_str(val);
+                    } else if let Some(fb) = fallback {
+                        new_result.push_str(&fb);
+                    }
+                    changed = true;
+                    continue;
+                }
+            }
+            new_result.push(ch);
+        }
+        if !changed { break; }
+        result = new_result;
+    }
+    result
 }
 
 // ── Helper: parse Python container list ────────────────────────────
