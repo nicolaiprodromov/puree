@@ -854,22 +854,32 @@ class RenderPipeline:
         return -1
     
     def _compute_scroll_accumulation(self, containers):
-        """Compute accumulated scroll offset per container (from all scrollable ancestors)."""
+        """Compute accumulated scroll offset per container (from all scrollable ancestors).
+        Uses recursive approach to handle z-index reordering (parents may appear after children)."""
         n = len(containers)
         acc = [[0.0, 0.0] for _ in range(n)]
-        for i in range(n):
-            parent_idx = int(containers[i].get('parent', -1))
+        computed = [False] * n
+        
+        def compute_for(idx):
+            if idx < 0 or idx >= n or computed[idx]:
+                return
+            computed[idx] = True
+            parent_idx = int(containers[idx].get('parent', -1))
             if 0 <= parent_idx < n:
-                # Inherit parent's accumulated scroll
-                acc[i][0] = acc[parent_idx][0]
-                acc[i][1] = acc[parent_idx][1]
-                # If parent is scrollable, add its scroll offset
+                if not computed[parent_idx]:
+                    compute_for(parent_idx)
+                acc[idx][0] = acc[parent_idx][0]
+                acc[idx][1] = acc[parent_idx][1]
                 if parent_idx in self._scroll_offsets:
-                    acc[i][0] += self._scroll_offsets[parent_idx][0]
-                    acc[i][1] += self._scroll_offsets[parent_idx][1]
+                    acc[idx][0] += self._scroll_offsets[parent_idx][0]
+                    acc[idx][1] += self._scroll_offsets[parent_idx][1]
             # position:fixed containers are NOT affected by ancestor scroll
-            if containers[i].get('position_type', 'RELATIVE') == 'FIXED':
-                acc[i] = [0.0, 0.0]
+            if containers[idx].get('position_type', 'RELATIVE') == 'FIXED':
+                acc[idx] = [0.0, 0.0]
+        
+        for i in range(n):
+            compute_for(i)
+        
         self._scroll_accumulation = acc
         return acc
     
