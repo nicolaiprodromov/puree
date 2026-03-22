@@ -10,13 +10,19 @@ enum SimpleSelector {
     Class(String),
     Id(String),
     Universal,
+    FirstChild,
+    LastChild,
+    NthChild(i32, i32), // an+b: matches when (index - b) is a non-negative multiple of a
+    Not(Vec<SimpleSelector>),
 }
 
 #[derive(Clone, Debug)]
 enum SelectorPart {
     Simple(SimpleSelector),
-    Descendant, // space combinator
-    Child,      // > combinator
+    Descendant,         // space combinator
+    Child,              // > combinator
+    AdjacentSibling,    // + combinator
+    GeneralSibling,     // ~ combinator
 }
 
 struct CascadeRule {
@@ -33,6 +39,8 @@ struct ContainerInfo {
     id: String,
     classes: Vec<String>,
     parent_idx: i64,
+    child_index: usize,
+    sibling_count: usize,
 }
 
 // ── Inherited properties (CSS-standard names) ─────────────────────
@@ -218,6 +226,22 @@ fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
                 tokens.push(">".to_string());
                 current.clear();
             }
+            '+' => {
+                let t = current.trim().to_string();
+                if !t.is_empty() {
+                    tokens.push(t);
+                }
+                tokens.push("+".to_string());
+                current.clear();
+            }
+            '~' => {
+                let t = current.trim().to_string();
+                if !t.is_empty() {
+                    tokens.push(t);
+                }
+                tokens.push("~".to_string());
+                current.clear();
+            }
             ' ' | '\t' => {
                 let t = current.trim().to_string();
                 if !t.is_empty() {
@@ -244,6 +268,12 @@ fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
         if token == ">" {
             parts.push(SelectorPart::Child);
             last_was_compound = false;
+        } else if token == "+" {
+            parts.push(SelectorPart::AdjacentSibling);
+            last_was_compound = false;
+        } else if token == "~" {
+            parts.push(SelectorPart::GeneralSibling);
+            last_was_compound = false;
         } else {
             if last_was_compound {
                 parts.push(SelectorPart::Descendant);
@@ -259,7 +289,7 @@ fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
     (parts, pseudo)
 }
 
-/// Parse a compound selector like ".foo.bar" or "#id.class" into simple selectors.
+/// Parse a compound selector like ".foo.bar" or "#id.class:first-child" into simple selectors.
 fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
     let mut parts = Vec::new();
     let mut chars = s.chars().peekable();
@@ -298,6 +328,55 @@ fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
                 chars.next();
                 parts.push(SelectorPart::Simple(SimpleSelector::Universal));
             }
+            Some(':') => {
+                chars.next();
+                // Read pseudo-class name
+                let mut pseudo_name = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c == '(' || c == '.' || c == '#' || c == ':' || c == '[' || c == ' ' {
+                        break;
+                    }
+                    pseudo_name.push(c);
+                    chars.next();
+                }
+                // Read optional arguments in parentheses
+                let mut args = String::new();
+                if chars.peek() == Some(&'(') {
+                    chars.next(); // consume '('
+                    let mut depth = 1;
+                    while let Some(&c) = chars.peek() {
+                        chars.next();
+                        if c == '(' { depth += 1; }
+                        if c == ')' {
+                            depth -= 1;
+                            if depth == 0 { break; }
+                        }
+                        args.push(c);
+                    }
+                }
+                match pseudo_name.as_str() {
+                    "first-child" => {
+                        parts.push(SelectorPart::Simple(SimpleSelector::FirstChild));
+                    }
+                    "last-child" => {
+                        parts.push(SelectorPart::Simple(SimpleSelector::LastChild));
+                    }
+                    "nth-child" => {
+                        let (a, b) = parse_nth_args(&args);
+                        parts.push(SelectorPart::Simple(SimpleSelector::NthChild(a, b)));
+                    }
+                    "not" => {
+                        let inner = parse_compound_selector(&args);
+                        let simple_sels: Vec<SimpleSelector> = inner.into_iter().filter_map(|p| {
+                            if let SelectorPart::Simple(s) = p { Some(s) } else { None }
+                        }).collect();
+                        if !simple_sels.is_empty() {
+                            parts.push(SelectorPart::Simple(SimpleSelector::Not(simple_sels)));
+                        }
+                    }
+                    _ => {} // skip hover/active (handled separately)
+                }
+            }
             _ => {
                 // Skip unknown characters (element names, etc.)
                 chars.next();
@@ -306,6 +385,39 @@ fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
     }
 
     parts
+}
+
+/// Parse `an+b` notation from :nth-child() argument.
+fn parse_nth_args(s: &str) -> (i32, i32) {
+    let s = s.trim().to_lowercase();
+    if s == "odd" {
+        return (2, 1);
+    }
+    if s == "even" {
+        return (2, 0);
+    }
+    // Try "an+b", "an-b", "an", "b", "-n+b", "n+b"
+    if let Some(n_pos) = s.find('n') {
+        let a_part = &s[..n_pos].trim();
+        let a: i32 = if a_part.is_empty() || *a_part == "+" {
+            1
+        } else if *a_part == "-" {
+            -1
+        } else {
+            a_part.parse().unwrap_or(1)
+        };
+        let rest = s[n_pos + 1..].trim().to_string();
+        let b: i32 = if rest.is_empty() {
+            0
+        } else {
+            rest.replace(' ', "").parse().unwrap_or(0)
+        };
+        (a, b)
+    } else {
+        // Just a number
+        let b: i32 = s.parse().unwrap_or(0);
+        (0, b)
+    }
 }
 
 /// Calculate specificity from selector parts.
@@ -320,6 +432,17 @@ fn calculate_specificity(parts: &[SelectorPart]) -> u32 {
                 SimpleSelector::Id(_) => ids += 1,
                 SimpleSelector::Class(_) => classes += 1,
                 SimpleSelector::Universal => {}
+                SimpleSelector::FirstChild | SimpleSelector::LastChild | SimpleSelector::NthChild(_, _) => classes += 1,
+                SimpleSelector::Not(inner) => {
+                    // :not() specificity = highest specificity of its argument
+                    for s in inner {
+                        match s {
+                            SimpleSelector::Id(_) => ids += 1,
+                            SimpleSelector::Class(_) => classes += 1,
+                            _ => classes += 1,
+                        }
+                    }
+                }
             }
         }
     }
@@ -478,12 +601,13 @@ fn selector_matches(
         return false;
     }
 
-    let mut current_ancestor_idx = containers[idx].parent_idx;
+    let mut current_idx = idx;
 
     while part_cursor < parts.len() {
         match &parts[part_cursor] {
             SelectorPart::Descendant => {
                 part_cursor += 1;
+                let mut current_ancestor_idx = containers[current_idx].parent_idx;
                 let mut found = false;
                 while current_ancestor_idx >= 0 {
                     let anc = current_ancestor_idx as usize;
@@ -493,7 +617,7 @@ fn selector_matches(
                     let mut try_cursor = part_cursor;
                     if match_compound(parts, &mut try_cursor, &containers[anc]) {
                         part_cursor = try_cursor;
-                        current_ancestor_idx = containers[anc].parent_idx;
+                        current_idx = anc;
                         found = true;
                         break;
                     }
@@ -505,17 +629,55 @@ fn selector_matches(
             }
             SelectorPart::Child => {
                 part_cursor += 1;
-                if current_ancestor_idx < 0 {
+                let parent = containers[current_idx].parent_idx;
+                if parent < 0 {
                     return false;
                 }
-                let anc = current_ancestor_idx as usize;
+                let anc = parent as usize;
                 if anc >= containers.len() {
                     return false;
                 }
                 if !match_compound(parts, &mut part_cursor, &containers[anc]) {
                     return false;
                 }
-                current_ancestor_idx = containers[anc].parent_idx;
+                current_idx = anc;
+            }
+            SelectorPart::AdjacentSibling => {
+                part_cursor += 1;
+                // Find immediate previous sibling
+                let ci = containers[current_idx].child_index;
+                if ci == 0 {
+                    return false;
+                }
+                let parent = containers[current_idx].parent_idx;
+                if let Some(prev_idx) = find_sibling(containers, parent, ci - 1) {
+                    if !match_compound(parts, &mut part_cursor, &containers[prev_idx]) {
+                        return false;
+                    }
+                    current_idx = prev_idx;
+                } else {
+                    return false;
+                }
+            }
+            SelectorPart::GeneralSibling => {
+                part_cursor += 1;
+                let ci = containers[current_idx].child_index;
+                let parent = containers[current_idx].parent_idx;
+                let mut found = false;
+                for target_ci in (0..ci).rev() {
+                    if let Some(sib_idx) = find_sibling(containers, parent, target_ci) {
+                        let mut try_cursor = part_cursor;
+                        if match_compound(parts, &mut try_cursor, &containers[sib_idx]) {
+                            part_cursor = try_cursor;
+                            current_idx = sib_idx;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if !found {
+                    return false;
+                }
             }
             SelectorPart::Simple(_) => {
                 return false;
@@ -524,6 +686,14 @@ fn selector_matches(
     }
 
     true
+}
+
+/// Find a sibling container given parent index and child_index.
+fn find_sibling(containers: &[ContainerInfo], parent_idx: i64, child_index: usize) -> Option<usize> {
+    if parent_idx < 0 {
+        return None;
+    }
+    containers.iter().position(|c| c.parent_idx == parent_idx && c.child_index == child_index)
 }
 
 fn match_compound(
@@ -552,6 +722,20 @@ fn match_simple(sel: &SimpleSelector, container: &ContainerInfo) -> bool {
         SimpleSelector::Class(name) => container.classes.iter().any(|c| c == name),
         SimpleSelector::Id(name) => container.id == *name,
         SimpleSelector::Universal => true,
+        SimpleSelector::FirstChild => container.child_index == 0,
+        SimpleSelector::LastChild => container.child_index == container.sibling_count.saturating_sub(1),
+        SimpleSelector::NthChild(a, b) => {
+            let index = (container.child_index + 1) as i32; // 1-based
+            if *a == 0 {
+                index == *b
+            } else {
+                let diff = index - b;
+                diff % a == 0 && diff / a >= 0
+            }
+        }
+        SimpleSelector::Not(inner_sels) => {
+            !inner_sels.iter().all(|s| match_simple(s, container))
+        }
     }
 }
 
@@ -876,7 +1060,24 @@ fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
             id,
             classes,
             parent_idx,
+            child_index: 0,
+            sibling_count: 0,
         });
     }
+    
+    // Compute child_index and sibling_count
+    // Group children by parent
+    let mut parent_children: HashMap<i64, Vec<usize>> = HashMap::new();
+    for (i, info) in infos.iter().enumerate() {
+        parent_children.entry(info.parent_idx).or_default().push(i);
+    }
+    for (_parent, children) in &parent_children {
+        let count = children.len();
+        for (ci, &child_idx) in children.iter().enumerate() {
+            infos[child_idx].child_index = ci;
+            infos[child_idx].sibling_count = count;
+        }
+    }
+    
     Ok(infos)
 }
