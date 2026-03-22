@@ -109,3 +109,9 @@ class Style():
         self.grid_row             : str            = 'AUTO'
         self.grid_column          : str            = 'AUTO'
 
+        # CSS transitions
+        self.transition_property         : str   = 'none'
+        self.transition_duration         : float = 0.0
+        self.transition_timing_function  : str   = 'ease'
+        self.transition_delay            : float = 0.0
+

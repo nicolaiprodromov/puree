@@ -78,6 +78,9 @@ class RenderPipeline:
         self._data_needs_update = True
         # Hot reload throttle
         self._hot_reload_frame_counter = 0
+        # Transition manager
+        from .transition_manager import TransitionManager
+        self.transitions = TransitionManager()
         self._hot_reload_check_interval = 30
         # Cached area/region lookup
         self._cached_target_area = None

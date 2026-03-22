@@ -372,7 +372,58 @@ class UI():
         elif attr_name in dimension_props:
             attr_value = attr_value.strip()
 
+        elif attr_name == 'transition':
+            # Shorthand: "background-color 0.3s ease 0s" or "all 0.2s"
+            parts = attr_value.strip().split()
+            if parts:
+                attr_name = 'transition_property'
+                attr_value = parts[0].replace('-', '_')
+            # Parse duration if present
+            if len(parts) > 1:
+                # Will be handled separately via multi-set below
+                pass
+            return self._parse_transition_shorthand(attr_value if isinstance(attr_value, str) else parts[0], parts)
+
+        elif attr_name == 'transition_duration':
+            val = attr_value.strip().lower()
+            attr_value = float(val.replace('s', '').replace('ms', '')) 
+            if 'ms' in val.replace(str(attr_value), ''):
+                attr_value /= 1000.0
+
+        elif attr_name == 'transition_delay':
+            val = attr_value.strip().lower()
+            attr_value = float(val.replace('s', '').replace('ms', ''))
+            if 'ms' in val.replace(str(attr_value), ''):
+                attr_value /= 1000.0
+
+        elif attr_name == 'transition_timing_function':
+            attr_value = attr_value.strip().lower()
+
         return attr_name, attr_value
+
+    def _parse_transition_shorthand(self, raw_value, parts):
+        """Parse transition shorthand and return multiple (name, value) pairs as a list."""
+        prop = parts[0].replace('-', '_') if parts else 'all'
+        duration = 0.0
+        timing = 'ease'
+        delay = 0.0
+        
+        for p in parts[1:]:
+            p_lower = p.lower().strip(',')
+            if p_lower in ('ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'):
+                timing = p_lower
+            elif 's' in p_lower or 'ms' in p_lower:
+                val = float(p_lower.replace('ms', '').replace('s', ''))
+                if 'ms' in p_lower:
+                    val /= 1000.0
+                if duration == 0.0:
+                    duration = val
+                else:
+                    delay = val
+        
+        # Return as the property name, storing all transition info
+        # We'll use a special multi-set approach
+        return ('transition_property', prop, duration, timing, delay)
 
     def parse_css(self):
         from . import get_addon_root
@@ -416,8 +467,17 @@ class UI():
                 container.style = Style()
                 container.style.id = container_id
             for prop, value in props.items():
-                attr_name, attr_value = self.parse_container_props_from_style(prop, value)
-                setattr(container.style, attr_name, attr_value)
+                result = self.parse_container_props_from_style(prop, value)
+                if isinstance(result, tuple) and len(result) == 5:
+                    # Transition shorthand: (property, prop_value, duration, timing, delay)
+                    _, t_prop, t_dur, t_timing, t_delay = result
+                    container.style.transition_property = t_prop
+                    container.style.transition_duration = t_dur
+                    container.style.transition_timing_function = t_timing
+                    container.style.transition_delay = t_delay
+                else:
+                    attr_name, attr_value = result
+                    setattr(container.style, attr_name, attr_value)
 
         # Second pass: hover and active — only set properties that DIFFER from normal
         for state, prefix in (("hover", "hover_"), ("active", "click_")):
@@ -440,7 +500,10 @@ class UI():
                     # Skip if same as normal — don't override the sentinel defaults
                     if normal_props.get(prop) == value:
                         continue
-                    attr_name, attr_value = self.parse_container_props_from_style(prop, value)
+                    result = self.parse_container_props_from_style(prop, value)
+                    if isinstance(result, tuple) and len(result) == 5:
+                        continue  # transition shorthand already parsed in normal pass
+                    attr_name, attr_value = result
                     state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
                     if hasattr(container.style, state_attr):
                         setattr(container.style, state_attr, attr_value)
