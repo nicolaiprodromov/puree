@@ -1530,6 +1530,10 @@ class XWZ_OT_start_ui(Operator):
                         # Update GPU texture with scroll-adjusted positions
                         _render_data.update_data_texture(hit_op._container_data)
                         
+                        # Reload hit detector with scroll-adjusted positions
+                        if hasattr(hit_op, '_native_detector') and hit_op._native_detector:
+                            hit_op._native_detector.load_containers(hit_op._container_data)
+                        
                         acc = _render_data._scroll_accumulation
                         
                         # Update text positions — only for containers inside scroll areas
