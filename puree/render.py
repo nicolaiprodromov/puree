@@ -1254,7 +1254,8 @@ class XWZ_OT_start_ui(Operator):
             )
         
         # Set scissor clips on text instances for scroll containers
-        for text_instance in text_op._text_instances:
+        from . import text_op as text_op_mod
+        for text_instance in text_op_mod._text_instances:
             cid = text_instance.container_id
             block = parser_op.text_blocks.get(cid)
             if block and 'scroll_clip' in block:
