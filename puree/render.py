@@ -674,6 +674,11 @@ class RenderPipeline:
                 results.append((0.0, 0.0, 0.0, 0.0, 0.0))
                 continue
             
+            # visibility: hidden keeps layout space but doesn't render
+            if c.get('visibility', '') == 'HIDDEN':
+                results.append((0.0, 0.0, 0.0, 0.0, 0.0))
+                continue
+            
             visible = 1.0
             clip_x, clip_y = 0.0, 0.0
             clip_r, clip_b = vw, vh

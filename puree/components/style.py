@@ -66,6 +66,8 @@ class Style():
         self.overflow        : str  = 'VISIBLE'
         self.scrollbar_width : float = 0.0
         self.position        : str  = 'RELATIVE'
+        self.pointer_events  : str  = 'AUTO'
+        self.visibility      : str  = 'VISIBLE'
         
         self.align_items    : str = 'START'
         self.justify_items  : str = 'START'

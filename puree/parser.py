@@ -310,6 +310,7 @@ class UI():
         
         string_props = [
             'overflow', 'display', 'position',
+            'pointer_events', 'visibility',
             'flex_direction', 'flex_wrap',
             'align_items', 'align_self', 'align_content',
             'justify_content', 'justify_items', 'justify_self',
@@ -937,6 +938,19 @@ class UI():
         
         self.json_data = container_processor.flatten_tree(container_dict, node_flat)
         self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
+        
+        # Post-process: add visibility from Style (not in Rust struct)
+        visibility_map = {}
+        def collect_visibility(container):
+            if hasattr(container.style, 'visibility'):
+                visibility_map[container.id] = container.style.visibility
+            for child in container.children:
+                collect_visibility(child)
+        collect_visibility(self.theme.root)
+        for c in self.json_data:
+            c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
+        for c in self.abs_json_data:
+            c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
     
     def _container_to_dict(self, container):
         def ensure_string(val):
@@ -985,7 +999,7 @@ class UI():
             'img': str(container.img),
             'text': str(container.text),
             'font': str(container.font),
-            'passive': bool(container.passive),
+            'passive': bool(container.passive) or (hasattr(container.style, 'pointer_events') and container.style.pointer_events == 'NONE'),
             'click': container.click,
             'toggle': container.toggle,
             'scroll': container.scroll,
