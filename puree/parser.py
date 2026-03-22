@@ -310,7 +310,8 @@ class UI():
             ]
         
         string_props = [
-            'overflow', 'display', 'position',
+            'overflow', 'overflow_x', 'overflow_y',
+            'display', 'position',
             'pointer_events', 'visibility',
             'font_weight', 'font_style',
             'flex_direction', 'flex_wrap',
@@ -868,11 +869,13 @@ class UI():
             pos_str = s.position.lower()
             position_val = Position.ABSOLUTE if pos_str in ('absolute', 'fixed') else Position.RELATIVE
 
-            # Overflow
-            overflow_str = s.overflow.lower()
+            # Overflow (support separate overflow-x / overflow-y)
             overflow_map = {'visible': Overflow.VISIBLE, 'hidden': Overflow.HIDDEN,
                            'scroll': Overflow.SCROLL, 'clip': Overflow.CLIP}
-            overflow_val = overflow_map.get(overflow_str, Overflow.VISIBLE)
+            overflow_x_str = (s.overflow_x if hasattr(s, 'overflow_x') and s.overflow_x else s.overflow).lower()
+            overflow_y_str = (s.overflow_y if hasattr(s, 'overflow_y') and s.overflow_y else s.overflow).lower()
+            overflow_x_val = overflow_map.get(overflow_x_str, Overflow.VISIBLE)
+            overflow_y_val = overflow_map.get(overflow_y_str, Overflow.VISIBLE)
 
             # Size
             width_pct  = parse_css_value(s.width)
@@ -993,8 +996,8 @@ class UI():
                 display         = display_val,
                 position        = position_val,
                 box_sizing      = BoxSizing.BORDER,
-                overflow_x      = overflow_val,
-                overflow_y      = overflow_val,
+                overflow_x      = overflow_x_val,
+                overflow_y      = overflow_y_val,
                 scrollbar_width = float(s.scrollbar_width) if hasattr(s, 'scrollbar_width') and s.scrollbar_width else 0.0,
                 inset           = RectPointsPercentAuto(top=inset_top, right=inset_right, bottom=inset_bottom, left=inset_left),
                 flex_direction  = flex_direction_val,

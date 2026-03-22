@@ -73,6 +73,8 @@ class Style():
 
         self.display         : str  = 'FLEX'
         self.overflow        : str  = 'VISIBLE'
+        self.overflow_x      : str  = ''
+        self.overflow_y      : str  = ''
         self.scrollbar_width : float = 0.0
         self.position        : str  = 'RELATIVE'
         self.pointer_events  : str  = 'AUTO'

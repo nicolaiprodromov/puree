@@ -144,14 +144,231 @@ fn expand_border(value: &str) -> Vec<(String, String)> {
     result
 }
 
-/// Parse `background: <color>` shorthand. Only supports solid color for now.
+/// Parse `background: <color>` or `background: linear-gradient(...)` shorthand.
 fn expand_background(value: &str) -> Vec<(String, String)> {
     let value = value.trim();
     if value == "none" || value == "transparent" || value.is_empty() {
         return vec![("background-color".into(), "transparent".into())];
     }
-    // For now, treat the entire value as a color (no gradient/image parsing)
+    // Handle linear-gradient(angle, color1, color2)
+    if value.starts_with("linear-gradient(") && value.ends_with(')') {
+        let inner = &value[16..value.len()-1]; // strip "linear-gradient(" and ")"
+        // Tokenize by comma, respecting nested parentheses
+        let args = split_respecting_parens(inner, ',');
+        if args.len() >= 2 {
+            let mut result = Vec::new();
+            let first = args[0].trim();
+            let mut color_start_idx = 0;
+            // Check if first arg is an angle or direction keyword
+            if first.ends_with("deg") || first.ends_with("rad") || first.ends_with("turn")
+                || first.starts_with("to ") {
+                let angle = parse_gradient_angle(first);
+                result.push(("background-gradient-rot".into(), format!("{}deg", angle)));
+                color_start_idx = 1;
+            }
+            // First color
+            if color_start_idx < args.len() {
+                result.push(("background-color".into(), args[color_start_idx].trim().to_string()));
+            }
+            // Second color
+            if color_start_idx + 1 < args.len() {
+                result.push(("background-color-2".into(), args[color_start_idx + 1].trim().to_string()));
+            }
+            return result;
+        }
+    }
+    // Solid color fallback
     vec![("background-color".into(), value.to_string())]
+}
+
+/// Parse gradient angle from CSS syntax.
+/// Supports: "135deg", "1.5rad", "0.25turn", "to right", "to bottom left", etc.
+fn parse_gradient_angle(s: &str) -> f64 {
+    let s = s.trim();
+    if let Some(deg) = s.strip_suffix("deg") {
+        return deg.trim().parse::<f64>().unwrap_or(180.0);
+    }
+    if let Some(rad) = s.strip_suffix("rad") {
+        return rad.trim().parse::<f64>().unwrap_or(std::f64::consts::PI) * 180.0 / std::f64::consts::PI;
+    }
+    if let Some(turn) = s.strip_suffix("turn") {
+        return turn.trim().parse::<f64>().unwrap_or(0.5) * 360.0;
+    }
+    // Direction keywords: "to right", "to bottom", "to top left", etc.
+    if s.starts_with("to ") {
+        let dir = &s[3..].trim().to_lowercase();
+        return match dir.as_str() {
+            "top" => 0.0,
+            "right" => 90.0,
+            "bottom" => 180.0,
+            "left" => 270.0,
+            "top right" | "right top" => 45.0,
+            "bottom right" | "right bottom" => 135.0,
+            "bottom left" | "left bottom" => 225.0,
+            "top left" | "left top" => 315.0,
+            _ => 180.0,
+        };
+    }
+    180.0 // CSS default: top-to-bottom
+}
+
+/// Split a string by a delimiter, respecting parentheses nesting.
+fn split_respecting_parens(s: &str, delim: char) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut depth = 0;
+    for ch in s.chars() {
+        if ch == '(' { depth += 1; }
+        if ch == ')' { depth -= 1; }
+        if ch == delim && depth == 0 {
+            parts.push(current.clone());
+            current.clear();
+        } else {
+            current.push(ch);
+        }
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+    parts
+}
+
+/// Expand `flex` shorthand: `flex: 1`, `flex: 0 1 auto`, `flex: none`
+fn expand_flex(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    match value {
+        "none" => return vec![
+            ("flex-grow".into(), "0".into()),
+            ("flex-shrink".into(), "0".into()),
+            ("flex-basis".into(), "auto".into()),
+        ],
+        "auto" => return vec![
+            ("flex-grow".into(), "1".into()),
+            ("flex-shrink".into(), "1".into()),
+            ("flex-basis".into(), "auto".into()),
+        ],
+        "initial" => return vec![
+            ("flex-grow".into(), "0".into()),
+            ("flex-shrink".into(), "1".into()),
+            ("flex-basis".into(), "auto".into()),
+        ],
+        _ => {}
+    }
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    match parts.len() {
+        1 => {
+            // flex: <number> → flex-grow: <number>; flex-shrink: 1; flex-basis: 0%
+            vec![
+                ("flex-grow".into(), parts[0].to_string()),
+                ("flex-shrink".into(), "1".into()),
+                ("flex-basis".into(), "0%".into()),
+            ]
+        }
+        2 => {
+            // flex: <grow> <shrink> OR flex: <grow> <basis>
+            let second = parts[1];
+            if second.parse::<f64>().is_ok() {
+                vec![
+                    ("flex-grow".into(), parts[0].to_string()),
+                    ("flex-shrink".into(), second.to_string()),
+                    ("flex-basis".into(), "0%".into()),
+                ]
+            } else {
+                vec![
+                    ("flex-grow".into(), parts[0].to_string()),
+                    ("flex-shrink".into(), "1".into()),
+                    ("flex-basis".into(), second.to_string()),
+                ]
+            }
+        }
+        3 => {
+            // flex: <grow> <shrink> <basis>
+            vec![
+                ("flex-grow".into(), parts[0].to_string()),
+                ("flex-shrink".into(), parts[1].to_string()),
+                ("flex-basis".into(), parts[2].to_string()),
+            ]
+        }
+        _ => vec![]
+    }
+}
+
+/// Expand `gap` shorthand: `gap: 10px`, `gap: 10px 20px`
+fn expand_gap(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.trim().split_whitespace().collect();
+    match parts.len() {
+        1 => vec![
+            ("row-gap".into(), parts[0].to_string()),
+            ("column-gap".into(), parts[0].to_string()),
+        ],
+        2 => vec![
+            ("row-gap".into(), parts[0].to_string()),
+            ("column-gap".into(), parts[1].to_string()),
+        ],
+        _ => vec![("row-gap".into(), value.trim().to_string()),
+                  ("column-gap".into(), value.trim().to_string())]
+    }
+}
+
+/// Expand `font` shorthand: `font: [style] [weight] size[/line-height] family`
+fn expand_font(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    let parts = split_respecting_parens(value, ' ');
+    if parts.is_empty() { return vec![]; }
+
+    let style_keywords = ["italic", "oblique", "normal"];
+    let weight_keywords = ["bold", "bolder", "lighter", "normal",
+        "100", "200", "300", "400", "500", "600", "700", "800", "900"];
+
+    let mut result = Vec::new();
+    let mut i = 0;
+
+    // Optional font-style
+    if i < parts.len() && style_keywords.contains(&parts[i].to_lowercase().as_str()) {
+        result.push(("font-style".into(), parts[i].to_string()));
+        i += 1;
+    }
+    // Optional font-weight
+    if i < parts.len() && weight_keywords.contains(&parts[i].to_lowercase().as_str()) {
+        result.push(("font-weight".into(), parts[i].to_string()));
+        i += 1;
+    }
+    // Required: font-size (possibly with /line-height)
+    if i < parts.len() {
+        let size_part = &parts[i];
+        if let Some(slash) = size_part.find('/') {
+            result.push(("font-size".into(), size_part[..slash].to_string()));
+            result.push(("line-height".into(), size_part[slash+1..].to_string()));
+        } else {
+            result.push(("font-size".into(), size_part.to_string()));
+        }
+        i += 1;
+    }
+    // Remaining: font-family (may be multi-word)
+    if i < parts.len() {
+        let family = parts[i..].join(" ");
+        result.push(("font-family".into(), family));
+    }
+    result
+}
+
+/// Expand `overflow` shorthand: `overflow: hidden`, `overflow: hidden visible`
+fn expand_overflow(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.trim().split_whitespace().collect();
+    match parts.len() {
+        1 => vec![
+            ("overflow-x".into(), parts[0].to_string()),
+            ("overflow-y".into(), parts[0].to_string()),
+        ],
+        2 => vec![
+            ("overflow-x".into(), parts[0].to_string()),
+            ("overflow-y".into(), parts[1].to_string()),
+        ],
+        _ => vec![
+            ("overflow-x".into(), value.trim().to_string()),
+            ("overflow-y".into(), value.trim().to_string()),
+        ]
+    }
 }
 /// Returns vec of (property_name, value) pairs.
 fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
@@ -601,9 +818,57 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand background shorthand into background-color
+                    // Expand background shorthand into background-color (+ gradient props)
                     if prop_name == "background" {
                         for (expanded_prop, expanded_val) in expand_background(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand flex shorthand into flex-grow + flex-shrink + flex-basis
+                    if prop_name == "flex" {
+                        for (expanded_prop, expanded_val) in expand_flex(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand gap shorthand into row-gap + column-gap
+                    if prop_name == "gap" {
+                        for (expanded_prop, expanded_val) in expand_gap(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand font shorthand into individual properties
+                    if prop_name == "font" {
+                        for (expanded_prop, expanded_val) in expand_font(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand overflow shorthand into overflow-x + overflow-y
+                    if prop_name == "overflow" && value.contains(' ') {
+                        for (expanded_prop, expanded_val) in expand_overflow(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
                             } else {
