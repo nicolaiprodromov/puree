@@ -1673,7 +1673,8 @@ class XWZ_OT_start_ui(Operator):
                         )
                         
                         # Update text instance clips from scroll_clip data
-                        for text_instance in text_op._text_instances:
+                        from . import text_op as _text_op_resize
+                        for text_instance in _text_op_resize._text_instances:
                             cid = text_instance.container_id
                             block = parser_op.text_blocks.get(cid)
                             if block and 'scroll_clip' in block:
