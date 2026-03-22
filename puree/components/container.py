@@ -258,7 +258,7 @@ class ContainerDefault():
         self.width  = 100.0
         self.height = 100.0
 
-        self.background_color              = [0.0, 0.0, 0.0, 1.0]
+        self.background_color              = [0.0, 0.0, 0.0, 0.0]
         self.background_color_2            = [0.0, 0.0, 0.0, 0.0]
         self.background_gradient_rot       = 0.0
         

@@ -20,6 +20,7 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     justify-content: center;
     width: 100%;
     height: 100%;
+    overflow: hidden;
     background-color: $bg_canvas;
     --background-color-2: #{$bg_canvas_2};
     --background-gradient-rot: 135deg;

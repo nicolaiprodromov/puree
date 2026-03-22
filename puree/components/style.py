@@ -63,7 +63,7 @@ class Style():
         self.box_shadow_blur  : float       = 0.0
 
         self.display         : str  = 'FLEX'
-        self.overflow        : str  = 'HIDDEN'
+        self.overflow        : str  = 'VISIBLE'
         self.scrollbar_width : float = 0.0
         self.position        : str  = 'RELATIVE'
         
