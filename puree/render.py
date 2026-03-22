@@ -378,8 +378,24 @@ class RenderPipeline:
         """Route scroll event to deepest scrollable container under mouse."""
         from . import hit_op
         containers = hit_op._container_data
-        if containers and self._current_hover_index >= 0:
-            scrollable_idx = self._find_scrollable_ancestor(self._current_hover_index, containers)
+        if not containers:
+            self.write_mouse_buffer()
+            return
+        
+        # Find the deepest hovered container (INCLUDING passive ones) for scroll routing.
+        # _current_hover_index only tracks non-passive containers, but scroll needs to work
+        # even when the mouse is over passive children inside a scrollable area.
+        hovered_idx = -1
+        for i, c in enumerate(containers):
+            if c.get('_hovered', False):
+                hovered_idx = i
+        
+        # Fall back to non-passive hover index
+        if hovered_idx < 0:
+            hovered_idx = self._current_hover_index
+        
+        if hovered_idx >= 0:
+            scrollable_idx = self._find_scrollable_ancestor(hovered_idx, containers)
             if scrollable_idx >= 0:
                 offset = self._scroll_offsets.get(scrollable_idx, [0.0, 0.0])
                 pixel_delta = delta * self._scroll_pixels_per_tick
@@ -527,6 +543,14 @@ class RenderPipeline:
             return False
         if not self.create_data_texture(self.container_data):
             return False
+
+        # Cache original positions for scroll infrastructure
+        self._cache_original_positions(self.container_data)
+        self._cache_original_text_positions(parser_op.text_blocks)
+        if hasattr(parser_op, 'image_blocks'):
+            self._cache_original_image_positions(parser_op.image_blocks)
+        if hasattr(parser_op, 'text_input_blocks'):
+            self._cache_original_text_input_positions(parser_op.text_input_blocks)
 
         scroll_state.register_callback(self.on_scroll)
         self.scroll_callback_registered = True
@@ -995,6 +1019,64 @@ class RenderPipeline:
             return (int(clip_x), int(clip_y), int(max(0, clip_r - clip_x)), int(max(0, clip_b - clip_y)))
         return None
 
+    def _apply_initial_scroll_clips(self, containers, text_blocks, image_blocks=None, text_input_blocks=None):
+        """Intersect text/image/text_input masks with scroll parent bounds for initial render.
+        Without this, text inside overflow:scroll areas renders outside the visible region."""
+        for cid, block in text_blocks.items():
+            idx = self._container_id_to_index.get(cid, -1)
+            if idx < 0:
+                continue
+            clip = self._get_scroll_clip_for_container(idx, containers)
+            if clip:
+                cx, cy, cw, ch = clip
+                # Intersect existing mask with scroll clip
+                mx, my = block['mask_x'], block['mask_y']
+                mw, mh = block['mask_width'], block['mask_height']
+                ix = max(mx, cx)
+                iy = max(my, cy)
+                ir = min(mx + mw, cx + cw)
+                ib = min(my + mh, cy + ch)
+                block['mask_x'] = ix
+                block['mask_y'] = iy
+                block['mask_width'] = max(0, ir - ix)
+                block['mask_height'] = max(0, ib - iy)
+        if image_blocks:
+            for cid, block in image_blocks.items():
+                idx = self._container_id_to_index.get(cid, -1)
+                if idx < 0:
+                    continue
+                clip = self._get_scroll_clip_for_container(idx, containers)
+                if clip:
+                    cx, cy, cw, ch = clip
+                    mx, my = block['mask_x'], block['mask_y']
+                    mw, mh = block['mask_width'], block['mask_height']
+                    ix = max(mx, cx)
+                    iy = max(my, cy)
+                    ir = min(mx + mw, cx + cw)
+                    ib = min(my + mh, cy + ch)
+                    block['mask_x'] = ix
+                    block['mask_y'] = iy
+                    block['mask_width'] = max(0, ir - ix)
+                    block['mask_height'] = max(0, ib - iy)
+        if text_input_blocks:
+            for cid, block in text_input_blocks.items():
+                idx = self._container_id_to_index.get(cid, -1)
+                if idx < 0:
+                    continue
+                clip = self._get_scroll_clip_for_container(idx, containers)
+                if clip:
+                    cx, cy, cw, ch = clip
+                    mx, my = block['mask_x'], block['mask_y']
+                    mw, mh = block['mask_width'], block['mask_height']
+                    ix = max(mx, cx)
+                    iy = max(my, cy)
+                    ir = min(mx + mw, cx + cw)
+                    ib = min(my + mh, cy + ch)
+                    block['mask_x'] = ix
+                    block['mask_y'] = iy
+                    block['mask_width'] = max(0, ir - ix)
+                    block['mask_height'] = max(0, ib - iy)
+
     def _detect_state_changes(self, container_data):
         """Detect hover/click state changes. Start transitions if configured."""
         hover_index = -1
@@ -1136,6 +1218,14 @@ class XWZ_OT_start_ui(Operator):
         
         context.window_manager.modal_handler_add(self)
         _modal_timer = context.window_manager.event_timer_add(0.016, window=context.window)
+        
+        # Clip text/image/text_input masks to scroll parent bounds before creating instances
+        _render_data._apply_initial_scroll_clips(
+            _render_data.container_data,
+            parser_op.text_blocks,
+            parser_op.image_blocks if hasattr(parser_op, 'image_blocks') else None,
+            parser_op.text_input_blocks if hasattr(parser_op, 'text_input_blocks') else None,
+        )
         
         for _container_id in parser_op.image_blocks:
             block = parser_op.image_blocks[_container_id]
@@ -1359,6 +1449,13 @@ class XWZ_OT_start_ui(Operator):
                     if hasattr(parser_op, 'text_input_blocks'):
                         _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
                     
+                    # Clip masks to scroll parent bounds
+                    _render_data._apply_initial_scroll_clips(
+                        new_data, parser_op.text_blocks,
+                        parser_op.image_blocks if hasattr(parser_op, 'image_blocks') else None,
+                        parser_op.text_input_blocks if hasattr(parser_op, 'text_input_blocks') else None,
+                    )
+                    
                     # Reapply existing scroll offsets to new layout data
                     if _render_data._scroll_offsets:
                         _render_data._apply_scroll_to_containers(new_data)
@@ -1562,6 +1659,13 @@ class XWZ_OT_start_ui(Operator):
                             _render_data._cache_original_image_positions(parser_op.image_blocks)
                         if hasattr(parser_op, 'text_input_blocks'):
                             _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
+                        
+                        # Clip masks to scroll parent bounds
+                        _render_data._apply_initial_scroll_clips(
+                            new_data, parser_op.text_blocks,
+                            parser_op.image_blocks if hasattr(parser_op, 'image_blocks') else None,
+                            parser_op.text_input_blocks if hasattr(parser_op, 'text_input_blocks') else None,
+                        )
                         
                         # Reapply scroll offsets after resize
                         if _render_data._scroll_offsets:

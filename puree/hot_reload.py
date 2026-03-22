@@ -286,6 +286,19 @@ def trigger_ui_reload():
         
         hit_op._container_data = new_data
         
+        # Cache original positions and apply scroll clips
+        render._render_data._cache_original_positions(new_data)
+        render._render_data._cache_original_text_positions(parser_op.text_blocks)
+        if hasattr(parser_op, 'image_blocks'):
+            render._render_data._cache_original_image_positions(parser_op.image_blocks)
+        if hasattr(parser_op, 'text_input_blocks'):
+            render._render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
+        render._render_data._apply_initial_scroll_clips(
+            new_data, parser_op.text_blocks,
+            parser_op.image_blocks if hasattr(parser_op, 'image_blocks') else None,
+            parser_op.text_input_blocks if hasattr(parser_op, 'text_input_blocks') else None,
+        )
+        
         from . import text_op
         for text_instance in text_op._text_instances:
             container_id = text_instance.container_id
