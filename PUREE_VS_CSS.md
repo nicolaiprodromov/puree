@@ -15,8 +15,6 @@ This document covers every place where Puree diverges from standard CSS and brow
 
 Both now work exactly as in standard CSS. Internal property names match CSS — no translation layers.
 
----
-
 ### Text Properties
 
 | CSS | Puree SCSS | Notes |
@@ -24,6 +22,24 @@ Both now work exactly as in standard CSS. Internal property names match CSS — 
 | `color: #fff` | `color: #fff` | ✅ Text color |
 | `font-size: 14px` | `font-size: 14px` | ✅ Identical |
 | `text-align: left` | `text-align: left` | ✅ Identical (horizontal) |
+| `font-weight: bold` | `font-weight: bold` | ✅ `normal`, `bold` |
+| `font-style: italic` | `font-style: italic` | ✅ `normal`, `italic` |
+| `text-decoration: underline` | `text-decoration: underline` | ✅ `none`, `underline` |
+| `letter-spacing: 2px` | `letter-spacing: 2px` | ✅ Identical |
+| `line-height: 1.5` | `line-height: 1.5` | ✅ Unitless multiplier |
+| `white-space: nowrap` | `white-space: nowrap` | ✅ `normal`, `nowrap` |
+| `text-overflow: ellipsis` | `text-overflow: ellipsis` | ✅ `clip`, `ellipsis` |
+| `text-shadow: 1px 1px 3px rgba(0,0,0,0.5)` | `text-shadow: 1px 1px 3px rgba(0,0,0,0.5)` | ✅ Single shadow |
+
+**Puree text extensions (no CSS equivalent):**
+
+| Extension | Purpose | Values |
+|---|---|---|
+| `--text-align-v` | Vertical text alignment | `top`, `center`, `bottom` |
+| `--text-x` | Horizontal text offset | px value |
+| `--text-y` | Vertical text offset | px value |
+
+Font selection uses YAML `font:` attribute (not CSS `font-family`). Font weight/style select the closest available font face from loaded fonts.
 
 ---
 
@@ -34,16 +50,19 @@ These properties have no CSS equivalent and use the standard custom property `--
 | Extension Property | Purpose | Accepted Values |
 |---|---|---|
 | `--text-align-v` | Vertical text alignment | `top`, `center`, `bottom` |
-| `--background-color-2` | Second gradient stop (fill) | Any color value |
-| `--background-gradient-rot` | Gradient angle | Degrees, e.g., `135deg` |
-| `--color-2` | Text gradient second stop | Any color value |
+| `--text-x`, `--text-y` | Text position offset | px |
+| `--background-color-2` | 2nd gradient stop (background) | Any color |
+| `--background-gradient-rot` | Background gradient angle | Degrees e.g. `135deg` |
+| `--color-2` | Text gradient second stop | Any color |
 | `--color-gradient-rot` | Text gradient angle | Degrees |
 | `--img-align-h` | Image horizontal alignment | `left`, `center`, `right` |
 | `--img-align-v` | Image vertical alignment | `top`, `center`, `bottom` |
-| `--border-color-2` | Border gradient second stop | Any color value |
+| `--border-color-2` | Border gradient second stop | Any color |
 | `--border-gradient-rot` | Border gradient angle | Degrees |
 
 **SCSS variables in `--` properties require interpolation:** `--background-color-2: #{$my_var};`
+
+For multi-stop gradients, prefer `background: linear-gradient(...)` syntax instead of `--` extensions.
 
 ---
 
@@ -59,9 +78,24 @@ These properties have no CSS equivalent and use the standard custom property `--
 
 | CSS | Puree SCSS |
 |---|---|
-| `background: linear-gradient(135deg, #f00, #00f)` | `background-color: #f00; --background-color-2: #00f; --background-gradient-rot: 135deg` |
+| `background: linear-gradient(135deg, #f00, #00f)` | `background: linear-gradient(135deg, #f00, #00f)` ✅ |
+| `background: linear-gradient(90deg, red, blue 50%, green)` | `background: linear-gradient(90deg, red, blue 50%, green)` ✅ |
 
-Puree gradients are always two-stop linear. `background-color` is stop 1, `--background-color-2` is stop 2, `--background-gradient-rot` is the angle. No multi-stop or radial gradients.
+The `background: linear-gradient()` shorthand is fully parsed including N-stop gradients with optional `%` positions. Multi-stop gradients are pre-rendered into a GPU texture; 2-stop gradients use fast GPU-side interpolation.
+
+The `--` extension syntax is still supported for simple 2-stop cases:
+
+| Extension | Purpose |
+|---|---|
+| `--background-color-2: #00f` | Gradient second stop (background) |
+| `--background-gradient-rot: 135deg` | Gradient angle |
+
+Hover/click states each support independent gradients:
+```scss
+.btn:hover { background: linear-gradient(90deg, #3498db, #2ecc71); }
+```
+
+No radial or conic gradients.
 
 ---
 
@@ -79,10 +113,38 @@ The `box-shadow` shorthand is now parsed automatically. Only one shadow per elem
 
 | CSS | Puree SCSS |
 |---|---|
-| `border: 1px solid rgba(255,255,255,0.1)` | `border-width: 1px; border-color: rgba(255,255,255,0.1)` |
+| `border: 1px solid rgba(255,255,255,0.1)` | `border: 1px solid rgba(255,255,255,0.1)` ✅ |
+| `border-width: 1px` | `border-width: 1px` ✅ |
+| `border-width: 1px 2px 3px 4px` | `border-width: 1px 2px 3px 4px` ✅ (top right bottom left) |
+| `border-top: 2px solid red` | `border-top: 2px solid red` ✅ |
+| `border-right: 1px solid blue` | `border-right: 1px solid blue` ✅ |
+| `border-bottom: 3px solid green` | `border-bottom: 3px solid green` ✅ |
+| `border-left: 4px solid white` | `border-left: 4px solid white` ✅ |
 | `border-radius: 16px` | `border-radius: 16px` ✅ |
+| `border-top-left-radius: 8px` | `border-top-left-radius: 8px` ✅ |
+| `border-top-right-radius: 8px` | `border-top-right-radius: 8px` ✅ |
+| `border-bottom-right-radius: 8px` | `border-bottom-right-radius: 8px` ✅ |
+| `border-bottom-left-radius: 8px` | `border-bottom-left-radius: 8px` ✅ |
+| `border-radius: 8px 16px 4px 12px` | `border-radius: 8px 16px 4px 12px` ✅ |
 
-No `border-style` — all borders are solid. Border gradients via `--border-color-2`.
+No `border-style` — all borders are solid. Per-side border **colors** are not yet supported (use a uniform `border-color`). Border gradients via `--border-color-2`.
+
+---
+
+### Transitions
+
+| CSS | Puree SCSS |
+|---|---|
+| `transition: background-color 0.2s ease` | `transition: background-color 0.2s ease` ✅ |
+| `transition: color 0.3s ease-in-out` | `transition: color 0.3s ease-in-out` ✅ |
+
+**Animatable properties:** `background-color`, `color` (text), `border-color`, `opacity`
+
+**Timing functions:** `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`
+
+Only one property per `transition` declaration. `transition-delay` is supported.
+
+Full CSS animations (`@keyframes`, `animation`) are not supported.
 
 ---
 
@@ -116,12 +178,12 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 ### What does NOT exist
 - `display: block/inline/inline-flex` — only `flex`, `grid`, `none`
 - `float`, `clear`, `z-index`, `transform`
-- `transition`, `animation`, `@keyframes`
+- `@keyframes` animations — use `transition` for simple state changes
 - `calc()`, `var()`, `clamp()`, `min()`, `max()`
 - `em`, `rem`, `vw`, `vh`, `fr` units
-- Media queries, pseudo-elements
-- `text-overflow`, `white-space`, `line-height`, `letter-spacing`
-- `font-weight`, `font-style` — use different font face via YAML `font:` attribute
+- Media queries, pseudo-elements (`::before`, `::after`)
+- Per-side border colors (uniform `border-color` only)
+- Radial/conic gradients
 
 ---
 
@@ -174,4 +236,4 @@ Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 | `addEventListener('click', fn)` | `container.click.append(fn)` |
 | `addEventListener('mouseover', fn)` | `container.hover.append(fn)` |
 | DOM reflow on property change | `mark_dirty()` triggers relayout |
-| CSS transitions | ❌ Changes are instant |
+| CSS transitions | ✅ Supported for `background-color`, `color`, `border-color`, `opacity` |

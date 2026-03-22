@@ -101,7 +101,7 @@ Puree supports standard CSS selectors:
 .sidebar { width: 250px; }
 
 // ID selector
-#main_header { text-scale: 24px; }
+#main_header { font-size: 24px; }
 
 // Descendant selector
 .sidebar .nav_item { padding: 8px 16px; }
@@ -127,56 +127,113 @@ Rules follow standard CSS cascade:
 
 ### Inheritance
 
-These properties **inherit** from parent:
-- `text-color`, `text-scale`, `text-align-h`
+These properties **inherit** from parent (same as standard CSS):
+- `color` (text color)
+- `font-size`
+- `text-align`
 
 These do **NOT** inherit:
-- `color`, `border`, `padding`, `margin`, `width`, `height`, `display`
+- `background-color`, `border`, `padding`, `margin`, `width`, `height`, `display`
 
 ### Full Property Reference
 
 #### Colors & Backgrounds
 
-| Property             | Type          | Default               | Description              |
-|----------------------|---------------|-----------------------|--------------------------|
-| `color`              | color         | `transparent`         | Background/fill color    |
-| `color-1`            | color         | `transparent`         | Gradient end color       |
-| `color-gradient-rot` | angle         | `0deg`                | Gradient angle           |
-| `text-color`         | color         | `#ffffff` (inherited) | Text color               |
-| `text-color-1`       | color         | `transparent`         | Text gradient end color  |
+| Property                        | Type        | Default         | Description                          |
+|---------------------------------|-------------|-----------------|--------------------------------------|
+| `background-color`              | color       | `transparent`   | Fill/background color                |
+| `--background-color-2`          | color       | `transparent`   | Gradient second stop                 |
+| `--background-gradient-rot`     | angle       | `0deg`          | Gradient angle                       |
+| `color`                         | color       | `#ffffff`       | Text color (inherited)               |
+| `opacity`                       | float       | `1.0`           | Element opacity (0–1)                |
 
-> ⚠️ **Important**: In puree, `color` means **background/fill color**, not text color.
-> Use `text-color` for text. `background-color` is accepted as an alias for `color`.
+**Gradient shorthand (preferred for multi-stop):**
+```scss
+background: linear-gradient(135deg, #f00 0%, #00f 50%, #0f0 100%);
+```
+2-stop shorthand also works: `background: linear-gradient(90deg, red, blue)`
+
+**Hover/click gradient:**
+```scss
+.btn:hover { background: linear-gradient(90deg, #3498db, #2ecc71); }
+```
 
 #### Typography
 
-| Property         | Type   | Default    | Description                                     |
-|------------------|--------|------------|-------------------------------------------------|
-| `text-scale`     | length | `12px`     | Text size (`font-size` accepted as alias)        |
-| `text-align-h`   | enum   | `left`     | Horizontal: `left`, `center`, `right` (`text-align` accepted as alias) |
-| `--text-align-v` | enum   | `center`   | Vertical: `top`, `center`, `bottom`              |
-| `--text-x`       | length | `0`        | Text horizontal offset                           |
-| `--text-y`       | length | `0`        | Text vertical offset                             |
+| Property            | Type   | Default    | Description                                                   |
+|---------------------|--------|------------|---------------------------------------------------------------|
+| `font-size`         | length | `12px`     | Text size                                                     |
+| `text-align`        | enum   | `left`     | Horizontal: `left`, `center`, `right`                         |
+| `--text-align-v`    | enum   | `center`   | Vertical: `top`, `center`, `bottom`                           |
+| `--text-x`          | length | `0`        | Text horizontal offset                                        |
+| `--text-y`          | length | `0`        | Text vertical offset                                          |
+| `font-weight`       | enum   | `normal`   | `normal`, `bold`                                              |
+| `font-style`        | enum   | `normal`   | `normal`, `italic`                                            |
+| `text-decoration`   | enum   | `none`     | `none`, `underline`                                           |
+| `letter-spacing`    | length | `0`        | Character spacing in px                                       |
+| `line-height`       | float  | `1.2`      | Line height multiplier (unitless)                             |
+| `white-space`       | enum   | `normal`   | `normal` (wrap), `nowrap`                                     |
+| `text-overflow`     | enum   | `clip`     | `clip`, `ellipsis` (requires `white-space: nowrap`)           |
+| `text-shadow`       | short  | none       | `offset-x offset-y blur color` — single shadow only          |
+
+Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`), not CSS `font-family`. `font-weight` and `font-style` select the closest loaded variant.
 
 #### Box Model
 
-| CSS Property       | Type   | Default    | Description                              |
-|--------------------|--------|------------|------------------------------------------|
-| `width`            | length | `0`        | Element width (`px`, `%`, `auto`)        |
-| `height`           | length | `0`        | Element height                            |
-| `padding`          | short  | `0`        | Padding (shorthand: `10px`, `10px 20px`) |
-| `margin`           | short  | `0`        | Margin (shorthand)                        |
-| `border-radius`    | length | `0`        | Corner radius                             |
-| `border-width`     | length | `0`        | Border width                              |
-| `border-color`     | color  | `transparent`| Border color                            |
-| `overflow`         | enum   | `hidden`   | `hidden`, `visible`                       |
+| CSS Property              | Type   | Default       | Description                                       |
+|---------------------------|--------|---------------|---------------------------------------------------|
+| `width`                   | length | `0`           | Element width (`px`, `%`, `auto`)                 |
+| `height`                  | length | `0`           | Element height                                    |
+| `padding`                 | short  | `0`           | Padding (shorthand: `10px`, `10px 20px`)          |
+| `margin`                  | short  | `0`           | Margin (shorthand)                                |
+| `border-radius`           | length | `0`           | All-corner radius (shorthand)                     |
+| `border-radius: a b c d`  | short  | `0`           | Per-corner: top-left top-right bottom-right bottom-left |
+| `border-top-left-radius`  | length | `0`           | Individual corner radius                          |
+| `border-top-right-radius` | length | `0`           | Individual corner radius                          |
+| `border-bottom-right-radius` | length | `0`        | Individual corner radius                          |
+| `border-bottom-left-radius`  | length | `0`        | Individual corner radius                          |
+| `border-width`            | length | `0`           | Uniform border width (or shorthand `t r b l`)     |
+| `border-top-width`        | length | `0`           | Top border width                                  |
+| `border-right-width`      | length | `0`           | Right border width                                |
+| `border-bottom-width`     | length | `0`           | Bottom border width                               |
+| `border-left-width`       | length | `0`           | Left border width                                 |
+| `border-color`            | color  | `transparent` | Border color (uniform)                            |
+| `border`                  | short  | none          | `border: 1px solid red` shorthand                 |
+| `border-top`              | short  | none          | `border-top: 2px solid red`                       |
+| `border-right`            | short  | none          | Per-side border shorthand                         |
+| `border-bottom`           | short  | none          | Per-side border shorthand                         |
+| `border-left`             | short  | none          | Per-side border shorthand                         |
+| `overflow`                | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
 
-**Puree border gradient extension:**
+**Border gradient extension:**
 
-| CSS Property                   | Type  | Default       | Description               |
-|--------------------------------|-------|---------------|---------------------------|
-| `--border-color-2`             | color | `transparent` | Border gradient end color  |
-| `--border-gradient-rotation`   | angle | `0deg`        | Border gradient angle      |
+| Property                   | Type  | Default       | Description               |
+|----------------------------|-------|---------------|---------------------------|
+| `--border-color-2`         | color | `transparent` | Border gradient end color |
+| `--border-gradient-rot`    | angle | `0deg`        | Border gradient angle     |
+
+Per-side border **colors** are not currently supported — use a uniform `border-color`.
+
+#### Transitions
+
+| Property                    | Type     | Default  | Description                              |
+|-----------------------------|----------|----------|------------------------------------------|
+| `transition`                | shorthand| none     | `property duration timing-function`      |
+| `transition-property`       | string   | `none`   | Animatable property name                 |
+| `transition-duration`       | time     | `0s`     | Duration in seconds (e.g. `0.3s`)        |
+| `transition-timing-function`| enum     | `ease`   | `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out` |
+| `transition-delay`          | time     | `0s`     | Delay before starting                    |
+
+**Animatable properties:** `background-color`, `color`, `border-color`, `opacity`
+
+```scss
+.button {
+  background-color: #252830;
+  transition: background-color 0.2s ease;
+
+  &:hover { background-color: #353942; }
+}
+```
 
 #### Box Shadow
 
@@ -231,17 +288,18 @@ Instead of separate hover/click color properties, use standard pseudo-classes:
 
 ```scss
 .button {
-  color: #252830;
-  text-color: #f0f3f6;
+  background-color: #252830;
+  color: #f0f3f6;
   border-radius: 8px;
   padding: 8px 15px;
+  transition: background-color 0.15s ease;
 
   &:hover {
-    color: #353942;
+    background-color: #353942;
   }
 
   &:active {
-    color: #4a5664;
+    background-color: #4a5664;
   }
 }
 ```
@@ -307,40 +365,42 @@ $card_radius: 12px !default;
   display: flex;
   flex-direction: column;
   width: 300px;
-  color: $card_bg;
+  background-color: $card_bg;
   border-radius: $card_radius;
   padding: 16px;
   gap: 8px;
+  transition: background-color 0.15s ease;
 
   &:hover {
-    color: lighten($card_bg, 5%);
+    background-color: lighten($card_bg, 5%);
   }
 }
 
 .card_header {
-  text-scale: 18px;
-  text-color: #f0f3f6;
+  font-size: 18px;
+  color: #f0f3f6;
 }
 
 .card_body {
-  text-scale: 14px;
-  text-color: rgba(181, 188, 199, 0.9);
+  font-size: 14px;
+  color: rgba(181, 188, 199, 0.9);
 }
 
 .card_action {
-  color: #3498db;
-  text-color: white;
+  background-color: #3498db;
+  color: white;
   border-radius: 6px;
   padding: 6px 12px;
-  text-scale: 14px;
-  text-align-h: center;
+  font-size: 14px;
+  text-align: center;
+  transition: background-color 0.15s ease;
 
   &:hover {
-    color: #2980b9;
+    background-color: #2980b9;
   }
 
   &:active {
-    color: #1f6da3;
+    background-color: #1f6da3;
   }
 }
 ```
@@ -496,7 +556,7 @@ $radius: 8px;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  color: transparent;
+  background-color: transparent;
 }
 
 .header {
@@ -505,7 +565,7 @@ $radius: 8px;
   align-items: center;
   width: 100%;
   height: 60px;
-  color: $bg-dark;
+  background-color: $bg-dark;
   padding: 0 20px;
   gap: 12px;
 }
@@ -518,8 +578,8 @@ $radius: 8px;
 }
 
 .header_title {
-  text-scale: 20px;
-  text-color: $text-primary;
+  font-size: 20px;
+  color: $text-primary;
 }
 
 .content {
@@ -534,7 +594,7 @@ $radius: 8px;
   flex-direction: column;
   width: 200px;
   height: 100%;
-  color: $bg-card;
+  background-color: $bg-card;
   padding: 10px;
   gap: 4px;
 }
@@ -542,21 +602,22 @@ $radius: 8px;
 .nav_item {
   width: 100%;
   height: 36px;
-  color: transparent;
-  text-color: $text-secondary;
-  text-scale: 14px;
-  text-align-h: left;
+  background-color: transparent;
+  color: $text-secondary;
+  font-size: 14px;
+  text-align: left;
   --text-align-v: center;
   border-radius: $radius;
   padding: 0 12px;
+  transition: background-color 0.15s ease;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.05);
-    text-color: $text-primary;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: $text-primary;
   }
 
   &:active {
-    color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -566,7 +627,7 @@ $radius: 8px;
   width: 100%;
   height: 100%;
   padding: 20px;
-  color: transparent;
+  background-color: transparent;
 }
 ```
 
@@ -599,10 +660,12 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 | `--text-x`, `--text-y`          | Text position offsets            |
 | `--img-align-h`, `--img-align-v`| Image alignment within container |
 | `--img-opacity`                  | Image opacity                    |
-| `--background-color-2`           | Gradient second color            |
-| `--background-gradient-rotation` | Gradient rotation angle          |
+| `--background-color-2`           | Background gradient second color |
+| `--background-gradient-rot`      | Background gradient angle        |
 | `--border-color-2`               | Border gradient second color     |
-| `--border-gradient-rotation`     | Border gradient rotation         |
+| `--border-gradient-rot`          | Border gradient angle            |
+
+For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's cleaner and more powerful than `--` extensions.
 
 ---
 
@@ -624,7 +687,7 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 .scroll_list {
   display: flex;
   flex-direction: column;
-  overflow: visible;  // enables scrolling
+  overflow: scroll;   // enables vertical scrolling
   width: 100%;
   height: 300px;
   gap: 4px;
@@ -656,19 +719,43 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 ### Gradient Button
 ```scss
 .gradient_button {
-  color: #3498db;
-  --background-color-2: #2ecc71;
-  --background-gradient-rotation: 90deg;
+  background: linear-gradient(90deg, #3498db, #2ecc71);
   border-radius: 8px;
   padding: 10px 20px;
-  text-color: white;
-  text-scale: 16px;
-  text-align-h: center;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  transition: opacity 0.2s ease;
 
   &:hover {
-    color: #2980b9;
-    --background-color-2: #27ae60;
+    opacity: 0.85;
   }
+}
+```
+
+### Transition
+```scss
+.animated_card {
+  background-color: #1e2028;
+  border-color: rgba(255,255,255,0.08);
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #252830;
+  }
+}
+```
+
+### Per-Side Border
+```scss
+.underlined {
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+  border-radius: 0;
+}
+
+.pill_badge {
+  border-width: 1px 2px 1px 2px;  // top right bottom left
+  border-color: rgba(255,255,255,0.1);
 }
 ```
 
