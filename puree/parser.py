@@ -1103,6 +1103,7 @@ class UI():
         zindex_map = {}
         overflow_type_map = {}
         position_type_map = {}
+        transition_map = {}
         def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
@@ -1110,6 +1111,13 @@ class UI():
             zindex_map[container.id] = int(container.style.z_index)
             overflow_type_map[container.id] = container.style.overflow
             position_type_map[container.id] = container.style.position
+            if hasattr(container.style, 'transition_property') and container.style.transition_duration > 0:
+                transition_map[container.id] = {
+                    'property': container.style.transition_property,
+                    'duration': float(container.style.transition_duration),
+                    'timing': container.style.transition_timing_function,
+                    'delay': float(container.style.transition_delay),
+                }
             for child in container.children:
                 collect_style_props(child)
         collect_style_props(self.theme.root)
@@ -1122,6 +1130,12 @@ class UI():
                 c['z_index'] = zindex_map.get(cid, 0)
                 c['overflow_type'] = overflow_type_map.get(cid, 'VISIBLE')
                 c['position_type'] = position_type_map.get(cid, 'RELATIVE')
+                t_data = transition_map.get(cid)
+                if t_data:
+                    c['_transition_property'] = t_data['property']
+                    c['_transition_duration'] = t_data['duration']
+                    c['_transition_timing_function'] = t_data['timing']
+                    c['_transition_delay'] = t_data['delay']
             # Sort by z-index (stable sort preserves tree order within same z)
             # Build old→new index mapping and remap parent refs
             sorted_list = sorted(enumerate(data_list), key=lambda t: t[1].get('z_index', 0))

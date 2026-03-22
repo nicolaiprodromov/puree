@@ -996,7 +996,7 @@ class RenderPipeline:
         return None
 
     def _detect_state_changes(self, container_data):
-        """Detect hover/click state changes. Sets needs_texture_update if changed."""
+        """Detect hover/click state changes. Start transitions if configured."""
         hover_index = -1
         click_index = -1
         
@@ -1008,13 +1008,54 @@ class RenderPipeline:
             if k and not c.get('passive', False):
                 click_index = i
         
-        if hover_index != self._current_hover_index or click_index != self._current_click_index:
+        changed = hover_index != self._current_hover_index or click_index != self._current_click_index
+        
+        if changed:
+            old_hover = self._current_hover_index
             self._current_hover_index = hover_index
             self._current_click_index = click_index
-            # Native pipeline: hover/click are push constants, no data texture rebuild needed.
-            # Only tag_redraw is needed (handled by modal loop via hover_changed return value).
-            return True
-        return False
+            
+            # Start transitions for containers with transition CSS properties
+            self._start_hover_transitions(old_hover, hover_index, container_data)
+        
+        return changed
+    
+    def _start_hover_transitions(self, old_idx, new_idx, containers):
+        """Start CSS transitions when hover state changes."""
+        n = len(containers)
+        
+        # Container being un-hovered: transition from hover colors back to normal
+        if 0 <= old_idx < n:
+            c = containers[old_idx]
+            cid = c.get('id', '')
+            t_prop = c.get('_transition_property', 'none')
+            t_dur = c.get('_transition_duration', 0.0)
+            if t_prop != 'none' and t_dur > 0:
+                t_timing = c.get('_transition_timing_function', 'ease')
+                t_delay = c.get('_transition_delay', 0.0)
+                hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
+                normal_bg = c.get('background_color', [0, 0, 0, 0])
+                if hover_bg[3] >= 0 and (t_prop in ('all', 'background_color', 'background-color')):
+                    # Get current value (may be mid-transition)
+                    current = self.transitions.get_value(cid, 'background_color')
+                    start = current if current else hover_bg
+                    self.transitions.start_transition(cid, 'background_color', start, normal_bg, t_dur, t_delay, t_timing)
+        
+        # Container being hovered: transition from normal to hover colors
+        if 0 <= new_idx < n:
+            c = containers[new_idx]
+            cid = c.get('id', '')
+            t_prop = c.get('_transition_property', 'none')
+            t_dur = c.get('_transition_duration', 0.0)
+            if t_prop != 'none' and t_dur > 0:
+                t_timing = c.get('_transition_timing_function', 'ease')
+                t_delay = c.get('_transition_delay', 0.0)
+                hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
+                normal_bg = c.get('background_color', [0, 0, 0, 0])
+                if hover_bg[3] >= 0 and (t_prop in ('all', 'background_color', 'background-color')):
+                    current = self.transitions.get_value(cid, 'background_color')
+                    start = current if current else normal_bg
+                    self.transitions.start_transition(cid, 'background_color', start, hover_bg, t_dur, t_delay, t_timing)
 
     def update_container_buffer_full(self, hit_container_data):
         if not hit_container_data:
@@ -1230,6 +1271,7 @@ class XWZ_OT_start_ui(Operator):
             
             texture_changed = False
             size_changed = False
+            transitions_active = False
             
             if target_area and target_region:
                 # Throttle hot reload checks to every N frames instead of every frame
@@ -1258,7 +1300,39 @@ class XWZ_OT_start_ui(Operator):
                 if hit_op._container_data:
                     hover_changed = _render_data._detect_state_changes(hit_op._container_data)
 
-                texture_changed = _render_data.check_if_changed()
+                # Tick active transitions — override container colors with interpolated values
+                transitions_active = _render_data.transitions.has_active()
+                if transitions_active and hit_op._container_data:
+                    for i, c in enumerate(hit_op._container_data):
+                        cid = c.get('id', '')
+                        bg = _render_data.transitions.get_value(cid, 'background_color')
+                        if bg is not None:
+                            # Save original colors if not already saved
+                            save_key = f'_orig_bg_{cid}'
+                            if save_key not in _render_data._prev_container_states:
+                                _render_data._prev_container_states[save_key] = list(c.get('background_color', [0,0,0,0]))
+                                _render_data._prev_container_states[f'_orig_hover_{cid}'] = list(c.get('hover_background_color', [0,0,0,-1]))
+                            c['background_color'] = bg
+                            c['hover_background_color'] = [0, 0, 0, -1]
+                        else:
+                            # Per-container transition done — restore original colors
+                            save_key = f'_orig_bg_{cid}'
+                            if save_key in _render_data._prev_container_states:
+                                c['background_color'] = _render_data._prev_container_states.pop(save_key)
+                                c['hover_background_color'] = _render_data._prev_container_states.pop(f'_orig_hover_{cid}', [0,0,0,-1])
+                    texture_changed = True
+                elif not transitions_active and _render_data._prev_container_states and hit_op._container_data:
+                    # All transitions ended — restore any remaining saved originals
+                    for i, c in enumerate(hit_op._container_data):
+                        cid = c.get('id', '')
+                        save_key = f'_orig_bg_{cid}'
+                        if save_key in _render_data._prev_container_states:
+                            c['background_color'] = _render_data._prev_container_states.pop(save_key)
+                            c['hover_background_color'] = _render_data._prev_container_states.pop(f'_orig_hover_{cid}', [0,0,0,-1])
+                    _render_data._prev_container_states.clear()
+                    texture_changed = True
+
+                texture_changed = texture_changed or _render_data.check_if_changed()
                 
                 state_synced = parser_op.sync_dirty_containers()
                 if state_synced:
@@ -1491,7 +1565,7 @@ class XWZ_OT_start_ui(Operator):
             
             # Conditional tag_redraw — only redraw when something actually changed
             # hover_changed only needs tag_redraw (push constants update), no data texture rebuild
-            needs_redraw = texture_changed or size_changed or hover_changed or _render_data.force_initial_draw
+            needs_redraw = texture_changed or size_changed or hover_changed or transitions_active or _render_data.force_initial_draw
             if _render_data.force_initial_draw:
                 _render_data.force_initial_draw = False
                 needs_redraw = True
