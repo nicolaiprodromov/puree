@@ -505,48 +505,79 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     --text-align-v: center;
 }
 
-.detail_row {
+// Scrollable activity log — tests overflow:scroll
+.log_scroll {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: start;
     justify-content: start;
     width: 100%;
-    height: 34px;
-    margin-bottom: 8px;
+    height: 158px;
+    overflow: scroll;
     background-color: transparent;
+    gap: 6px;
 }
 
-.detail_row_icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 12px;
-    background-color: transparent;
-    --img-align-h: center;
-    --img-align-v: center;
-    opacity: 0.76;
+.log_entry {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 26px;
+    padding: 0px 8px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
 }
 
-.detail_row_text {
-    width: 90%;
+.log_dot {
+    width: 6px;
+    height: 6px;
+    margin-right: 10px;
+    border-radius: 999px;
+}
+
+.log_dot_blue {
+    background-color: $accent_blue;
+    box-shadow: 0px 0px 6px 2px rgba(107, 172, 255, 0.4);
+}
+
+.log_dot_mint {
+    background-color: $accent_mint;
+    box-shadow: 0px 0px 6px 2px rgba(120, 255, 215, 0.4);
+}
+
+.log_dot_violet {
+    background-color: $accent_violet;
+    box-shadow: 0px 0px 6px 2px rgba(201, 170, 255, 0.4);
+}
+
+.log_dot_gold {
+    background-color: $accent_gold;
+    box-shadow: 0px 0px 6px 2px rgba(255, 196, 135, 0.4);
+}
+
+.log_text {
+    flex: 1;
     height: 100%;
     background-color: transparent;
     color: $text_mid;
-    font-size: 12px;
+    font-size: 11px;
     text-align: left;
-    --text-align-v: top;
+    --text-align-v: center;
 }
 
-.detail_badge {
-    width: 100%;
-    height: 28px;
-    margin-top: 6px;
-    padding: 0px 12px;
-    background-color: rgba(255, 255, 255, 0.04);
-    border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
+.log_time {
+    width: 32px;
+    height: 100%;
+    background-color: transparent;
     color: $text_soft;
-    font-size: 12px;
-    text-align: center;
+    font-size: 10px;
+    text-align: right;
     --text-align-v: center;
 }

@@ -28,6 +28,7 @@ $chip_radius: 16px !default;
     border-color: $chip_border;
     border-radius: $chip_radius;
     box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.16);
+    transition: background-color 0.25s ease;
 
     &:hover {
         background-color: $chip_hover_bg;

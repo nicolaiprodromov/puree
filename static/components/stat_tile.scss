@@ -18,8 +18,11 @@ $tile_value_color: #f4f7ff !default;
     border-width: 1px;
     border-color: $tile_border;
     border-radius: 20px;
+    box-shadow: 0px 8px 16px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s ease;
 
     &:hover {
+        background-color: rgba(22, 26, 40, 0.96);
         border-color: rgba(255, 255, 255, 0.14);
     }
 }

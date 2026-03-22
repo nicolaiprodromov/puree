@@ -21,6 +21,7 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     border-width: 1px;
     border-color: $card_border;
     border-radius: 22px;
+    transition: background-color 0.3s ease;
 
     &:hover {
         background-color: rgba(18, 24, 38, 0.96);

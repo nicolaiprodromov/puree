@@ -316,54 +316,237 @@ app:
 
                 detail_title:
                   class: detail_title
-                  text: What this example showcases
+                  text: Activity log
                   font: NeueMontreal-Bold
                   passive: true
 
-                detail_row_one:
-                  class: detail_row
+                log_scroll:
+                  class: log_scroll
 
-                  detail_row_one_icon:
-                    class: detail_row_icon
-                    img: eye_on
-                    passive: true
+                  log_entry_1:
+                    class: log_entry
 
-                  detail_row_one_text:
-                    class: detail_row_text
-                    text: A layered visual system with gradients, shadows, icons, and adaptive sections.
-                    font: NeueMontreal-Regular
-                    passive: true
+                    log_entry_1_dot:
+                      class: log_dot log_dot_blue
+                      passive: true
 
-                detail_row_two:
-                  class: detail_row
+                    log_entry_1_text:
+                      class: log_text
+                      text: UI layout initialized from YAML tree
+                      font: NeueMontreal-Regular
+                      passive: true
 
-                  detail_row_two_icon:
-                    class: detail_row_icon
-                    img: hover
-                    passive: true
+                    log_entry_1_time:
+                      class: log_time
+                      text: 0.0s
+                      font: NeueMontreal-Regular
+                      passive: true
 
-                  detail_row_two_text:
-                    class: detail_row_text
-                    text: Reusable components for chips, feature cards, stat tiles, and interactive input.
-                    font: NeueMontreal-Regular
-                    passive: true
+                  log_entry_2:
+                    class: log_entry
 
-                detail_row_three:
-                  class: detail_row
+                    log_entry_2_dot:
+                      class: log_dot log_dot_mint
+                      passive: true
 
-                  detail_row_three_icon:
-                    class: detail_row_icon
-                    img: click
-                    passive: true
+                    log_entry_2_text:
+                      class: log_text
+                      text: SCSS cascade applied to 48 containers
+                      font: NeueMontreal-Regular
+                      passive: true
 
-                  detail_row_three_text:
-                    class: detail_row_text
-                    text: Script-driven updates that change copy and layout without swapping the whole screen.
-                    font: NeueMontreal-Regular
-                    passive: true
+                    log_entry_2_time:
+                      class: log_time
+                      text: 0.1s
+                      font: NeueMontreal-Regular
+                      passive: true
 
-                detail_badge:
-                  class: detail_badge
-                  text: Designed to feel like a product surface, not a test harness.
-                  font: NeueMontreal-Italic
-                  passive: true
+                  log_entry_3:
+                    class: log_entry
+
+                    log_entry_3_dot:
+                      class: log_dot log_dot_violet
+                      passive: true
+
+                    log_entry_3_text:
+                      class: log_text
+                      text: Shader pipeline compiled and linked
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_3_time:
+                      class: log_time
+                      text: 0.2s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_4:
+                    class: log_entry
+
+                    log_entry_4_dot:
+                      class: log_dot log_dot_gold
+                      passive: true
+
+                    log_entry_4_text:
+                      class: log_text
+                      text: GPU data texture packed for 48 nodes
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_4_time:
+                      class: log_time
+                      text: 0.3s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_5:
+                    class: log_entry
+
+                    log_entry_5_dot:
+                      class: log_dot log_dot_blue
+                      passive: true
+
+                    log_entry_5_text:
+                      class: log_text
+                      text: Hit detection grid built for pointer events
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_5_time:
+                      class: log_time
+                      text: 0.3s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_6:
+                    class: log_entry
+
+                    log_entry_6_dot:
+                      class: log_dot log_dot_mint
+                      passive: true
+
+                    log_entry_6_text:
+                      class: log_text
+                      text: Text extraction complete — 22 blocks
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_6_time:
+                      class: log_time
+                      text: 0.4s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_7:
+                    class: log_entry
+
+                    log_entry_7_dot:
+                      class: log_dot log_dot_violet
+                      passive: true
+
+                    log_entry_7_text:
+                      class: log_text
+                      text: Image assets loaded — 8 icons resolved
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_7_time:
+                      class: log_time
+                      text: 0.5s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_8:
+                    class: log_entry
+
+                    log_entry_8_dot:
+                      class: log_dot log_dot_gold
+                      passive: true
+
+                    log_entry_8_text:
+                      class: log_text
+                      text: Component instances expanded from templates
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_8_time:
+                      class: log_time
+                      text: 0.5s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_9:
+                    class: log_entry
+
+                    log_entry_9_dot:
+                      class: log_dot log_dot_blue
+                      passive: true
+
+                    log_entry_9_text:
+                      class: log_text
+                      text: Script callbacks registered for 5 handlers
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_9_time:
+                      class: log_time
+                      text: 0.6s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_10:
+                    class: log_entry
+
+                    log_entry_10_dot:
+                      class: log_dot log_dot_mint
+                      passive: true
+
+                    log_entry_10_text:
+                      class: log_text
+                      text: First frame rendered at 60 FPS
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_10_time:
+                      class: log_time
+                      text: 0.7s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_11:
+                    class: log_entry
+
+                    log_entry_11_dot:
+                      class: log_dot log_dot_violet
+                      passive: true
+
+                    log_entry_11_text:
+                      class: log_text
+                      text: Hot reload watcher initialized
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_11_time:
+                      class: log_time
+                      text: 0.8s
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                  log_entry_12:
+                    class: log_entry
+
+                    log_entry_12_dot:
+                      class: log_dot log_dot_gold
+                      passive: true
+
+                    log_entry_12_text:
+                      class: log_text
+                      text: Transition manager ready — 0 active
+                      font: NeueMontreal-Regular
+                      passive: true
+
+                    log_entry_12_time:
+                      class: log_time
+                      text: 0.9s
+                      font: NeueMontreal-Regular
+                      passive: true
