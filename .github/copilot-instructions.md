@@ -1,6 +1,6 @@
 # Copilot Instructions for Puree
 
-When generating UI code for Puree, always read `PUREE_SPEC.md` in the repository root first.
+When generating UI code for Puree, always read [the spec file](../docs/PUREE_SPEC.md) first.
 
 Key points:
 - Puree uses YAML for structure, SCSS for styling, Python for interactivity
