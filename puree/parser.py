@@ -402,8 +402,9 @@ class UI():
 
         # First pass: resolve normal state
         normal_resolved = {}
+        viewport = (float(self.canvas_size[0]), float(self.canvas_size[1]))
         try:
-            normal_resolved = cascade.resolve(flat_containers, "normal") or {}
+            normal_resolved = cascade.resolve(flat_containers, "normal", viewport) or {}
         except Exception as e:
             print(f"⚠️  CSSCascade resolve(normal) failed: {e}")
 
@@ -421,7 +422,7 @@ class UI():
         # Second pass: hover and active — only set properties that DIFFER from normal
         for state, prefix in (("hover", "hover_"), ("active", "click_")):
             try:
-                resolved = cascade.resolve(flat_containers, state) or {}
+                resolved = cascade.resolve(flat_containers, state, viewport) or {}
             except Exception as e:
                 print(f"⚠️  CSSCascade resolve({state}) failed: {e}")
                 continue

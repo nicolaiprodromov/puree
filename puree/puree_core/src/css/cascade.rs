@@ -25,12 +25,43 @@ enum SelectorPart {
     GeneralSibling,     // ~ combinator
 }
 
+#[derive(Clone, Debug, Default)]
+struct MediaCondition {
+    min_width: Option<f32>,
+    max_width: Option<f32>,
+    min_height: Option<f32>,
+    max_height: Option<f32>,
+}
+
+impl MediaCondition {
+    fn matches(&self, viewport_w: f32, viewport_h: f32) -> bool {
+        if let Some(mw) = self.min_width {
+            if viewport_w < mw { return false; }
+        }
+        if let Some(mw) = self.max_width {
+            if viewport_w > mw { return false; }
+        }
+        if let Some(mh) = self.min_height {
+            if viewport_h < mh { return false; }
+        }
+        if let Some(mh) = self.max_height {
+            if viewport_h > mh { return false; }
+        }
+        true
+    }
+    fn is_unconditional(&self) -> bool {
+        self.min_width.is_none() && self.max_width.is_none()
+            && self.min_height.is_none() && self.max_height.is_none()
+    }
+}
+
 struct CascadeRule {
     selector_parts: Vec<SelectorPart>, // right-to-left order
     specificity: u32,
     declarations: HashMap<String, String>,
     important_declarations: HashMap<String, String>,
     source_order: usize,
+    media: MediaCondition,
 }
 
 // ── Container tree node ────────────────────────────────────────────
@@ -451,7 +482,31 @@ fn calculate_specificity(parts: &[SelectorPart]) -> u32 {
 }
 
 /// Parse CSS text (normalized by lightningcss) into CascadeRules.
-fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
+/// Parse @media condition string, e.g. "@media (min-width: 800px) and (max-height: 600px)"
+fn parse_media_condition(text: &str) -> MediaCondition {
+    let mut cond = MediaCondition::default();
+    // Extract everything after "@media"
+    let rest = text.strip_prefix("@media").unwrap_or("").trim();
+    // Parse (property: value) pairs
+    let re_like = |s: &str, prop: &str| -> Option<f32> {
+        if let Some(pos) = s.find(prop) {
+            let after = &s[pos + prop.len()..];
+            let after = after.trim().trim_start_matches(':').trim();
+            // Read number+px
+            let num_str: String = after.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+            num_str.parse().ok()
+        } else {
+            None
+        }
+    };
+    cond.min_width = re_like(rest, "min-width");
+    cond.max_width = re_like(rest, "max-width");
+    cond.min_height = re_like(rest, "min-height");
+    cond.max_height = re_like(rest, "max-height");
+    cond
+}
+
+fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCondition)> {
     let mut results = Vec::new();
     let mut source_order: usize = 0;
     let mut chars = css.chars().peekable();
@@ -483,12 +538,23 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
             }
 
             if selector_text.is_empty() || selector_text.starts_with('@') {
-                // Unwrap @-rules: re-parse their content
+                // Parse @media conditions
+                let media_cond = if selector_text.starts_with("@media") {
+                    parse_media_condition(&selector_text)
+                } else {
+                    MediaCondition::default()
+                };
                 if !block.is_empty() {
-                    for (mut rule, pseudo) in parse_css_text_to_rules(&block) {
+                    for (mut rule, pseudo, inner_media) in parse_css_text_to_rules(&block) {
+                        // Merge media conditions (inner overrides if set)
+                        if inner_media.is_unconditional() {
+                            rule.media = media_cond.clone();
+                        } else {
+                            rule.media = inner_media;
+                        }
                         rule.source_order = source_order;
                         source_order += 1;
-                        results.push((rule, pseudo));
+                        results.push((rule, pseudo, MediaCondition::default()));
                     }
                 }
                 continue;
@@ -572,9 +638,10 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
                     declarations: decls.clone(),
                     important_declarations: important_decls.clone(),
                     source_order,
+                    media: MediaCondition::default(),
                 };
                 source_order += 1;
-                results.push((rule, pseudo));
+                results.push((rule, pseudo, MediaCondition::default()));
             }
         } else {
             current_text.push(ch);
@@ -785,7 +852,7 @@ impl CSSCascade {
                 .code
         };
 
-        for (rule, pseudo) in parse_css_text_to_rules(&normalized) {
+        for (rule, pseudo, _media) in parse_css_text_to_rules(&normalized) {
             match pseudo {
                 PseudoState::Normal => self.normal_rules.push(rule),
                 PseudoState::Hover => self.hover_rules.push(rule),
@@ -799,11 +866,13 @@ impl CSSCascade {
     /// Resolve styles for all containers.
     /// Returns dict of `{container_id: {prop: value}}`.
     /// `state`: `"normal"` (default), `"hover"`, or `"active"`.
+    /// `viewport`: `(width, height)` for @media query evaluation.
     pub fn resolve(
         &self,
         py: Python,
         containers: &PyList,
         state: Option<String>,
+        viewport: Option<(f32, f32)>,
     ) -> PyResult<PyObject> {
         let state_str = state.as_deref().unwrap_or("normal");
         let rules = match state_str {
@@ -811,6 +880,8 @@ impl CSSCascade {
             "active" => &self.active_rules,
             _ => &self.normal_rules,
         };
+
+        let (vp_w, vp_h) = viewport.unwrap_or((99999.0, 99999.0));
 
         let include_normal = state_str != "normal";
 
@@ -828,6 +899,10 @@ impl CSSCascade {
 
             for rule_set in &rule_sets {
                 for rule in *rule_set {
+                    // Skip rules whose @media condition doesn't match
+                    if !rule.media.is_unconditional() && !rule.media.matches(vp_w, vp_h) {
+                        continue;
+                    }
                     if selector_matches(&rule.selector_parts, idx, &infos) {
                         for (prop, value) in &rule.declarations {
                             matching.push((

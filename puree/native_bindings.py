@@ -256,5 +256,5 @@ class CSSCascade:
     def parse_css(self, css_string: str):
         self._cascade.parse_css(css_string)
 
-    def resolve(self, containers: list, state: str = "normal") -> Dict[str, Dict[str, str]]:
-        return self._cascade.resolve(containers, state)
+    def resolve(self, containers: list, state: str = "normal", viewport=None) -> Dict[str, Dict[str, str]]:
+        return self._cascade.resolve(containers, state, viewport)
