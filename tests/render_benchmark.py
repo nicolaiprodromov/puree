@@ -34,18 +34,18 @@ class Container:
     display: int = 1
     position: tuple = (0.0, 0.0)
     size: tuple = (100.0, 100.0)
-    color: tuple = (0.0, 0.0, 0.0, 1.0)
-    color_1: tuple = (0.0, 0.0, 0.0, 0.0)
-    color_gradient_rot: float = 0.0
-    hover_color: tuple = (0.0, 0.0, 0.0, -1.0)
-    hover_color_1: tuple = (0.0, 0.0, 0.0, 0.0)
-    hover_color_gradient_rot: float = 0.0
-    click_color: tuple = (0.0, 0.0, 0.0, -1.0)
-    click_color_1: tuple = (0.0, 0.0, 0.0, 0.0)
-    click_color_gradient_rot: float = 0.0
+    background_color: tuple = (0.0, 0.0, 0.0, 1.0)
+    background_color_2: tuple = (0.0, 0.0, 0.0, 0.0)
+    background_gradient_rot: float = 0.0
+    hover_background_color: tuple = (0.0, 0.0, 0.0, -1.0)
+    hover_background_color_2: tuple = (0.0, 0.0, 0.0, 0.0)
+    hover_background_gradient_rot: float = 0.0
+    click_background_color: tuple = (0.0, 0.0, 0.0, -1.0)
+    click_background_color_2: tuple = (0.0, 0.0, 0.0, 0.0)
+    click_background_gradient_rot: float = 0.0
     border_color: tuple = (0.0, 0.0, 0.0, 0.0)
-    border_color_1: tuple = (0.0, 0.0, 0.0, 0.0)
-    border_color_gradient_rot: float = 0.0
+    border_color_2: tuple = (0.0, 0.0, 0.0, 0.0)
+    border_gradient_rot: float = 0.0
     border_radius: float = 0.0
     border_width: float = 0.0
     parent: int = -1
@@ -112,7 +112,7 @@ class FrameReport:
 # =============================================================================
 
 def hex_to_rgba(hex_str: str) -> tuple:
-    """Convert hex color string to RGBA tuple (0-1 range)."""
+    """Convert hex background_color string to RGBA tuple (0-1 range)."""
     h = hex_str.lstrip('#')
     if len(h) == 6:
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
@@ -157,47 +157,47 @@ def build_container_dataset(viewport_w: int = 1574, viewport_h: int = 882) -> li
 
     # --- ROOT (index 0) ---
     i_root = c("root", position=(0, 0), size=(viewport_w, viewport_h),
-               color=TRANSPARENT, parent=-1)
+               background_color=TRANSPARENT, parent=-1)
 
     # --- BG (index 1) ---
     i_bg = c("bg", position=(cx, cy), size=(800, 500),
-             color=BG_DARK, border_radius=8, parent=0)
+             background_color=BG_DARK, border_radius=8, parent=0)
 
     # --- HEADER (index 2) ---
     hx, hy = cx, cy
     i_header = c("header1", position=(hx, hy), size=(800, 90),
-                 color=BG_1A, color_1=BG_1F, color_gradient_rot=90.0,
+                 background_color=BG_1A, background_color_2=BG_1F, background_gradient_rot=90.0,
                  parent=1)
 
     # Header > text_box (index 3)
     i_htb = c("text_box", position=(hx + 23, hy + 15), size=(560, 60),
-              color=TRANSPARENT, parent=2)
+              background_color=TRANSPARENT, parent=2)
 
     # Header > text_box > text (index 4)
     c("text", position=(hx + 23, hy + 15), size=(560, 23),
-      color=TRANSPARENT, parent=3)
+      background_color=TRANSPARENT, parent=3)
 
     # Header > text_box > separator (index 5)
     c("separator", position=(hx + 23, hy + 42), size=(560, 1),
-      color=SEPARATOR, parent=3)
+      background_color=SEPARATOR, parent=3)
 
     # Header > text_box > text1 (index 6)
     c("text1", position=(hx + 23, hy + 52), size=(560, 16),
-      color=TRANSPARENT, parent=3)
+      background_color=TRANSPARENT, parent=3)
 
     # Header > logoh (index 7)
     c("logoh", position=(hx + 700, hy + 15), size=(100, 60),
-      color=TRANSPARENT, parent=2)
+      background_color=TRANSPARENT, parent=2)
 
     # --- CONTENT_CONTAINER (index 8) ---
     ccx, ccy = cx, cy + 90
     i_cc = c("content_container", position=(ccx, ccy), size=(800, 410),
-             color=TRANSPARENT, parent=1)
+             background_color=TRANSPARENT, parent=1)
 
     # --- LEFT SIDE (index 9) ---
     lx, ly = ccx, ccy
     i_left = c("left_side_interactions", position=(lx, ly), size=(400, 410),
-               color=BG_1A, parent=8, overflow=0)
+               background_color=BG_1A, parent=8, overflow=0)
 
     # Inner content area (after 10px padding)
     lpx, lpy = lx + 10, ly + 10
@@ -206,16 +206,16 @@ def build_container_dataset(viewport_w: int = 1574, viewport_h: int = 882) -> li
     def make_button(name, parent_idx, bx, by, bg, hover_bg, click_bg):
         """Create a button component (5 containers)."""
         i_btn = c(name, position=(bx, by), size=(380, 40),
-                  color=bg, hover_color=hover_bg, click_color=click_bg,
+                  background_color=bg, hover_background_color=hover_bg, click_background_color=click_bg,
                   border_radius=8, parent=parent_idx)
         c(f"{name}_icon", position=(bx + 8, by + 12), size=(15, 15),
-          color=TRANSPARENT, parent=i_btn, passive=1)
+          background_color=TRANSPARENT, parent=i_btn, passive=1)
         i_tbox = c(f"{name}_text_box", position=(bx + 38, by + 0), size=(280, 40),
-                   color=TRANSPARENT, parent=i_btn, passive=1)
+                   background_color=TRANSPARENT, parent=i_btn, passive=1)
         c(f"{name}_text", position=(bx + 38, by + 0), size=(280, 40),
-          color=TRANSPARENT, parent=i_tbox, passive=1)
+          background_color=TRANSPARENT, parent=i_tbox, passive=1)
         c(f"{name}_radial", position=(bx + 357, by + 12), size=(15, 15),
-          color=RADIAL_COLOR, border_color=RADIAL_BORDER,
+          background_color=RADIAL_COLOR, border_color=RADIAL_BORDER,
           border_radius=9999, border_width=1, parent=i_btn, passive=1)
         return i_btn
 
@@ -234,90 +234,90 @@ def build_container_dataset(viewport_w: int = 1574, viewport_h: int = 882) -> li
     # --- TEXT INPUT (index 25-33) ---
     tix, tiy = lpx, lpy + 150
     i_ti = c("text_input_test", position=(tix, tiy), size=(380, 210),
-             color=TRANSPARENT, border_radius=10, parent=9)
+             background_color=TRANSPARENT, border_radius=10, parent=9)
 
     # label_box (index 26)
     i_tilb = c("label_box", position=(tix, tiy), size=(380, 40),
-               color=BG_35, parent=25)
+               background_color=BG_35, parent=25)
     # ti_icon (index 27)
     c("ti_icon", position=(tix + 10, tiy + 10), size=(20, 20),
-      color=TRANSPARENT, parent=26, passive=1)
+      background_color=TRANSPARENT, parent=26, passive=1)
     # ti_label (index 28)
     c("ti_label", position=(tix + 40, tiy + 0), size=(330, 40),
-      color=TRANSPARENT, parent=26)
+      background_color=TRANSPARENT, parent=26)
 
     # input_box (index 29)
     c("input_box", position=(tix, tiy + 40), size=(380, 150),
-      color=BG_25, border_radius=10, parent=25)
+      background_color=BG_25, border_radius=10, parent=25)
 
     # ti_footer (index 30)
     i_tif = c("ti_footer", position=(tix, tiy + 190), size=(380, 40),
-              color=BG_35, parent=25)
+              background_color=BG_35, parent=25)
     # ti_footer_text (index 31)
     c("ti_footer_text", position=(tix + 10, tiy + 190), size=(340, 40),
-      color=TRANSPARENT, parent=30, passive=1)
+      background_color=TRANSPARENT, parent=30, passive=1)
     # ti_footer_action (index 32)
     i_tifa = c("ti_footer_action", position=(tix + 350, tiy + 200), size=(20, 20),
-               color=TRANSPARENT, parent=30)
+               background_color=TRANSPARENT, parent=30)
     # ti_footer_icon (index 33)
     c("ti_footer_icon", position=(tix + 350, tiy + 200), size=(20, 20),
-      color=TRANSPARENT, parent=32, passive=1)
+      background_color=TRANSPARENT, parent=32, passive=1)
 
     # --- BOTTOM TEXT (index 34-35) ---
     btx, bty = lpx, lpy + 370
     i_btb = c("bottom_text_box", position=(btx, bty), size=(380, 30),
-              color=TRANSPARENT, parent=9)
+              background_color=TRANSPARENT, parent=9)
     c("bottom_text", position=(btx + 5, bty + 5), size=(370, 20),
-      color=TRANSPARENT, parent=34)
+      background_color=TRANSPARENT, parent=34)
 
     # --- RIGHT SIDE (index 36) ---
     rx, ry = ccx + 400, ccy
     i_right = c("right_side_interaction", position=(rx, ry), size=(400, 410),
-                color=TRANSPARENT, parent=8)
+                background_color=TRANSPARENT, parent=8)
 
     # --- LABEL COMPONENT ---
     def make_label(name, parent_idx, lbx, lby, bg_color, border_rad=0):
         """Create a label component (16 containers)."""
         i_label = c(name, position=(lbx, lby), size=(380, 180),
-                    color=bg_color, border_radius=border_rad, parent=parent_idx)
+                    background_color=bg_color, border_radius=border_rad, parent=parent_idx)
         # icon_box (child 1)
         i_ib = c(f"{name}_icon_box", position=(lbx + 10, lby + 10), size=(40, 160),
-                 color=TRANSPARENT, parent=i_label)
+                 background_color=TRANSPARENT, parent=i_label)
         c(f"{name}_icon", position=(lbx + 10, lby + 10), size=(40, 160),
-          color=TRANSPARENT, parent=i_ib)
+          background_color=TRANSPARENT, parent=i_ib)
 
         # text_box (child 2)
         i_tb = c(f"{name}_text_box", position=(lbx + 60, lby + 10), size=(310, 160),
-                 color=TRANSPARENT, parent=i_label)
+                 background_color=TRANSPARENT, parent=i_label)
         c(f"{name}_text", position=(lbx + 60, lby + 10), size=(310, 25),
-          color=TRANSPARENT, parent=i_tb)
+          background_color=TRANSPARENT, parent=i_tb)
         c(f"{name}_underline", position=(lbx + 60, lby + 39), size=(248, 1),
-          color=UNDERLINE_COLOR, parent=i_tb)
+          background_color=UNDERLINE_COLOR, parent=i_tb)
 
         # description_box
         i_db = c(f"{name}_desc_box", position=(lbx + 60, lby + 50), size=(310, 120),
-                 color=TRANSPARENT, parent=i_tb)
+                 background_color=TRANSPARENT, parent=i_tb)
         # desc icon box
         i_dib = c(f"{name}_desc_icon_box", position=(lbx + 60, lby + 50), size=(40, 120),
-                  color=TRANSPARENT, parent=i_db)
+                  background_color=TRANSPARENT, parent=i_db)
         c(f"{name}_desc_icon", position=(lbx + 60, lby + 50), size=(40, 120),
-          color=TRANSPARENT, parent=i_dib)
+          background_color=TRANSPARENT, parent=i_dib)
         # desp box
         i_desp = c(f"{name}_desp_box", position=(lbx + 110, lby + 50), size=(260, 120),
-                   color=TRANSPARENT, parent=i_db)
+                   background_color=TRANSPARENT, parent=i_db)
         c(f"{name}_description", position=(lbx + 110, lby + 50), size=(260, 96),
-          color=TRANSPARENT, parent=i_desp)
+          background_color=TRANSPARENT, parent=i_desp)
         # tags box
         i_tags = c(f"{name}_tags_box", position=(lbx + 110, lby + 146), size=(260, 24),
-                   color=TRANSPARENT, parent=i_desp)
+                   background_color=TRANSPARENT, parent=i_desp)
         i_tb1 = c(f"{name}_tags_box1", position=(lbx + 110, lby + 146), size=(70, 22),
-                  color=TAG_BG, border_radius=300, parent=i_tags)
+                  background_color=TAG_BG, border_radius=300, parent=i_tags)
         c(f"{name}_tag1", position=(lbx + 119, lby + 148), size=(52, 18),
-          color=TRANSPARENT, parent=i_tb1)
+          background_color=TRANSPARENT, parent=i_tb1)
         i_tb2 = c(f"{name}_tags_box2", position=(lbx + 186, lby + 146), size=(70, 22),
-                  color=TAG_BG, border_radius=300, parent=i_tags)
+                  background_color=TAG_BG, border_radius=300, parent=i_tags)
         c(f"{name}_tag2", position=(lbx + 195, lby + 148), size=(52, 18),
-          color=TRANSPARENT, parent=i_tb2)
+          background_color=TRANSPARENT, parent=i_tb2)
         return i_label
 
     # Label 1: default_label (index 37-52)
@@ -341,18 +341,18 @@ def containers_to_buffer(containers: list) -> np.ndarray:
         buf[off + 2] = c.position[1]
         buf[off + 3] = c.size[0]
         buf[off + 4] = c.size[1]
-        buf[off + 5:off + 9] = c.color
-        buf[off + 9:off + 13] = c.color_1
-        buf[off + 13] = c.color_gradient_rot
-        buf[off + 14:off + 18] = c.hover_color
-        buf[off + 18:off + 22] = c.hover_color_1
-        buf[off + 22] = c.hover_color_gradient_rot
-        buf[off + 23:off + 27] = c.click_color
-        buf[off + 27:off + 31] = c.click_color_1
-        buf[off + 31] = c.click_color_gradient_rot
+        buf[off + 5:off + 9] = c.background_color
+        buf[off + 9:off + 13] = c.background_color_2
+        buf[off + 13] = c.background_gradient_rot
+        buf[off + 14:off + 18] = c.hover_background_color
+        buf[off + 18:off + 22] = c.hover_background_color_2
+        buf[off + 22] = c.hover_background_gradient_rot
+        buf[off + 23:off + 27] = c.click_background_color
+        buf[off + 27:off + 31] = c.click_background_color_2
+        buf[off + 31] = c.click_background_gradient_rot
         buf[off + 32:off + 36] = c.border_color
-        buf[off + 36:off + 40] = c.border_color_1
-        buf[off + 40] = c.border_color_gradient_rot
+        buf[off + 36:off + 40] = c.border_color_2
+        buf[off + 40] = c.border_gradient_rot
         buf[off + 41] = c.border_radius
         buf[off + 42] = c.border_width
         buf[off + 43] = float(c.parent)
@@ -372,18 +372,18 @@ def containers_to_dicts(containers: list) -> list:
             'display': bool(c.display),
             'position': list(c.position),
             'size': list(c.size),
-            'color': list(c.color),
-            'color_1': list(c.color_1),
-            'color_gradient_rot': c.color_gradient_rot,
-            'hover_color': list(c.hover_color),
-            'hover_color_1': list(c.hover_color_1),
-            'hover_color_gradient_rot': c.hover_color_gradient_rot,
-            'click_color': list(c.click_color),
-            'click_color_1': list(c.click_color_1),
-            'click_color_gradient_rot': c.click_color_gradient_rot,
+            'background_color': list(c.background_color),
+            'background_color_2': list(c.background_color_2),
+            'background_gradient_rot': c.background_gradient_rot,
+            'hover_background_color': list(c.hover_background_color),
+            'hover_background_color_2': list(c.hover_background_color_2),
+            'hover_background_gradient_rot': c.hover_background_gradient_rot,
+            'click_background_color': list(c.click_background_color),
+            'click_background_color_2': list(c.click_background_color_2),
+            'click_background_gradient_rot': c.click_background_gradient_rot,
             'border_color': list(c.border_color),
-            'border_color_1': list(c.border_color_1),
-            'border_color_gradient_rot': c.border_color_gradient_rot,
+            'border_color_2': list(c.border_color_2),
+            'border_gradient_rot': c.border_gradient_rot,
             'border_radius': c.border_radius,
             'border_width': c.border_width,
             'parent': c.parent,
@@ -415,18 +415,18 @@ def fn_load_container_full(buffer: np.ndarray, index: int) -> Container:
         display=int(d[0]),
         position=(d[1], d[2]),
         size=(d[3], d[4]),
-        color=(d[5], d[6], d[7], d[8]),
-        color_1=(d[9], d[10], d[11], d[12]),
-        color_gradient_rot=d[13],
-        hover_color=(d[14], d[15], d[16], d[17]),
-        hover_color_1=(d[18], d[19], d[20], d[21]),
-        hover_color_gradient_rot=d[22],
-        click_color=(d[23], d[24], d[25], d[26]),
-        click_color_1=(d[27], d[28], d[29], d[30]),
-        click_color_gradient_rot=d[31],
+        background_color=(d[5], d[6], d[7], d[8]),
+        background_color_2=(d[9], d[10], d[11], d[12]),
+        background_gradient_rot=d[13],
+        hover_background_color=(d[14], d[15], d[16], d[17]),
+        hover_background_color_2=(d[18], d[19], d[20], d[21]),
+        hover_background_gradient_rot=d[22],
+        click_background_color=(d[23], d[24], d[25], d[26]),
+        click_background_color_2=(d[27], d[28], d[29], d[30]),
+        click_background_gradient_rot=d[31],
         border_color=(d[32], d[33], d[34], d[35]),
-        border_color_1=(d[36], d[37], d[38], d[39]),
-        border_color_gradient_rot=d[40],
+        border_color_2=(d[36], d[37], d[38], d[39]),
+        border_gradient_rot=d[40],
         border_radius=d[41],
         border_width=d[42],
         parent=int(d[43]),
@@ -700,29 +700,29 @@ def fn_render_container(pixel: tuple, container: Container,
         is_hovered = False
         is_clicked = False
 
-    base = container.color
-    if container.color_1[3] > 0.0:
+    base = container.background_color
+    if container.background_color_2[3] > 0.0:
         if _counters is not None:
             _counters['gradient_evals'] += 1
-        base = fn_gradient_color(container.color, container.color_1,
-                                 container.color_gradient_rot,
+        base = fn_gradient_color(container.background_color, container.background_color_2,
+                                 container.background_gradient_rot,
                                  pixel, container.position, container.size)
 
-    if is_clicked and container.click_color[3] >= 0.0:
-        base = container.click_color
-        if container.click_color_1[3] > 0.0:
+    if is_clicked and container.click_background_color[3] >= 0.0:
+        base = container.click_background_color
+        if container.click_background_color_2[3] > 0.0:
             if _counters is not None:
                 _counters['gradient_evals'] += 1
-            base = fn_gradient_color(container.click_color, container.click_color_1,
-                                     container.click_color_gradient_rot,
+            base = fn_gradient_color(container.click_background_color, container.click_background_color_2,
+                                     container.click_background_gradient_rot,
                                      pixel, container.position, container.size)
-    elif is_hovered and container.hover_color[3] >= 0.0:
-        base = container.hover_color
-        if container.hover_color_1[3] > 0.0:
+    elif is_hovered and container.hover_background_color[3] >= 0.0:
+        base = container.hover_background_color
+        if container.hover_background_color_2[3] > 0.0:
             if _counters is not None:
                 _counters['gradient_evals'] += 1
-            base = fn_gradient_color(container.hover_color, container.hover_color_1,
-                                     container.hover_color_gradient_rot,
+            base = fn_gradient_color(container.hover_background_color, container.hover_background_color_2,
+                                     container.hover_background_gradient_rot,
                                      pixel, container.position, container.size)
 
     if dist <= 0.0:
@@ -755,14 +755,14 @@ def fn_composite_alpha_over(dst: tuple, src: tuple) -> tuple:
 
 def fn_build_container_struct(container_dict: dict) -> list:
     """Pack one container dict into 54-float list. Identical to render.py."""
-    color = container_dict.get('color', [0, 0, 0, 1])
-    color_1 = container_dict.get('color_1', [0, 0, 0, 0])
-    hc = container_dict.get('hover_color', [0, 0, 0, -1])
-    hc1 = container_dict.get('hover_color_1', [0, 0, 0, 0])
-    cc = container_dict.get('click_color', [0, 0, 0, -1])
-    cc1 = container_dict.get('click_color_1', [0, 0, 0, 0])
+    background_color = container_dict.get('background_color', [0, 0, 0, 1])
+    background_color_2 = container_dict.get('background_color_2', [0, 0, 0, 0])
+    hc = container_dict.get('hover_background_color', [0, 0, 0, -1])
+    hc1 = container_dict.get('hover_background_color_2', [0, 0, 0, 0])
+    cc = container_dict.get('click_background_color', [0, 0, 0, -1])
+    cc1 = container_dict.get('click_background_color_2', [0, 0, 0, 0])
     bc = container_dict.get('border_color', [0, 0, 0, 0])
-    bc1 = container_dict.get('border_color_1', [0, 0, 0, 0])
+    bc1 = container_dict.get('border_color_2', [0, 0, 0, 0])
     pos = container_dict.get('position', [0, 0])
     sz = container_dict.get('size', [100, 100])
     so = container_dict.get('box_shadow_offset', [0, 0, 0])
@@ -771,18 +771,18 @@ def fn_build_container_struct(container_dict: dict) -> list:
     return [
         int(container_dict.get('display', False)),
         pos[0], pos[1], sz[0], sz[1],
-        color[0], color[1], color[2], color[3],
-        color_1[0], color_1[1], color_1[2], color_1[3],
-        container_dict.get('color_gradient_rot', 0.0),
+        background_color[0], background_color[1], background_color[2], background_color[3],
+        background_color_2[0], background_color_2[1], background_color_2[2], background_color_2[3],
+        container_dict.get('background_gradient_rot', 0.0),
         hc[0], hc[1], hc[2], hc[3],
         hc1[0], hc1[1], hc1[2], hc1[3],
-        container_dict.get('hover_color_gradient_rot', 0.0),
+        container_dict.get('hover_background_gradient_rot', 0.0),
         cc[0], cc[1], cc[2], cc[3],
         cc1[0], cc1[1], cc1[2], cc1[3],
-        container_dict.get('click_color_gradient_rot', 0.0),
+        container_dict.get('click_background_gradient_rot', 0.0),
         bc[0], bc[1], bc[2], bc[3],
         bc1[0], bc1[1], bc1[2], bc1[3],
-        container_dict.get('border_color_gradient_rot', 0.0),
+        container_dict.get('border_gradient_rot', 0.0),
         container_dict.get('border_radius', 0.0),
         container_dict.get('border_width', 0.0),
         container_dict.get('parent', -1),
@@ -935,9 +935,9 @@ def simulate_frame_baseline(containers: list, buffer: np.ndarray,
                 # Container body
                 hovered = (hover_idx == i)
                 clicked = (click_idx == i)
-                color = fn_render_container(pixel, c, hovered, clicked, counters)
-                if color[3] > 0.0:
-                    final = fn_composite_alpha_over(final, color)
+                background_color = fn_render_container(pixel, c, hovered, clicked, counters)
+                if background_color[3] > 0.0:
+                    final = fn_composite_alpha_over(final, background_color)
 
             pixels_done += 1
 
@@ -1066,9 +1066,9 @@ def simulate_frame_precomputed_visibility(containers: list, buffer: np.ndarray,
                 # Container body
                 hovered = (hover_idx == i)
                 clicked = (click_idx == i)
-                color = fn_render_container(pixel, c, hovered, clicked, counters)
-                if color[3] > 0.0:
-                    final = fn_composite_alpha_over(final, color)
+                background_color = fn_render_container(pixel, c, hovered, clicked, counters)
+                if background_color[3] > 0.0:
+                    final = fn_composite_alpha_over(final, background_color)
 
             pixels_done += 1
 
@@ -1209,9 +1209,9 @@ def simulate_frame_dirty_region(containers: list, buffer: np.ndarray,
                 shadow = fn_render_shadow(pixel, c, counters)
                 if shadow[3] > 0.0:
                     final = fn_composite_alpha_over(final, shadow)
-                color = fn_render_container(pixel, c, hover_idx == i, False, counters)
-                if color[3] > 0.0:
-                    final = fn_composite_alpha_over(final, color)
+                background_color = fn_render_container(pixel, c, hover_idx == i, False, counters)
+                if background_color[3] > 0.0:
+                    final = fn_composite_alpha_over(final, background_color)
             pixels_done += 1
 
     report.shader_render_ns = time.perf_counter_ns() - t0

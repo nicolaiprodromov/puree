@@ -111,16 +111,6 @@ class Container():
         if name.startswith('--'):
             name = name[2:]
         
-        # Map standard CSS names to internal puree names
-        css_to_internal = {
-            'background-color': 'color',
-            'background_color': 'color',
-            'font-size': 'text_scale',
-            'font_size': 'text_scale',
-            'text-align': 'text_align_h',
-            'opacity': 'img_opacity',
-        }
-        name = css_to_internal.get(name, name)
         name = name.replace('-', '_')
 
         if self.is_layout_property(name):
@@ -192,9 +182,11 @@ class Container():
                 self._layout_node.mark_dirty()
         
         # Style properties go to self.style with type conversion
-        color_props = {'color', 'color_1', 'hover_color', 'hover_color_1',
-                       'click_color', 'click_color_1', 'border_color', 'border_color_1',
-                       'text_color', 'text_color_1', 'box_shadow_color'}
+        color_props = {'background_color', 'background_color_2',
+                       'hover_background_color', 'hover_background_color_2',
+                       'click_background_color', 'click_background_color_2',
+                       'border_color', 'border_color_2',
+                       'color', 'color_2', 'box_shadow_color'}
         if name in color_props and isinstance(value, str) and self.style is not None:
             from ..native_bindings import ColorProcessor
             cp = ColorProcessor()
@@ -261,34 +253,34 @@ class ContainerDefault():
         self.width  = 100.0
         self.height = 100.0
 
-        self.color              = [0.0, 0.0, 0.0, 1.0]
-        self.color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.color_gradient_rot = 0.0
+        self.background_color              = [0.0, 0.0, 0.0, 1.0]
+        self.background_color_2            = [0.0, 0.0, 0.0, 0.0]
+        self.background_gradient_rot       = 0.0
         
-        self.hover_color              = [0.0, 0.0, 0.0, -1.0]
-        self.hover_color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.hover_color_gradient_rot = 0.0
+        self.hover_background_color              = [0.0, 0.0, 0.0, -1.0]
+        self.hover_background_color_2            = [0.0, 0.0, 0.0, 0.0]
+        self.hover_background_gradient_rot       = 0.0
 
-        self.click_color              = [0.0, 0.0, 0.0, -1.0]
-        self.click_color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.click_color_gradient_rot = 0.0
+        self.click_background_color              = [0.0, 0.0, 0.0, -1.0]
+        self.click_background_color_2            = [0.0, 0.0, 0.0, 0.0]
+        self.click_background_gradient_rot       = 0.0
 
-        self.toggle_color              = [0.0, 0.0, 0.0, -1.0]
-        self.toggle_color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.toggle_color_gradient_rot = 0.0
+        self.toggle_background_color              = [0.0, 0.0, 0.0, -1.0]
+        self.toggle_background_color_2            = [0.0, 0.0, 0.0, 0.0]
+        self.toggle_background_gradient_rot       = 0.0
 
         self.border_color              = [0.0, 0.0, 0.0, 0.0]
-        self.border_color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.border_color_gradient_rot = 0.0
+        self.border_color_2            = [0.0, 0.0, 0.0, 0.0]
+        self.border_gradient_rot       = 0.0
         self.border_radius             = 0.0
         self.border_width              = 0.0
         
-        self.text_color              = [1.0, 1.0, 1.0, 1.0]
-        self.text_color_1            = [0.0, 0.0, 0.0, 0.0]
-        self.text_color_gradient_rot = 0.0
-        self.text_scale              = 12.0
-        self.text_x                  = 0.0
-        self.text_y                  = 0.0
+        self.color                     = [1.0, 1.0, 1.0, 1.0]
+        self.color_2                   = [0.0, 0.0, 0.0, 0.0]
+        self.color_gradient_rot        = 0.0
+        self.font_size                 = 12.0
+        self.text_x                    = 0.0
+        self.text_y                    = 0.0
         
         self.box_shadow_color  = [0.0, 0.0, 0.0, 0.0]
         self.box_shadow_offset = [0.0, 0.0, 0.0]

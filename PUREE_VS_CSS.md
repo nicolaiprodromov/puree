@@ -13,7 +13,7 @@ This document covers every place where Puree diverges from standard CSS and brow
 | `background-color: red` | `background-color: red` | ✅ Identical |
 | `color: red` | `color: red` | ✅ Identical — means **text color** |
 
-Both now work exactly as in standard CSS. The cascade engine maps `background-color` → internal `color`, and `color` → internal `text-color`.
+Both now work exactly as in standard CSS. Internal property names match CSS — no translation layers.
 
 ---
 
@@ -34,16 +34,16 @@ These properties have no CSS equivalent and use the standard custom property `--
 | Extension Property | Purpose | Accepted Values |
 |---|---|---|
 | `--text-align-v` | Vertical text alignment | `top`, `center`, `bottom` |
-| `--color-1` | Second gradient stop (fill) | Any color value |
-| `--color-gradient-rot` | Gradient angle | Degrees, e.g., `135deg` |
-| `--text-color-1` | Text gradient second stop | Any color value |
-| `--text-color-gradient-rot` | Text gradient angle | Degrees |
+| `--background-color-2` | Second gradient stop (fill) | Any color value |
+| `--background-gradient-rot` | Gradient angle | Degrees, e.g., `135deg` |
+| `--color-2` | Text gradient second stop | Any color value |
+| `--color-gradient-rot` | Text gradient angle | Degrees |
 | `--img-align-h` | Image horizontal alignment | `left`, `center`, `right` |
 | `--img-align-v` | Image vertical alignment | `top`, `center`, `bottom` |
-| `--border-color-1` | Border gradient second stop | Any color value |
-| `--border-color-gradient-rot` | Border gradient angle | Degrees |
+| `--border-color-2` | Border gradient second stop | Any color value |
+| `--border-gradient-rot` | Border gradient angle | Degrees |
 
-**SCSS variables in `--` properties require interpolation:** `--color-1: #{$my_var};`
+**SCSS variables in `--` properties require interpolation:** `--background-color-2: #{$my_var};`
 
 ---
 
@@ -59,9 +59,9 @@ These properties have no CSS equivalent and use the standard custom property `--
 
 | CSS | Puree SCSS |
 |---|---|
-| `background: linear-gradient(135deg, #f00, #00f)` | `background-color: #f00; --color-1: #00f; --color-gradient-rot: 135deg` |
+| `background: linear-gradient(135deg, #f00, #00f)` | `background-color: #f00; --background-color-2: #00f; --background-gradient-rot: 135deg` |
 
-Puree gradients are always two-stop linear. `background-color` is stop 1, `--color-1` is stop 2, `--color-gradient-rot` is the angle. No multi-stop or radial gradients.
+Puree gradients are always two-stop linear. `background-color` is stop 1, `--background-color-2` is stop 2, `--background-gradient-rot` is the angle. No multi-stop or radial gradients.
 
 ---
 
@@ -82,7 +82,7 @@ The `box-shadow` shorthand is now parsed automatically. Only one shadow per elem
 | `border: 1px solid rgba(255,255,255,0.1)` | `border-width: 1px; border-color: rgba(255,255,255,0.1)` |
 | `border-radius: 16px` | `border-radius: 16px` ✅ |
 
-No `border-style` — all borders are solid. Border gradients via `--border-color-1`.
+No `border-style` — all borders are solid. Border gradients via `--border-color-2`.
 
 ---
 

@@ -11,7 +11,7 @@
 // ╚═════════════════════════════════╝
 
 $transparent: rgba(0, 0, 0, 0) !default;
-$bg_color   : rgb(0, 0, 0) !default;
+$bg_background-color   : rgb(0, 0, 0) !default;
 
 $width : 100% !default;
 $height: 180px !default;
@@ -23,11 +23,11 @@ $border_radius_value: 0px !default;
 $icon_size  : 40px !default;
 $icon_margin: 10px !default;
 
-$text_color : #f0f3f6 !default;
+$text_background-color : #f0f3f6 !default;
 $text_scale : 18px !default;
 $text_height: 25px !default;
 
-$underline_color : rgba(140, 150, 165, 0.3) !default;
+$underline_background-color : rgba(140, 150, 165, 0.3) !default;
 $underline_width : 80% !default;
 $underline_height: 1px !default;
 $underline_margin: 4px 0px 10px 0px !default;
@@ -38,7 +38,7 @@ $underline_margin: 4px 0px 10px 0px !default;
     align-items    : center;
     justify-content: start;
     padding        : $padding_value;
-    color          : $bg_color;
+    background-color          : $bg_color;
     border-radius  : $border_radius_value;
     margin         : $margin_value;
 }
@@ -48,7 +48,7 @@ $underline_margin: 4px 0px 10px 0px !default;
     height         : 100%;
     align-items    : center;
     justify-content: center;
-    color          : $transparent;
+    background-color          : $transparent;
     padding        : 0px;
     margin-right   : $icon_margin;
 }
@@ -56,10 +56,10 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_icon {
     width       : 100%;
     height      : 100%;
-    color       : $transparent;
-    img-align-h : center;
-    img-align-v : top;
-    img-opacity : .321;
+    background-color       : $transparent;
+    --img-align-h : center;
+    --img-align-v : top;
+    opacity : .321;
     aspect-ratio: true;
 }
 
@@ -69,23 +69,23 @@ $underline_margin: 4px 0px 10px 0px !default;
     flex-direction : column;
     align-items    : start;
     justify-content: center;
-    color          : $transparent;
+    background-color          : $transparent;
 }
 
 .label_text {
     width       : 100%;
     height      : $text_height;
-    color       : $transparent;
-    text-color  : $text_color;
-    text-scale  : $text_scale;
-    text-align-h: left;
-    text-align-v: center;
+    background-color       : $transparent;
+    color  : $text_color;
+    font-size  : $text_scale;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .label_underline {
     width : $underline_width;
     height: $underline_height;
-    color : $underline_color;
+    background-color : $underline_color;
     margin: $underline_margin;
 }
 
@@ -93,7 +93,7 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_description_box{
     width          : 100%;
     height         : 80%;
-    color          : $transparent;
+    background-color          : $transparent;
     align-items    : start;
     justify-content: start;
 }
@@ -103,7 +103,7 @@ $underline_margin: 4px 0px 10px 0px !default;
     height         : 100%;
     align-items    : start;
     justify-content: start;
-    color          : $transparent;
+    background-color          : $transparent;
     padding        : 0px;
     margin-right   : $icon_margin;
 }
@@ -111,10 +111,10 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_description_icon{
     width       : 100%;
     height      : 100%;
-    color       : $transparent;
-    img-align-h : center;
-    img-align-v : top;
-    img-opacity : .123;
+    background-color       : $transparent;
+    --img-align-h : center;
+    --img-align-v : top;
+    opacity : .123;
     aspect-ratio: true;
 }
 
@@ -122,7 +122,7 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_desp_box{
     width          : 100%;
     height         : 100%;
-    color          : $transparent;
+    background-color          : $transparent;
     align-items    : start;
     justify-content: start;
     flex-direction : column;
@@ -131,17 +131,17 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_description{
     width       : 100%;
     height      : 80%;
-    color       : $transparent;
-    text-color  : $text_color;
-    text-scale  : $text_scale;
-    text-align-h: left;
-    text-align-v: top;
+    background-color       : $transparent;
+    color  : $text_color;
+    font-size  : $text_scale;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .label_tags_box{
     height: 20%;
     width : 100%;
-    color : $transparent;
+    background-color : $transparent;
 }
 
 .label_tags_box_inner{
@@ -150,7 +150,7 @@ $underline_margin: 4px 0px 10px 0px !default;
     padding        : 2px 9px 2px 9px;
     align-items    : center;
     justify-content: center;
-    color          : rgba(68, 68, 68, 0.084);
+    background-color          : rgba(68, 68, 68, 0.084);
     margin-right   : 6px;
     border-radius  : 300px;
 }
@@ -158,9 +158,9 @@ $underline_margin: 4px 0px 10px 0px !default;
 .label_tag{
     width        : 100%;
     height       : 100%;
-    color        : $transparent;
-    text-color   : rgb(172, 172, 172);
-    text-scale   : 11px;
-    text-align-h : left;
-    text-align-v : center;
+    background-color        : $transparent;
+    color   : rgb(172, 172, 172);
+    font-size   : 11px;
+    text-align : left;
+    --text-align-v : center;
 }

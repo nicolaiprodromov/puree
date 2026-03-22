@@ -277,26 +277,26 @@ class UI():
         attr_name = attr_name.replace('-', '_')
 
         color_props = [
-            'color', 'color_1',
-            'hover_color', 'hover_color_1',
-            'click_color', 'click_color_1',
-            'border_color', 'border_color_1',
-            'text_color', 'text_color_1',
+            'background_color', 'background_color_2',
+            'hover_background_color', 'hover_background_color_2',
+            'click_background_color', 'click_background_color_2',
+            'border_color', 'border_color_2',
+            'color', 'color_2',
             'box_shadow_color'
             ]
         
         float_props = [
             'border_radius', 'border_width',
-            'text_scale', 'text_x', 'text_y',
-            'box_shadow_blur', 'img_opacity'
+            'font_size', 'text_x', 'text_y',
+            'box_shadow_blur', 'opacity'
             ]
 
         rotation_props = [
-            'color_gradient_rot',
-            'hover_color_gradient_rot',
-            'click_color_gradient_rot',
-            'border_color_gradient_rot',
-            'text_color_gradient_rot'
+            'background_gradient_rot',
+            'hover_background_gradient_rot',
+            'click_background_gradient_rot',
+            'border_gradient_rot',
+            'color_gradient_rot'
             ]
 
         bool_props = [
@@ -308,7 +308,7 @@ class UI():
             'flex_direction', 'flex_wrap',
             'align_items', 'align_self', 'align_content',
             'justify_content', 'justify_items', 'justify_self',
-            'text_align_h', 'text_align_v',
+            'text_align', 'text_align_v',
             'img_align_h', 'img_align_v',
             'grid_auto_flow', 'grid_row', 'grid_column'
             ]
@@ -786,24 +786,24 @@ class UI():
                 'id': container.style.id if hasattr(container.style, 'id') else '',
                 'display': display_str,
                 'overflow': overflow_str,
-                'color': list(container.style.color),
-                'color_1': list(container.style.color_1),
-                'color_gradient_rot': float(container.style.color_gradient_rot),
-                'hover_color': list(container.style.hover_color),
-                'hover_color_1': list(container.style.hover_color_1),
-                'hover_color_gradient_rot': float(container.style.hover_color_gradient_rot),
-                'click_color': list(container.style.click_color),
-                'click_color_1': list(container.style.click_color_1),
-                'click_color_gradient_rot': float(container.style.click_color_gradient_rot),
+                'background_color': list(container.style.background_color),
+                'background_color_2': list(container.style.background_color_2),
+                'background_gradient_rot': float(container.style.background_gradient_rot),
+                'hover_background_color': list(container.style.hover_background_color),
+                'hover_background_color_2': list(container.style.hover_background_color_2),
+                'hover_background_gradient_rot': float(container.style.hover_background_gradient_rot),
+                'click_background_color': list(container.style.click_background_color),
+                'click_background_color_2': list(container.style.click_background_color_2),
+                'click_background_gradient_rot': float(container.style.click_background_gradient_rot),
                 'border_color': list(container.style.border_color),
-                'border_color_1': list(container.style.border_color_1),
-                'border_color_gradient_rot': float(container.style.border_color_gradient_rot),
+                'border_color_2': list(container.style.border_color_2),
+                'border_gradient_rot': float(container.style.border_gradient_rot),
                 'border_radius': float(container.style.border_radius),
                 'border_width': float(container.style.border_width),
-                'text_color': list(container.style.text_color),
-                'text_color_1': list(container.style.text_color_1),
-                'text_color_gradient_rot': float(container.style.text_color_gradient_rot),
-                'text_scale': float(container.style.text_scale),
+                'color': list(container.style.color),
+                'color_2': list(container.style.color_2),
+                'color_gradient_rot': float(container.style.color_gradient_rot),
+                'font_size': float(container.style.font_size),
                 'text_x': float(container.style.text_x),
                 'text_y': float(container.style.text_y),
                 'box_shadow_color': list(container.style.box_shadow_color),

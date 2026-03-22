@@ -138,16 +138,16 @@ impl HitDetector {
         }
         
         // Extract color arrays
-        let color = self.extract_color_array(dict, "color")?;
-        let color_1 = self.extract_color_array(dict, "color_1")?;
-        let hover_color = self.extract_color_array(dict, "hover_color")?;
-        let hover_color_1 = self.extract_color_array(dict, "hover_color_1")?;
-        let click_color = self.extract_color_array(dict, "click_color")?;
-        let click_color_1 = self.extract_color_array(dict, "click_color_1")?;
+        let background_color = self.extract_color_array(dict, "background_color")?;
+        let background_color_2 = self.extract_color_array(dict, "background_color_2")?;
+        let hover_background_color = self.extract_color_array(dict, "hover_background_color")?;
+        let hover_background_color_2 = self.extract_color_array(dict, "hover_background_color_2")?;
+        let click_background_color = self.extract_color_array(dict, "click_background_color")?;
+        let click_background_color_2 = self.extract_color_array(dict, "click_background_color_2")?;
         let border_color = self.extract_color_array(dict, "border_color")?;
-        let border_color_1 = self.extract_color_array(dict, "border_color_1")?;
-        let text_color = self.extract_color_array(dict, "text_color")?;
-        let text_color_1 = self.extract_color_array(dict, "text_color_1")?;
+        let border_color_2 = self.extract_color_array(dict, "border_color_2")?;
+        let color = self.extract_color_array(dict, "color")?;
+        let color_2 = self.extract_color_array(dict, "color_2")?;
         let box_shadow_color = self.extract_color_array(dict, "box_shadow_color")?;
         
         let box_shadow_offset_list = dict.get_item("box_shadow_offset")?.unwrap().downcast::<PyList>()?;
@@ -167,26 +167,26 @@ impl HitDetector {
             passive,
             display,
             overflow,
-            color,
-            color_1,
-            color_gradient_rot: dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
-            hover_color,
-            hover_color_1,
-            hover_color_gradient_rot: dict.get_item("hover_color_gradient_rot")?.unwrap().extract::<f32>()?,
-            click_color,
-            click_color_1,
-            click_color_gradient_rot: dict.get_item("click_color_gradient_rot")?.unwrap().extract::<f32>()?,
+            background_color,
+            background_color_2,
+            background_gradient_rot: dict.get_item("background_gradient_rot")?.unwrap().extract::<f32>()?,
+            hover_background_color,
+            hover_background_color_2,
+            hover_background_gradient_rot: dict.get_item("hover_background_gradient_rot")?.unwrap().extract::<f32>()?,
+            click_background_color,
+            click_background_color_2,
+            click_background_gradient_rot: dict.get_item("click_background_gradient_rot")?.unwrap().extract::<f32>()?,
             border_color,
-            border_color_1,
-            border_color_gradient_rot: dict.get_item("border_color_gradient_rot")?.unwrap().extract::<f32>()?,
+            border_color_2,
+            border_gradient_rot: dict.get_item("border_gradient_rot")?.unwrap().extract::<f32>()?,
             border_radius: dict.get_item("border_radius")?.unwrap().extract::<f32>()?,
             border_width: dict.get_item("border_width")?.unwrap().extract::<f32>()?,
             text: dict.get_item("text")?.unwrap().extract::<String>()?,
             font: dict.get_item("font")?.unwrap().extract::<String>()?,
-            text_color,
-            text_color_1,
-            text_color_gradient_rot: dict.get_item("text_color_gradient_rot")?.unwrap().extract::<f32>()?,
-            text_scale: dict.get_item("text_scale")?.unwrap().extract::<f32>()?,
+            color,
+            color_2,
+            color_gradient_rot: dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
+            font_size: dict.get_item("font_size")?.unwrap().extract::<f32>()?,
             text_x: dict.get_item("text_x")?.unwrap().extract::<f32>()?,
             text_y: dict.get_item("text_y")?.unwrap().extract::<f32>()?,
             box_shadow_color,

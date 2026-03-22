@@ -617,14 +617,14 @@ class RenderPipeline:
         self.container_count = 0
     def _build_container_struct(self, container):
         """Build the 59-float struct for a single container (54 base + 5 precomputed)."""
-        current_color = container.get('color', [1, 1, 1, 1])
-        current_color_1 = container.get('color_1', [1, 1, 1, 1])
-        hover_color = container.get('hover_color', container_default.hover_color)
-        hover_color_1 = container.get('hover_color_1', container_default.hover_color_1)
-        click_color = container.get('click_color', container_default.click_color)
-        click_color_1 = container.get('click_color_1', container_default.click_color_1)
+        bg_color = container.get('background_color', [1, 1, 1, 1])
+        bg_color_2 = container.get('background_color_2', [1, 1, 1, 1])
+        hover_bg_color = container.get('hover_background_color', container_default.hover_background_color)
+        hover_bg_color_2 = container.get('hover_background_color_2', container_default.hover_background_color_2)
+        click_bg_color = container.get('click_background_color', container_default.click_background_color)
+        click_bg_color_2 = container.get('click_background_color_2', container_default.click_background_color_2)
         border_color = container.get('border_color', [1, 1, 1, 1])
-        border_color_1 = container.get('border_color_1', [1, 1, 1, 1])
+        border_color_2 = container.get('border_color_2', [1, 1, 1, 1])
         position = container.get('position', [0, 0])
         size = container.get('size', [100, 100])
         shadow_offset = container.get('box_shadow_offset', [0, 0, 0])
@@ -634,18 +634,18 @@ class RenderPipeline:
             int(container.get('display', False)),
             position[0], position[1],
             size[0], size[1],
-            current_color[0], current_color[1], current_color[2], current_color[3],
-            current_color_1[0], current_color_1[1], current_color_1[2], current_color_1[3],
-            container.get('color_gradient_rot', 0.0),
-            hover_color[0], hover_color[1], hover_color[2], hover_color[3],
-            hover_color_1[0], hover_color_1[1], hover_color_1[2], hover_color_1[3],
-            container.get('hover_color_gradient_rot', 0.0),
-            click_color[0], click_color[1], click_color[2], click_color[3],
-            click_color_1[0], click_color_1[1], click_color_1[2], click_color_1[3],
-            container.get('click_color_gradient_rot', 0.0),
+            bg_color[0], bg_color[1], bg_color[2], bg_color[3],
+            bg_color_2[0], bg_color_2[1], bg_color_2[2], bg_color_2[3],
+            container.get('background_gradient_rot', 0.0),
+            hover_bg_color[0], hover_bg_color[1], hover_bg_color[2], hover_bg_color[3],
+            hover_bg_color_2[0], hover_bg_color_2[1], hover_bg_color_2[2], hover_bg_color_2[3],
+            container.get('hover_background_gradient_rot', 0.0),
+            click_bg_color[0], click_bg_color[1], click_bg_color[2], click_bg_color[3],
+            click_bg_color_2[0], click_bg_color_2[1], click_bg_color_2[2], click_bg_color_2[3],
+            container.get('click_background_gradient_rot', 0.0),
             border_color[0], border_color[1], border_color[2], border_color[3],
-            border_color_1[0], border_color_1[1], border_color_1[2], border_color_1[3],
-            container.get('border_color_gradient_rot', 0.0),
+            border_color_2[0], border_color_2[1], border_color_2[2], border_color_2[3],
+            container.get('border_gradient_rot', 0.0),
             container.get('border_radius', 0.0),
             container.get('border_width', 0.0),
             container.get('parent', -1),
@@ -832,10 +832,10 @@ class XWZ_OT_start_ui(Operator):
                 container_id = _container_id,
                 text          = block['text'],
                 font_name     = block['font'],
-                size          = block['text_scale'],
+                size          = block['font_size'],
                 x_pos         = block['text_x'],
                 y_pos         = block['text_y'],
-                color         = block['text_color'],
+                color         = block['color'],
                 mask_x        = block['mask_x'],
                 mask_y        = block['mask_y'],
                 mask_width    = block['mask_width'],
@@ -850,10 +850,10 @@ class XWZ_OT_start_ui(Operator):
                 container_id = _container_id,
                 placeholder  = block['placeholder'],
                 font_name    = block['font'],
-                size         = block['text_scale'],
+                size         = block['font_size'],
                 x_pos        = block['x_pos'],
                 y_pos        = block['y_pos'],
-                color        = block['text_color'],
+                color        = block['color'],
                 mask_x       = block['mask_x'],
                 mask_y       = block['mask_y'],
                 mask_width   = block['mask_width'],
@@ -995,9 +995,9 @@ class XWZ_OT_start_ui(Operator):
                             text_instance.update_all(
                                 text=block['text'],
                                 font_name=block['font'],
-                                size=block['text_scale'],
+                                size=block['font_size'],
                                 pos=[block['text_x'], block['text_y']],
-                                color=block['text_color'],
+                                color=block['color'],
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
                                 align_h=block.get('align_h', 'LEFT').upper(),
                                 align_v=block.get('align_v', 'CENTER').upper()
@@ -1012,10 +1012,10 @@ class XWZ_OT_start_ui(Operator):
                                 instance_id=input_instance.id,
                                 placeholder=block['placeholder'],
                                 font_name=block['font'],
-                                size=block['text_scale'],
+                                size=block['font_size'],
                                 x_pos=block['x_pos'],
                                 y_pos=block['y_pos'],
-                                color=block['text_color'],
+                                color=block['color'],
                                 mask_x=block['mask_x'],
                                 mask_y=block['mask_y'],
                                 mask_width=block['mask_width'],

@@ -21,8 +21,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 100%;
     height: 100%;
     background-color: $bg_canvas;
-    --color-1: #{$bg_canvas_2};
-    --color-gradient-rot: 135deg;
+    --background-color-2: #{$bg_canvas_2};
+    --background-gradient-rot: 135deg;
 }
 
 .ambient_left {
@@ -56,8 +56,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 720px;
     padding: 26px;
     background-color: $shell_bg;
-    --color-1: #{$shell_bg_2};
-    --color-gradient-rot: 125deg;
+    --background-color-2: #{$shell_bg_2};
+    --background-gradient-rot: 125deg;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.09);
     border-radius: 30px;
@@ -88,8 +88,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 56px;
     margin-right: 16px;
     background-color: rgba(255, 255, 255, 0.04);
-    --color-1: rgba(98, 170, 255, 0.08);
-    --color-gradient-rot: 135deg;
+    --background-color-2: rgba(98, 170, 255, 0.08);
+    --background-gradient-rot: 135deg;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.08);
     border-radius: 18px;
@@ -170,8 +170,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-bottom: 18px;
     padding: 24px;
     background-color: rgba(13, 18, 29, 0.96);
-    --color-1: rgba(17, 39, 60, 0.9);
-    --color-gradient-rot: 140deg;
+    --background-color-2: rgba(17, 39, 60, 0.9);
+    --background-gradient-rot: 140deg;
     border-radius: 28px;
     box-shadow: 0px 20px 46px rgba(0, 8, 20, 0.3);
 }
@@ -269,8 +269,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 34%;
     height: 100%;
     background-color: rgba(111, 177, 255, 0.95);
-    --color-1: rgba(120, 255, 215, 0.82);
-    --color-gradient-rot: 90deg;
+    --background-color-2: rgba(120, 255, 215, 0.82);
+    --background-gradient-rot: 90deg;
     border-radius: 999px;
 }
 
@@ -304,8 +304,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 190px;
     padding: 20px;
     background-color: $panel_bg;
-    --color-1: #{$panel_bg_2};
-    --color-gradient-rot: 135deg;
+    --background-color-2: #{$panel_bg_2};
+    --background-gradient-rot: 135deg;
     border-radius: 24px;
 }
 
@@ -442,8 +442,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-bottom: 12px;
     padding: 18px;
     background-color: rgba(16, 16, 30, 0.94);
-    --color-1: rgba(46, 25, 82, 0.92);
-    --color-gradient-rot: 140deg;
+    --background-color-2: rgba(46, 25, 82, 0.92);
+    --background-gradient-rot: 140deg;
     border-radius: 24px;
 }
 
@@ -488,8 +488,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 202px;
     padding: 18px;
     background-color: rgba(12, 16, 25, 0.92);
-    --color-1: rgba(17, 23, 35, 0.96);
-    --color-gradient-rot: 135deg;
+    --background-color-2: rgba(17, 23, 35, 0.96);
+    --background-gradient-rot: 135deg;
     border-radius: 24px;
 }
 

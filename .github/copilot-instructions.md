@@ -6,8 +6,8 @@ Key points:
 - Puree uses YAML for structure, SCSS for styling, Python for interactivity
 - **SCSS is standard CSS** — `color` means text color, `background-color` means fill
 - `font-size` for text size, `text-align` for horizontal alignment (standard CSS names)
-- Puree extensions use `--` prefix: `--text-align-v`, `--color-1`, `--img-align-h`
-- SCSS variables inside `--` properties need interpolation: `--color-1: #{$var};`
+- Puree extensions use `--` prefix: `--text-align-v`, `--background-color-2`, `--img-align-h`
+- SCSS variables inside `--` properties need interpolation: `--background-color-2: #{$var};`
 - Use `class: classname` in YAML to assign CSS classes (matched as `.classname` in SCSS)
 - CSS cascade and specificity work: selectors, combinators, `!important`
 - Use `:hover` and `:active` pseudo-classes for interactive states

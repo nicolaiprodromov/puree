@@ -35,28 +35,17 @@ struct ContainerInfo {
     parent_idx: i64,
 }
 
-// ── Inherited properties ───────────────────────────────────────────
+// ── Inherited properties (CSS-standard names) ─────────────────────
 
-const INHERITED_PROPERTIES: &[&str] = &["text-color", "text-scale", "text-align-h"];
+const INHERITED_PROPERTIES: &[&str] = &["color", "font-size", "text-align"];
 
-// ── Property name mapping (CSS → puree internal) ───────────────────
+// ── Strip `--` prefix from custom properties ──────────────────────
 
-fn map_property_name(css_name: &str) -> String {
-    // Strip -- prefix from custom properties (Puree extensions)
-    let name = if css_name.starts_with("--") {
-        &css_name[2..]
+fn strip_custom_prefix(css_name: &str) -> String {
+    if css_name.starts_with("--") {
+        css_name[2..].to_string()
     } else {
-        css_name
-    };
-
-    match name {
-        // Standard CSS → puree internal
-        "color" => "text-color".to_string(),             // CSS color = text color
-        "background-color" => "color".to_string(),       // CSS background-color = puree fill
-        "font-size" => "text-scale".to_string(),
-        "text-align" => "text-align-h".to_string(),
-        "opacity" => "img-opacity".to_string(),
-        _ => name.to_string(),
+        css_name.to_string()
     }
 }
 
@@ -347,7 +336,7 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
                         continue;
                     }
 
-                    let mapped_name = map_property_name(prop_name);
+                    let mapped_name = strip_custom_prefix(prop_name);
                     if is_important {
                         important_decls.insert(mapped_name, value);
                     } else {

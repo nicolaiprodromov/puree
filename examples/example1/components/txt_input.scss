@@ -10,13 +10,13 @@
 // ║  ██   ██   ████████   ████████  ║
 // ╚═════════════════════════════════╝
 
-$footer_action_color: rgb(186, 186, 186) !default;
+$footer_action_background-color: rgb(186, 186, 186) !default;
 $footer_action_scale: 12px !default;
 $transparent        : rgba(0, 0, 0, 0) !default;
 $border_radii       : 10px !default;
-$bg_color           : #252830 !default;
-$bg_label_color     : #353942 !default;
-$bg_footer_color    : #353942 !default;
+$bg_background-color           : #252830 !default;
+$bg_label_background-color     : #353942 !default;
+$bg_footer_background-color    : #353942 !default;
 $text_color_value   : #f0f3f6 !default;
 $text_scale_value   : 16px !default;
 $text_input_padding : 35px !default;
@@ -24,7 +24,7 @@ $text_input_padding : 35px !default;
 .txt_input{
     width          : 100%;
     height         : 210px;
-    color          : $transparent;
+    background-color          : $transparent;
     border-radius  : $border_radii;
     padding        : 0px;
     display        : flex;
@@ -36,7 +36,7 @@ $text_input_padding : 35px !default;
 .txt_input_label_box{
     width          : 100%;
     height         : 40px;
-    color          : $bg_label_color;
+    background-color          : $bg_label_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
@@ -47,38 +47,38 @@ $text_input_padding : 35px !default;
 .txt_input_ti_icon{
     width       : 20px;
     height      : 20px;
-    color       : $transparent;
+    background-color       : $transparent;
     margin-right: 10px;
-    img-align-h : center;
-    img-align-v : center;
-    img-opacity : 0.25;
+    --img-align-h : center;
+    --img-align-v : center;
+    opacity : 0.25;
 }
 
 .txt_input_ti_label{
     width       : 90%;
     height      : 100%;
-    color       : $transparent;
-    text-color  : $text_color_value;
-    text-scale  : $text_scale_value;
-    text-align-h: left;
-    text-align-v: center;
+    background-color       : $transparent;
+    color  : $text_color_value;
+    font-size  : $text_scale_value;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .txt_input_input_box{
     width        : 100%;
     height       : 150px;
-    color        : $bg_color;
+    background-color        : $bg_color;
     padding      : $text_input_padding;
-    text-color   : $text_color_value;
-    text-scale   : $text_scale_value;
-    text-align-h : left;
-    text-align-v : top;
+    color   : $text_color_value;
+    font-size   : $text_scale_value;
+    text-align : left;
+    --text-align-v : top;
 }
 
 .txt_input_ti_footer{
     width          : 100%;
     height         : 40px;
-    color          : $bg_footer_color;
+    background-color          : $bg_footer_color;
     display        : flex;
     flex-direction : row;
     align-items    : center;
@@ -89,28 +89,28 @@ $text_input_padding : 35px !default;
 .txt_input_ti_footer_text{
     width       : 100%;
     height      : 100%;
-    color       : $transparent;
-    text-color  : $footer_action_color;
-    text-scale  : 12px;
-    text-align-h: left;
-    text-align-v: center;
+    background-color       : $transparent;
+    color  : $footer_action_color;
+    font-size  : 12px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .txt_input_ti_footer_action{
     width       : 20px;
     height      : 20px;
-    color       : $transparent;
-    text-color  : $footer_action_color;
-    text-scale  : $footer_action_scale;
-    text-align-h: left;
-    text-align-v: center;
+    background-color       : $transparent;
+    color  : $footer_action_color;
+    font-size  : $footer_action_scale;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .txt_input_ti_footer_icon{
     width      : 20px;
     height     : 20px;
-    color      : $transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.1;
+    background-color      : $transparent;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.1;
 }

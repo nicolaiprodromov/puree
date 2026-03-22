@@ -191,24 +191,24 @@ impl ContainerProcessor {
                 font,
                 position: [x, y],
                 size: [width, height],
-                color: self.extract_color_array(style_dict, "color")?,
-                color_1: self.extract_color_array(style_dict, "color_1")?,
-                color_gradient_rot: style_dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
-                hover_color: self.extract_color_array(style_dict, "hover_color")?,
-                hover_color_1: self.extract_color_array(style_dict, "hover_color_1")?,
-                hover_color_gradient_rot: style_dict.get_item("hover_color_gradient_rot")?.unwrap().extract::<f32>()?,
-                click_color: self.extract_color_array(style_dict, "click_color")?,
-                click_color_1: self.extract_color_array(style_dict, "click_color_1")?,
-                click_color_gradient_rot: style_dict.get_item("click_color_gradient_rot")?.unwrap().extract::<f32>()?,
+                background_color: self.extract_color_array(style_dict, "background_color")?,
+                background_color_2: self.extract_color_array(style_dict, "background_color_2")?,
+                background_gradient_rot: style_dict.get_item("background_gradient_rot")?.unwrap().extract::<f32>()?,
+                hover_background_color: self.extract_color_array(style_dict, "hover_background_color")?,
+                hover_background_color_2: self.extract_color_array(style_dict, "hover_background_color_2")?,
+                hover_background_gradient_rot: style_dict.get_item("hover_background_gradient_rot")?.unwrap().extract::<f32>()?,
+                click_background_color: self.extract_color_array(style_dict, "click_background_color")?,
+                click_background_color_2: self.extract_color_array(style_dict, "click_background_color_2")?,
+                click_background_gradient_rot: style_dict.get_item("click_background_gradient_rot")?.unwrap().extract::<f32>()?,
                 border_color: self.extract_color_array(style_dict, "border_color")?,
-                border_color_1: self.extract_color_array(style_dict, "border_color_1")?,
-                border_color_gradient_rot: style_dict.get_item("border_color_gradient_rot")?.unwrap().extract::<f32>()?,
+                border_color_2: self.extract_color_array(style_dict, "border_color_2")?,
+                border_gradient_rot: style_dict.get_item("border_gradient_rot")?.unwrap().extract::<f32>()?,
                 border_radius: style_dict.get_item("border_radius")?.unwrap().extract::<f32>()?,
                 border_width: style_dict.get_item("border_width")?.unwrap().extract::<f32>()?,
-                text_color: self.extract_color_array(style_dict, "text_color")?,
-                text_color_1: self.extract_color_array(style_dict, "text_color_1")?,
-                text_color_gradient_rot: style_dict.get_item("text_color_gradient_rot")?.unwrap().extract::<f32>()?,
-                text_scale: style_dict.get_item("text_scale")?.unwrap().extract::<f32>()?,
+                color: self.extract_color_array(style_dict, "color")?,
+                color_2: self.extract_color_array(style_dict, "color_2")?,
+                color_gradient_rot: style_dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
+                font_size: style_dict.get_item("font_size")?.unwrap().extract::<f32>()?,
                 text_x: style_dict.get_item("text_x")?.unwrap().extract::<f32>()?,
                 text_y: style_dict.get_item("text_y")?.unwrap().extract::<f32>()?,
                 box_shadow_color: self.extract_color_array(style_dict, "box_shadow_color")?,
@@ -290,48 +290,48 @@ impl ContainerProcessor {
         let size = PyList::new(py, &[container.size[0], container.size[1]]);
         dict.set_item("size", size)?;
         
-        let color = PyList::new(py, &container.color);
-        dict.set_item("color", color)?;
+        let background_color = PyList::new(py, &container.background_color);
+        dict.set_item("background_color", background_color)?;
         
-        let color_1 = PyList::new(py, &container.color_1);
-        dict.set_item("color_1", color_1)?;
+        let background_color_2 = PyList::new(py, &container.background_color_2);
+        dict.set_item("background_color_2", background_color_2)?;
         
-        dict.set_item("color_gradient_rot", container.color_gradient_rot)?;
+        dict.set_item("background_gradient_rot", container.background_gradient_rot)?;
         
-        let hover_color = PyList::new(py, &container.hover_color);
-        dict.set_item("hover_color", hover_color)?;
+        let hover_background_color = PyList::new(py, &container.hover_background_color);
+        dict.set_item("hover_background_color", hover_background_color)?;
         
-        let hover_color_1 = PyList::new(py, &container.hover_color_1);
-        dict.set_item("hover_color_1", hover_color_1)?;
+        let hover_background_color_2 = PyList::new(py, &container.hover_background_color_2);
+        dict.set_item("hover_background_color_2", hover_background_color_2)?;
         
-        dict.set_item("hover_color_gradient_rot", container.hover_color_gradient_rot)?;
+        dict.set_item("hover_background_gradient_rot", container.hover_background_gradient_rot)?;
         
-        let click_color = PyList::new(py, &container.click_color);
-        dict.set_item("click_color", click_color)?;
+        let click_background_color = PyList::new(py, &container.click_background_color);
+        dict.set_item("click_background_color", click_background_color)?;
         
-        let click_color_1 = PyList::new(py, &container.click_color_1);
-        dict.set_item("click_color_1", click_color_1)?;
+        let click_background_color_2 = PyList::new(py, &container.click_background_color_2);
+        dict.set_item("click_background_color_2", click_background_color_2)?;
         
-        dict.set_item("click_color_gradient_rot", container.click_color_gradient_rot)?;
+        dict.set_item("click_background_gradient_rot", container.click_background_gradient_rot)?;
         
         let border_color = PyList::new(py, &container.border_color);
         dict.set_item("border_color", border_color)?;
         
-        let border_color_1 = PyList::new(py, &container.border_color_1);
-        dict.set_item("border_color_1", border_color_1)?;
+        let border_color_2 = PyList::new(py, &container.border_color_2);
+        dict.set_item("border_color_2", border_color_2)?;
         
-        dict.set_item("border_color_gradient_rot", container.border_color_gradient_rot)?;
+        dict.set_item("border_gradient_rot", container.border_gradient_rot)?;
         dict.set_item("border_radius", container.border_radius)?;
         dict.set_item("border_width", container.border_width)?;
         
-        let text_color = PyList::new(py, &container.text_color);
-        dict.set_item("text_color", text_color)?;
+        let color = PyList::new(py, &container.color);
+        dict.set_item("color", color)?;
         
-        let text_color_1 = PyList::new(py, &container.text_color_1);
-        dict.set_item("text_color_1", text_color_1)?;
+        let color_2 = PyList::new(py, &container.color_2);
+        dict.set_item("color_2", color_2)?;
         
-        dict.set_item("text_color_gradient_rot", container.text_color_gradient_rot)?;
-        dict.set_item("text_scale", container.text_scale)?;
+        dict.set_item("color_gradient_rot", container.color_gradient_rot)?;
+        dict.set_item("font_size", container.font_size)?;
         dict.set_item("text_x", container.text_x)?;
         dict.set_item("text_y", container.text_y)?;
         
