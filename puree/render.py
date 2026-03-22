@@ -762,12 +762,13 @@ class RenderPipeline:
                 container_array = []
                 for i, container in enumerate(hit_container_data):
                     struct = self._build_container_struct(container)
-                    v, cx, cy, cw, ch = vis_clips[i]
-                    struct[-5] = v
-                    struct[-4] = cx
-                    struct[-3] = cy
-                    struct[-2] = cw
-                    struct[-1] = ch
+                    v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
+                    struct[-6] = v
+                    struct[-5] = cx
+                    struct[-4] = cy
+                    struct[-3] = cw
+                    struct[-2] = ch
+                    struct[-1] = acc_opacity
                     container_array.extend(struct)
                 
                 container_data_np = np.array(container_array, dtype=np.float32)
