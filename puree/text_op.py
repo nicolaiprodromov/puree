@@ -10,6 +10,7 @@
 # ╚═════════════════════════════════╝
 import bpy
 import blf
+import gpu
 import os
 
 _text_instances = []
@@ -89,10 +90,11 @@ class TextInstance:
         self.position  = pos
         self.color     = color
         self.mask      = mask
+        self.clip      = None  # Separate scissor clip rect [x, y, w, h] for scroll clipping
         self.align_h   = align_h
         self.align_v   = align_v
-        self._cached_dims = None  # (text_width, text_height) cache
-        self._dims_key = None     # cache key: (text, font_id, size)
+        self._cached_dims = None
+        self._dims_key = None
     
     def _get_dimensions(self):
         """Get text dimensions, using cache when possible."""
@@ -130,7 +132,7 @@ class TextInstance:
     def update_mask(self, new_mask):
         self.mask = new_mask
         self._trigger_redraw()
-    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, align_h=None, align_v=None):
+    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, clip=None, align_h=None, align_v=None):
         dims_dirty = False
         if text is not None and text != self.text:
             self.text = text
@@ -149,6 +151,8 @@ class TextInstance:
             self.color = list(color)
         if mask is not None:
             self.mask = mask
+        if clip is not None:
+            self.clip = clip
         if align_h is not None:
             self.align_h = align_h
         if align_v is not None:
@@ -177,8 +181,18 @@ def draw_all_text():
     viewport_height = _cached_viewport_height or 0
     
     for instance in _text_instances:
-        # Set up clipping if mask exists
-        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+        use_scissor = instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
+        
+        # GPU scissor for true pixel-level clipping (scroll containers)
+        if use_scissor:
+            sc_x = int(instance.clip[0])
+            sc_y = int(viewport_height - instance.clip[1] - instance.clip[3])
+            sc_w = int(instance.clip[2])
+            sc_h = int(instance.clip[3])
+            gpu.state.scissor_test_set(True)
+            gpu.state.scissor_set(sc_x, sc_y, sc_w, sc_h)
+        elif instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+            # BLF clipping for non-scroll text (alignment-based)
             xmin = instance.mask[0]
             ymin = viewport_height - instance.mask[1] - instance.mask[3]
             xmax = instance.mask[0] + instance.mask[2]
@@ -192,6 +206,7 @@ def draw_all_text():
         x_pos = instance.position[0]
         y_pos = instance.position[1]
         
+        # Alignment is always computed relative to MASK (the container's own bounds)
         if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             container_width = instance.mask[2]
             container_height = instance.mask[3]
@@ -216,7 +231,9 @@ def draw_all_text():
         blf.color(instance.font_id, *instance.color)
         blf.draw(instance.font_id, instance.text)
         
-        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+        if use_scissor:
+            gpu.state.scissor_test_set(False)
+        elif instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             blf.disable(instance.font_id, blf.CLIPPING)
 
 class DrawTextOP(bpy.types.Operator):

@@ -1017,26 +1017,18 @@ class RenderPipeline:
         return None
 
     def _apply_initial_scroll_clips(self, containers, text_blocks, image_blocks=None, text_input_blocks=None):
-        """Intersect text/image/text_input masks with scroll parent bounds for initial render.
-        Without this, text inside overflow:scroll areas renders outside the visible region."""
+        """Store scroll clip rects for text/image/text_input instances.
+        Text: clip stored separately (mask stays for alignment, clip for scissor).
+        Images/text_inputs: mask intersected with scroll clip (they use mask for both)."""
         for cid, block in text_blocks.items():
             idx = self._container_id_to_index.get(cid, -1)
             if idx < 0:
                 continue
             clip = self._get_scroll_clip_for_container(idx, containers)
             if clip:
+                # Store scroll clip separately — mask stays as container bounds for alignment
                 cx, cy, cw, ch = clip
-                # Intersect existing mask with scroll clip
-                mx, my = block['mask_x'], block['mask_y']
-                mw, mh = block['mask_width'], block['mask_height']
-                ix = max(mx, cx)
-                iy = max(my, cy)
-                ir = min(mx + mw, cx + cw)
-                ib = min(my + mh, cy + ch)
-                block['mask_x'] = ix
-                block['mask_y'] = iy
-                block['mask_width'] = max(0, ir - ix)
-                block['mask_height'] = max(0, ib - iy)
+                block['scroll_clip'] = [cx, cy, cw, ch]
         if image_blocks:
             for cid, block in image_blocks.items():
                 idx = self._container_id_to_index.get(cid, -1)
@@ -1261,6 +1253,13 @@ class XWZ_OT_start_ui(Operator):
                 align_v       = block.get('align_v', 'CENTER').upper()
             )
         
+        # Set scissor clips on text instances for scroll containers
+        for text_instance in text_op._text_instances:
+            cid = text_instance.container_id
+            block = parser_op.text_blocks.get(cid)
+            if block and 'scroll_clip' in block:
+                text_instance.clip = list(block['scroll_clip'])
+        
         for _container_id in parser_op.text_input_blocks:
             block = parser_op.text_input_blocks[_container_id]
             bpy.ops.xwz.create_text_input(
@@ -1466,6 +1465,7 @@ class XWZ_OT_start_ui(Operator):
                         container_id = text_instance.container_id
                         if container_id in parser_op.text_blocks:
                             block = parser_op.text_blocks[container_id]
+                            clip = list(block['scroll_clip']) if 'scroll_clip' in block else None
                             text_instance.update_all(
                                 text=block['text'],
                                 font_name=block['font'],
@@ -1473,6 +1473,7 @@ class XWZ_OT_start_ui(Operator):
                                 pos=[block['text_x'], block['text_y']],
                                 color=block['color'],
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
+                                clip=clip,
                                 align_h=block.get('align_h', 'LEFT').upper(),
                                 align_v=block.get('align_v', 'CENTER').upper()
                             )
@@ -1537,17 +1538,22 @@ class XWZ_OT_start_ui(Operator):
                                     continue
                                 sx, sy = acc[idx]
                                 if sx == 0.0 and sy == 0.0:
-                                    continue  # Not affected by scroll — keep original mask
+                                    continue
                                 
                                 block = parser_op.text_blocks[container_id]
                                 scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
                                 
-                                mask_x = block['mask_x']
-                                mask_y = block['mask_y']
-                                mask_w = block['mask_width']
-                                mask_h = block['mask_height']
-                                if scroll_clip:
-                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
+                                # Mask = scrolled container bounds (for alignment)
+                                c = hit_op._container_data[idx]
+                                c_pos = c.get('position', [0, 0])
+                                c_size = c.get('size', [0, 0])
+                                mask_x = int(c_pos[0])
+                                mask_y = int(c_pos[1])
+                                mask_w = int(c_size[0])
+                                mask_h = int(c_size[1])
+                                
+                                # Clip = scroll parent bounds (for pixel clipping via scissor)
+                                clip = list(scroll_clip) if scroll_clip else None
                                 
                                 text_instance.update_all(
                                     text=block['text'],
@@ -1556,6 +1562,7 @@ class XWZ_OT_start_ui(Operator):
                                     pos=[block['text_x'], block['text_y']],
                                     color=block['color'],
                                     mask=[mask_x, mask_y, mask_w, mask_h],
+                                    clip=clip,
                                     align_h=block.get('align_h', 'LEFT').upper(),
                                     align_v=block.get('align_v', 'CENTER').upper()
                                 )
@@ -1663,6 +1670,15 @@ class XWZ_OT_start_ui(Operator):
                             parser_op.image_blocks if hasattr(parser_op, 'image_blocks') else None,
                             parser_op.text_input_blocks if hasattr(parser_op, 'text_input_blocks') else None,
                         )
+                        
+                        # Update text instance clips from scroll_clip data
+                        for text_instance in text_op._text_instances:
+                            cid = text_instance.container_id
+                            block = parser_op.text_blocks.get(cid)
+                            if block and 'scroll_clip' in block:
+                                text_instance.clip = list(block['scroll_clip'])
+                            else:
+                                text_instance.clip = None
                         
                         # Reapply scroll offsets after resize
                         if _render_data._scroll_offsets:
