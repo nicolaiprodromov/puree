@@ -293,7 +293,8 @@ class UI():
             'border_radius', 'border_width',
             'font_size', 'text_x', 'text_y',
             'box_shadow_blur', 'opacity',
-            'flex_grow', 'flex_shrink', 'scrollbar_width'
+            'flex_grow', 'flex_shrink', 'scrollbar_width',
+            'line_height', 'letter_spacing'
             ]
 
         rotation_props = [
@@ -316,6 +317,7 @@ class UI():
             'align_items', 'align_self', 'align_content',
             'justify_content', 'justify_items', 'justify_self',
             'text_align', 'text_align_v',
+            'text_transform', 'text_decoration', 'text_overflow', 'white_space',
             'img_align_h', 'img_align_v',
             'grid_auto_flow'
             ]

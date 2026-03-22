@@ -17,9 +17,17 @@ class TextExtractor:
         self._extract_texts(self.ui.theme.root)
     def _extract_texts(self, container):
         if container.text != '':
+            text = container.text
+            transform = getattr(container.style, 'text_transform', 'NONE')
+            if transform == 'UPPERCASE':
+                text = text.upper()
+            elif transform == 'LOWERCASE':
+                text = text.lower()
+            elif transform == 'CAPITALIZE':
+                text = text.title()
             self.text_blocks[container.id] = {
                 'container_id'            : container.id,
-                'text'                    : container.text,
+                'text'                    : text,
                 'font'                    : container.font if container.font != '' else self.ui.theme.default_font,
                 'text_x'                  : int(self.json_data[self.flat_index]['position'][0] + container.style.text_x),
                 'text_y'                  : int(self.json_data[self.flat_index]['position'][1] + container.style.text_y),

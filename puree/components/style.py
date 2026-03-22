@@ -50,6 +50,12 @@ class Style():
         self.color_gradient_rot      : float       = 0.0
         self.text_align              : str         = 'LEFT'
         self.text_align_v            : str         = 'CENTER'
+        self.text_transform          : str         = 'NONE'
+        self.text_decoration         : str         = 'NONE'
+        self.line_height             : float       = 1.2
+        self.letter_spacing          : float       = 0.0
+        self.text_overflow           : str         = 'CLIP'
+        self.white_space             : str         = 'NORMAL'
 
         self.img_align_h            : str         = 'LEFT'
         self.img_align_v            : str         = 'TOP'
