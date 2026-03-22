@@ -963,8 +963,8 @@ class RenderPipeline:
             block['y_pos'] = int(orig['y_pos'] - sy)
 
     def _get_scroll_clip_for_container(self, idx, containers):
-        """Get the clip rect for a container considering scrollable ancestors.
-        Returns (clip_x, clip_y, clip_w, clip_h) or None if no scroll ancestor."""
+        """Get the clip rect for a container inside a scrollable ancestor.
+        Only clips to overflow:scroll/auto parents (overflow:hidden is handled by parser masks)."""
         n = len(containers)
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
@@ -979,7 +979,7 @@ class RenderPipeline:
                 break
             parent = containers[pidx]
             ot = parent.get('overflow_type', 'VISIBLE')
-            if ot in ('HIDDEN', 'SCROLL', 'AUTO'):
+            if ot in ('SCROLL', 'AUTO'):
                 pp = parent.get('position', [0, 0])
                 ps = parent.get('size', [100, 100])
                 px, py = float(pp[0]), float(pp[1])
@@ -1432,16 +1432,21 @@ class XWZ_OT_start_ui(Operator):
                         # Update GPU texture with scroll-adjusted positions
                         _render_data.update_data_texture(hit_op._container_data)
                         
-                        # Update text positions
+                        acc = _render_data._scroll_accumulation
+                        
+                        # Update text positions — only for containers affected by scroll
                         for text_instance in text_op._text_instances:
                             container_id = text_instance.container_id
                             if container_id in parser_op.text_blocks:
-                                block = parser_op.text_blocks[container_id]
-                                # Use scroll clip for text mask if available
                                 idx = _render_data._container_id_to_index.get(container_id, -1)
-                                scroll_clip = None
-                                if idx >= 0:
-                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                if idx < 0 or idx >= len(acc):
+                                    continue
+                                sx, sy = acc[idx]
+                                if sx == 0.0 and sy == 0.0:
+                                    continue  # Not affected by scroll — keep original mask
+                                
+                                block = parser_op.text_blocks[container_id]
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
                                 
                                 mask_x = block['mask_x']
                                 mask_y = block['mask_y']
@@ -1461,16 +1466,20 @@ class XWZ_OT_start_ui(Operator):
                                     align_v=block.get('align_v', 'CENTER').upper()
                                 )
                         
-                        # Update image positions
+                        # Update image positions — only for containers affected by scroll
                         from . import img_op
                         for image_instance in img_op._image_instances:
                             container_id = image_instance.container_id
                             if container_id in parser_op.image_blocks:
-                                block = parser_op.image_blocks[container_id]
                                 idx = _render_data._container_id_to_index.get(container_id, -1)
-                                scroll_clip = None
-                                if idx >= 0:
-                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                if idx < 0 or idx >= len(acc):
+                                    continue
+                                sx, sy = acc[idx]
+                                if sx == 0.0 and sy == 0.0:
+                                    continue  # Not affected by scroll — keep original mask
+                                
+                                block = parser_op.image_blocks[container_id]
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
                                 
                                 mask_x = block['mask_x']
                                 mask_y = block['mask_y']
@@ -1490,16 +1499,20 @@ class XWZ_OT_start_ui(Operator):
                                     opacity=block.get('opacity', 1.0)
                                 )
                         
-                        # Update text input positions
+                        # Update text input positions — only for containers affected by scroll
                         from . import text_input_op
                         for input_instance in text_input_op._text_input_instances:
                             container_id = input_instance.container_id
                             if container_id in parser_op.text_input_blocks:
-                                block = parser_op.text_input_blocks[container_id]
                                 idx = _render_data._container_id_to_index.get(container_id, -1)
-                                scroll_clip = None
-                                if idx >= 0:
-                                    scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                if idx < 0 or idx >= len(acc):
+                                    continue
+                                sx, sy = acc[idx]
+                                if sx == 0.0 and sy == 0.0:
+                                    continue  # Not affected by scroll — keep original mask
+                                
+                                block = parser_op.text_input_blocks[container_id]
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
                                 
                                 mask_x = block['mask_x']
                                 mask_y = block['mask_y']
