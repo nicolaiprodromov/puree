@@ -57,7 +57,7 @@ struct Container {
 };
 
 Container getContainer(int index) {
-    int offset = index * 64;
+    int offset = index * 68;
     Container c;
     c.display = int(container_data[offset + 0]);
     c.position = vec2(container_data[offset + 1], container_data[offset + 2]);

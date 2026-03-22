@@ -5,7 +5,7 @@
 
 void main() {
     int idx = int(containerIdx);
-    int texBase = idx * 16;
+    int texBase = idx * 17;
 
     // Texel 0: display, pos_x, pos_y, size_x
     vec4 t0 = texelFetch(containerData, ivec2(texBase, 0), 0);
@@ -34,6 +34,10 @@ void main() {
     vec2 pos = vec2(t0.y, t0.z);
     vec2 size = vec2(t0.w, t1.x);
     float borderWidth = t10.z;
+    // Texel 16: per-side border widths
+    vec4 t16 = texelFetch(containerData, ivec2(texBase + 16, 0), 0);
+    float maxBorderWidth = max(max(t16.x, t16.y), max(t16.z, t16.w));
+    if (maxBorderWidth > 0.0) borderWidth = maxBorderWidth;
     vec2 shadowOffset = t11.yz;
     float shadowBlur = t12.x;
 

@@ -67,6 +67,10 @@ class Style():
         self.border_radius_br         : float       = 0.0
         self.border_radius_bl         : float       = 0.0
         self.border_width             : float       = 0.0
+        self.border_width_top         : float       = 0.0
+        self.border_width_right       : float       = 0.0
+        self.border_width_bottom      : float       = 0.0
+        self.border_width_left        : float       = 0.0
         self.border_color             : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.border_color_2           : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.border_gradient_rot      : float       = 0.0
@@ -85,6 +89,10 @@ class Style():
         self.text_shadow_offset_x: float       = 0.0
         self.text_shadow_offset_y: float       = 0.0
         self.text_shadow_blur    : float       = 0.0
+
+        self.gradient_stops              : str = ''
+        self.hover_gradient_stops        : str = ''
+        self.click_gradient_stops        : str = ''
 
         self.display         : str  = 'FLEX'
         self.box_sizing      : str  = 'BORDER_BOX'

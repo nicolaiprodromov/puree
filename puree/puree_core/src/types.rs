@@ -40,6 +40,12 @@ pub struct Container {
     pub border_radius_br              : f32,
     pub border_radius_bl              : f32,
     pub border_width                  : f32,
+    pub border_width_top              : f32,
+    pub border_width_right            : f32,
+    pub border_width_bottom           : f32,
+    pub border_width_left             : f32,
+    
+    pub gradient_stops                : String,
     
     pub text                   : String,
     pub font                   : String,

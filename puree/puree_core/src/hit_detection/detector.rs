@@ -185,6 +185,11 @@ impl HitDetector {
             border_radius_br: dict.get_item("border_radius_br")?.unwrap().extract::<f32>()?,
             border_radius_bl: dict.get_item("border_radius_bl")?.unwrap().extract::<f32>()?,
             border_width: dict.get_item("border_width")?.unwrap().extract::<f32>()?,
+            border_width_top: dict.get_item("border_width_top").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+            border_width_right: dict.get_item("border_width_right").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+            border_width_bottom: dict.get_item("border_width_bottom").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+            border_width_left: dict.get_item("border_width_left").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+            gradient_stops: dict.get_item("gradient_stops").ok().and_then(|v| v.and_then(|v| v.extract::<String>().ok())).unwrap_or_default(),
             text: dict.get_item("text")?.unwrap().extract::<String>()?,
             font: dict.get_item("font")?.unwrap().extract::<String>()?,
             color,
@@ -271,7 +276,14 @@ impl HitDetector {
             };
         }
         
-        let is_in_bounds = container.contains_point(self.mouse_state.x, self.mouse_state.y);
+        let border_extent = f32::max(
+            f32::max(container.border_width_top, container.border_width_right),
+            f32::max(container.border_width_bottom, container.border_width_left),
+        ).max(container.border_width);
+        let is_in_bounds = self.mouse_state.x >= container.position[0] - border_extent
+            && self.mouse_state.x <= container.position[0] + container.size[0] + border_extent
+            && self.mouse_state.y >= container.position[1] - border_extent
+            && self.mouse_state.y <= container.position[1] + container.size[1] + border_extent;
         let has_children_hit = self.any_children_hovered(index);
         
         let is_hovered = is_in_bounds && !has_children_hit;

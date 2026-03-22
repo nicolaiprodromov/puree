@@ -293,6 +293,8 @@ class UI():
         float_props = [
             'border_radius', 'border_radius_tl', 'border_radius_tr',
             'border_radius_br', 'border_radius_bl', 'border_width',
+            'border_width_top', 'border_width_right',
+            'border_width_bottom', 'border_width_left',
             'font_size', 'text_x', 'text_y',
             'box_shadow_blur', 'opacity',
             'text_shadow_offset_x', 'text_shadow_offset_y', 'text_shadow_blur',
@@ -323,7 +325,8 @@ class UI():
             'text_align', 'text_align_v',
             'text_transform', 'text_decoration', 'text_overflow', 'white_space',
             'img_align_h', 'img_align_v',
-            'grid_auto_flow'
+            'grid_auto_flow',
+            'gradient_stops', 'hover_gradient_stops', 'click_gradient_stops'
             ]
         
         # These CSS dimension properties pass through as raw strings
@@ -1208,6 +1211,13 @@ class UI():
                 'border_radius_br': float(container.style.border_radius_br or container.style.border_radius),
                 'border_radius_bl': float(container.style.border_radius_bl or container.style.border_radius),
                 'border_width': float(container.style.border_width),
+                'border_width_top': float(container.style.border_width_top),
+                'border_width_right': float(container.style.border_width_right),
+                'border_width_bottom': float(container.style.border_width_bottom),
+                'border_width_left': float(container.style.border_width_left),
+                'gradient_stops': str(container.style.gradient_stops),
+                'hover_gradient_stops': str(container.style.hover_gradient_stops),
+                'click_gradient_stops': str(container.style.click_gradient_stops),
                 'color': list(container.style.color),
                 'color_2': list(container.style.color_2),
                 'color_gradient_rot': float(container.style.color_gradient_rot),

@@ -31,7 +31,7 @@ _modal_timer = None
 _hot_reload_enabled = False
 _debug_outlined_containers = set()
 
-CONTAINER_STRIDE = 64
+CONTAINER_STRIDE = 68
 
 class RenderPipeline:
     def __init__(self):
@@ -74,6 +74,8 @@ class RenderPipeline:
         self.native_shader   = None
         self.native_batch    = None
         self.data_texture    = None
+        self.gradient_texture = None
+        self._gradient_row_map = {}  # gradient_key → row index
         self.container_count = 0
         self._data_needs_update = True
         # Hot reload throttle
@@ -210,6 +212,9 @@ class RenderPipeline:
             shader_info.push_constant('FLOAT', 'clickIndex')
             
             shader_info.sampler(0, 'FLOAT_2D', 'containerData')
+            shader_info.sampler(1, 'FLOAT_2D', 'gradientTex')
+            
+            shader_info.push_constant('FLOAT', 'gradTexHeight')
             
             interface = gpu.types.GPUStageInterfaceInfo("container_interface")
             interface.flat('FLOAT', 'vContainerIdx')
@@ -260,9 +265,9 @@ class RenderPipeline:
     
     def _pack_container_data_texture(self, containers):
         """Pack container data into flat float32 array for RGBA32F data texture.
-        Layout: 16 texels (64 floats) per container."""
+        Layout: 17 texels (68 floats) per container."""
         n = len(containers)
-        data = np.zeros(n * 64, dtype=np.float32)
+        data = np.zeros(n * 68, dtype=np.float32)
         
         vis_clips = self._precompute_visibility_and_clips(containers)
         
@@ -276,8 +281,8 @@ class RenderPipeline:
             struct[58] = ch
             struct[59] = acc_opacity
             
-            offset = i * 64
-            data[offset:offset + 64] = struct
+            offset = i * 68
+            data[offset:offset + 68] = struct
         
         return data
     
@@ -288,8 +293,11 @@ class RenderPipeline:
             return False
         
         try:
+            # Build gradient texture first (populates _gradient_row_map for struct packing)
+            self._build_gradient_texture(containers)
+            
             data = self._pack_container_data_texture(containers)
-            tex_width = n * 16
+            tex_width = n * 17
             
             buf = gpu.types.Buffer('FLOAT', len(data), data)
             self.data_texture = gpu.types.GPUTexture(
@@ -585,6 +593,17 @@ class RenderPipeline:
             
             self.native_shader.bind()
             self.native_shader.uniform_sampler("containerData", self.data_texture)
+            if self.gradient_texture:
+                self.native_shader.uniform_sampler("gradientTex", self.gradient_texture)
+                self.native_shader.uniform_float("gradTexHeight", float(self.gradient_texture.height))
+            else:
+                # Create a 1x1 dummy texture for the sampler
+                if not hasattr(self, '_dummy_grad_tex') or self._dummy_grad_tex is None:
+                    dummy = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+                    dbuf = gpu.types.Buffer('FLOAT', 4, dummy)
+                    self._dummy_grad_tex = gpu.types.GPUTexture((1, 1), format='RGBA32F', data=dbuf)
+                self.native_shader.uniform_sampler("gradientTex", self._dummy_grad_tex)
+                self.native_shader.uniform_float("gradTexHeight", 1.0)
             self.native_shader.uniform_float("viewportWidth", float(self.region_size[0]))
             self.native_shader.uniform_float("viewportHeight", float(self.region_size[1]))
             self.native_shader.uniform_float("hoverIndex", float(self._current_hover_index))
@@ -679,8 +698,86 @@ class RenderPipeline:
         self.native_shader = None
         self.native_batch = None
         self.container_count = 0
+
+    def _parse_gradient_stops(self, stops_str):
+        """Parse gradient stops string: 'ANGLE R G B A POS R G B A POS ...'
+        Returns (angle_deg, [(r,g,b,a,pos), ...]) or None if empty/invalid."""
+        if not stops_str or not stops_str.strip():
+            return None
+        parts = stops_str.strip().split()
+        if len(parts) < 6:  # need at least angle + 1 stop (5 values)
+            return None
+        try:
+            angle = float(parts[0])
+            stops = []
+            i = 1
+            while i + 4 < len(parts):
+                r, g, b, a, pos = float(parts[i]), float(parts[i+1]), float(parts[i+2]), float(parts[i+3]), float(parts[i+4])
+                stops.append((r, g, b, a, pos))
+                i += 5
+            if len(stops) < 2:
+                return None
+            return (angle, stops)
+        except (ValueError, IndexError):
+            return None
+
+    def _prerender_gradient_row(self, stops, width=256):
+        """Pre-render gradient stops into a 256-wide RGBA float array."""
+        row = np.zeros(width * 4, dtype=np.float32)
+        for x in range(width):
+            t = x / max(width - 1, 1)
+            # Find surrounding stops
+            for j in range(len(stops) - 1):
+                if stops[j + 1][4] >= t or j == len(stops) - 2:
+                    span = stops[j + 1][4] - stops[j][4]
+                    local_t = (t - stops[j][4]) / max(span, 1e-6) if span > 0 else 0.0
+                    local_t = max(0.0, min(1.0, local_t))
+                    for c in range(4):
+                        row[x * 4 + c] = stops[j][c] + (stops[j + 1][c] - stops[j][c]) * local_t
+                    break
+        return row
+
+    def _build_gradient_texture(self, containers):
+        """Scan containers for multi-stop gradients, pre-render them into a 2D texture.
+        Returns True if texture was created/updated, populates self._gradient_row_map."""
+        gradient_defs = {}  # stops_str → (angle, stops)
+        
+        for c in containers:
+            for key in ('gradient_stops', 'hover_gradient_stops', 'click_gradient_stops'):
+                stops_str = c.get(key, '')
+                if stops_str and stops_str not in gradient_defs:
+                    parsed = self._parse_gradient_stops(stops_str)
+                    if parsed:
+                        gradient_defs[stops_str] = parsed
+        
+        if not gradient_defs:
+            self._gradient_row_map = {}
+            self.gradient_texture = None
+            return False
+        
+        width = 256
+        height = len(gradient_defs)
+        data = np.zeros(width * height * 4, dtype=np.float32)
+        
+        self._gradient_row_map = {}
+        for i, (stops_str, (angle, stops)) in enumerate(gradient_defs.items()):
+            row = self._prerender_gradient_row(stops, width)
+            data[i * width * 4:(i + 1) * width * 4] = row
+            self._gradient_row_map[stops_str] = float(i)
+        
+        try:
+            buf = gpu.types.Buffer('FLOAT', len(data), data)
+            self.gradient_texture = gpu.types.GPUTexture(
+                (width, height), format='RGBA32F', data=buf,
+            )
+            return True
+        except Exception:
+            traceback.print_exc()
+            self.gradient_texture = None
+            return False
+
     def _build_container_struct(self, container):
-        """Build the 64-float struct for a single container (58 base + 6 precomputed)."""
+        """Build the 68-float struct for a single container (17 texels)."""
         bg_color = container.get('background_color', [1, 1, 1, 1])
         bg_color_2 = container.get('background_color_2', [1, 1, 1, 1])
         hover_bg_color = container.get('hover_background_color', container_default.hover_background_color)
@@ -695,6 +792,21 @@ class RenderPipeline:
         shadow_color = container.get('box_shadow_color', [0, 0, 0, 0])
         
         br = container.get('border_radius', 0.0)
+
+        # Gradient texture row indices (-1 = no gradient texture, use 2-color mix)
+        grad_row_normal = self._gradient_row_map.get(
+            container.get('gradient_stops', ''), -1.0)
+        grad_row_hover = self._gradient_row_map.get(
+            container.get('hover_gradient_stops', ''), -1.0)
+        grad_row_click = self._gradient_row_map.get(
+            container.get('click_gradient_stops', ''), -1.0)
+
+        # Per-side border widths (0 = use uniform border_width)
+        bw = container.get('border_width', 0.0)
+        bw_top = container.get('border_width_top', 0.0) or bw
+        bw_right = container.get('border_width_right', 0.0) or bw
+        bw_bottom = container.get('border_width_bottom', 0.0) or bw
+        bw_left = container.get('border_width_left', 0.0) or bw
         
         return [
             int(container.get('display', False)),
@@ -725,9 +837,16 @@ class RenderPipeline:
             0.0, 0.0,           # clip_x, clip_y
             99999.0, 99999.0,   # clip_w, clip_h
             1.0,                 # accumulated opacity
-            # Texel 15: radius_bl + padding
+            # Texel 15: radius_bl + gradient row indices
             container.get('border_radius_bl', br),
-            0.0, 0.0, 0.0,
+            float(grad_row_normal),
+            float(grad_row_hover),
+            float(grad_row_click),
+            # Texel 16: per-side border widths
+            float(bw_top),
+            float(bw_right),
+            float(bw_bottom),
+            float(bw_left),
         ]
 
     def _precompute_visibility_and_clips(self, containers):

@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use lightningcss::stylesheet::{ParserOptions, PrinterOptions, StyleSheet};
 use std::collections::HashMap;
+use crate::color::parse_color;
 
 // ── Owned selector representation ──────────────────────────────────
 
@@ -150,7 +151,7 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
     if value == "none" || value == "transparent" || value.is_empty() {
         return vec![("background-color".into(), "transparent".into())];
     }
-    // Handle linear-gradient(angle, color1, color2)
+    // Handle linear-gradient(angle, color1, color2, ...)
     if value.starts_with("linear-gradient(") && value.ends_with(')') {
         let inner = &value[16..value.len()-1]; // strip "linear-gradient(" and ")"
         // Tokenize by comma, respecting nested parentheses
@@ -159,18 +160,46 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
             let mut result = Vec::new();
             let first = args[0].trim();
             let mut color_start_idx = 0;
+            let mut angle_deg: f64 = 180.0;
             // Check if first arg is an angle or direction keyword
             if first.ends_with("deg") || first.ends_with("rad") || first.ends_with("turn")
                 || first.starts_with("to ") {
-                let angle = parse_gradient_angle(first);
-                result.push(("background-gradient-rot".into(), format!("{}deg", angle)));
+                angle_deg = parse_gradient_angle(first);
                 color_start_idx = 1;
             }
-            // First color
+
+            let color_stops = &args[color_start_idx..];
+
+            if color_stops.len() >= 3 {
+                // Multi-stop gradient: emit --gradient-stops encoding
+                let mut colors = Vec::new();
+                let mut positions: Vec<Option<f32>> = Vec::new();
+                for stop in color_stops {
+                    let (color_str, pos) = parse_color_stop(stop);
+                    colors.push(color_str);
+                    positions.push(pos);
+                }
+                auto_distribute_positions(&mut positions);
+
+                let mut parts_str = format!("{}", angle_deg);
+                for (i, color_str) in colors.iter().enumerate() {
+                    if let Ok(rgba) = parse_color(color_str) {
+                        let pos = positions[i].unwrap_or(0.0);
+                        parts_str.push_str(&format!(" {} {} {} {} {}",
+                            rgba[0], rgba[1], rgba[2], rgba[3], pos));
+                    }
+                }
+
+                result.push(("gradient-stops".into(), parts_str));
+                result.push(("background-color".into(), colors[0].clone()));
+                return result;
+            }
+
+            // 2-stop gradient (original behavior)
+            result.push(("background-gradient-rot".into(), format!("{}deg", angle_deg)));
             if color_start_idx < args.len() {
                 result.push(("background-color".into(), args[color_start_idx].trim().to_string()));
             }
-            // Second color
             if color_start_idx + 1 < args.len() {
                 result.push(("background-color-2".into(), args[color_start_idx + 1].trim().to_string()));
             }
@@ -179,6 +208,60 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
     }
     // Solid color fallback
     vec![("background-color".into(), value.to_string())]
+}
+
+/// Parse a single color stop into (color_string, optional_position_0_to_1).
+fn parse_color_stop(stop_str: &str) -> (String, Option<f32>) {
+    let s = stop_str.trim();
+    // Find the last space outside parentheses
+    let mut last_space = None;
+    let mut depth = 0i32;
+    for (i, ch) in s.char_indices() {
+        if ch == '(' { depth += 1; }
+        if ch == ')' { depth -= 1; }
+        if ch == ' ' && depth == 0 {
+            last_space = Some(i);
+        }
+    }
+    if let Some(sp) = last_space {
+        let potential_pos = s[sp + 1..].trim();
+        if let Some(pct) = potential_pos.strip_suffix('%') {
+            if let Ok(val) = pct.trim().parse::<f32>() {
+                return (s[..sp].trim().to_string(), Some(val / 100.0));
+            }
+        }
+    }
+    (s.to_string(), None)
+}
+
+/// Auto-distribute positions for color stops following CSS rules:
+/// first=0%, last=100%, gaps evenly distributed between neighbors.
+fn auto_distribute_positions(positions: &mut [Option<f32>]) {
+    let n = positions.len();
+    if n == 0 { return; }
+    if positions[0].is_none() { positions[0] = Some(0.0); }
+    if positions[n - 1].is_none() { positions[n - 1] = Some(1.0); }
+
+    let mut i = 1;
+    while i < n {
+        if positions[i].is_some() {
+            i += 1;
+            continue;
+        }
+        let start = i - 1;
+        let mut end = i;
+        while end < n && positions[end].is_none() {
+            end += 1;
+        }
+        let start_pos = positions[start].unwrap();
+        let end_pos = positions[end].unwrap();
+        let gap_count = (end - start) as f32;
+        for j in (start + 1)..end {
+            let t = (j - start) as f32 / gap_count;
+            positions[j] = Some(start_pos + t * (end_pos - start_pos));
+        }
+        i = end + 1;
+    }
 }
 
 /// Parse gradient angle from CSS syntax.
@@ -398,6 +481,27 @@ fn expand_border_radius(value: &str) -> Vec<(String, String)> {
         ("border-radius-tr".into(), tr.to_string()),
         ("border-radius-br".into(), br.to_string()),
         ("border-radius-bl".into(), bl.to_string()),
+    ]
+}
+
+/// Expand `border-width` shorthand into per-side border-width properties.
+/// Follows CSS spec: 1 value → all, 2 → top+bottom / left+right, 3 → top / left+right / bottom, 4 → top right bottom left.
+fn expand_border_width(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    let (top, right, bottom, left) = match parts.len() {
+        1 => (parts[0], parts[0], parts[0], parts[0]),
+        2 => (parts[0], parts[1], parts[0], parts[1]),
+        3 => (parts[0], parts[1], parts[2], parts[1]),
+        4 => (parts[0], parts[1], parts[2], parts[3]),
+        _ => (parts[0], parts[0], parts[0], parts[0]),
+    };
+
+    vec![
+        ("border-top-width".into(), top.to_string()),
+        ("border-right-width".into(), right.to_string()),
+        ("border-bottom-width".into(), bottom.to_string()),
+        ("border-left-width".into(), left.to_string()),
     ]
 }
 
@@ -1167,6 +1271,18 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                     // Expand border-top/right/bottom/left shorthands
                     if matches!(prop_name, "border-top" | "border-right" | "border-bottom" | "border-left") {
                         for (expanded_prop, expanded_val) in expand_border_side(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand border-width shorthand into per-side widths
+                    if prop_name == "border-width" && value.contains(' ') {
+                        for (expanded_prop, expanded_val) in expand_border_width(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
                             } else {

@@ -209,6 +209,11 @@ impl ContainerProcessor {
                 border_radius_br: style_dict.get_item("border_radius_br")?.unwrap().extract::<f32>()?,
                 border_radius_bl: style_dict.get_item("border_radius_bl")?.unwrap().extract::<f32>()?,
                 border_width: style_dict.get_item("border_width")?.unwrap().extract::<f32>()?,
+                border_width_top: style_dict.get_item("border_width_top").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+                border_width_right: style_dict.get_item("border_width_right").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+                border_width_bottom: style_dict.get_item("border_width_bottom").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+                border_width_left: style_dict.get_item("border_width_left").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
+                gradient_stops: style_dict.get_item("gradient_stops").ok().and_then(|v| v.and_then(|v| v.extract::<String>().ok())).unwrap_or_default(),
                 color: self.extract_color_array(style_dict, "color")?,
                 color_2: self.extract_color_array(style_dict, "color_2")?,
                 color_gradient_rot: style_dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
@@ -331,6 +336,11 @@ impl ContainerProcessor {
         dict.set_item("border_radius_br", container.border_radius_br)?;
         dict.set_item("border_radius_bl", container.border_radius_bl)?;
         dict.set_item("border_width", container.border_width)?;
+        dict.set_item("border_width_top", container.border_width_top)?;
+        dict.set_item("border_width_right", container.border_width_right)?;
+        dict.set_item("border_width_bottom", container.border_width_bottom)?;
+        dict.set_item("border_width_left", container.border_width_left)?;
+        dict.set_item("gradient_stops", &container.gradient_stops)?;
         
         let color = PyList::new(py, &container.color);
         dict.set_item("color", color)?;

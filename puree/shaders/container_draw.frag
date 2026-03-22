@@ -2,7 +2,7 @@
 // SDF rendering with data texture lookup. Same visual output as the compute shader.
 // Outputs premultiplied alpha for correct hardware blending.
 //
-// Data texture layout per container (16 RGBA32F texels = 64 floats):
+// Data texture layout per container (17 RGBA32F texels = 68 floats):
 //   Texel 0:  display, pos_x, pos_y, size_x
 //   Texel 1:  size_y, color_r, color_g, color_b
 //   Texel 2:  color_a, color1_r, color1_g, color1_b
@@ -18,7 +18,8 @@
 //   Texel 12: shadow_blur, shadow_r, shadow_g, shadow_b
 //   Texel 13: shadow_a, passive, visible, clip_x
 //   Texel 14: clip_y, clip_w, clip_h, opacity
-//   Texel 15: radius_bl, 0, 0, 0
+//   Texel 15: radius_bl, grad_row_normal, grad_row_hover, grad_row_click
+//   Texel 16: border_top, border_right, border_bottom, border_left
 
 // Interleaved Gradient Noise (Jorge Jimenez) for dithered gradients
 float gradientNoise(vec2 coord) {
@@ -33,6 +34,20 @@ vec4 getGradientColor(vec4 c1, vec4 c2, float rotDeg, vec2 pixel, vec2 origin, v
     float maxProj = abs(dot(sz * 0.5, abs(dir)));
     float t = clamp((proj + maxProj) / (2.0 * maxProj), 0.0, 1.0);
     vec4 gc = mix(c1, c2, t);
+    float n = gradientNoise(pixel);
+    float ds = 1.0 / 255.0;
+    return vec4(gc.rgb + vec3(n * ds - ds * 0.5), gc.a);
+}
+
+vec4 sampleGradientTexture(float gradRow, float rotDeg, vec2 pixel, vec2 origin, vec2 sz) {
+    float rad = radians(rotDeg);
+    vec2 dir = vec2(cos(rad), sin(rad));
+    vec2 rel = pixel - origin - sz * 0.5;
+    float proj = dot(rel, dir);
+    float maxProj = abs(dot(sz * 0.5, abs(dir)));
+    float t = clamp((proj + maxProj) / (2.0 * maxProj), 0.0, 1.0);
+    vec2 uv = vec2(t, (gradRow + 0.5) / gradTexHeight);
+    vec4 gc = texture(gradientTex, uv);
     float n = gradientNoise(pixel);
     float ds = 1.0 / 255.0;
     return vec4(gc.rgb + vec3(n * ds - ds * 0.5), gc.a);
@@ -54,9 +69,9 @@ float sdfAA(float dist) {
 
 void main() {
     int idx = int(vContainerIdx);
-    int texBase = idx * 16;
+    int texBase = idx * 17;
 
-    // Batch-read all 16 texels
+    // Batch-read all 17 texels
     vec4 t0  = texelFetch(containerData, ivec2(texBase + 0,  0), 0);
     vec4 t1  = texelFetch(containerData, ivec2(texBase + 1,  0), 0);
     vec4 t2  = texelFetch(containerData, ivec2(texBase + 2,  0), 0);
@@ -73,6 +88,7 @@ void main() {
     vec4 t13 = texelFetch(containerData, ivec2(texBase + 13, 0), 0);
     vec4 t14 = texelFetch(containerData, ivec2(texBase + 14, 0), 0);
     vec4 t15 = texelFetch(containerData, ivec2(texBase + 15, 0), 0);
+    vec4 t16 = texelFetch(containerData, ivec2(texBase + 16, 0), 0);
 
     // Unpack container properties
     float display  = t0.x;
@@ -103,6 +119,17 @@ void main() {
     float clipW    = t14.y;
     float clipH    = t14.z;
     float opacity  = t14.w;
+
+    // Gradient texture row indices (-1 = use 2-color mix path)
+    float gradRowNormal = t15.y;
+    float gradRowHover  = t15.z;
+    float gradRowClick  = t15.w;
+
+    // Per-side border widths (if any > 0, use per-side; else uniform bWidth)
+    vec4 bSides = t16;  // top, right, bottom, left
+    float maxBSide = max(max(bSides.x, bSides.y), max(bSides.z, bSides.w));
+    bool usePerSideBorder = (maxBSide > 0.0);
+    if (usePerSideBorder) bWidth = maxBSide;  // expand outer bound to max
 
     // Early-out for hidden containers (safety net — vertex shader already culls these)
     if (display < 0.5 || visible < 0.5) discard;
@@ -148,19 +175,26 @@ void main() {
         bool isHovered = (int(hoverIndex) == idx) && (passive < 0.5);
         bool isClicked = (int(clickIndex) == idx) && (passive < 0.5);
 
+        // Resolve background color (solid, 2-stop gradient, or multi-stop gradient texture)
         vec4 baseColor = color;
-        if (color1.a > 0.0) {
+        if (gradRowNormal >= 0.0) {
+            baseColor = sampleGradientTexture(gradRowNormal, gradRot, px, pos, sz);
+        } else if (color1.a > 0.0) {
             baseColor = getGradientColor(color, color1, gradRot, px, pos, sz);
         }
 
         if (isClicked && cColor.a >= 0.0) {
             baseColor = cColor;
-            if (cColor1.a > 0.0) {
+            if (gradRowClick >= 0.0) {
+                baseColor = sampleGradientTexture(gradRowClick, cGradRot, px, pos, sz);
+            } else if (cColor1.a > 0.0) {
                 baseColor = getGradientColor(cColor, cColor1, cGradRot, px, pos, sz);
             }
         } else if (isHovered && hColor.a >= 0.0) {
             baseColor = hColor;
-            if (hColor1.a > 0.0) {
+            if (gradRowHover >= 0.0) {
+                baseColor = sampleGradientTexture(gradRowHover, hGradRot, px, pos, sz);
+            } else if (hColor1.a > 0.0) {
                 baseColor = getGradientColor(hColor, hColor1, hGradRot, px, pos, sz);
             }
         }
@@ -169,15 +203,32 @@ void main() {
             float a = sdfAA(dist);
             float fa = baseColor.a * a;
             bodyResult = vec4(baseColor.rgb * fa, fa);
-        } else if (dist <= bWidth && bColor.a > 0.0 && bWidth > 0.0) {
-            vec4 bc = bColor;
-            if (bColor1.a > 0.0) {
-                bc = getGradientColor(bColor, bColor1, bGradRot, px, pos, sz);
+        } else if (bColor.a > 0.0 && bWidth > 0.0) {
+            // Determine effective border width for this pixel
+            float effectiveBW = bWidth;
+            if (usePerSideBorder) {
+                // Edge distances: how far this pixel is from each edge (inward)
+                float edgeTop    = px.y - pos.y;
+                float edgeBottom = (pos.y + sz.y) - px.y;
+                float edgeLeft   = px.x - pos.x;
+                float edgeRight  = (pos.x + sz.x) - px.x;
+                // Dominant side = smallest inward distance
+                float minEdge = min(min(edgeTop, edgeBottom), min(edgeLeft, edgeRight));
+                effectiveBW = (minEdge == edgeTop)    ? bSides.x :
+                              (minEdge == edgeRight)  ? bSides.y :
+                              (minEdge == edgeBottom) ? bSides.z : bSides.w;
             }
-            float bd = abs(dist - bWidth * 0.5) - bWidth * 0.5;
-            float ba = sdfAA(bd);
-            float fba = bc.a * ba;
-            bodyResult = vec4(bc.rgb * fba, fba);
+
+            if (dist <= effectiveBW) {
+                vec4 bc = bColor;
+                if (bColor1.a > 0.0) {
+                    bc = getGradientColor(bColor, bColor1, bGradRot, px, pos, sz);
+                }
+                float bd = abs(dist - effectiveBW * 0.5) - effectiveBW * 0.5;
+                float ba = sdfAA(bd);
+                float fba = bc.a * ba;
+                bodyResult = vec4(bc.rgb * fba, fba);
+            }
         }
     }
 
