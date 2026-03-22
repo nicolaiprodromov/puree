@@ -1532,7 +1532,7 @@ class XWZ_OT_start_ui(Operator):
                         
                         acc = _render_data._scroll_accumulation
                         
-                        # Update text positions — only for containers affected by scroll
+                        # Update text positions — only for containers inside scroll areas
                         for text_instance in text_op._text_instances:
                             container_id = text_instance.container_id
                             if container_id in parser_op.text_blocks:
@@ -1540,11 +1540,13 @@ class XWZ_OT_start_ui(Operator):
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
-                                if sx == 0.0 and sy == 0.0:
-                                    continue
                                 
                                 block = parser_op.text_blocks[container_id]
                                 scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                # Skip containers not in a scroll area
+                                if not scroll_clip and sx == 0.0 and sy == 0.0:
+                                    continue
                                 
                                 # Compute scrolled mask using container's float original position
                                 # (same source as GPU shader) to guarantee perfect pixel sync
@@ -1578,7 +1580,7 @@ class XWZ_OT_start_ui(Operator):
                                     align_v=block.get('align_v', 'CENTER').upper()
                                 )
                         
-                        # Update image positions — only for containers affected by scroll
+                        # Update image positions — only for containers inside scroll areas
                         from . import img_op
                         for image_instance in img_op._image_instances:
                             container_id = image_instance.container_id
@@ -1587,11 +1589,12 @@ class XWZ_OT_start_ui(Operator):
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
-                                if sx == 0.0 and sy == 0.0:
-                                    continue  # Not affected by scroll — keep original mask
                                 
                                 block = parser_op.image_blocks[container_id]
                                 scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                if not scroll_clip and sx == 0.0 and sy == 0.0:
+                                    continue
                                 
                                 mask_x = block['mask_x']
                                 mask_y = block['mask_y']
@@ -1611,7 +1614,7 @@ class XWZ_OT_start_ui(Operator):
                                     opacity=block.get('opacity', 1.0)
                                 )
                         
-                        # Update text input positions — only for containers affected by scroll
+                        # Update text input positions — only for containers inside scroll areas
                         from . import text_input_op
                         for input_instance in text_input_op._text_input_instances:
                             container_id = input_instance.container_id
@@ -1620,8 +1623,12 @@ class XWZ_OT_start_ui(Operator):
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
-                                if sx == 0.0 and sy == 0.0:
-                                    continue  # Not affected by scroll — keep original mask
+                                
+                                block = parser_op.text_input_blocks[container_id]
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
+                                
+                                if not scroll_clip and sx == 0.0 and sy == 0.0:
+                                    continue
                                 
                                 block = parser_op.text_input_blocks[container_id]
                                 scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
