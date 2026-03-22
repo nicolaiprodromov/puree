@@ -311,7 +311,7 @@ class UI():
         
         string_props = [
             'overflow', 'overflow_x', 'overflow_y',
-            'display', 'position',
+            'display', 'position', 'box_sizing',
             'pointer_events', 'visibility',
             'font_weight', 'font_style',
             'flex_direction', 'flex_wrap',
@@ -992,10 +992,14 @@ class UI():
                 except (ValueError, TypeError):
                     pass
 
+            # Box sizing
+            box_sizing_str = s.box_sizing.lower() if hasattr(s, 'box_sizing') and s.box_sizing else 'border-box'
+            box_sizing_val = BoxSizing.CONTENT if box_sizing_str in ('content_box', 'content-box') else BoxSizing.BORDER
+
             node = Node(
                 display         = display_val,
                 position        = position_val,
-                box_sizing      = BoxSizing.BORDER,
+                box_sizing      = box_sizing_val,
                 overflow_x      = overflow_x_val,
                 overflow_y      = overflow_y_val,
                 scrollbar_width = float(s.scrollbar_width) if hasattr(s, 'scrollbar_width') and s.scrollbar_width else 0.0,

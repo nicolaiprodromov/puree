@@ -72,6 +72,7 @@ class Style():
         self.box_shadow_blur  : float       = 0.0
 
         self.display         : str  = 'FLEX'
+        self.box_sizing      : str  = 'BORDER_BOX'
         self.overflow        : str  = 'VISIBLE'
         self.overflow_x      : str  = ''
         self.overflow_y      : str  = ''
@@ -81,7 +82,7 @@ class Style():
         self.visibility      : str  = 'VISIBLE'
         self.z_index         : int  = 0
         
-        self.align_items    : str = 'START'
+        self.align_items    : str = 'STRETCH'
         self.justify_items  : str = 'START'
         self.align_self     : str = ''
         self.justify_self   : str = ''
