@@ -41,16 +41,85 @@ const INHERITED_PROPERTIES: &[&str] = &["text-color", "text-scale", "text-align-
 
 // ── Property name mapping (CSS → puree internal) ───────────────────
 
-fn map_property_name(css_name: &str) -> &str {
-    match css_name {
-        // Only map unambiguous standard CSS names that don't exist in puree
-        "background-color" => "color",
-        "font-size" => "text-scale",
-        "text-align" => "text-align-h",
-        // `color` is intentionally NOT remapped — in puree it means background fill,
-        // and existing SCSS uses it that way. Users use `text-color` explicitly.
-        _ => css_name,
+fn map_property_name(css_name: &str) -> String {
+    // Strip -- prefix from custom properties (Puree extensions)
+    let name = if css_name.starts_with("--") {
+        &css_name[2..]
+    } else {
+        css_name
+    };
+
+    match name {
+        // Standard CSS → puree internal
+        "color" => "text-color".to_string(),             // CSS color = text color
+        "background-color" => "color".to_string(),       // CSS background-color = puree fill
+        "font-size" => "text-scale".to_string(),
+        "text-align" => "text-align-h".to_string(),
+        "opacity" => "img-opacity".to_string(),
+        _ => name.to_string(),
     }
+}
+
+/// Parse `box-shadow: offset-x offset-y blur-radius color` shorthand into individual properties.
+/// Returns vec of (property_name, value) pairs.
+fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value == "none" || value.is_empty() {
+        return vec![
+            ("box-shadow-color".into(), "transparent".into()),
+            ("box-shadow-offset".into(), "0px 0px".into()),
+            ("box-shadow-blur".into(), "0".into()),
+        ];
+    }
+
+    // Tokenize respecting parentheses (for rgba(...) etc)
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut paren_depth = 0;
+
+    for ch in value.chars() {
+        if ch == '(' { paren_depth += 1; }
+        if ch == ')' { paren_depth -= 1; }
+        if ch == ' ' && paren_depth == 0 {
+            if !current.is_empty() {
+                parts.push(current.clone());
+                current.clear();
+            }
+        } else {
+            current.push(ch);
+        }
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    // Separate numeric parts (offsets/blur/spread) from color
+    let mut numbers = Vec::new();
+    let mut color_str = String::new();
+
+    for part in &parts {
+        if part == "inset" {
+            continue;
+        }
+        let trimmed = part.trim_end_matches("px");
+        if trimmed.parse::<f64>().is_ok() {
+            numbers.push(part.clone());
+        } else {
+            color_str = part.clone();
+        }
+    }
+
+    // Standard: offset-x offset-y [blur-radius] [spread-radius] color
+    let offset_x = numbers.first().cloned().unwrap_or_else(|| "0px".into());
+    let offset_y = numbers.get(1).cloned().unwrap_or_else(|| "0px".into());
+    let blur = numbers.get(2).cloned().unwrap_or_else(|| "0px".into());
+    // spread (numbers[3]) is ignored — puree doesn't support it
+
+    vec![
+        ("box-shadow-color".into(), if color_str.is_empty() { "#000".into() } else { color_str }),
+        ("box-shadow-offset".into(), format!("{} {}", offset_x, offset_y)),
+        ("box-shadow-blur".into(), blur),
+    ]
 }
 
 // ── Pseudo-class category ──────────────────────────────────────────
@@ -266,7 +335,19 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
                         value = value.replace("!important", "").trim().to_string();
                     }
 
-                    let mapped_name = map_property_name(prop_name).to_string();
+                    // Expand box-shadow shorthand into multiple properties
+                    if prop_name == "box-shadow" {
+                        for (expanded_prop, expanded_val) in expand_box_shadow(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    let mapped_name = map_property_name(prop_name);
                     if is_important {
                         important_decls.insert(mapped_name, value);
                     } else {

@@ -234,24 +234,28 @@ class UI():
                                                     
                                                     for child_attr_name, child_attr_value in attr_value.items():
                                                         if not isinstance(child_attr_value, dict):
-                                                            if hasattr(namespaced_child, child_attr_name):
-                                                                substituted_value = substitute_params(child_attr_value, params)
-                                                                if child_attr_name == 'style' and isinstance(substituted_value, str):
-                                                                    if substituted_value == component_base_name:
-                                                                        substituted_value = child_container.id
-                                                                    elif substituted_value.startswith(component_base_name + '_'):
-                                                                        substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
+                                                            substituted_value = substitute_params(child_attr_value, params)
+                                                            # Handle class: (and legacy style:) with namespace remapping
+                                                            if child_attr_name in ('class', 'style') and isinstance(substituted_value, str):
+                                                                if substituted_value == component_base_name:
+                                                                    substituted_value = child_container.id
+                                                                elif substituted_value.startswith(component_base_name + '_'):
+                                                                    substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
+                                                                namespaced_child.classes = [substituted_value]
+                                                            elif hasattr(namespaced_child, child_attr_name):
                                                                 setattr(namespaced_child, child_attr_name.replace('-', '_'), substituted_value)
                                                     
                                                     load_component_with_namespace(attr_value, namespaced_child, namespaced_child.id, params)
                                                 else:
-                                                    if hasattr(parent, attr_name):
-                                                        substituted_value = substitute_params(attr_value, params)
-                                                        if attr_name == 'style' and isinstance(substituted_value, str):
-                                                            if substituted_value == component_base_name:
-                                                                substituted_value = child_container.id
-                                                            elif substituted_value.startswith(component_base_name + '_'):
-                                                                substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
+                                                    substituted_value = substitute_params(attr_value, params)
+                                                    # Handle class: (and legacy style:) with namespace remapping
+                                                    if attr_name in ('class', 'style') and isinstance(substituted_value, str):
+                                                        if substituted_value == component_base_name:
+                                                            substituted_value = child_container.id
+                                                        elif substituted_value.startswith(component_base_name + '_'):
+                                                            substituted_value = substituted_value.replace(component_base_name, child_container.id, 1)
+                                                        parent.classes = [substituted_value]
+                                                    elif hasattr(parent, attr_name):
                                                         setattr(parent, attr_name.replace('-', '_'), substituted_value)
                                         
                                         load_component_with_namespace(component_data[component_key], child_container, attr_name, component_params)

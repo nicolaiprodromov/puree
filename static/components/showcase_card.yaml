@@ -1,34 +1,34 @@
 showcase_card:
-  style: showcase_card
+  class: showcase_card
 
   showcase_card_tag:
-    style: showcase_card_tag
+    class: showcase_card_tag
     text: "{{card_tag, 'Feature'}}"
     font: NeueMontreal-Bold
     passive: true
 
   showcase_card_title:
-    style: showcase_card_title
+    class: showcase_card_title
     text: "{{card_title, 'Components that feel deliberately crafted.'}}"
     font: "{{card_title_font, 'NeueMontreal-Bold'}}"
     passive: true
 
   showcase_card_body:
-    style: showcase_card_body
+    class: showcase_card_body
     text: "{{card_body, 'Short, strong supporting copy keeps the surface readable.'}}"
     font: "{{card_body_font, 'NeueMontreal-Regular'}}"
     passive: true
 
   showcase_card_footer:
-    style: showcase_card_footer
+    class: showcase_card_footer
 
     showcase_card_icon:
-      style: showcase_card_icon
+      class: showcase_card_icon
       img: "{{card_icon, 'star_on'}}"
       passive: true
 
     showcase_card_metric:
-      style: showcase_card_metric
+      class: showcase_card_metric
       text: "{{card_metric, 'Scoped styling'}}"
       font: "{{card_metric_font, 'NeueMontreal-Bold'}}"
       passive: true

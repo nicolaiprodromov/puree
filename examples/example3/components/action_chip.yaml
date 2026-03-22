@@ -1,13 +1,13 @@
 action_chip:
-  style: action_chip
+  class: action_chip
 
   action_chip_icon:
-    style: action_chip_icon
+    class: action_chip_icon
     img: "{{chip_icon, 'star_on'}}"
     passive: true
 
   action_chip_label:
-    style: action_chip_label
+    class: action_chip_label
     text: "{{chip_text, 'Action'}}"
     font: "{{chip_font, 'NeueMontreal-Bold'}}"
     passive: true

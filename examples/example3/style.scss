@@ -21,8 +21,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 100%;
     height: 100%;
     background-color: $bg_canvas;
-    color-1: $bg_canvas_2;
-    color-gradient-rot: 135deg;
+    --color-1: #{$bg_canvas_2};
+    --color-gradient-rot: 135deg;
 }
 
 .ambient_left {
@@ -33,9 +33,7 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-top: -200px;
     background-color: rgba(52, 128, 255, 0.14);
     border-radius: 999px;
-    box-shadow-color: rgba(52, 128, 255, 0.2);
-    box-shadow-offset: 0px 0px;
-    box-shadow-blur: 90px;
+    box-shadow: 0px 0px 90px rgba(52, 128, 255, 0.2);
 }
 
 .ambient_right {
@@ -46,9 +44,7 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-top: 220px;
     background-color: rgba(120, 255, 215, 0.12);
     border-radius: 999px;
-    box-shadow-color: rgba(120, 255, 215, 0.18);
-    box-shadow-offset: 0px 0px;
-    box-shadow-blur: 88px;
+    box-shadow: 0px 0px 88px rgba(120, 255, 215, 0.18);
 }
 
 .shell {
@@ -60,14 +56,12 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 720px;
     padding: 26px;
     background-color: $shell_bg;
-    color-1: $shell_bg_2;
-    color-gradient-rot: 125deg;
+    --color-1: #{$shell_bg_2};
+    --color-gradient-rot: 125deg;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.09);
     border-radius: 30px;
-    box-shadow-color: rgba(0, 4, 12, 0.45);
-    box-shadow-offset: 0px 28px;
-    box-shadow-blur: 72px;
+    box-shadow: 0px 28px 72px rgba(0, 4, 12, 0.45);
 }
 
 .topbar {
@@ -94,14 +88,14 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 56px;
     margin-right: 16px;
     background-color: rgba(255, 255, 255, 0.04);
-    color-1: rgba(98, 170, 255, 0.08);
-    color-gradient-rot: 135deg;
+    --color-1: rgba(98, 170, 255, 0.08);
+    --color-gradient-rot: 135deg;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.08);
     border-radius: 18px;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.95;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.95;
 }
 
 .brand_copy {
@@ -117,20 +111,20 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 100%;
     height: 20px;
     background-color: transparent;
-    text-color: $text_soft;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .brand_title {
     width: 100%;
     height: 36px;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 24px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_high;
+    font-size: 24px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .action_strip {
@@ -176,12 +170,10 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-bottom: 18px;
     padding: 24px;
     background-color: rgba(13, 18, 29, 0.96);
-    color-1: rgba(17, 39, 60, 0.9);
-    color-gradient-rot: 140deg;
+    --color-1: rgba(17, 39, 60, 0.9);
+    --color-gradient-rot: 140deg;
     border-radius: 28px;
-    box-shadow-color: rgba(0, 8, 20, 0.3);
-    box-shadow-offset: 0px 20px;
-    box-shadow-blur: 46px;
+    box-shadow: 0px 20px 46px rgba(0, 8, 20, 0.3);
 }
 
 .hero_ring {
@@ -194,9 +186,7 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     border-width: 1px;
     border-color: rgba(120, 183, 255, 0.14);
     border-radius: 999px;
-    box-shadow-color: rgba(120, 183, 255, 0.22);
-    box-shadow-offset: 0px 0px;
-    box-shadow-blur: 44px;
+    box-shadow: 0px 0px 44px rgba(120, 183, 255, 0.22);
 }
 
 .hero_copy {
@@ -214,10 +204,10 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 18px;
     margin-bottom: 12px;
     background-color: transparent;
-    text-color: $accent_blue;
-    text-scale: 13px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $accent_blue;
+    font-size: 13px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .hero_heading {
@@ -225,20 +215,20 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 80px;
     margin-bottom: 14px;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 38px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $text_high;
+    font-size: 38px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .hero_body {
     width: 76%;
     height: 44px;
     background-color: transparent;
-    text-color: $text_mid;
-    text-scale: 15px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $text_mid;
+    font-size: 15px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .hero_actions {
@@ -279,8 +269,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 34%;
     height: 100%;
     background-color: rgba(111, 177, 255, 0.95);
-    color-1: rgba(120, 255, 215, 0.82);
-    color-gradient-rot: 90deg;
+    --color-1: rgba(120, 255, 215, 0.82);
+    --color-gradient-rot: 90deg;
     border-radius: 999px;
 }
 
@@ -314,8 +304,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 190px;
     padding: 20px;
     background-color: $panel_bg;
-    color-1: $panel_bg_2;
-    color-gradient-rot: 135deg;
+    --color-1: #{$panel_bg_2};
+    --color-gradient-rot: 135deg;
     border-radius: 24px;
 }
 
@@ -333,20 +323,20 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     width: 220px;
     height: 100%;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 16px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_high;
+    font-size: 16px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .composer_caption {
     width: 340px;
     height: 100%;
     background-color: transparent;
-    text-color: $text_soft;
-    text-scale: 12px;
-    text-align-h: right;
-    text-align-v: center;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: right;
+    --text-align-v: center;
 }
 
 .notes_input {
@@ -383,30 +373,30 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 100%;
     margin-right: 10px;
     background-color: transparent;
-    text-color: $text_soft;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .status_value {
     width: 100px;
     height: 100%;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 13px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_high;
+    font-size: 13px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .composer_note {
     width: 420px;
     height: 100%;
     background-color: transparent;
-    text-color: $text_soft;
-    text-scale: 12px;
-    text-align-h: right;
-    text-align-v: center;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: right;
+    --text-align-v: center;
 }
 
 .rail_column {
@@ -452,8 +442,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     margin-bottom: 12px;
     padding: 18px;
     background-color: rgba(16, 16, 30, 0.94);
-    color-1: rgba(46, 25, 82, 0.92);
-    color-gradient-rot: 140deg;
+    --color-1: rgba(46, 25, 82, 0.92);
+    --color-gradient-rot: 140deg;
     border-radius: 24px;
 }
 
@@ -462,10 +452,10 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 20px;
     margin-bottom: 10px;
     background-color: transparent;
-    text-color: $accent_violet;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $accent_violet;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .spotlight_title {
@@ -473,20 +463,20 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 44px;
     margin-bottom: 10px;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 24px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $text_high;
+    font-size: 24px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .spotlight_body {
     width: 100%;
     height: 52px;
     background-color: transparent;
-    text-color: $text_mid;
-    text-scale: 13px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $text_mid;
+    font-size: 13px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .detail_panel {
@@ -498,8 +488,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 202px;
     padding: 18px;
     background-color: rgba(12, 16, 25, 0.92);
-    color-1: rgba(17, 23, 35, 0.96);
-    color-gradient-rot: 135deg;
+    --color-1: rgba(17, 23, 35, 0.96);
+    --color-gradient-rot: 135deg;
     border-radius: 24px;
 }
 
@@ -508,10 +498,10 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 24px;
     margin-bottom: 14px;
     background-color: transparent;
-    text-color: $text_high;
-    text-scale: 15px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $text_high;
+    font-size: 15px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .detail_row {
@@ -530,19 +520,19 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     height: 16px;
     margin-right: 12px;
     background-color: transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.76;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.76;
 }
 
 .detail_row_text {
     width: 90%;
     height: 100%;
     background-color: transparent;
-    text-color: $text_mid;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $text_mid;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .detail_badge {
@@ -554,8 +544,8 @@ $accent_violet: rgba(201, 170, 255, 0.92);
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    text-color: $text_soft;
-    text-scale: 12px;
-    text-align-h: center;
-    text-align-v: center;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: center;
+    --text-align-v: center;
 }

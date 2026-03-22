@@ -107,6 +107,22 @@ class Container():
         return name in layout_properties
     
     def set_property(self, name, value):
+        # Strip -- prefix from custom properties (Puree extensions)
+        if name.startswith('--'):
+            name = name[2:]
+        
+        # Map standard CSS names to internal puree names
+        css_to_internal = {
+            'background-color': 'color',
+            'background_color': 'color',
+            'font-size': 'text_scale',
+            'font_size': 'text_scale',
+            'text-align': 'text_align_h',
+            'opacity': 'img_opacity',
+        }
+        name = css_to_internal.get(name, name)
+        name = name.replace('-', '_')
+
         if self.is_layout_property(name):
             self.mark_dirty()
             if self._layout_node is not None:

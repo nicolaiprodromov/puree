@@ -30,19 +30,19 @@ $input_soft: rgba(194, 206, 231, 0.64) !default;
     height: 14px;
     margin-right: 8px;
     background-color: transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.78;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.78;
 }
 
 .input_shell_label {
     width: 220px;
     height: 100%;
     background-color: transparent;
-    text-color: $input_soft;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $input_soft;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .input_shell_box {
@@ -51,23 +51,23 @@ $input_soft: rgba(194, 206, 231, 0.64) !default;
     margin-bottom: 10px;
     padding: 12px 16px;
     background-color: $input_bg;
-    color-1: $input_bg1;
-    color-gradient-rot: 135deg;
+    --color-1: #{$input_bg1};
+    --color-gradient-rot: 135deg;
     border-width: 1px;
     border-color: $input_border;
     border-radius: 16px;
-    text-color: $input_text;
-    text-scale: 14px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $input_text;
+    font-size: 14px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .input_shell_footer {
     width: 100%;
     height: 18px;
     background-color: transparent;
-    text-color: $input_soft;
-    text-scale: 11px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $input_soft;
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
 }

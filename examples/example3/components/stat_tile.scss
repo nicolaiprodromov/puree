@@ -13,8 +13,8 @@ $tile_value_color: #f4f7ff !default;
     height: 100%;
     padding: 14px;
     background-color: $tile_bg;
-    color-1: $tile_bg1;
-    color-gradient-rot: 135deg;
+    --color-1: #{$tile_bg1};
+    --color-gradient-rot: 135deg;
     border-width: 1px;
     border-color: $tile_border;
     border-radius: 20px;
@@ -39,27 +39,27 @@ $tile_value_color: #f4f7ff !default;
     width: 80%;
     height: 100%;
     background-color: transparent;
-    text-color: $tile_label_color;
-    text-scale: 11px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $tile_label_color;
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
 }
 
 .stat_tile_icon {
     width: 14px;
     height: 14px;
     background-color: transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.74;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.74;
 }
 
 .stat_tile_value {
     width: 100%;
     height: 34px;
     background-color: transparent;
-    text-color: $tile_value_color;
-    text-scale: 24px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $tile_value_color;
+    font-size: 24px;
+    text-align: left;
+    --text-align-v: center;
 }

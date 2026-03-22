@@ -22,24 +22,22 @@ $chip_radius: 16px !default;
     height: $chip_height;
     padding: $chip_padding;
     background-color: $chip_bg;
-    color-1: $chip_bg1;
-    color-gradient-rot: 90deg;
+    --color-1: #{$chip_bg1};
+    --color-gradient-rot: 90deg;
     border-width: 1px;
     border-color: $chip_border;
     border-radius: $chip_radius;
-    box-shadow-color: rgba(0, 0, 0, 0.16);
-    box-shadow-offset: 0px 10px;
-    box-shadow-blur: 20px;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.16);
 
     &:hover {
         background-color: $chip_hover_bg;
-        color-1: $chip_hover_bg1;
+        --color-1: #{$chip_hover_bg1};
         border-color: rgba(255, 255, 255, 0.18);
     }
 
     &:active {
         background-color: $chip_click_bg;
-        color-1: $chip_click_bg1;
+        --color-1: #{$chip_click_bg1};
         border-color: rgba(255, 255, 255, 0.26);
     }
 }
@@ -49,17 +47,17 @@ $chip_radius: 16px !default;
     height: $chip_icon_size;
     margin-right: 10px;
     background-color: transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.92;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.92;
 }
 
 .action_chip_label {
     width: 100%;
     height: 100%;
     background-color: transparent;
-    text-color: $chip_text_color;
-    text-scale: $chip_text_scale;
-    text-align-h: left;
-    text-align-v: center;
+    color: $chip_text_color;
+    font-size: $chip_text_scale;
+    text-align: left;
+    --text-align-v: center;
 }

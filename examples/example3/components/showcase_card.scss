@@ -16,8 +16,8 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     height: 100%;
     padding: 16px;
     background-color: $card_bg;
-    color-1: $card_bg1;
-    color-gradient-rot: 145deg;
+    --color-1: #{$card_bg1};
+    --color-gradient-rot: 145deg;
     border-width: 1px;
     border-color: $card_border;
     border-radius: 22px;
@@ -36,10 +36,10 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    text-color: $card_tag_text;
-    text-scale: 11px;
-    text-align-h: center;
-    text-align-v: center;
+    color: $card_tag_text;
+    font-size: 11px;
+    text-align: center;
+    --text-align-v: center;
 }
 
 .showcase_card_title {
@@ -47,10 +47,10 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     height: 34px;
     margin-bottom: 10px;
     background-color: transparent;
-    text-color: $card_title_color;
-    text-scale: 15px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $card_title_color;
+    font-size: 15px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .showcase_card_body {
@@ -58,10 +58,10 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     height: 32px;
     margin-bottom: 12px;
     background-color: transparent;
-    text-color: $card_body_color;
-    text-scale: 12px;
-    text-align-h: left;
-    text-align-v: top;
+    color: $card_body_color;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: top;
 }
 
 .showcase_card_footer {
@@ -79,17 +79,17 @@ $card_metric_color: rgba(244, 247, 255, 0.9) !default;
     height: 14px;
     margin-right: 8px;
     background-color: transparent;
-    img-align-h: center;
-    img-align-v: center;
-    img-opacity: 0.82;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.82;
 }
 
 .showcase_card_metric {
     width: 140px;
     height: 100%;
     background-color: transparent;
-    text-color: $card_metric_color;
-    text-scale: 11px;
-    text-align-h: left;
-    text-align-v: center;
+    color: $card_metric_color;
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
 }
