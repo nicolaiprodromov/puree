@@ -819,6 +819,8 @@ class RenderPipeline:
                 'text_y': block['text_y'],
                 'mask_x': block['mask_x'],
                 'mask_y': block['mask_y'],
+                'mask_w': block['mask_width'],
+                'mask_h': block['mask_height'],
             }
     
     def _cache_original_image_positions(self, image_blocks):
@@ -1544,16 +1546,24 @@ class XWZ_OT_start_ui(Operator):
                                 block = parser_op.text_blocks[container_id]
                                 scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
                                 
-                                # Mask = scrolled container bounds (for alignment)
-                                c = hit_op._container_data[idx]
-                                c_pos = c.get('position', [0, 0])
-                                c_size = c.get('size', [0, 0])
-                                mask_x = int(c_pos[0])
-                                mask_y = int(c_pos[1])
-                                mask_w = int(c_size[0])
-                                mask_h = int(c_size[1])
+                                # Compute scrolled mask using container's float original position
+                                # (same source as GPU shader) to guarantee perfect pixel sync
+                                orig_pos = _render_data._original_positions.get(idx)
+                                if orig_pos:
+                                    c_size = hit_op._container_data[idx].get('size', [0, 0])
+                                    mask_x = orig_pos[0] - sx
+                                    mask_y = orig_pos[1] - sy
+                                    mask_w = float(c_size[0])
+                                    mask_h = float(c_size[1])
+                                else:
+                                    c = hit_op._container_data[idx]
+                                    c_pos = c.get('position', [0, 0])
+                                    c_size = c.get('size', [0, 0])
+                                    mask_x = float(c_pos[0])
+                                    mask_y = float(c_pos[1])
+                                    mask_w = float(c_size[0])
+                                    mask_h = float(c_size[1])
                                 
-                                # Clip = scroll parent bounds (for pixel clipping via scissor)
                                 clip = list(scroll_clip) if scroll_clip else None
                                 
                                 text_instance.update_all(
