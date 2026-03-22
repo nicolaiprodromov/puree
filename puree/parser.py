@@ -16,11 +16,15 @@ from stretchable import Node
 from stretchable.style import PCT, AUTO, PT
 from stretchable import Edge
 from stretchable.style.props import BoxSizing
-from stretchable.style.props import FlexDirection
-from stretchable.style.props import AlignItems, JustifyContent
-from stretchable.style.props import Display, Position
-from stretchable.style.geometry.rect import RectPointsPercent
-from stretchable.style.geometry.length import LengthPointsPercent
+from stretchable.style.props import FlexDirection, FlexWrap
+from stretchable.style.props import AlignItems, AlignSelf, AlignContent
+from stretchable.style.props import JustifyContent, JustifyItems, JustifySelf
+from stretchable.style.props import Display, Position, Overflow
+from stretchable.style.props import GridAutoFlow, GridPlacement
+from stretchable.style.props import GridTrackSizing, GridTrackSize
+from stretchable.style.geometry.rect import RectPointsPercent, RectPointsPercentAuto
+from stretchable.style.geometry.length import LengthPointsPercent, LengthPointsPercentAuto
+from stretchable.style.geometry.size import SizePointsPercent, SizePointsPercentAuto
 
 from .components.container import Container
 from .components.style import Style
@@ -288,7 +292,8 @@ class UI():
         float_props = [
             'border_radius', 'border_width',
             'font_size', 'text_x', 'text_y',
-            'box_shadow_blur', 'opacity'
+            'box_shadow_blur', 'opacity',
+            'flex_grow', 'flex_shrink', 'scrollbar_width'
             ]
 
         rotation_props = [
@@ -310,7 +315,18 @@ class UI():
             'justify_content', 'justify_items', 'justify_self',
             'text_align', 'text_align_v',
             'img_align_h', 'img_align_v',
-            'grid_auto_flow', 'grid_row', 'grid_column'
+            'grid_auto_flow'
+            ]
+        
+        # These CSS dimension properties pass through as raw strings
+        # (parsed later in create_node via parse_css_value)
+        dimension_props = [
+            'width', 'height', 'min_width', 'min_height', 'max_width', 'max_height',
+            'top', 'right', 'bottom', 'left',
+            'gap', 'row_gap', 'column_gap', 'flex_basis',
+            'grid_template_rows', 'grid_template_columns',
+            'grid_auto_rows', 'grid_auto_columns',
+            'grid_row', 'grid_column'
             ]
 
         if attr_name in color_props:
@@ -341,6 +357,9 @@ class UI():
         
         elif attr_name in string_props:
             attr_value = attr_value.strip().upper().replace('-', '_')
+
+        elif attr_name in dimension_props:
+            attr_value = attr_value.strip()
 
         return attr_name, attr_value
 
@@ -485,14 +504,37 @@ class UI():
 
             return
         def parse_css_value(value_str):
-            value_str = str(value_str).lower()
-            if 'px' in value_str and 'calc(' not in value_str:
-                return LengthPointsPercent.from_any(int(value_str.replace('px', '')) * PT)
-            if '%' in value_str and 'calc(' not in value_str:
-                return LengthPointsPercent.from_any(int(value_str.replace('%', '')) * PCT)
-            if 'auto' in value_str and 'calc(' not in value_str:
+            value_str = str(value_str).lower().strip()
+            if value_str in ('auto', ''):
                 return AUTO
-            return LengthPointsPercent.from_any(0 * PT)
+            if 'px' in value_str and 'calc(' not in value_str:
+                return LengthPointsPercent.from_any(float(value_str.replace('px', '')) * PT)
+            if '%' in value_str and 'calc(' not in value_str:
+                return LengthPointsPercent.from_any(float(value_str.replace('%', '')) * PCT)
+            try:
+                num = float(value_str)
+                if num == 0:
+                    return LengthPointsPercent.from_any(0 * PT)
+                return LengthPointsPercent.from_any(num * PT)
+            except (ValueError, TypeError):
+                return LengthPointsPercent.from_any(0 * PT)
+
+        def parse_css_value_auto(value_str):
+            """Like parse_css_value but returns LengthPointsPercentAuto (supports auto)."""
+            value_str = str(value_str).lower().strip()
+            if value_str in ('auto', ''):
+                return LengthPointsPercentAuto.from_any(AUTO)
+            if 'px' in value_str:
+                return LengthPointsPercentAuto.from_any(float(value_str.replace('px', '')) * PT)
+            if '%' in value_str:
+                return LengthPointsPercentAuto.from_any(float(value_str.replace('%', '')) * PCT)
+            try:
+                num = float(value_str)
+                if num == 0:
+                    return LengthPointsPercentAuto.from_any(0 * PT)
+                return LengthPointsPercentAuto.from_any(num * PT)
+            except (ValueError, TypeError):
+                return LengthPointsPercentAuto.from_any(0 * PT)
         def parse_padding_values(container):
             top = right = bottom = left = LengthPointsPercent.from_any(0 * PT)
             if hasattr(container.style, 'padding_top'):
@@ -607,6 +649,66 @@ class UI():
                 setattr(container.style, 'border_color_css', container.style.border_color.lower())
                         
             return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
+        def parse_align_items(val_str):
+            m = {'start': AlignItems.START, 'end': AlignItems.END,
+                 'flex_start': AlignItems.FLEX_START, 'flex_end': AlignItems.FLEX_END,
+                 'center': AlignItems.CENTER, 'baseline': AlignItems.BASELINE,
+                 'stretch': AlignItems.STRETCH}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_align_self(val_str):
+            m = {'start': AlignSelf.START, 'end': AlignSelf.END,
+                 'flex_start': AlignSelf.FLEX_START, 'flex_end': AlignSelf.FLEX_END,
+                 'center': AlignSelf.CENTER, 'baseline': AlignSelf.BASELINE,
+                 'stretch': AlignSelf.STRETCH, 'auto': None}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_align_content(val_str):
+            m = {'start': AlignContent.START, 'end': AlignContent.END,
+                 'flex_start': AlignContent.FLEX_START, 'flex_end': AlignContent.FLEX_END,
+                 'center': AlignContent.CENTER, 'stretch': AlignContent.STRETCH,
+                 'space_between': AlignContent.SPACE_BETWEEN,
+                 'space_evenly': AlignContent.SPACE_EVENLY,
+                 'space_around': AlignContent.SPACE_AROUND}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_justify_content(val_str):
+            m = {'start': JustifyContent.START, 'end': JustifyContent.END,
+                 'flex_start': JustifyContent.FLEX_START, 'flex_end': JustifyContent.FLEX_END,
+                 'center': JustifyContent.CENTER, 'stretch': JustifyContent.STRETCH,
+                 'space_between': JustifyContent.SPACE_BETWEEN,
+                 'space_evenly': JustifyContent.SPACE_EVENLY,
+                 'space_around': JustifyContent.SPACE_AROUND}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_justify_items(val_str):
+            m = {'start': JustifyItems.START, 'end': JustifyItems.END,
+                 'flex_start': JustifyItems.FLEX_START, 'flex_end': JustifyItems.FLEX_END,
+                 'center': JustifyItems.CENTER, 'baseline': JustifyItems.BASELINE,
+                 'stretch': JustifyItems.STRETCH}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_justify_self(val_str):
+            m = {'start': JustifySelf.START, 'end': JustifySelf.END,
+                 'flex_start': JustifySelf.FLEX_START, 'flex_end': JustifySelf.FLEX_END,
+                 'center': JustifySelf.CENTER, 'baseline': JustifySelf.BASELINE,
+                 'stretch': JustifySelf.STRETCH, 'auto': None}
+            return m.get(val_str.lower().replace('-', '_'), None)
+
+        def parse_gap_value(value_str):
+            """Parse gap value into SizePointsPercent."""
+            value_str = str(value_str).lower().strip()
+            if not value_str or value_str == '0' or value_str == '0px':
+                return SizePointsPercent.from_any(0 * PT)
+            if 'px' in value_str:
+                return SizePointsPercent.from_any(float(value_str.replace('px', '')) * PT)
+            if '%' in value_str:
+                return SizePointsPercent.from_any(float(value_str.replace('%', '')) * PCT)
+            try:
+                return SizePointsPercent.from_any(float(value_str) * PT)
+            except (ValueError, TypeError):
+                return SizePointsPercent.from_any(0 * PT)
+
         def create_node(container):
             if container.style is None:
                 default_style = Style()
@@ -614,99 +716,167 @@ class UI():
                 setattr(default_style, 'height', "100%")
                 container.style = default_style
             
-            disp_str     = container.style.display.lower()
-            pos_str      = container.style.position.lower()
-            position_val = Position.RELATIVE
-            display_val  = Display.FLEX
+            s = container.style
 
-            width_val    = container.style.width
-            height_val   = container.style.height
-            width_pct    = 0
-            height_pct   = 0
-            
-            flex_dir_str        = container.style.flex_direction.lower().replace('-', '_')
-            align_str           = container.style.align_items.lower().replace('-', '_')
-            justify_str         = container.style.justify_content.lower().replace('-', '_')
-            flex_direction_val  = FlexDirection.ROW
-            align_items_val     = AlignItems.START
-            justify_content_val = JustifyContent.START
+            # Display
+            disp_str = s.display.lower()
+            display_val = {'none': Display.NONE, 'flex': Display.FLEX,
+                           'grid': Display.GRID, 'block': Display.BLOCK}.get(disp_str, Display.FLEX)
 
-            width_pct  = parse_css_value(width_val)
-            height_pct = parse_css_value(height_val)
+            # Position
+            pos_str = s.position.lower()
+            position_val = Position.ABSOLUTE if pos_str in ('absolute', 'fixed') else Position.RELATIVE
 
+            # Overflow
+            overflow_str = s.overflow.lower()
+            overflow_map = {'visible': Overflow.VISIBLE, 'hidden': Overflow.HIDDEN,
+                           'scroll': Overflow.SCROLL, 'clip': Overflow.CLIP}
+            overflow_val = overflow_map.get(overflow_str, Overflow.HIDDEN)
+
+            # Size
+            width_pct  = parse_css_value(s.width)
+            height_pct = parse_css_value(s.height)
+
+            # Min/max size
+            min_w = parse_css_value_auto(s.min_width) if hasattr(s, 'min_width') else LengthPointsPercentAuto.from_any(AUTO)
+            min_h = parse_css_value_auto(s.min_height) if hasattr(s, 'min_height') else LengthPointsPercentAuto.from_any(AUTO)
+            max_w = parse_css_value_auto(s.max_width) if hasattr(s, 'max_width') else LengthPointsPercentAuto.from_any(AUTO)
+            max_h = parse_css_value_auto(s.max_height) if hasattr(s, 'max_height') else LengthPointsPercentAuto.from_any(AUTO)
+
+            # Inset (top, right, bottom, left) for position:absolute
+            inset_top = parse_css_value_auto(s.top) if hasattr(s, 'top') else LengthPointsPercentAuto.from_any(AUTO)
+            inset_right = parse_css_value_auto(s.right) if hasattr(s, 'right') else LengthPointsPercentAuto.from_any(AUTO)
+            inset_bottom = parse_css_value_auto(s.bottom) if hasattr(s, 'bottom') else LengthPointsPercentAuto.from_any(AUTO)
+            inset_left = parse_css_value_auto(s.left) if hasattr(s, 'left') else LengthPointsPercentAuto.from_any(AUTO)
+
+            # Spacing
             padding_val = parse_padding_values(container)
             margin_val  = parse_margin_values(container)
             border_val  = parse_border_values(container)
 
-            if pos_str in ['absolute', 'fixed']:
-                position_val = Position.ABSOLUTE
-            elif pos_str in ['relative', 'static']:
-                position_val = Position.RELATIVE
+            # Flex direction
+            flex_dir_str = s.flex_direction.lower().replace('-', '_')
+            flex_direction_map = {'row': FlexDirection.ROW, 'column': FlexDirection.COLUMN,
+                                  'row_reverse': FlexDirection.ROW_REVERSE,
+                                  'column_reverse': FlexDirection.COLUMN_REVERSE}
+            flex_direction_val = flex_direction_map.get(flex_dir_str, FlexDirection.ROW)
 
-            if disp_str == 'none':
-                display_val = Display.NONE
-            elif disp_str == 'flex':
-                display_val = Display.FLEX
-            elif disp_str == 'grid':
-                display_val = Display.GRID
-            elif disp_str == 'block':
-                display_val = Display.BLOCK
+            # Flex wrap
+            flex_wrap_str = s.flex_wrap.lower().replace('-', '_')
+            flex_wrap_map = {'no_wrap': FlexWrap.NO_WRAP, 'nowrap': FlexWrap.NO_WRAP,
+                            'wrap': FlexWrap.WRAP, 'wrap_reverse': FlexWrap.WRAP_REVERSE}
+            flex_wrap_val = flex_wrap_map.get(flex_wrap_str, FlexWrap.NO_WRAP)
 
-            if flex_dir_str == 'row':
-                flex_direction_val = FlexDirection.ROW
-            elif flex_dir_str == 'column':
-                flex_direction_val = FlexDirection.COLUMN
-            elif flex_dir_str == 'row_reverse':
-                flex_direction_val = FlexDirection.ROW_REVERSE
-            elif flex_dir_str == 'column_reverse':
-                flex_direction_val = FlexDirection.COLUMN_REVERSE
+            # Flex item properties
+            flex_grow_val = float(s.flex_grow) if s.flex_grow else 0.0
+            flex_shrink_val = float(s.flex_shrink) if s.flex_shrink else 1.0
+            flex_basis_str = str(s.flex_basis).lower().strip()
+            flex_basis_val = parse_css_value_auto(flex_basis_str)
 
-            if align_str == 'start':
-                align_items_val = AlignItems.START
-            elif align_str == 'end':
-                align_items_val = AlignItems.END
-            elif align_str == 'flex_start':
-                align_items_val = AlignItems.FLEX_START
-            elif align_str == 'flex_end':
-                align_items_val = AlignItems.FLEX_END
-            elif align_str == 'center':
-                align_items_val = AlignItems.CENTER
-            elif align_str == 'baseline':
-                align_items_val = AlignItems.BASELINE
-            elif align_str == 'stretch':
-                align_items_val = AlignItems.STRETCH
+            # Alignment
+            align_items_val     = parse_align_items(s.align_items) if s.align_items else None
+            align_self_val      = parse_align_self(s.align_self) if s.align_self else None
+            align_content_val   = parse_align_content(s.align_content) if s.align_content else None
+            justify_content_val = parse_justify_content(s.justify_content) if s.justify_content else None
+            justify_items_val   = parse_justify_items(s.justify_items) if s.justify_items else None
+            justify_self_val    = parse_justify_self(s.justify_self) if s.justify_self else None
 
-            if justify_str == 'start':
-                justify_content_val = JustifyContent.START
-            elif justify_str == 'end':
-                justify_content_val = JustifyContent.END
-            elif justify_str == 'flex_start':
-                justify_content_val = JustifyContent.FLEX_START
-            elif justify_str == 'flex_end':
-                justify_content_val = JustifyContent.FLEX_END
-            elif justify_str == 'center':
-                justify_content_val = JustifyContent.CENTER
-            elif justify_str == 'stretch':
-                justify_content_val = JustifyContent.STRETCH
-            elif justify_str == 'space_between':
-                justify_content_val = JustifyContent.SPACE_BETWEEN
-            elif justify_str == 'space_evenly':
-                justify_content_val = JustifyContent.SPACE_EVENLY
-            elif justify_str == 'space_around':
-                justify_content_val = JustifyContent.SPACE_AROUND
+            # Gap
+            gap_val = parse_gap_value(s.gap) if hasattr(s, 'gap') else SizePointsPercent.from_any(0 * PT)
+            if hasattr(s, 'row_gap') and s.row_gap:
+                row_gap = parse_css_value(s.row_gap)
+                col_gap_str = s.column_gap if hasattr(s, 'column_gap') and s.column_gap else s.gap
+                col_gap = parse_css_value(col_gap_str)
+                gap_val = SizePointsPercent(width=col_gap, height=row_gap)
+            elif hasattr(s, 'column_gap') and s.column_gap:
+                col_gap = parse_css_value(s.column_gap)
+                row_gap_str = s.row_gap if hasattr(s, 'row_gap') and s.row_gap else s.gap
+                row_gap = parse_css_value(row_gap_str)
+                gap_val = SizePointsPercent(width=col_gap, height=row_gap)
+
+            # Grid properties
+            grid_kwargs = {}
+            if disp_str == 'grid':
+                grid_auto_flow_str = s.grid_auto_flow.lower().replace('-', '_') if hasattr(s, 'grid_auto_flow') and s.grid_auto_flow else 'row'
+                grid_auto_flow_map = {'row': GridAutoFlow.ROW, 'column': GridAutoFlow.COLUMN,
+                                      'row_dense': GridAutoFlow.ROW_DENSE,
+                                      'column_dense': GridAutoFlow.COLUMN_DENSE}
+                grid_kwargs['grid_auto_flow'] = grid_auto_flow_map.get(grid_auto_flow_str, GridAutoFlow.ROW)
+
+                if hasattr(s, 'grid_template_rows') and s.grid_template_rows:
+                    val = s.grid_template_rows
+                    if isinstance(val, str):
+                        # Split CSS value "1fr 1fr 1fr" into individual tracks
+                        # but preserve "repeat(...)" and "minmax(...)" as single tokens
+                        tracks = re.split(r'\s+(?![^(]*\))', val.strip())
+                        grid_kwargs['grid_template_rows'] = [t for t in tracks if t]
+                    else:
+                        grid_kwargs['grid_template_rows'] = val
+                if hasattr(s, 'grid_template_columns') and s.grid_template_columns:
+                    val = s.grid_template_columns
+                    if isinstance(val, str):
+                        tracks = re.split(r'\s+(?![^(]*\))', val.strip())
+                        grid_kwargs['grid_template_columns'] = [t for t in tracks if t]
+                    else:
+                        grid_kwargs['grid_template_columns'] = val
+                if hasattr(s, 'grid_auto_rows') and s.grid_auto_rows:
+                    val = s.grid_auto_rows
+                    if isinstance(val, str):
+                        tracks = re.split(r'\s+(?![^(]*\))', val.strip())
+                        grid_kwargs['grid_auto_rows'] = [t for t in tracks if t]
+                    else:
+                        grid_kwargs['grid_auto_rows'] = val
+                if hasattr(s, 'grid_auto_columns') and s.grid_auto_columns:
+                    val = s.grid_auto_columns
+                    if isinstance(val, str):
+                        tracks = re.split(r'\s+(?![^(]*\))', val.strip())
+                        grid_kwargs['grid_auto_columns'] = [t for t in tracks if t]
+                    else:
+                        grid_kwargs['grid_auto_columns'] = val
+
+            # Grid child placement
+            if hasattr(s, 'grid_row') and s.grid_row and s.grid_row != 'AUTO':
+                grid_kwargs['grid_row'] = s.grid_row
+            if hasattr(s, 'grid_column') and s.grid_column and s.grid_column != 'AUTO':
+                grid_kwargs['grid_column'] = s.grid_column
+
+            # Aspect ratio
+            aspect_ratio_val = None
+            if hasattr(s, 'aspect_ratio') and s.aspect_ratio and s.aspect_ratio is not True:
+                try:
+                    aspect_ratio_val = float(s.aspect_ratio)
+                except (ValueError, TypeError):
+                    pass
 
             node = Node(
                 display         = display_val,
                 position        = position_val,
                 box_sizing      = BoxSizing.BORDER,
+                overflow_x      = overflow_val,
+                overflow_y      = overflow_val,
+                scrollbar_width = float(s.scrollbar_width) if hasattr(s, 'scrollbar_width') and s.scrollbar_width else 0.0,
+                inset           = RectPointsPercentAuto(top=inset_top, right=inset_right, bottom=inset_bottom, left=inset_left),
                 flex_direction  = flex_direction_val,
+                flex_wrap       = flex_wrap_val,
+                flex_grow       = flex_grow_val,
+                flex_shrink     = flex_shrink_val,
+                flex_basis      = flex_basis_val,
                 align_items     = align_items_val,
+                align_self      = align_self_val,
+                align_content   = align_content_val,
                 justify_content = justify_content_val,
+                justify_items   = justify_items_val,
+                justify_self    = justify_self_val,
+                gap             = gap_val,
                 key             = container.id,
                 size            = (width_pct, height_pct),
+                min_size        = SizePointsPercentAuto(width=min_w, height=min_h),
+                max_size        = SizePointsPercentAuto(width=max_w, height=max_h),
+                aspect_ratio    = aspect_ratio_val,
                 padding         = padding_val,
                 margin          = margin_val,
                 border          = border_val,
+                **grid_kwargs,
             )
             
             for child in container.children:

@@ -92,7 +92,9 @@ class Container():
     @staticmethod
     def is_layout_property(name):
         layout_properties = {
-            'width', 'height', 'display', 'position', 'overflow', 'scrollbar_width',
+            'width', 'height', 'min_width', 'min_height', 'max_width', 'max_height',
+            'display', 'position', 'overflow', 'scrollbar_width',
+            'top', 'right', 'bottom', 'left',
             'padding', 'padding_top', 'padding_right', 'padding_bottom', 'padding_left',
             'margin', 'margin_top', 'margin_right', 'margin_bottom', 'margin_left',
             'border', 'border_width',
@@ -100,9 +102,9 @@ class Container():
             'align_content', 'justify_content',
             'size', 'min_size', 'max_size', 'aspect_ratio',
             'flex_wrap', 'flex_direction', 'flex_grow', 'flex_shrink', 'flex_basis',
+            'gap', 'row_gap', 'column_gap',
             'grid_auto_flow', 'grid_template_rows', 'grid_template_columns',
             'grid_auto_rows', 'grid_auto_columns', 'grid_row', 'grid_column',
-            'gap'
         }
         return name in layout_properties
     
@@ -124,11 +126,14 @@ class Container():
                 current_style = self._layout_node.style
                 new_style_dict = {}
                 
-                for attr in ['display', 'overflow_x', 'overflow_y', 'position', 'align_items', 
-                            'justify_items', 'align_self', 'justify_self', 'align_content', 
-                            'justify_content', 'gap', 'padding', 'border', 'margin', 'size',
-                            'min_size', 'max_size', 'aspect_ratio', 'flex_wrap', 'flex_direction',
-                            'flex_grow', 'flex_shrink', 'flex_basis']:
+                for attr in ['display', 'overflow_x', 'overflow_y', 'position', 'inset',
+                            'align_items', 'justify_items', 'align_self', 'justify_self', 
+                            'align_content', 'justify_content', 'gap', 'padding', 'border', 
+                            'margin', 'size', 'min_size', 'max_size', 'aspect_ratio', 
+                            'flex_wrap', 'flex_direction', 'flex_grow', 'flex_shrink', 
+                            'flex_basis', 'scrollbar_width',
+                            'grid_auto_flow', 'grid_template_rows', 'grid_template_columns',
+                            'grid_auto_rows', 'grid_auto_columns', 'grid_row', 'grid_column']:
                     if hasattr(current_style, attr):
                         new_style_dict[attr] = getattr(current_style, attr)
                 

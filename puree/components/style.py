@@ -17,6 +17,15 @@ class Style():
 
         self.width  : float = 0.0
         self.height : float = 0.0
+        self.min_width  : str = 'auto'
+        self.min_height : str = 'auto'
+        self.max_width  : str = 'auto'
+        self.max_height : str = 'auto'
+        
+        self.top    : str = 'auto'
+        self.right  : str = 'auto'
+        self.bottom : str = 'auto'
+        self.left   : str = 'auto'
 
         self.background_color              : List[float] = [0.0, 0.0, 0.0, 0.0]
         self.background_color_2            : List[float] = [0.0, 0.0, 0.0, 0.0]
@@ -74,7 +83,11 @@ class Style():
         self.flex_direction: str   = 'ROW'
         self.flex_grow     : float = 0.0
         self.flex_shrink   : float = 1.0
-        self.flex_basis    : float = 0.0
+        self.flex_basis    : str   = 'auto'
+        
+        self.gap            : str  = '0px'
+        self.row_gap        : str  = ''
+        self.column_gap     : str  = ''
         
         self.grid_auto_flow       : str            = 'ROW'
         self.grid_template_rows   : Optional[List] = None
