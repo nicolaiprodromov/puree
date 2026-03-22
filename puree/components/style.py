@@ -71,6 +71,7 @@ class Style():
         self.position        : str  = 'RELATIVE'
         self.pointer_events  : str  = 'AUTO'
         self.visibility      : str  = 'VISIBLE'
+        self.z_index         : int  = 0
         
         self.align_items    : str = 'START'
         self.justify_items  : str = 'START'

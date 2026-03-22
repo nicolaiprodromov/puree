@@ -358,6 +358,12 @@ class UI():
         elif attr_name in bool_props:
             attr_value = attr_value.strip().lower() in ('true', '1', 'yes')
         
+        elif attr_name == 'z_index':
+            try:
+                attr_value = int(float(attr_value.strip().replace('px', '')))
+            except (ValueError, TypeError):
+                attr_value = 0
+
         elif attr_name in string_props:
             attr_value = attr_value.strip().upper().replace('-', '_')
 
@@ -941,22 +947,41 @@ class UI():
         self.json_data = container_processor.flatten_tree(container_dict, node_flat)
         self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
         
-        # Post-process: add visibility and opacity from Style (not in Rust struct)
+        # Post-process: add visibility, opacity, z-index from Style (not in Rust struct)
         visibility_map = {}
         opacity_map = {}
+        zindex_map = {}
         def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
             opacity_map[container.id] = float(container.style.opacity)
+            zindex_map[container.id] = int(container.style.z_index)
             for child in container.children:
                 collect_style_props(child)
         collect_style_props(self.theme.root)
-        for c in self.json_data:
-            c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
-            c['opacity'] = opacity_map.get(c.get('id', ''), 1.0)
-        for c in self.abs_json_data:
-            c['visibility'] = visibility_map.get(c.get('id', ''), 'VISIBLE')
-            c['opacity'] = opacity_map.get(c.get('id', ''), 1.0)
+        
+        def inject_and_sort(data_list):
+            for c in data_list:
+                cid = c.get('id', '')
+                c['visibility'] = visibility_map.get(cid, 'VISIBLE')
+                c['opacity'] = opacity_map.get(cid, 1.0)
+                c['z_index'] = zindex_map.get(cid, 0)
+            # Sort by z-index (stable sort preserves tree order within same z)
+            # Build old→new index mapping and remap parent refs
+            sorted_list = sorted(enumerate(data_list), key=lambda t: t[1].get('z_index', 0))
+            old_to_new = {old_idx: new_idx for new_idx, (old_idx, _) in enumerate(sorted_list)}
+            result = []
+            for _, c in sorted_list:
+                old_parent = c.get('parent', -1)
+                if old_parent >= 0 and old_parent in old_to_new:
+                    c['parent'] = old_to_new[old_parent]
+                children = c.get('children', [])
+                c['children'] = [old_to_new[ci] for ci in children if ci in old_to_new]
+                result.append(c)
+            return result
+
+        self.json_data = inject_and_sort(self.json_data)
+        self.abs_json_data = inject_and_sort(self.abs_json_data)
     
     def _container_to_dict(self, container):
         def ensure_string(val):
