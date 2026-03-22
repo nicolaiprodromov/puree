@@ -286,7 +286,8 @@ class UI():
             'click_background_color', 'click_background_color_2',
             'border_color', 'border_color_2',
             'color', 'color_2',
-            'box_shadow_color'
+            'box_shadow_color',
+            'text_shadow_color'
             ]
         
         float_props = [
@@ -294,6 +295,7 @@ class UI():
             'border_radius_br', 'border_radius_bl', 'border_width',
             'font_size', 'text_x', 'text_y',
             'box_shadow_blur', 'opacity',
+            'text_shadow_offset_x', 'text_shadow_offset_y', 'text_shadow_blur',
             'flex_grow', 'flex_shrink', 'scrollbar_width',
             'line_height', 'letter_spacing'
             ]

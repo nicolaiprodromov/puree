@@ -49,6 +49,10 @@ class TextExtractor:
                 'font_style'              : getattr(container.style, 'font_style', 'NORMAL'),
                 'white_space'             : getattr(container.style, 'white_space', 'NORMAL'),
                 'text_overflow'           : getattr(container.style, 'text_overflow', 'CLIP'),
+                'text_shadow_color'       : getattr(container.style, 'text_shadow_color', [0, 0, 0, 0]),
+                'text_shadow_offset_x'    : float(getattr(container.style, 'text_shadow_offset_x', 0)),
+                'text_shadow_offset_y'    : float(getattr(container.style, 'text_shadow_offset_y', 0)),
+                'text_shadow_blur'        : float(getattr(container.style, 'text_shadow_blur', 0)),
             }
         self.flat_index += 1
         for child in container.children:  

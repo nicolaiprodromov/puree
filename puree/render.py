@@ -1292,6 +1292,10 @@ class XWZ_OT_start_ui(Operator):
                 font_style      = block.get('font_style', 'NORMAL'),
                 white_space     = block.get('white_space', 'NORMAL'),
                 text_overflow   = block.get('text_overflow', 'CLIP'),
+                text_shadow_color    = block.get('text_shadow_color', [0, 0, 0, 0]),
+                text_shadow_offset_x = block.get('text_shadow_offset_x', 0.0),
+                text_shadow_offset_y = block.get('text_shadow_offset_y', 0.0),
+                text_shadow_blur     = block.get('text_shadow_blur', 0.0),
             )
         
         # Set scissor clips on text instances for scroll containers

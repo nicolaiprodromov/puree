@@ -81,6 +81,11 @@ class Style():
         self.box_shadow_offset: List[float] = [0.0, 0.0, 0.0]
         self.box_shadow_blur  : float       = 0.0
 
+        self.text_shadow_color   : List[float] = [0.0, 0.0, 0.0, 0.0]
+        self.text_shadow_offset_x: float       = 0.0
+        self.text_shadow_offset_y: float       = 0.0
+        self.text_shadow_blur    : float       = 0.0
+
         self.display         : str  = 'FLEX'
         self.box_sizing      : str  = 'BORDER_BOX'
         self.overflow        : str  = 'VISIBLE'

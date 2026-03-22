@@ -462,6 +462,189 @@ fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
     ]
 }
 
+/// Expand `text-shadow: offset-x offset-y [blur-radius] [color]`
+fn expand_text_shadow(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value == "none" || value.is_empty() {
+        return vec![
+            ("text-shadow-color".into(), "transparent".into()),
+            ("text-shadow-offset-x".into(), "0".into()),
+            ("text-shadow-offset-y".into(), "0".into()),
+            ("text-shadow-blur".into(), "0".into()),
+        ];
+    }
+
+    // Tokenize respecting parentheses (for rgba(...) etc)
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut paren_depth = 0;
+
+    for ch in value.chars() {
+        if ch == '(' { paren_depth += 1; }
+        if ch == ')' { paren_depth -= 1; }
+        if ch == ' ' && paren_depth == 0 {
+            if !current.is_empty() {
+                parts.push(current.clone());
+                current.clear();
+            }
+        } else {
+            current.push(ch);
+        }
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    let mut numbers = Vec::new();
+    let mut color_str = String::new();
+
+    for part in &parts {
+        let trimmed = part.trim_end_matches("px");
+        if trimmed.parse::<f64>().is_ok() {
+            numbers.push(part.clone());
+        } else {
+            color_str = part.clone();
+        }
+    }
+
+    let offset_x = numbers.first().cloned().unwrap_or_else(|| "0".into());
+    let offset_y = numbers.get(1).cloned().unwrap_or_else(|| "0".into());
+    let blur = numbers.get(2).cloned().unwrap_or_else(|| "0".into());
+
+    vec![
+        ("text-shadow-color".into(), if color_str.is_empty() { "#000".into() } else { color_str }),
+        ("text-shadow-offset-x".into(), offset_x),
+        ("text-shadow-offset-y".into(), offset_y),
+        ("text-shadow-blur".into(), blur),
+    ]
+}
+
+/// Expand `inset: top right bottom left` (same 1-4 value logic as margin/padding).
+fn expand_inset(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    let (top, right, bottom, left) = match parts.len() {
+        1 => (parts[0], parts[0], parts[0], parts[0]),
+        2 => (parts[0], parts[1], parts[0], parts[1]),
+        3 => (parts[0], parts[1], parts[2], parts[1]),
+        4 => (parts[0], parts[1], parts[2], parts[3]),
+        _ => return vec![],
+    };
+    vec![
+        ("top".into(), top.to_string()),
+        ("right".into(), right.to_string()),
+        ("bottom".into(), bottom.to_string()),
+        ("left".into(), left.to_string()),
+    ]
+}
+
+/// Expand `place-items: align-items justify-items`.
+fn expand_place_items(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    if parts.len() >= 2 {
+        vec![
+            ("align-items".into(), parts[0].to_string()),
+            ("justify-items".into(), parts[1].to_string()),
+        ]
+    } else if parts.len() == 1 {
+        vec![
+            ("align-items".into(), parts[0].to_string()),
+            ("justify-items".into(), parts[0].to_string()),
+        ]
+    } else {
+        vec![]
+    }
+}
+
+/// Expand `place-content: align-content justify-content`.
+fn expand_place_content(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    if parts.len() >= 2 {
+        vec![
+            ("align-content".into(), parts[0].to_string()),
+            ("justify-content".into(), parts[1].to_string()),
+        ]
+    } else if parts.len() == 1 {
+        vec![
+            ("align-content".into(), parts[0].to_string()),
+            ("justify-content".into(), parts[0].to_string()),
+        ]
+    } else {
+        vec![]
+    }
+}
+
+/// Expand `place-self: align-self justify-self`.
+fn expand_place_self(value: &str) -> Vec<(String, String)> {
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    if parts.len() >= 2 {
+        vec![
+            ("align-self".into(), parts[0].to_string()),
+            ("justify-self".into(), parts[1].to_string()),
+        ]
+    } else if parts.len() == 1 {
+        vec![
+            ("align-self".into(), parts[0].to_string()),
+            ("justify-self".into(), parts[0].to_string()),
+        ]
+    } else {
+        vec![]
+    }
+}
+
+/// Expand `border-{side}: width style color` into uniform border-width + border-color.
+fn expand_border_side(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value == "none" || value == "0" || value.is_empty() {
+        return vec![
+            ("border-width".into(), "0".into()),
+            ("border-color".into(), "transparent".into()),
+        ];
+    }
+
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut paren_depth = 0;
+    for ch in value.chars() {
+        if ch == '(' { paren_depth += 1; }
+        if ch == ')' { paren_depth -= 1; }
+        if ch == ' ' && paren_depth == 0 {
+            if !current.is_empty() {
+                parts.push(current.clone());
+                current.clear();
+            }
+        } else {
+            current.push(ch);
+        }
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    let mut width = String::new();
+    let mut color = String::new();
+
+    for part in &parts {
+        if matches!(part.as_str(), "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset" | "none" | "hidden") {
+            continue;
+        }
+        let trimmed = part.trim_end_matches("px");
+        if trimmed.parse::<f64>().is_ok() {
+            width = part.clone();
+        } else {
+            color = part.clone();
+        }
+    }
+
+    let mut result = Vec::new();
+    if !width.is_empty() {
+        result.push(("border-width".into(), width));
+    }
+    if !color.is_empty() {
+        result.push(("border-color".into(), color));
+    }
+    result
+}
+
 // ── Pseudo-class category ──────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -912,6 +1095,78 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                     // Expand overflow shorthand into overflow-x + overflow-y
                     if prop_name == "overflow" && value.contains(' ') {
                         for (expanded_prop, expanded_val) in expand_overflow(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand text-shadow shorthand
+                    if prop_name == "text-shadow" {
+                        for (expanded_prop, expanded_val) in expand_text_shadow(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand inset shorthand into top/right/bottom/left
+                    if prop_name == "inset" {
+                        for (expanded_prop, expanded_val) in expand_inset(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand place-items shorthand
+                    if prop_name == "place-items" {
+                        for (expanded_prop, expanded_val) in expand_place_items(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand place-content shorthand
+                    if prop_name == "place-content" {
+                        for (expanded_prop, expanded_val) in expand_place_content(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand place-self shorthand
+                    if prop_name == "place-self" {
+                        for (expanded_prop, expanded_val) in expand_place_self(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand border-top/right/bottom/left shorthands
+                    if matches!(prop_name, "border-top" | "border-right" | "border-bottom" | "border-left") {
+                        for (expanded_prop, expanded_val) in expand_border_side(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
                             } else {

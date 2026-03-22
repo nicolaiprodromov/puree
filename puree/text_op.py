@@ -123,7 +123,8 @@ font_manager = FontManager()
 class TextInstance:
     def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER',
                  text_decoration='NONE', letter_spacing=0.0, line_height=0.0,
-                 font_weight='NORMAL', font_style='NORMAL', white_space='NORMAL', text_overflow='CLIP'):
+                 font_weight='NORMAL', font_style='NORMAL', white_space='NORMAL', text_overflow='CLIP',
+                 text_shadow_color=None, text_shadow_offset_x=0.0, text_shadow_offset_y=0.0, text_shadow_blur=0.0):
         self.container_id = container_id
         self.id        = len(_text_instances)
         self.text      = text
@@ -143,6 +144,9 @@ class TextInstance:
         self.line_height     = line_height
         self.white_space     = white_space
         self.text_overflow   = text_overflow
+        self.text_shadow_color  = text_shadow_color if text_shadow_color is not None else [0, 0, 0, 0]
+        self.text_shadow_offset = [text_shadow_offset_x, text_shadow_offset_y]
+        self.text_shadow_blur   = text_shadow_blur
         self._cached_dims = None
         self._dims_key = None
     
@@ -409,6 +413,19 @@ def draw_all_text():
                 elif instance.align_h == 'RIGHT':
                     lx = instance.mask[0] + container_w - cur_lw
             
+            # Enable BLF text shadow if configured
+            has_shadow = (instance.text_shadow_color[3] > 0 and
+                          (instance.text_shadow_blur > 0 or
+                           instance.text_shadow_offset[0] != 0 or
+                           instance.text_shadow_offset[1] != 0))
+            if has_shadow:
+                level = 0
+                if instance.text_shadow_blur > 0:
+                    level = 3 if instance.text_shadow_blur < 4 else 5
+                blf.shadow(instance.font_id, level, *instance.text_shadow_color)
+                blf.shadow_offset(instance.font_id, int(instance.text_shadow_offset[0]), int(-instance.text_shadow_offset[1]))
+                blf.enable(instance.font_id, blf.SHADOW)
+
             # Draw: char-by-char for letter_spacing, fast path otherwise
             if instance.letter_spacing > 0 and len(draw_text) > 1:
                 cx = lx
@@ -420,6 +437,9 @@ def draw_all_text():
             else:
                 blf.position(instance.font_id, lx, flipped_y, 0)
                 blf.draw(instance.font_id, draw_text)
+
+            if has_shadow:
+                blf.disable(instance.font_id, blf.SHADOW)
             
             # Text decoration per line
             decoration = getattr(instance, 'text_decoration', 'NONE')
@@ -467,6 +487,10 @@ class DrawTextOP(bpy.types.Operator):
     font_style      : bpy.props.StringProperty(name="Font Style", default="NORMAL")
     white_space     : bpy.props.StringProperty(name="White Space", default="NORMAL")
     text_overflow   : bpy.props.StringProperty(name="Text Overflow", default="CLIP")
+    text_shadow_color    : bpy.props.FloatVectorProperty(name="Text Shadow Color", subtype='COLOR', size=4, default=(0.0, 0.0, 0.0, 0.0))
+    text_shadow_offset_x : bpy.props.FloatProperty(name="Text Shadow Offset X", default=0.0)
+    text_shadow_offset_y : bpy.props.FloatProperty(name="Text Shadow Offset Y", default=0.0)
+    text_shadow_blur     : bpy.props.FloatProperty(name="Text Shadow Blur", default=0.0)
     
     def execute(self, context):
         global _draw_handle, _text_instances
@@ -491,7 +515,11 @@ class DrawTextOP(bpy.types.Operator):
             font_weight=self.font_weight,
             font_style=self.font_style,
             white_space=self.white_space,
-            text_overflow=self.text_overflow
+            text_overflow=self.text_overflow,
+            text_shadow_color=list(self.text_shadow_color),
+            text_shadow_offset_x=self.text_shadow_offset_x,
+            text_shadow_offset_y=self.text_shadow_offset_y,
+            text_shadow_blur=self.text_shadow_blur
         )
         _text_instances.append(new_instance)
         
