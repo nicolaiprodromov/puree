@@ -49,7 +49,71 @@ fn strip_custom_prefix(css_name: &str) -> String {
     }
 }
 
-/// Parse `box-shadow: offset-x offset-y blur-radius color` shorthand into individual properties.
+/// Parse `border: <width> <style> <color>` shorthand into border-width and border-color.
+/// `border-style` is always solid in Puree, so we ignore it.
+fn expand_border(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value == "none" || value == "0" || value.is_empty() {
+        return vec![
+            ("border-width".into(), "0".into()),
+            ("border-color".into(), "transparent".into()),
+        ];
+    }
+
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut paren_depth = 0;
+    for ch in value.chars() {
+        if ch == '(' { paren_depth += 1; }
+        if ch == ')' { paren_depth -= 1; }
+        if ch == ' ' && paren_depth == 0 {
+            if !current.is_empty() {
+                parts.push(current.clone());
+                current.clear();
+            }
+        } else {
+            current.push(ch);
+        }
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    let mut width = String::new();
+    let mut color = String::new();
+
+    for part in &parts {
+        // Skip border-style keywords
+        if matches!(part.as_str(), "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset" | "none" | "hidden") {
+            continue;
+        }
+        let trimmed = part.trim_end_matches("px");
+        if trimmed.parse::<f64>().is_ok() {
+            width = part.clone();
+        } else {
+            color = part.clone();
+        }
+    }
+
+    let mut result = Vec::new();
+    if !width.is_empty() {
+        result.push(("border-width".into(), width));
+    }
+    if !color.is_empty() {
+        result.push(("border-color".into(), color));
+    }
+    result
+}
+
+/// Parse `background: <color>` shorthand. Only supports solid color for now.
+fn expand_background(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if value == "none" || value == "transparent" || value.is_empty() {
+        return vec![("background-color".into(), "transparent".into())];
+    }
+    // For now, treat the entire value as a color (no gradient/image parsing)
+    vec![("background-color".into(), value.to_string())]
+}
 /// Returns vec of (property_name, value) pairs.
 fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
     let value = value.trim();
@@ -327,6 +391,30 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState)> {
                     // Expand box-shadow shorthand into multiple properties
                     if prop_name == "box-shadow" {
                         for (expanded_prop, expanded_val) in expand_box_shadow(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand border shorthand into border-width + border-color
+                    if prop_name == "border" {
+                        for (expanded_prop, expanded_val) in expand_border(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand background shorthand into background-color
+                    if prop_name == "background" {
+                        for (expanded_prop, expanded_val) in expand_background(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
                             } else {
