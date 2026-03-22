@@ -1240,19 +1240,22 @@ class XWZ_OT_start_ui(Operator):
         for _container_id in parser_op.text_blocks:
             block = parser_op.text_blocks[_container_id]
             bpy.ops.xwz.draw_text(
-                container_id = _container_id,
-                text          = block['text'],
-                font_name     = block['font'],
-                size          = block['font_size'],
-                x_pos         = block['text_x'],
-                y_pos         = block['text_y'],
-                color         = block['color'],
-                mask_x        = block['mask_x'],
-                mask_y        = block['mask_y'],
-                mask_width    = block['mask_width'],
-                mask_height   = block['mask_height'],
-                align_h       = block.get('align_h', 'LEFT').upper(),
-                align_v       = block.get('align_v', 'CENTER').upper()
+                container_id    = _container_id,
+                text            = block['text'],
+                font_name       = block['font'],
+                size            = block['font_size'],
+                x_pos           = block['text_x'],
+                y_pos           = block['text_y'],
+                color           = block['color'],
+                mask_x          = block['mask_x'],
+                mask_y          = block['mask_y'],
+                mask_width      = block['mask_width'],
+                mask_height     = block['mask_height'],
+                align_h         = block.get('align_h', 'LEFT').upper(),
+                align_v         = block.get('align_v', 'CENTER').upper(),
+                text_decoration = block.get('text_decoration', 'NONE'),
+                letter_spacing  = block.get('letter_spacing', 0.0),
+                line_height     = block.get('line_height', 0.0),
             )
         
         # Set scissor clips on text instances for scroll containers

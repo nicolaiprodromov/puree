@@ -41,7 +41,10 @@ class TextExtractor:
                 'mask_height'             : int(self.json_data[self.flat_index]['size'][1]),
                 'align_h'                 : container.style.text_align,
                 'align_v'                 : container.style.text_align_v,
-                'opacity'                 : container.style.opacity
+                'opacity'                 : container.style.opacity,
+                'text_decoration'         : getattr(container.style, 'text_decoration', 'NONE'),
+                'letter_spacing'          : float(getattr(container.style, 'letter_spacing', 0)),
+                'line_height'             : float(getattr(container.style, 'line_height', 0)),
             }
         self.flat_index += 1
         for child in container.children:  

@@ -80,7 +80,8 @@ class FontManager:
 font_manager = FontManager()
 
 class TextInstance:
-    def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER'):
+    def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER',
+                 text_decoration='NONE', letter_spacing=0.0, line_height=0.0):
         self.container_id = container_id
         self.id        = len(_text_instances)
         self.text      = text
@@ -93,6 +94,9 @@ class TextInstance:
         self.clip      = None  # Separate scissor clip rect [x, y, w, h] for scroll clipping
         self.align_h   = align_h
         self.align_v   = align_v
+        self.text_decoration = text_decoration
+        self.letter_spacing  = letter_spacing
+        self.line_height     = line_height
         self._cached_dims = None
         self._dims_key = None
     
@@ -132,7 +136,8 @@ class TextInstance:
     def update_mask(self, new_mask):
         self.mask = new_mask
         self._trigger_redraw()
-    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, clip=None, align_h=None, align_v=None):
+    def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, clip=None, align_h=None, align_v=None,
+                   text_decoration=None, letter_spacing=None, line_height=None):
         dims_dirty = False
         if text is not None and text != self.text:
             self.text = text
@@ -157,6 +162,12 @@ class TextInstance:
             self.align_h = align_h
         if align_v is not None:
             self.align_v = align_v
+        if text_decoration is not None:
+            self.text_decoration = text_decoration
+        if letter_spacing is not None:
+            self.letter_spacing = letter_spacing
+        if line_height is not None:
+            self.line_height = line_height
         if dims_dirty:
             self._invalidate_dims_cache()
         self._trigger_redraw()
@@ -164,6 +175,49 @@ class TextInstance:
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
                 area.tag_redraw()
+
+_decoration_shader = None
+_decoration_batch_cache = {}
+
+def _get_decoration_shader():
+    global _decoration_shader
+    if _decoration_shader is None:
+        _decoration_shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+    return _decoration_shader
+
+def _draw_text_decoration(x, y, text_width, text_height, font_size, color, decoration):
+    """Draw underline, overline, or line-through decoration lines."""
+    shader = _get_decoration_shader()
+    thickness = max(1.0, font_size / 14.0)
+    lines = []
+    
+    if 'UNDERLINE' in decoration:
+        line_y = y + thickness
+        lines.append((x, line_y, x + text_width, line_y))
+    if 'OVERLINE' in decoration:
+        line_y = y + text_height - thickness
+        lines.append((x, line_y, x + text_width, line_y))
+    if 'LINE_THROUGH' in decoration or 'LINE-THROUGH' in decoration:
+        line_y = y + text_height * 0.45
+        lines.append((x, line_y, x + text_width, line_y))
+    
+    if not lines:
+        return
+    
+    from gpu_extras.batch import batch_for_shader
+    vertices = []
+    for x1, y1, x2, y2 in lines:
+        # Draw as thin quad for consistent thickness
+        half = thickness / 2
+        vertices.extend([(x1, y1 - half), (x2, y1 - half), (x2, y1 + half),
+                         (x1, y1 - half), (x2, y1 + half), (x1, y1 + half)])
+    
+    batch = batch_for_shader(shader, 'TRIS', {"pos": vertices})
+    shader.bind()
+    shader.uniform_float("color", color)
+    gpu.state.blend_set('ALPHA')
+    batch.draw(shader)
+    gpu.state.blend_set('NONE')
 
 def draw_all_text():
     global _cached_viewport_height
@@ -231,6 +285,11 @@ def draw_all_text():
         blf.color(instance.font_id, *instance.color)
         blf.draw(instance.font_id, instance.text)
         
+        # Text decoration: underline, overline, line-through
+        decoration = getattr(instance, 'text_decoration', 'NONE')
+        if decoration and decoration != 'NONE' and text_width > 0:
+            _draw_text_decoration(x_pos, flipped_y, text_width, text_height, instance.size, instance.color, decoration)
+        
         if use_scissor:
             gpu.state.scissor_test_set(False)
         elif instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
@@ -265,6 +324,9 @@ class DrawTextOP(bpy.types.Operator):
         items=[('TOP', 'Top', ''), ('CENTER', 'Center', ''), ('BOTTOM', 'Bottom', '')],
         default='CENTER'
     )
+    text_decoration : bpy.props.StringProperty(name="Text Decoration", default="NONE")
+    letter_spacing  : bpy.props.FloatProperty(name="Letter Spacing", default=0.0)
+    line_height     : bpy.props.FloatProperty(name="Line Height", default=0.0)
     
     def execute(self, context):
         global _draw_handle, _text_instances
@@ -282,7 +344,10 @@ class DrawTextOP(bpy.types.Operator):
             color=list(self.color),
             mask=mask,
             align_h=self.align_h,
-            align_v=self.align_v
+            align_v=self.align_v,
+            text_decoration=self.text_decoration,
+            letter_spacing=self.letter_spacing,
+            line_height=self.line_height
         )
         _text_instances.append(new_instance)
         
