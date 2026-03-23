@@ -25,6 +25,7 @@ from .scroll_op import scroll_state, XWZ_OT_scroll, XWZ_OT_scroll_launch
 from .mouse_op import mouse_state, XWZ_OT_mouse, XWZ_OT_mouse_launch
 from .parser_op import XWZ_OT_ui_parser
 from . import parser_op
+from .input_router import input_router
 
 _render_data = None
 _modal_timer = None
@@ -2095,6 +2096,7 @@ class XWZ_OT_start_ui(Operator):
         bpy.ops.xwz.hit_stop()
         scroll_state.stop_scrolling()
         mouse_state.stop_mouse_tracking()
+        input_router.reset()
 
 class XWZ_OT_stop_ui(Operator):
     bl_idname      = "xwz.stop_ui"
@@ -2123,6 +2125,7 @@ class XWZ_OT_stop_ui(Operator):
         bpy.ops.xwz.hit_stop()
         scroll_state.stop_scrolling()
         mouse_state.stop_mouse_tracking()
+        input_router.reset()
         
         try:
             bpy.ops.xwz.clear_text()

@@ -13,6 +13,7 @@ from . import parser_op
 from .scroll_op import scroll_state
 from .mouse_op import mouse_state
 from .native_bindings import HitDetector
+from .input_router import input_router
 
 hit_modal_running = False
 _container_data = []
@@ -81,6 +82,17 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         if results is not None:
             self.apply_hit_results(results)
         
+        # Update input router — check if cursor is over any drawn surface,
+        # walking parent chains for transparent children of drawn containers
+        any_hit = input_router.is_over_drawn_surface(_container_data)
+        input_router.update_hover_state(any_hit)
+        
+        # Track capture for press/release (supports future drag)
+        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            input_router.notify_press()
+        elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+            input_router.notify_release()
+        
         for _container in _container_data:
             _container['_prev_hovered'] = _container['_hovered']
             _container['_prev_clicked'] = _container['_clicked']
@@ -88,6 +100,11 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         
         scroll_state._prev_scroll_value = scroll_state.scroll_value
         
+        # hit_op is registered first = processed last in Blender's modal stack.
+        # All other Puree modals (mouse, scroll, render) have already processed
+        # this event, so consuming here only blocks Blender's native handlers.
+        if input_router.should_consume_event(event.type):
+            return {'RUNNING_MODAL'}
         return {'PASS_THROUGH'}
     
     def apply_hit_results(self, results):
