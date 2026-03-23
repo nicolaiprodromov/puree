@@ -1,0 +1,11 @@
+// ─── Puree default scrollbar ──────────────────────────────────────────────
+// Built-in scrollbar rendered on overflow:scroll containers.
+// Override via standard CSS scrollbar properties:
+//   scrollbar-width: none | thin | auto | <px>
+//   scrollbar-color: <thumb-color> <track-color>
+//   scrollbar-thumb-color: <color>
+//   scrollbar-track-color: <color>
+
+$scrollbar_width:       6px !default;
+$scrollbar_thumb_color: rgba(255, 255, 255, 0.28) !default;
+$scrollbar_track_color: rgba(255, 255, 255, 0.06) !default;

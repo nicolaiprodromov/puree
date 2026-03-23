@@ -50,8 +50,6 @@ pub struct Container {
     pub text                   : String,
     pub font                   : String,
     pub color                  : [f32; 4],
-    pub color_2                : [f32; 4],
-    pub color_gradient_rot     : f32,
     pub font_size              : f32,
     pub text_x                 : f32,
     pub text_y                 : f32,

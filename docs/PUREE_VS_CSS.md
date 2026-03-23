@@ -51,18 +51,10 @@ These properties have no CSS equivalent and use the standard custom property `--
 |---|---|---|
 | `--text-align-v` | Vertical text alignment | `top`, `center`, `bottom` |
 | `--text-x`, `--text-y` | Text position offset | px |
-| `--background-color-2` | 2nd gradient stop (background) | Any color |
-| `--background-gradient-rot` | Background gradient angle | Degrees e.g. `135deg` |
-| `--color-2` | Text gradient second stop | Any color |
-| `--color-gradient-rot` | Text gradient angle | Degrees |
 | `--img-align-h` | Image horizontal alignment | `left`, `center`, `right` |
 | `--img-align-v` | Image vertical alignment | `top`, `center`, `bottom` |
-| `--border-color-2` | Border gradient second stop | Any color |
-| `--border-gradient-rot` | Border gradient angle | Degrees |
 
-**SCSS variables in `--` properties require interpolation:** `--background-color-2: #{$my_var};`
-
-For multi-stop gradients, prefer `background: linear-gradient(...)` syntax instead of `--` extensions.
+**SCSS variables in `--` properties require interpolation:** `--text-x: #{$offset};`
 
 ---
 
@@ -81,14 +73,7 @@ For multi-stop gradients, prefer `background: linear-gradient(...)` syntax inste
 | `background: linear-gradient(135deg, #f00, #00f)` | `background: linear-gradient(135deg, #f00, #00f)` ✅ |
 | `background: linear-gradient(90deg, red, blue 50%, green)` | `background: linear-gradient(90deg, red, blue 50%, green)` ✅ |
 
-The `background: linear-gradient()` shorthand is fully parsed including N-stop gradients with optional `%` positions. Multi-stop gradients are pre-rendered into a GPU texture; 2-stop gradients use fast GPU-side interpolation.
-
-The `--` extension syntax is still supported for simple 2-stop cases:
-
-| Extension | Purpose |
-|---|---|
-| `--background-color-2: #00f` | Gradient second stop (background) |
-| `--background-gradient-rot: 135deg` | Gradient angle |
+The `background: linear-gradient()` shorthand is fully parsed including N-stop gradients with optional `%` positions. `background-image: linear-gradient()` is also supported as a CSS alias. Multi-stop gradients are pre-rendered into a GPU texture; 2-stop gradients use fast GPU-side interpolation.
 
 Hover/click states each support independent gradients:
 ```scss
@@ -127,7 +112,11 @@ The `box-shadow` shorthand is now parsed automatically. Only one shadow per elem
 | `border-bottom-left-radius: 8px` | `border-bottom-left-radius: 8px` ✅ |
 | `border-radius: 8px 16px 4px 12px` | `border-radius: 8px 16px 4px 12px` ✅ |
 
-No `border-style` — all borders are solid. Per-side border **colors** are not yet supported (use a uniform `border-color`). Border gradients via `--border-color-2`.
+No `border-style` — all borders are solid. Per-side border **colors** are not yet supported (use a uniform `border-color`). Border gradients use `border-image: linear-gradient()`:
+
+```scss
+.card { border-image: linear-gradient(135deg, #3498db, #2ecc71); border-width: 1px; }
+```
 
 ---
 
@@ -137,14 +126,13 @@ No `border-style` — all borders are solid. Per-side border **colors** are not 
 |---|---|
 | `transition: background-color 0.2s ease` | `transition: background-color 0.2s ease` ✅ |
 | `transition: color 0.3s ease-in-out` | `transition: color 0.3s ease-in-out` ✅ |
+| `transition: background-color 0.2s ease, opacity 0.3s linear` | ✅ Multi-property transitions supported |
 
 **Animatable properties:** `background-color`, `color` (text), `border-color`, `opacity`
 
 **Timing functions:** `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`
 
-Only one property per `transition` declaration. `transition-delay` is supported.
-
-Full CSS animations (`@keyframes`, `animation`) are not supported.
+`transition-delay` is supported. Full CSS animations (`@keyframes`, `animation`) are not supported.
 
 ---
 
@@ -164,7 +152,7 @@ Full CSS animations (`@keyframes`, `animation`) are not supported.
 Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a Rust Flexbox/Grid engine.
 
 ### What works the same
-- `display: flex`, `display: grid`, `display: none`
+- `display: flex`, `display: grid`, `display: block`, `display: none`
 - `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`
 - `align-items`, `align-self`, `align-content`
 - `justify-content`, `justify-items`, `justify-self`
@@ -173,15 +161,22 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 - `width`, `height` (px and %)
 - `min-width`, `max-width`, `min-height`, `max-height`
 - `overflow: hidden`
+- `overflow-x`, `overflow-y`
+- `box-sizing: border-box/content-box`
+- `visibility: hidden/visible`
+- `pointer-events: none/auto`
+- `text-transform: uppercase/lowercase`
+- `var(--name)` / `var(--name, fallback)` — CSS custom properties resolved by the cascade
+- `@media (min-width: Npx)`, `@media (max-width: Npx)` queries
 - `grid-template-rows`, `grid-template-columns`, `grid-auto-flow`
 
 ### What does NOT exist
-- `display: block/inline/inline-flex` — only `flex`, `grid`, `none`
+- `display: inline`, `display: inline-flex` — only `flex`, `grid`, `block`, `none`
 - `float`, `clear`, `z-index`, `transform`
 - `@keyframes` animations — use `transition` for simple state changes
-- `calc()`, `var()`, `clamp()`, `min()`, `max()`
+- `calc()`, `clamp()`, `min()`, `max()`
 - `em`, `rem`, `vw`, `vh`, `fr` units
-- Media queries, pseudo-elements (`::before`, `::after`)
+- Pseudo-elements (`::before`, `::after`)
 - Per-side border colors (uniform `border-color` only)
 - Radial/conic gradients
 
@@ -236,4 +231,5 @@ Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 | `addEventListener('click', fn)` | `container.click.append(fn)` |
 | `addEventListener('mouseover', fn)` | `container.hover.append(fn)` |
 | DOM reflow on property change | `mark_dirty()` triggers relayout |
-| CSS transitions | ✅ Supported for `background-color`, `color`, `border-color`, `opacity` |
+| CSS transitions | ✅ Supported for `background-color`, `color`, `border-color`, `opacity` — multi-property via `transition: a 0.2s, b 0.3s` |
+| `element.style.background = 'linear-gradient(...)'` | `container.set_property('background', 'linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0,0,0,0))')` |

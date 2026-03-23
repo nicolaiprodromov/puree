@@ -264,6 +264,40 @@ fn auto_distribute_positions(positions: &mut [Option<f32>]) {
     }
 }
 
+/// Parse `border-image: linear-gradient(angle, c1, c2)` shorthand.
+/// Maps to the same internal border gradient slots. Non-gradient values are ignored.
+fn expand_border_image(value: &str) -> Vec<(String, String)> {
+    let value = value.trim();
+    if !value.starts_with("linear-gradient(") || !value.ends_with(')') {
+        return vec![];
+    }
+    let inner = &value[16..value.len()-1];
+    let args = split_respecting_parens(inner, ',');
+    if args.len() < 2 {
+        return vec![];
+    }
+    let first = args[0].trim();
+    let mut color_start_idx = 0;
+    let mut angle_deg: f64 = 180.0;
+    if first.ends_with("deg") || first.ends_with("rad") || first.ends_with("turn")
+        || first.starts_with("to ") {
+        angle_deg = parse_gradient_angle(first);
+        color_start_idx = 1;
+    }
+    let color_stops = &args[color_start_idx..];
+    if color_stops.len() < 2 {
+        return vec![];
+    }
+    let c0 = color_stops[0].trim().to_string();
+    let c1 = color_stops[1].trim().to_string();
+    vec![
+        ("border-color".into(), c0),
+        ("border-color-2".into(), c1),
+        ("border-gradient-rot".into(), format!("{}deg", angle_deg)),
+    ]
+}
+
+
 /// Parse gradient angle from CSS syntax.
 /// Supports: "135deg", "1.5rad", "0.25turn", "to right", "to bottom left", etc.
 fn parse_gradient_angle(s: &str) -> f64 {
@@ -1149,8 +1183,20 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                     }
 
                     // Expand background shorthand into background-color (+ gradient props)
-                    if prop_name == "background" {
+                    if prop_name == "background" || prop_name == "background-image" {
                         for (expanded_prop, expanded_val) in expand_background(&value) {
+                            if is_important {
+                                important_decls.insert(expanded_prop, expanded_val);
+                            } else {
+                                decls.insert(expanded_prop, expanded_val);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Expand border-image: linear-gradient() into border gradient slots
+                    if prop_name == "border-image" {
+                        for (expanded_prop, expanded_val) in expand_border_image(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
                             } else {

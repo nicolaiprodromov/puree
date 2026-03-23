@@ -46,18 +46,18 @@ $radial_border_width: 1px !default;
     flex-direction          : row;
     align-items             : center;
     justify-content         : space-between;
-    background-color                   : $bg_color;
-    --background-color-2                 : $bg_color1;
-    --background-gradient-rot      : $bg_grd_rot;
-    --hover-background-color             : $hover_bg_color;
-    hover-color-1           : $hover_bg_color1;
-    hover-color-gradient-rot: $hover_grd_rot;
-    --click-background-color             : $click_bg_color;
-    click-color-1           : $click_bg_color1;
-    click-color-gradient-rot: $click_grd_rot;
+    background              : linear-gradient($bg_grd_rot, $bg_color, $bg_color1);
     border-radius           : $border_radii;
     padding                 : $padding_value;
     margin-bottom           : $button_bottom_margin;
+
+    &:hover {
+        background: linear-gradient($hover_grd_rot, $hover_bg_color, $hover_bg_color1);
+    }
+
+    &:active {
+        background: linear-gradient($click_grd_rot, $click_bg_color, $click_bg_color1);
+    }
 }
 
 .button_icon {

@@ -285,7 +285,7 @@ class UI():
             'hover_background_color', 'hover_background_color_2',
             'click_background_color', 'click_background_color_2',
             'border_color', 'border_color_2',
-            'color', 'color_2',
+            'color',
             'box_shadow_color',
             'text_shadow_color'
             ]
@@ -298,7 +298,7 @@ class UI():
             'font_size', 'text_x', 'text_y',
             'box_shadow_blur', 'opacity',
             'text_shadow_offset_x', 'text_shadow_offset_y', 'text_shadow_blur',
-            'flex_grow', 'flex_shrink', 'scrollbar_width',
+            'flex_grow', 'flex_shrink',
             'line_height', 'letter_spacing'
             ]
 
@@ -307,7 +307,6 @@ class UI():
             'hover_background_gradient_rot',
             'click_background_gradient_rot',
             'border_gradient_rot',
-            'color_gradient_rot'
             ]
 
         bool_props = [
@@ -385,16 +384,7 @@ class UI():
             attr_value = attr_value.strip()
 
         elif attr_name == 'transition':
-            # Shorthand: "background-color 0.3s ease 0s" or "all 0.2s"
-            parts = attr_value.strip().split()
-            if parts:
-                attr_name = 'transition_property'
-                attr_value = parts[0].replace('-', '_')
-            # Parse duration if present
-            if len(parts) > 1:
-                # Will be handled separately via multi-set below
-                pass
-            return self._parse_transition_shorthand(attr_value if isinstance(attr_value, str) else parts[0], parts)
+            return self._parse_transition_shorthand(attr_value)
 
         elif attr_name == 'transition_duration':
             val = attr_value.strip().lower()
@@ -411,31 +401,106 @@ class UI():
         elif attr_name == 'transition_timing_function':
             attr_value = attr_value.strip().lower()
 
+        elif attr_name == 'scrollbar_width':
+            v = attr_value.strip().lower()
+            if v == 'none':
+                attr_value = 0.0
+            elif v == 'thin':
+                attr_value = 6.0
+            elif v == 'auto':
+                attr_value = 8.0
+            else:
+                try:
+                    attr_value = float(v.replace('px', '').strip())
+                except (ValueError, TypeError):
+                    attr_value = 6.0
+
+        elif attr_name == 'scrollbar_color':
+            # CSS standard: "scrollbar-color: <thumb> <track>"
+            # Parse as two space-separated colors (may contain rgba(...) with inner spaces)
+            raw = attr_value.strip()
+            parts, depth, buf = [], 0, []
+            for ch in raw:
+                if ch == '(':
+                    depth += 1
+                    buf.append(ch)
+                elif ch == ')':
+                    depth -= 1
+                    buf.append(ch)
+                elif ch == ' ' and depth == 0:
+                    token = ''.join(buf).strip()
+                    if token:
+                        parts.append(token)
+                    buf = []
+                else:
+                    buf.append(ch)
+            if buf:
+                token = ''.join(buf).strip()
+                if token:
+                    parts.append(token)
+            thumb = color_processor.parse_color(parts[0]) if parts else [1, 1, 1, 0.28]
+            track = color_processor.parse_color(parts[1]) if len(parts) > 1 else [1, 1, 1, 0.06]
+            return ('_scrollbar_color', (thumb, track))
+
+        elif attr_name in ('scrollbar_thumb_color', 'scrollbar_track_color'):
+            try:
+                attr_value = color_processor.parse_color(attr_value)
+            except Exception:
+                attr_value = [1.0, 1.0, 1.0, 0.28] if 'thumb' in attr_name else [1.0, 1.0, 1.0, 0.06]
+
         return attr_name, attr_value
 
-    def _parse_transition_shorthand(self, raw_value, parts):
-        """Parse transition shorthand and return multiple (name, value) pairs as a list."""
-        prop = parts[0].replace('-', '_') if parts else 'all'
-        duration = 0.0
-        timing = 'ease'
-        delay = 0.0
-        
-        for p in parts[1:]:
-            p_lower = p.lower().strip(',')
-            if p_lower in ('ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'):
-                timing = p_lower
-            elif 's' in p_lower or 'ms' in p_lower:
-                val = float(p_lower.replace('ms', '').replace('s', ''))
-                if 'ms' in p_lower:
-                    val /= 1000.0
-                if duration == 0.0:
-                    duration = val
-                else:
-                    delay = val
-        
-        # Return as the property name, storing all transition info
-        # We'll use a special multi-set approach
-        return ('transition_property', prop, duration, timing, delay)
+    def _parse_transition_shorthand(self, raw_value):
+        """Parse transition shorthand supporting comma-separated multi-transition.
+        Returns ('_transitions', [{'property', 'duration', 'timing', 'delay'}, ...])."""
+        transitions = []
+        # Split by comma respecting parentheses (e.g. cubic-bezier(...))
+        depth, buf, segments = 0, [], []
+        for ch in raw_value:
+            if ch == '(':
+                depth += 1
+                buf.append(ch)
+            elif ch == ')':
+                depth -= 1
+                buf.append(ch)
+            elif ch == ',' and depth == 0:
+                segments.append(''.join(buf).strip())
+                buf = []
+            else:
+                buf.append(ch)
+        if buf:
+            segments.append(''.join(buf).strip())
+
+        for segment in segments:
+            parts = segment.strip().split()
+            if not parts:
+                continue
+            prop = parts[0].replace('-', '_')
+            duration = 0.0
+            timing = 'ease'
+            delay = 0.0
+            for p in parts[1:]:
+                p_lower = p.lower()
+                if p_lower in ('ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'):
+                    timing = p_lower
+                elif 'ms' in p_lower or 's' in p_lower:
+                    try:
+                        val = float(p_lower.replace('ms', '').replace('s', ''))
+                        if 'ms' in p_lower:
+                            val /= 1000.0
+                        if duration == 0.0:
+                            duration = val
+                        else:
+                            delay = val
+                    except ValueError:
+                        pass
+            transitions.append({
+                'property': prop,
+                'duration': duration,
+                'timing': timing,
+                'delay': delay,
+            })
+        return ('_transitions', transitions)
 
     def parse_css(self):
         from . import get_addon_root
@@ -480,13 +545,20 @@ class UI():
                 container.style.id = container_id
             for prop, value in props.items():
                 result = self.parse_container_props_from_style(prop, value)
-                if isinstance(result, tuple) and len(result) == 5:
-                    # Transition shorthand: (property, prop_value, duration, timing, delay)
-                    _, t_prop, t_dur, t_timing, t_delay = result
-                    container.style.transition_property = t_prop
-                    container.style.transition_duration = t_dur
-                    container.style.transition_timing_function = t_timing
-                    container.style.transition_delay = t_delay
+                if isinstance(result, tuple) and len(result) == 2 and result[0] == '_transitions':
+                    # Multi-transition shorthand: store list and also populate compat fields
+                    t_list = result[1]
+                    container.style.transitions = t_list
+                    if t_list:
+                        first = t_list[0]
+                        container.style.transition_property = first['property']
+                        container.style.transition_duration = first['duration']
+                        container.style.transition_timing_function = first['timing']
+                        container.style.transition_delay = first['delay']
+                elif isinstance(result, tuple) and len(result) == 2 and result[0] == '_scrollbar_color':
+                    thumb, track = result[1]
+                    container.style.scrollbar_thumb_color = thumb
+                    container.style.scrollbar_track_color = track
                 else:
                     attr_name, attr_value = result
                     setattr(container.style, attr_name, attr_value)
@@ -513,7 +585,7 @@ class UI():
                     if normal_props.get(prop) == value:
                         continue
                     result = self.parse_container_props_from_style(prop, value)
-                    if isinstance(result, tuple) and len(result) == 5:
+                    if isinstance(result, tuple) and len(result) == 2 and result[0] == '_transitions':
                         continue  # transition shorthand already parsed in normal pass
                     attr_name, attr_value = result
                     state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
@@ -652,7 +724,12 @@ class UI():
             return (0.0, False, 0.0)
 
         def parse_css_value(value_str):
-            value_str = str(value_str).lower().strip()
+            # Style() defaults unset dimensions to float 0.0 — treat as AUTO (size-to-content)
+            if not isinstance(value_str, str):
+                if value_str == 0:
+                    return AUTO
+                return LengthPointsPercent.from_any(float(value_str) * PT)
+            value_str = value_str.lower().strip()
             if value_str in ('auto', ''):
                 return AUTO
             # Handle calc(), rem, em, vw, vh, vmin, vmax
@@ -675,7 +752,12 @@ class UI():
 
         def parse_css_value_auto(value_str):
             """Like parse_css_value but returns LengthPointsPercentAuto (supports auto)."""
-            value_str = str(value_str).lower().strip()
+            # Style() defaults unset dimensions to float 0.0 — treat as AUTO
+            if not isinstance(value_str, str):
+                if value_str == 0:
+                    return LengthPointsPercentAuto.from_any(AUTO)
+                return LengthPointsPercentAuto.from_any(float(value_str) * PT)
+            value_str = value_str.lower().strip()
             if value_str in ('auto', ''):
                 return LengthPointsPercentAuto.from_any(AUTO)
             if any(u in value_str for u in ('calc(', 'rem', 'em', 'vw', 'vh', 'vmin', 'vmax')):
@@ -1120,6 +1202,9 @@ class UI():
         overflow_type_map = {}
         position_type_map = {}
         transition_map = {}
+        scrollbar_width_map = {}
+        scrollbar_thumb_map = {}
+        scrollbar_track_map = {}
         def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
@@ -1127,13 +1212,21 @@ class UI():
             zindex_map[container.id] = int(container.style.z_index)
             overflow_type_map[container.id] = container.style.overflow
             position_type_map[container.id] = container.style.position
-            if hasattr(container.style, 'transition_property') and container.style.transition_duration > 0:
-                transition_map[container.id] = {
+            if hasattr(container.style, 'transitions') and container.style.transitions:
+                transition_map[container.id] = container.style.transitions
+            elif hasattr(container.style, 'transition_property') and container.style.transition_duration > 0:
+                transition_map[container.id] = [{
                     'property': container.style.transition_property,
                     'duration': float(container.style.transition_duration),
                     'timing': container.style.transition_timing_function,
                     'delay': float(container.style.transition_delay),
-                }
+                }]
+            if hasattr(container.style, 'scrollbar_width') and container.style.scrollbar_width:
+                scrollbar_width_map[container.id] = float(container.style.scrollbar_width)
+            if hasattr(container.style, 'scrollbar_thumb_color'):
+                scrollbar_thumb_map[container.id] = container.style.scrollbar_thumb_color
+            if hasattr(container.style, 'scrollbar_track_color'):
+                scrollbar_track_map[container.id] = container.style.scrollbar_track_color
             for child in container.children:
                 collect_style_props(child)
         collect_style_props(self.theme.root)
@@ -1146,12 +1239,20 @@ class UI():
                 c['z_index'] = zindex_map.get(cid, 0)
                 c['overflow_type'] = overflow_type_map.get(cid, 'VISIBLE')
                 c['position_type'] = position_type_map.get(cid, 'RELATIVE')
+                c['scrollbar_width'] = scrollbar_width_map.get(cid, None)
+                if cid in scrollbar_thumb_map:
+                    c['scrollbar_thumb_color'] = scrollbar_thumb_map[cid]
+                if cid in scrollbar_track_map:
+                    c['scrollbar_track_color'] = scrollbar_track_map[cid]
                 t_data = transition_map.get(cid)
                 if t_data:
-                    c['_transition_property'] = t_data['property']
-                    c['_transition_duration'] = t_data['duration']
-                    c['_transition_timing_function'] = t_data['timing']
-                    c['_transition_delay'] = t_data['delay']
+                    c['_transitions'] = t_data
+                    # Backward-compat single fields (first transition)
+                    first = t_data[0]
+                    c['_transition_property'] = first['property']
+                    c['_transition_duration'] = first['duration']
+                    c['_transition_timing_function'] = first['timing']
+                    c['_transition_delay'] = first['delay']
             # Sort by z-index (stable sort preserves tree order within same z)
             # Build old→new index mapping and remap parent refs
             sorted_list = sorted(enumerate(data_list), key=lambda t: t[1].get('z_index', 0))
@@ -1219,8 +1320,6 @@ class UI():
                 'hover_gradient_stops': str(container.style.hover_gradient_stops),
                 'click_gradient_stops': str(container.style.click_gradient_stops),
                 'color': list(container.style.color),
-                'color_2': list(container.style.color_2),
-                'color_gradient_rot': float(container.style.color_gradient_rot),
                 'font_size': float(container.style.font_size),
                 'text_x': float(container.style.text_x),
                 'text_y': float(container.style.text_y),

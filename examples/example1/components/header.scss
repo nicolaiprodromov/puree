@@ -35,9 +35,7 @@ $logo_size: 60px !default;
 .header {
     width          : $header_width;
     height         : $header_height;
-    background-color          : $bg_color;
-    --background-color-2        : $bg_color1;
-    --background-gradient-rot: 90deg;
+    background     : linear-gradient(90deg, $bg_color, $bg_color1);
     padding        : $header_padding;
     align-items    : center;
     justify-content: space-between;

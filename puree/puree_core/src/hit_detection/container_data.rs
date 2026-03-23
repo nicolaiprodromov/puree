@@ -215,8 +215,6 @@ impl ContainerProcessor {
                 border_width_left: style_dict.get_item("border_width_left").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
                 gradient_stops: style_dict.get_item("gradient_stops").ok().and_then(|v| v.and_then(|v| v.extract::<String>().ok())).unwrap_or_default(),
                 color: self.extract_color_array(style_dict, "color")?,
-                color_2: self.extract_color_array(style_dict, "color_2")?,
-                color_gradient_rot: style_dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
                 font_size: style_dict.get_item("font_size")?.unwrap().extract::<f32>()?,
                 text_x: style_dict.get_item("text_x")?.unwrap().extract::<f32>()?,
                 text_y: style_dict.get_item("text_y")?.unwrap().extract::<f32>()?,
@@ -345,10 +343,6 @@ impl ContainerProcessor {
         let color = PyList::new(py, &container.color);
         dict.set_item("color", color)?;
         
-        let color_2 = PyList::new(py, &container.color_2);
-        dict.set_item("color_2", color_2)?;
-        
-        dict.set_item("color_gradient_rot", container.color_gradient_rot)?;
         dict.set_item("font_size", container.font_size)?;
         dict.set_item("text_x", container.text_x)?;
         dict.set_item("text_y", container.text_y)?;

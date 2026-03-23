@@ -142,16 +142,18 @@ These do **NOT** inherit:
 | Property                        | Type        | Default         | Description                          |
 |---------------------------------|-------------|-----------------|--------------------------------------|
 | `background-color`              | color       | `transparent`   | Fill/background color                |
-| `--background-color-2`          | color       | `transparent`   | Gradient second stop                 |
-| `--background-gradient-rot`     | angle       | `0deg`          | Gradient angle                       |
+| `background`                    | shorthand   | —               | `linear-gradient()` or solid color   |
+| `background-image`              | shorthand   | —               | CSS alias for `background: linear-gradient()` |
 | `color`                         | color       | `#ffffff`       | Text color (inherited)               |
 | `opacity`                       | float       | `1.0`           | Element opacity (0–1)                |
+| `visibility`                    | enum        | `visible`       | `visible`, `hidden` (keeps layout space) |
 
-**Gradient shorthand (preferred for multi-stop):**
+**Gradient shorthand (preferred):**
 ```scss
 background: linear-gradient(135deg, #f00 0%, #00f 50%, #0f0 100%);
+background-image: linear-gradient(90deg, red, blue);  /* CSS alias */
 ```
-2-stop shorthand also works: `background: linear-gradient(90deg, red, blue)`
+2-stop shorthand: `background: linear-gradient(90deg, red, blue)`
 
 **Hover/click gradient:**
 ```scss
@@ -170,6 +172,7 @@ background: linear-gradient(135deg, #f00 0%, #00f 50%, #0f0 100%);
 | `font-weight`       | enum   | `normal`   | `normal`, `bold`                                              |
 | `font-style`        | enum   | `normal`   | `normal`, `italic`                                            |
 | `text-decoration`   | enum   | `none`     | `none`, `underline`                                           |
+| `text-transform`    | enum   | `none`     | `none`, `uppercase`, `lowercase`, `capitalize`                |
 | `letter-spacing`    | length | `0`        | Character spacing in px                                       |
 | `line-height`       | float  | `1.2`      | Line height multiplier (unitless)                             |
 | `white-space`       | enum   | `normal`   | `normal` (wrap), `nowrap`                                     |
@@ -203,14 +206,17 @@ Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`
 | `border-right`            | short  | none          | Per-side border shorthand                         |
 | `border-bottom`           | short  | none          | Per-side border shorthand                         |
 | `border-left`             | short  | none          | Per-side border shorthand                         |
+| `border-image`            | short  | none          | `border-image: linear-gradient(angle, c1, c2)`    |
 | `overflow`                | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
+| `overflow-x`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
+| `overflow-y`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
+| `box-sizing`              | enum   | `content-box` | `content-box`, `border-box`                       |
+| `pointer-events`          | enum   | `auto`        | `auto`, `none`                                    |
 
-**Border gradient extension:**
-
-| Property                   | Type  | Default       | Description               |
-|----------------------------|-------|---------------|---------------------------|
-| `--border-color-2`         | color | `transparent` | Border gradient end color |
-| `--border-gradient-rot`    | angle | `0deg`        | Border gradient angle     |
+**Border gradient** (CSS standard):
+```scss
+.card { border-image: linear-gradient(135deg, #3498db, #2ecc71); border-width: 1px; }
+```
 
 Per-side border **colors** are not currently supported — use a uniform `border-color`.
 
@@ -218,7 +224,7 @@ Per-side border **colors** are not currently supported — use a uniform `border
 
 | Property                    | Type     | Default  | Description                              |
 |-----------------------------|----------|----------|------------------------------------------|
-| `transition`                | shorthand| none     | `property duration timing-function`      |
+| `transition`                | shorthand| none     | `property duration timing-function` — comma-separated for multiple |
 | `transition-property`       | string   | `none`   | Animatable property name                 |
 | `transition-duration`       | time     | `0s`     | Duration in seconds (e.g. `0.3s`)        |
 | `transition-timing-function`| enum     | `ease`   | `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out` |
@@ -227,11 +233,19 @@ Per-side border **colors** are not currently supported — use a uniform `border
 **Animatable properties:** `background-color`, `color`, `border-color`, `opacity`
 
 ```scss
+// Single property
 .button {
   background-color: #252830;
   transition: background-color 0.2s ease;
-
   &:hover { background-color: #353942; }
+}
+
+// Multi-property
+.card {
+  background-color: #1e2028;
+  opacity: 1;
+  transition: background-color 0.2s ease, opacity 0.15s ease-out;
+  &:hover { background-color: #252830; opacity: 0.9; }
 }
 ```
 
@@ -280,7 +294,6 @@ Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
 |------------------|-------|---------|--------------------------------------|
 | `--img-align-h`  | enum  | `left`  | Image horizontal: `left`, `center`, `right` |
 | `--img-align-v`  | enum  | `top`   | Image vertical: `top`, `center`, `bottom`   |
-| `--img-opacity`  | float | `1.0`   | Image opacity                               |
 
 ### Pseudo-Classes for Interactivity
 
@@ -316,7 +329,8 @@ All standard SCSS is supported (compiled via `grass`):
 - Mixins: `@mixin`, `@include`
 - Partials & imports
 - `!default` for overridable component variables
-- `var(--name)` CSS custom properties
+- `var(--name)` CSS custom properties (with optional fallback: `var(--name, default)`)
+- `@media (min-width: Npx)` / `@media (max-width: Npx)` queries
 
 ### Color Formats
 
@@ -659,13 +673,9 @@ Properties prefixed with `--` are Puree extensions not found in standard CSS:
 | `--text-align-v`                 | Vertical text alignment          |
 | `--text-x`, `--text-y`          | Text position offsets            |
 | `--img-align-h`, `--img-align-v`| Image alignment within container |
-| `--img-opacity`                  | Image opacity                    |
-| `--background-color-2`           | Background gradient second color |
-| `--background-gradient-rot`      | Background gradient angle        |
-| `--border-color-2`               | Border gradient second color     |
-| `--border-gradient-rot`          | Border gradient angle            |
 
-For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's cleaner and more powerful than `--` extensions.
+For background gradients, use `background: linear-gradient(...)` — standard CSS.
+For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 
 ---
 
@@ -700,7 +710,7 @@ For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's
   position: absolute;
   width: 100%;
   height: 100%;
-  color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -709,7 +719,7 @@ For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's
 .modal_box {
   width: 400px;
   height: 300px;
-  color: #1e2028;
+  background-color: #1e2028;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -735,6 +745,7 @@ For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's
 
 ### Transition
 ```scss
+// Single property
 .animated_card {
   background-color: #1e2028;
   border-color: rgba(255,255,255,0.08);
@@ -742,6 +753,52 @@ For multi-stop gradients, use `background: linear-gradient(...)` syntax — it's
 
   &:hover {
     background-color: #252830;
+  }
+}
+
+// Multi-property
+.animated_card_multi {
+  background-color: #1e2028;
+  opacity: 1;
+  transition: background-color 0.2s ease, opacity 0.15s ease-out;
+
+  &:hover {
+    background-color: #252830;
+    opacity: 0.9;
+  }
+}
+```
+
+### CSS Custom Properties (`var()`)
+```scss
+// Define in :root or any parent
+:root {
+  --brand-color: #3498db;
+  --radius: 8px;
+}
+
+.button {
+  background-color: var(--brand-color);
+  border-radius: var(--radius);
+  color: var(--text-color, #ffffff);  // fallback value
+}
+```
+
+### Responsive Layout (`@media`)
+```scss
+.sidebar {
+  width: 250px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.card {
+  padding: 24px;
+
+  @media (min-width: 1200px) {
+    padding: 40px;
   }
 }
 ```

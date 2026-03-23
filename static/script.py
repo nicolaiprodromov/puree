@@ -117,34 +117,28 @@ def main(self, app):
             # Change atmosphere — intensify accent colors
             spotlight = app.get_by_id('spotlight_panel')
             if spotlight:
-                spotlight.set_property('background-color', 'rgba(28, 16, 58, 0.98)')
-                spotlight.set_property('--background-color-2', 'rgba(72, 32, 130, 0.96)')
+                spotlight.set_property('background', 'linear-gradient(140deg, rgba(28, 16, 58, 0.98), rgba(72, 32, 130, 0.96))')
 
             hero = app.get_by_id('hero_panel')
             if hero:
-                hero.set_property('background-color', 'rgba(14, 20, 38, 0.98)')
-                hero.set_property('--background-color-2', 'rgba(24, 52, 82, 0.96)')
+                hero.set_property('background', 'linear-gradient(140deg, rgba(14, 20, 38, 0.98), rgba(24, 52, 82, 0.96))')
 
             shell = app.get_by_id('shell')
             if shell:
-                shell.set_property('background-color', 'rgba(10, 14, 28, 0.98)')
-                shell.set_property('--background-color-2', 'rgba(16, 32, 52, 0.98)')
+                shell.set_property('background', 'linear-gradient(125deg, rgba(10, 14, 28, 0.98), rgba(16, 32, 52, 0.98))')
         else:
             # Restore calm atmosphere
             spotlight = app.get_by_id('spotlight_panel')
             if spotlight:
-                spotlight.set_property('background-color', 'rgba(16, 16, 30, 0.94)')
-                spotlight.set_property('--background-color-2', 'rgba(46, 25, 82, 0.92)')
+                spotlight.set_property('background', 'linear-gradient(140deg, rgba(16, 16, 30, 0.94), rgba(46, 25, 82, 0.92))')
 
             hero = app.get_by_id('hero_panel')
             if hero:
-                hero.set_property('background-color', 'rgba(13, 18, 29, 0.96)')
-                hero.set_property('--background-color-2', 'rgba(17, 39, 60, 0.9)')
+                hero.set_property('background', 'linear-gradient(140deg, rgba(13, 18, 29, 0.96), rgba(17, 39, 60, 0.9))')
 
             shell = app.get_by_id('shell')
             if shell:
-                shell.set_property('background-color', 'rgba(8, 12, 22, 0.95)')
-                shell.set_property('--background-color-2', 'rgba(11, 26, 41, 0.98)')
+                shell.set_property('background', 'linear-gradient(125deg, rgba(8, 12, 22, 0.95), rgba(11, 26, 41, 0.98))')
 
             apply_mode(state['mode'])
             return

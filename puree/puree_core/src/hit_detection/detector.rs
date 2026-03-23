@@ -147,7 +147,6 @@ impl HitDetector {
         let border_color = self.extract_color_array(dict, "border_color")?;
         let border_color_2 = self.extract_color_array(dict, "border_color_2")?;
         let color = self.extract_color_array(dict, "color")?;
-        let color_2 = self.extract_color_array(dict, "color_2")?;
         let box_shadow_color = self.extract_color_array(dict, "box_shadow_color")?;
         
         let box_shadow_offset_list = dict.get_item("box_shadow_offset")?.unwrap().downcast::<PyList>()?;
@@ -193,8 +192,6 @@ impl HitDetector {
             text: dict.get_item("text")?.unwrap().extract::<String>()?,
             font: dict.get_item("font")?.unwrap().extract::<String>()?,
             color,
-            color_2,
-            color_gradient_rot: dict.get_item("color_gradient_rot")?.unwrap().extract::<f32>()?,
             font_size: dict.get_item("font_size")?.unwrap().extract::<f32>()?,
             text_x: dict.get_item("text_x")?.unwrap().extract::<f32>()?,
             text_y: dict.get_item("text_y")?.unwrap().extract::<f32>()?,

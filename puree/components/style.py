@@ -46,8 +46,6 @@ class Style():
         self.font_weight             : str         = 'NORMAL'
         self.font_style              : str         = 'NORMAL'
         self.color                   : List[float] = [1.0, 1.0, 1.0, 1.0]
-        self.color_2                 : List[float] = [0.0, 0.0, 0.0, 0.0]
-        self.color_gradient_rot      : float       = 0.0
         self.text_align              : str         = 'LEFT'
         self.text_align_v            : str         = 'CENTER'
         self.text_transform          : str         = 'NONE'
@@ -135,9 +133,10 @@ class Style():
         self.grid_row             : str            = 'AUTO'
         self.grid_column          : str            = 'AUTO'
 
-        # CSS transitions
+        # CSS transitions (single-transition compat fields, and multi-transition list)
         self.transition_property         : str   = 'none'
         self.transition_duration         : float = 0.0
         self.transition_timing_function  : str   = 'ease'
         self.transition_delay            : float = 0.0
+        self.transitions                 : list  = []
 

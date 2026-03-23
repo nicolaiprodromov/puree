@@ -32,8 +32,6 @@ class TextInputExtractor:
                 'y_pos': int(self.json_data[self.flat_index]['position'][1] + container.style.text_y),
                 'font_size': int(container.style.font_size),
                 'color': container.style.color,
-                'color_2': container.style.color_2,
-                'color_gradient_rot': container.style.color_gradient_rot,
                 'mask_x': int(self.json_data[self.flat_index]['position'][0]),
                 'mask_y': int(self.json_data[self.flat_index]['position'][1]),
                 'mask_width': int(self.json_data[self.flat_index]['size'][0]),

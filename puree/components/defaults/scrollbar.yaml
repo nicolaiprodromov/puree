@@ -1,0 +1,14 @@
+# Puree default scrollbar component
+# This is a virtual component — rendered programmatically by render.py
+# No YAML tree is needed; this file documents the scrollbar's structure.
+#
+# The scrollbar consists of two visual elements drawn per scroll container:
+#   - track: full-height background strip on the right edge
+#   - thumb: proportionally-sized indicator showing current scroll position
+#
+# Customise via CSS properties on any overflow:scroll container.
+scrollbar:
+  track:
+    passive: true
+  thumb:
+    passive: true

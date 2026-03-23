@@ -21,9 +21,7 @@ $chip_radius: 16px !default;
     width: $chip_width;
     height: $chip_height;
     padding: $chip_padding;
-    background-color: $chip_bg;
-    --background-color-2: #{$chip_bg1};
-    --background-gradient-rot: 90deg;
+    background: linear-gradient(90deg, $chip_bg, #{$chip_bg1});
     border-width: 1px;
     border-color: $chip_border;
     border-radius: $chip_radius;
@@ -31,14 +29,12 @@ $chip_radius: 16px !default;
     transition: background-color 0.25s ease;
 
     &:hover {
-        background-color: $chip_hover_bg;
-        --background-color-2: #{$chip_hover_bg1};
+        background: linear-gradient(90deg, $chip_hover_bg, #{$chip_hover_bg1});
         border-color: rgba(255, 255, 255, 0.18);
     }
 
     &:active {
-        background-color: $chip_click_bg;
-        --background-color-2: #{$chip_click_bg1};
+        background: linear-gradient(90deg, $chip_click_bg, #{$chip_click_bg1});
         border-color: rgba(255, 255, 255, 0.26);
     }
 }

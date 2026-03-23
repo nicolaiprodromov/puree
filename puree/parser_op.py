@@ -80,8 +80,6 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
                 print(f" ├─  Text X           : {child.text_x}")
                 print(f" ├─  Text Y           : {child.text_y}")
                 print(f" ├─  Color (text)     : {child.color}")
-                print(f" ├─  Color2 (text)    : {child.color_2}")
-                print(f" ├─  Color G Rot      : {child.color_gradient_rot}")
                 print(' ├───────────────────────────────────────────')
                 print(f" ├─  Box Shadow Color   : {child.box_shadow_color}")
                 print(f" ├─  Box Shadow Offset  : {child.box_shadow_offset}")

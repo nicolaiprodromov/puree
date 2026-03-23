@@ -100,6 +100,7 @@ class RenderPipeline:
         self._original_text_positions = {} # container_id → {text_x, text_y, mask_x, mask_y}
         self._original_image_positions = {} # container_id → {x_pos, y_pos, mask_x, mask_y}
         self._original_text_input_positions = {} # container_id → {x_pos, y_pos, mask_x, mask_y}
+        self._vis_clips = []               # cached per-container (visible, cx, cy, cw, ch, opacity)
     def _safe_release_moderngl_object(self, obj):
         """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, 'mglo'):
@@ -269,11 +270,11 @@ class RenderPipeline:
         n = len(containers)
         data = np.zeros(n * 68, dtype=np.float32)
         
-        vis_clips = self._precompute_visibility_and_clips(containers)
+        self._vis_clips = self._precompute_visibility_and_clips(containers)
         
         for i, container in enumerate(containers):
             struct = self._build_container_struct(container)
-            v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
+            v, cx, cy, cw, ch, acc_opacity = self._vis_clips[i]
             struct[54] = v
             struct[55] = cx
             struct[56] = cy
@@ -582,6 +583,138 @@ class RenderPipeline:
         self.draw_handler = space_class.draw_handler_add(
             self.draw_texture, (), 'WINDOW', 'POST_PIXEL'
         )
+    def _draw_scrollbars(self):
+        """Overlay scrollbar track+thumb on every overflow:scroll container."""
+        from . import hit_op
+        containers = hit_op._container_data if hit_op._container_data else self.container_data
+        if not containers:
+            return
+
+        DEFAULT_BAR_W    = 6.0
+        DEFAULT_THUMB    = (1.0, 1.0, 1.0, 0.35)
+        DEFAULT_TRACK    = (1.0, 1.0, 1.0, 0.08)
+        THUMB_MIN_H      = 20.0
+        MARGIN           = 2.0
+        n = len(containers)
+
+        vw = float(self.region_size[0])
+        vh = float(self.region_size[1])
+
+        # Build set of scroll container indices for nesting detection
+        scroll_indices = set()
+        for i, c in enumerate(containers):
+            if c.get('display', False) and c.get('overflow_type', 'VISIBLE') in ('SCROLL', 'AUTO'):
+                scroll_indices.add(i)
+
+        # Collect (rects, clip_rect) per scrollbar — clip from parent vis_clips
+        groups = []  # list of (clip_rect_screen, [(rx, ry, rw, rh, col), ...])
+
+        for i in scroll_indices:
+            c = containers[i]
+
+            sbw = c.get('scrollbar_width', None)
+            if sbw is not None and sbw == 0.0:
+                continue
+            bar_w = sbw if sbw else DEFAULT_BAR_W
+
+            pos = c.get('position', [0, 0])
+            sz  = c.get('size',     [0, 0])
+            cx, cy = float(pos[0]), float(pos[1])
+            cw, ch = float(sz[0]),  float(sz[1])
+            if cw <= 0 or ch <= 0:
+                continue
+
+            # Inset by border width so scrollbar sits inside the border edge
+            bw_r = float(c.get('border_width_right', 0.0) or c.get('border_width', 0.0))
+            bw_t = float(c.get('border_width_top', 0.0) or c.get('border_width', 0.0))
+            bw_b = float(c.get('border_width_bottom', 0.0) or c.get('border_width', 0.0))
+
+            inner_x = cx + cw - bw_r   # right border inner edge
+            inner_y = cy + bw_t        # top border inner edge
+            inner_h = ch - bw_t - bw_b # inner height
+
+            if inner_h <= 0:
+                continue
+
+            bounds = self._content_bounds.get(i)
+            content_h = bounds[1] if bounds else 0.0
+            if content_h <= ch:
+                continue
+
+            # Check if a parent scroll container exists → shift left to avoid overlap
+            nesting_depth = 0
+            pidx = int(c.get('parent', -1))
+            for _ in range(20):
+                if pidx < 0 or pidx >= n:
+                    break
+                if pidx in scroll_indices:
+                    nesting_depth += 1
+                pidx = int(containers[pidx].get('parent', -1))
+
+            # Position scrollbar inside the right border edge
+            track_x = inner_x - MARGIN - bar_w - nesting_depth * (bar_w + MARGIN)
+
+            offset   = self._scroll_offsets.get(i, [0.0, 0.0])
+            scroll_y = offset[1]
+
+            thumb_ratio = inner_h / content_h
+            thumb_h     = max(THUMB_MIN_H, inner_h * thumb_ratio)
+            scroll_max  = content_h - ch
+            scroll_pct  = scroll_y / scroll_max if scroll_max > 0 else 0.0
+            thumb_y     = inner_y + scroll_pct * (inner_h - thumb_h)
+
+            raw_thumb = c.get('scrollbar_thumb_color', None)
+            raw_track = c.get('scrollbar_track_color', None)
+            thumb_col = tuple(raw_thumb) if raw_thumb else DEFAULT_THUMB
+            track_col = tuple(raw_track) if raw_track else DEFAULT_TRACK
+
+            rects = []
+            rects.append((track_x, inner_y, bar_w, inner_h, track_col))
+            rects.append((track_x, thumb_y, bar_w, thumb_h, thumb_col))
+
+            # Compute clip rect from _vis_clips (parent-chain clip for this container)
+            if i < len(self._vis_clips):
+                vis, clip_x, clip_y, clip_w, clip_h, _ = self._vis_clips[i]
+                if vis == 0.0:
+                    continue
+                # Convert CSS coords (top-left origin) to screen coords (bottom-left origin)
+                scr_clip_x = int(clip_x)
+                scr_clip_y = int(vh - clip_y - clip_h)
+                scr_clip_w = int(clip_w)
+                scr_clip_h = int(clip_h)
+            else:
+                scr_clip_x, scr_clip_y = 0, 0
+                scr_clip_w, scr_clip_h = int(vw), int(vh)
+
+            groups.append(((scr_clip_x, scr_clip_y, scr_clip_w, scr_clip_h), rects))
+
+        if not groups:
+            return
+
+        shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+        shader.bind()
+        gpu.state.blend_set('ALPHA')
+        gpu.state.depth_test_set('NONE')
+
+        for clip_rect, rects in groups:
+            gpu.state.scissor_test_set(True)
+            gpu.state.scissor_set(clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3])
+
+            for rx, ry, rw, rh, col in rects:
+                x0 = rx
+                y0 = vh - ry - rh
+                x1 = rx + rw
+                y1 = vh - ry
+
+                verts = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+                shader.uniform_float("color", col)
+                batch = batch_for_shader(shader, 'TRI_FAN', {"pos": verts})
+                batch.draw(shader)
+
+        gpu.state.scissor_test_set(False)
+        gpu.state.blend_set('ALPHA_PREMULT')
+        gpu.state.depth_test_set('LESS_EQUAL')
+
     def draw_texture(self):
         """Draw containers directly via native vertex+fragment shader. Zero readback."""
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
@@ -617,6 +750,11 @@ class RenderPipeline:
             
             gpu.state.blend_set('NONE')
             gpu.state.depth_test_set('LESS_EQUAL')
+        except Exception:
+            traceback.print_exc()
+        
+        try:
+            self._draw_scrollbars()
         except Exception:
             traceback.print_exc()
     
@@ -785,7 +923,7 @@ class RenderPipeline:
         click_bg_color = container.get('click_background_color', container_default.click_background_color)
         click_bg_color_2 = container.get('click_background_color_2', container_default.click_background_color_2)
         border_color = container.get('border_color', [1, 1, 1, 1])
-        border_color_2 = container.get('border_color_2', [1, 1, 1, 1])
+        border_color_2 = container.get('border_color_2', [0.0, 0.0, 0.0, 0.0])
         position = container.get('position', [0, 0])
         size = container.get('size', [100, 100])
         shadow_offset = container.get('box_shadow_offset', [0, 0, 0])
@@ -1052,7 +1190,8 @@ class RenderPipeline:
         return changed
     
     def _apply_scroll_to_text(self, text_blocks):
-        """Apply scroll offsets to text positions (masks handled separately via scroll clip)."""
+        """Apply scroll offsets to text and mask positions.
+        Both must move together — text_op.py derives final position from the mask, not pos."""
         if not self._scroll_offsets or not self._original_text_positions:
             return
         for cid, block in text_blocks.items():
@@ -1065,7 +1204,8 @@ class RenderPipeline:
             sx, sy = self._scroll_accumulation[idx]
             block['text_x'] = int(orig['text_x'] - sx)
             block['text_y'] = int(orig['text_y'] - sy)
-            # Don't scroll the mask — it will be set from scroll clip in the render loop
+            block['mask_x'] = int(orig['mask_x'] - sx)
+            block['mask_y'] = int(orig['mask_y'] - sy)
     
     def _apply_scroll_to_images(self, image_blocks):
         """Apply scroll offsets to image positions (masks handled separately via scroll clip)."""
@@ -1221,65 +1361,71 @@ class RenderPipeline:
         """Start CSS transitions when hover state changes."""
         n = len(containers)
         
-        def _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover):
+        def _start_props(c, cid, transitions, entering_hover):
             """Start transitions for all applicable properties on a container."""
-            t_prop = c.get('_transition_property', 'none')
-            
-            # background-color
-            hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
-            normal_bg = c.get('background_color', [0, 0, 0, 0])
-            if hover_bg[3] >= 0 and t_prop in ('all', 'background_color', 'background-color'):
-                current = self.transitions.get_value(cid, 'background_color')
-                if entering_hover:
-                    start = current if current else normal_bg
-                    self.transitions.start_transition(cid, 'background_color', start, hover_bg, t_dur, t_delay, t_timing)
-                else:
-                    start = current if current else hover_bg
-                    self.transitions.start_transition(cid, 'background_color', start, normal_bg, t_dur, t_delay, t_timing)
-            
-            # border-color
-            hover_bc = c.get('hover_border_color', [0, 0, 0, -1])
-            normal_bc = c.get('border_color', [0, 0, 0, 0])
-            if hover_bc[3] >= 0 and t_prop in ('all', 'border_color', 'border-color'):
-                current = self.transitions.get_value(cid, 'border_color')
-                if entering_hover:
-                    start = current if current else normal_bc
-                    self.transitions.start_transition(cid, 'border_color', start, hover_bc, t_dur, t_delay, t_timing)
-                else:
-                    start = current if current else hover_bc
-                    self.transitions.start_transition(cid, 'border_color', start, normal_bc, t_dur, t_delay, t_timing)
-            
-            # opacity
-            hover_op = c.get('hover_opacity', -1.0)
-            normal_op = c.get('opacity', 1.0)
-            if hover_op >= 0 and t_prop in ('all', 'opacity'):
-                current = self.transitions.get_value(cid, 'opacity')
-                if entering_hover:
-                    start = current if current is not None else normal_op
-                    self.transitions.start_transition(cid, 'opacity', start, hover_op, t_dur, t_delay, t_timing)
-                else:
-                    start = current if current is not None else hover_op
-                    self.transitions.start_transition(cid, 'opacity', start, normal_op, t_dur, t_delay, t_timing)
+            for t in transitions:
+                t_prop = t['property']
+                t_dur = t['duration']
+                t_timing = t['timing']
+                t_delay = t['delay']
+                if t_dur <= 0:
+                    continue
+
+                # background-color
+                hover_bg = c.get('hover_background_color', [0, 0, 0, -1])
+                normal_bg = c.get('background_color', [0, 0, 0, 0])
+                if hover_bg[3] >= 0 and t_prop in ('all', 'background_color', 'background-color'):
+                    current = self.transitions.get_value(cid, 'background_color')
+                    if entering_hover:
+                        start = current if current else normal_bg
+                        self.transitions.start_transition(cid, 'background_color', start, hover_bg, t_dur, t_delay, t_timing)
+                    else:
+                        start = current if current else hover_bg
+                        self.transitions.start_transition(cid, 'background_color', start, normal_bg, t_dur, t_delay, t_timing)
+
+                # border-color
+                hover_bc = c.get('hover_border_color', [0, 0, 0, -1])
+                normal_bc = c.get('border_color', [0, 0, 0, 0])
+                if hover_bc[3] >= 0 and t_prop in ('all', 'border_color', 'border-color'):
+                    current = self.transitions.get_value(cid, 'border_color')
+                    if entering_hover:
+                        start = current if current else normal_bc
+                        self.transitions.start_transition(cid, 'border_color', start, hover_bc, t_dur, t_delay, t_timing)
+                    else:
+                        start = current if current else hover_bc
+                        self.transitions.start_transition(cid, 'border_color', start, normal_bc, t_dur, t_delay, t_timing)
+
+                # opacity
+                hover_op = c.get('hover_opacity', -1.0)
+                normal_op = c.get('opacity', 1.0)
+                if hover_op >= 0 and t_prop in ('all', 'opacity'):
+                    current = self.transitions.get_value(cid, 'opacity')
+                    if entering_hover:
+                        start = current if current is not None else normal_op
+                        self.transitions.start_transition(cid, 'opacity', start, hover_op, t_dur, t_delay, t_timing)
+                    else:
+                        start = current if current is not None else hover_op
+                        self.transitions.start_transition(cid, 'opacity', start, normal_op, t_dur, t_delay, t_timing)
         
         # Container being un-hovered
         if 0 <= old_idx < n:
             c = containers[old_idx]
             cid = c.get('id', '')
-            t_dur = c.get('_transition_duration', 0.0)
-            if c.get('_transition_property', 'none') != 'none' and t_dur > 0:
-                t_timing = c.get('_transition_timing_function', 'ease')
-                t_delay = c.get('_transition_delay', 0.0)
-                _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover=False)
+            transitions = c.get('_transitions', [])
+            if not transitions and c.get('_transition_property', 'none') != 'none' and c.get('_transition_duration', 0.0) > 0:
+                transitions = [{'property': c.get('_transition_property'), 'duration': c.get('_transition_duration', 0.0), 'timing': c.get('_transition_timing_function', 'ease'), 'delay': c.get('_transition_delay', 0.0)}]
+            if transitions:
+                _start_props(c, cid, transitions, entering_hover=False)
         
         # Container being hovered
         if 0 <= new_idx < n:
             c = containers[new_idx]
             cid = c.get('id', '')
-            t_dur = c.get('_transition_duration', 0.0)
-            if c.get('_transition_property', 'none') != 'none' and t_dur > 0:
-                t_timing = c.get('_transition_timing_function', 'ease')
-                t_delay = c.get('_transition_delay', 0.0)
-                _start_props(c, cid, t_dur, t_timing, t_delay, entering_hover=True)
+            transitions = c.get('_transitions', [])
+            if not transitions and c.get('_transition_property', 'none') != 'none' and c.get('_transition_duration', 0.0) > 0:
+                transitions = [{'property': c.get('_transition_property'), 'duration': c.get('_transition_duration', 0.0), 'timing': c.get('_transition_timing_function', 'ease'), 'delay': c.get('_transition_delay', 0.0)}]
+            if transitions:
+                _start_props(c, cid, transitions, entering_hover=True)
 
     def update_container_buffer_full(self, hit_container_data):
         if not hit_container_data:

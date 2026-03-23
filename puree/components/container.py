@@ -10,6 +10,126 @@
 # ╚═════════════════════════════════╝
 from __future__ import annotations
 from typing import Optional, List
+import math as _math
+
+
+def _parse_css_angle(s):
+    """Parse a CSS angle string to degrees."""
+    s = s.strip().lower()
+    if s.endswith('deg'):
+        return float(s[:-3])
+    if s.endswith('rad'):
+        return _math.degrees(float(s[:-3]))
+    if s.endswith('turn'):
+        return float(s[:-4]) * 360.0
+    return {
+        'to top': 0.0, 'to right': 90.0, 'to bottom': 180.0, 'to left': 270.0,
+        'to top right': 45.0, 'to right top': 45.0,
+        'to bottom right': 135.0, 'to right bottom': 135.0,
+        'to bottom left': 225.0, 'to left bottom': 225.0,
+        'to top left': 315.0, 'to left top': 315.0,
+    }.get(s, 180.0)
+
+
+def _split_css_args(s):
+    """Split string by comma, respecting parentheses depth."""
+    args, depth, buf = [], 0, []
+    for ch in s:
+        if ch == '(':
+            depth += 1
+            buf.append(ch)
+        elif ch == ')':
+            depth -= 1
+            buf.append(ch)
+        elif ch == ',' and depth == 0:
+            args.append(''.join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+    if buf:
+        args.append(''.join(buf).strip())
+    return args
+
+
+def _apply_linear_gradient(style, value_str):
+    """Parse linear-gradient() and set style fields. Returns True on success."""
+    value_str = value_str.strip()
+    if not (value_str.startswith('linear-gradient(') and value_str.endswith(')')):
+        return False
+    inner = value_str[16:-1]
+    args = _split_css_args(inner)
+    if len(args) < 2:
+        return False
+
+    # Determine angle
+    first = args[0].strip().lower()
+    angle = 180.0
+    color_start = 0
+    if (first.endswith('deg') or first.endswith('rad') or first.endswith('turn')
+            or first.startswith('to ')):
+        angle = _parse_css_angle(first)
+        color_start = 1
+
+    color_args = args[color_start:]
+    if len(color_args) < 2:
+        return False
+
+    from ..native_bindings import ColorProcessor
+    cp = ColorProcessor()
+
+    def parse_stop(stop_str):
+        stop_str = stop_str.strip()
+        pos = None
+        last_paren = stop_str.rfind(')')
+        if last_paren >= 0:
+            # Color is a CSS function (rgba, hsl, etc.) — everything up to and
+            # including ')' is the color; anything after is an optional position.
+            color_str = stop_str[:last_paren + 1]
+            trailing = stop_str[last_paren + 1:].strip()
+            if trailing.endswith('%'):
+                try:
+                    pos = float(trailing[:-1]) / 100.0
+                except ValueError:
+                    pass
+        else:
+            # Simple keyword or hex, optionally followed by "50%" position.
+            parts = stop_str.rsplit(None, 1)
+            color_str = parts[0].strip()
+            if len(parts) == 2:
+                p = parts[1].strip()
+                if p.endswith('%'):
+                    try:
+                        pos = float(p[:-1]) / 100.0
+                    except ValueError:
+                        pass
+        try:
+            rgba = cp.parse_color(color_str)
+        except Exception:
+            rgba = [0.0, 0.0, 0.0, 1.0]
+        return rgba, pos
+
+    stops = [parse_stop(s) for s in color_args]
+
+    if len(stops) == 2:
+        style.background_color = stops[0][0]
+        style.background_color_2 = stops[1][0]
+        style.background_gradient_rot = angle
+        style.gradient_stops = ''
+    else:
+        # Distribute auto positions
+        n = len(stops)
+        for i, (rgba, pos) in enumerate(stops):
+            if pos is None:
+                stops[i] = (rgba, float(i) / max(n - 1, 1))
+        parts_str = str(angle)
+        for rgba, pos in stops:
+            parts_str += ' {} {} {} {} {}'.format(
+                rgba[0], rgba[1], rgba[2], rgba[3], pos)
+        style.gradient_stops = parts_str
+        style.background_color = stops[0][0]
+        style.background_color_2 = stops[1][0]
+        style.background_gradient_rot = angle
+    return True
 
 class Container(): 
     def __init__(self): 
@@ -187,11 +307,22 @@ class Container():
                 self._layout_node.mark_dirty()
         
         # Style properties go to self.style with type conversion
+
+        # Handle background/background-color with linear-gradient() value
+        if name in ('background', 'background_color') and 'linear-gradient' in str(value) and self.style is not None:
+            if _apply_linear_gradient(self.style, str(value)):
+                self.mark_dirty()
+                return
+
+        # Handle background/background-color with a plain solid color
+        if name == 'background' and 'linear-gradient' not in str(value) and self.style is not None:
+            name = 'background_color'
+
         color_props = {'background_color', 'background_color_2',
                        'hover_background_color', 'hover_background_color_2',
                        'click_background_color', 'click_background_color_2',
                        'border_color', 'border_color_2',
-                       'color', 'color_2', 'box_shadow_color'}
+                       'color', 'box_shadow_color'}
         if name in color_props and isinstance(value, str) and self.style is not None:
             from ..native_bindings import ColorProcessor
             cp = ColorProcessor()
@@ -281,8 +412,6 @@ class ContainerDefault():
         self.border_width              = 0.0
         
         self.color                     = [1.0, 1.0, 1.0, 1.0]
-        self.color_2                   = [0.0, 0.0, 0.0, 0.0]
-        self.color_gradient_rot        = 0.0
         self.font_size                 = 12.0
         self.text_x                    = 0.0
         self.text_y                    = 0.0
