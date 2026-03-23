@@ -236,8 +236,10 @@ class TextInputInstance:
     
     def _request_refresh(self):
         self._last_refresh = time.time()
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 area.tag_redraw()
     
     def should_refresh(self):
@@ -247,8 +249,10 @@ def draw_all_text_inputs():
     global _cached_viewport_height
     
     if _cached_viewport_height is None:
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         _cached_viewport_height = region.height
@@ -577,7 +581,9 @@ class CreateTextInputOP(bpy.types.Operator):
         _text_input_instances.append(new_instance)
         
         if _draw_handle is None:
-            _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            _draw_handle = space_class.draw_handler_add(
                 draw_all_text_inputs, (), 'WINDOW', 'POST_PIXEL')
         
         if not _keyboard_handler_running:
@@ -608,7 +614,9 @@ class RemoveTextInputOP(bpy.types.Operator):
             return {'CANCELLED'}
         
         if not _text_input_instances and _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -627,7 +635,9 @@ class ClearTextInputsOP(bpy.types.Operator):
         _next_input_id = 0
         
         if _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -833,7 +843,9 @@ def unregister():
     _next_input_id = 0
     
     if _draw_handle is not None:
-        bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+        from .space_config import get_space_class
+        space_class = get_space_class() or bpy.types.SpaceView3D
+        space_class.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
     bpy.utils.unregister_class(KeyboardHandler)

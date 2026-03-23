@@ -166,8 +166,10 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         global _cached_viewport_size
         if _cached_viewport_size is not None:
             return _cached_viewport_size
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         _cached_viewport_size = (region.width, region.height)

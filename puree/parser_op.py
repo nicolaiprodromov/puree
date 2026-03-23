@@ -97,8 +97,10 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
     def execute(self, context):
         # get viewport size
         region_size = (800, 600)
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         region_size = (region.width, region.height)

@@ -238,8 +238,10 @@ class TextInstance:
             self._invalidate_dims_cache()
         self._trigger_redraw()
     def _trigger_redraw(self):
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 area.tag_redraw()
 
 _decoration_shader = None
@@ -290,8 +292,10 @@ def draw_all_text():
     
     # Cache viewport height — only scan areas if not cached
     if _cached_viewport_height is None:
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         _cached_viewport_height = region.height
@@ -524,7 +528,9 @@ class DrawTextOP(bpy.types.Operator):
         _text_instances.append(new_instance)
         
         if _draw_handle is None:
-            _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            _draw_handle = space_class.draw_handler_add(
                 draw_all_text, (), 'WINDOW', 'POST_PIXEL')
         
         context.area.tag_redraw()
@@ -550,7 +556,9 @@ class RemoveTextOP(bpy.types.Operator):
             return {'CANCELLED'}
         
         if not _text_instances and _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -566,7 +574,9 @@ class ClearTextOP(bpy.types.Operator):
         _text_instances.clear()
         
         if _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -681,7 +691,9 @@ def unregister():
     _text_instances.clear()
     
     if _draw_handle is not None:
-        bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+        from .space_config import get_space_class
+        space_class = get_space_class() or bpy.types.SpaceView3D
+        space_class.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
     FontManager.reset_instance()

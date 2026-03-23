@@ -109,9 +109,11 @@ class XWZ_OT_scroll(bpy.types.Operator):
         return {'PASS_THROUGH'}
     
     def is_mouse_in_ui_area(self, context):
+        from .space_config import get_target_space
+        target_space = get_target_space()
         width, height = 1920, 1080
         for area in context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         width = region.width

@@ -62,6 +62,8 @@ class XWZ_OT_mouse(bpy.types.Operator):
     bl_options = {'REGISTER'}
     
     def invoke(self, context, event):
+        from .space_config import get_target_space
+        self._target_space = get_target_space()
         self.should_stop = False
         self.start_time = time.time()
         self.click_enabled = False
@@ -82,7 +84,7 @@ class XWZ_OT_mouse(bpy.types.Operator):
         
         if event.type == 'MOUSEMOVE':
             area = context.area
-            if area and area.type == 'VIEW_3D':
+            if area and area.type == self._target_space:
                 region = context.region
                 raw_x = event.mouse_region_x / region.width
                 raw_y = event.mouse_region_y / region.height

@@ -236,16 +236,20 @@ class ImageInstance:
         self._trigger_redraw()
     
     def _trigger_redraw(self):
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 area.tag_redraw()
 
 def draw_all_images():
     global _cached_viewport_height
     
     if _cached_viewport_height is None:
+        from .space_config import get_target_space
+        target_space = get_target_space()
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == target_space:
                 for region in area.regions:
                     if region.type == 'WINDOW':
                         _cached_viewport_height = region.height
@@ -371,7 +375,9 @@ class DrawImageOP(bpy.types.Operator):
         _image_instances.append(new_instance)
         
         if _draw_handle is None:
-            _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            _draw_handle = space_class.draw_handler_add(
                 draw_all_images, (), 'WINDOW', 'POST_PIXEL')
         
         context.area.tag_redraw()
@@ -397,7 +403,9 @@ class RemoveImageOP(bpy.types.Operator):
             return {'CANCELLED'}
         
         if not _image_instances and _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -413,7 +421,9 @@ class ClearImageOP(bpy.types.Operator):
         _image_instances.clear()
         
         if _draw_handle is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+            from .space_config import get_space_class
+            space_class = get_space_class() or bpy.types.SpaceView3D
+            space_class.draw_handler_remove(_draw_handle, 'WINDOW')
             _draw_handle = None
         
         context.area.tag_redraw()
@@ -552,7 +562,9 @@ def unregister():
     _image_instances.clear()
     
     if _draw_handle is not None:
-        bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+        from .space_config import get_space_class
+        space_class = get_space_class() or bpy.types.SpaceView3D
+        space_class.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     
     # Clear the cached shader

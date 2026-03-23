@@ -5,6 +5,7 @@ app:
   theme:
     - name: example4_theme
       author: GitHub Copilot
+      space: IMAGE_EDITOR
       version: 1.0.0
       default_font: NeueMontreal-Regular
       scripts:
