@@ -692,6 +692,9 @@ class RenderPipeline:
         if not groups:
             return
 
+        saved_blend = gpu.state.blend_get()
+        saved_depth = gpu.state.depth_test_get()
+
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.bind()
         gpu.state.blend_set('ALPHA')
@@ -713,13 +716,17 @@ class RenderPipeline:
                 batch.draw(shader)
 
         gpu.state.scissor_test_set(False)
-        gpu.state.blend_set('ALPHA_PREMULT')
-        gpu.state.depth_test_set('LESS_EQUAL')
+        gpu.state.blend_set(saved_blend)
+        gpu.state.depth_test_set(saved_depth)
 
     def draw_texture(self):
         """Draw containers directly via native vertex+fragment shader. Zero readback."""
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
+        
+        # Save GPU state before any changes
+        saved_blend = gpu.state.blend_get()
+        saved_depth = gpu.state.depth_test_get()
         
         try:
             gpu.state.blend_set('ALPHA_PREMULT')
@@ -748,9 +755,6 @@ class RenderPipeline:
             
             self.native_batch.draw(self.native_shader)
             gpu.matrix.pop()
-            
-            gpu.state.blend_set('NONE')
-            gpu.state.depth_test_set('LESS_EQUAL')
         except Exception:
             traceback.print_exc()
         
@@ -758,6 +762,10 @@ class RenderPipeline:
             self._draw_scrollbars()
         except Exception:
             traceback.print_exc()
+        
+        # Restore GPU state to what the editor expects
+        gpu.state.blend_set(saved_blend)
+        gpu.state.depth_test_set(saved_depth)
     
     def cleanup(self):
         self.running = False

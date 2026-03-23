@@ -283,9 +283,10 @@ def _draw_text_decoration(x, y, text_width, text_height, font_size, color, decor
     batch = batch_for_shader(shader, 'TRIS', {"pos": vertices})
     shader.bind()
     shader.uniform_float("color", color)
+    saved_blend = gpu.state.blend_get()
     gpu.state.blend_set('ALPHA')
     batch.draw(shader)
-    gpu.state.blend_set('NONE')
+    gpu.state.blend_set(saved_blend)
 
 def draw_all_text():
     global _cached_viewport_height

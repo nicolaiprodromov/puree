@@ -258,6 +258,7 @@ def draw_all_images():
     
     viewport_height = _cached_viewport_height or 0
     
+    saved_blend = gpu.state.blend_get()
     gpu.state.blend_set('ALPHA_PREMULT')
     
     for instance in _image_instances:
@@ -317,7 +318,7 @@ def draw_all_images():
         if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             gpu.state.scissor_test_set(False)
     
-    gpu.state.blend_set('NONE')
+    gpu.state.blend_set(saved_blend)
 
 class DrawImageOP(bpy.types.Operator):
     bl_idname = "xwz.draw_image"
