@@ -2,10 +2,10 @@
 name: distill
 description: Strip designs to their essence by removing unnecessary complexity. Great design is simple, powerful, and clean.
 user-invocable: true
-argument-hint: [TARGET=<value>]
+argument-hint: [TARGET=<component or panel>]
 ---
 
-Remove unnecessary complexity from designs, revealing the essential elements and creating clarity through ruthless simplification.
+Remove unnecessary complexity from Puree designs, revealing the essential elements and creating clarity through ruthless simplification.
 
 ## MANDATORY PREPARATION
 
@@ -33,7 +33,7 @@ Analyze what makes the design feel complex or cluttered:
 
 If any of these are unclear from the codebase, ask the user directly to clarify what you cannot infer.
 
-**CRITICAL**: Simplicity is not about removing features - it's about removing obstacles between users and their goals. Every element should justify its existence.
+**CRITICAL**: Simplicity is not about removing features — it's about removing obstacles between users and their goals. Every element should justify its existence.
 
 ## Plan Simplification
 
@@ -52,50 +52,76 @@ Systematically remove complexity across these dimensions:
 
 ### Information Architecture
 - **Reduce scope**: Remove secondary actions, optional features, redundant information
-- **Progressive disclosure**: Hide complexity behind clear entry points (accordions, modals, step-through flows)
-- **Combine related actions**: Merge similar buttons, consolidate forms, group related content
+- **Progressive disclosure**: Hide complexity behind clear entry points (use `display: none` + Python to reveal on demand)
+- **Combine related actions**: Merge similar buttons, consolidate options, group related content
 - **Clear hierarchy**: ONE primary action, few secondary actions, everything else tertiary or hidden
 - **Remove redundancy**: If it's said elsewhere, don't repeat it here
 
 ### Visual Simplification
-- **Reduce color palette**: Use 1-2 colors plus neutrals, not 5-7 colors
+- **Reduce color palette**: Use 1-2 SCSS color variables plus neutrals, not 5-7 colors
 - **Limit typography**: One font family, 3-4 sizes maximum, 2-3 weights
-- **Remove decorations**: Eliminate borders, shadows, backgrounds that don't serve hierarchy or function
-- **Flatten structure**: Reduce nesting, remove unnecessary containers—never nest cards inside cards
+- **Remove decorations**: Eliminate borders, shadows, backgrounds that don't serve hierarchy
+- **Flatten structure**: Reduce YAML nesting, remove unnecessary container nodes — never nest cards inside cards
 - **Remove unnecessary cards**: Cards aren't needed for basic layout; use spacing and alignment instead
-- **Consistent spacing**: Use one spacing scale, remove arbitrary gaps
+- **Consistent spacing**: Use SCSS spacing variables, remove arbitrary gaps
+
+```scss
+// Before: cluttered
+.panel {
+  background-color: #2a2a3e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+// After: clean
+.panel {
+  background-color: $surface;
+  border-radius: 8px;
+}
+```
 
 ### Layout Simplification
-- **Linear flow**: Replace complex grids with simple vertical flow where possible
-- **Remove sidebars**: Move secondary content inline or hide it
+- **Linear flow**: Replace complex grids with simple vertical flex where possible
 - **Full-width**: Use available space generously instead of complex multi-column layouts
 - **Consistent alignment**: Pick left or center, stick with it
-- **Generous white space**: Let content breathe, don't pack everything tight
+- **Generous whitespace**: Let content breathe, don't pack everything tight
+
+```yaml
+# Before: over-nested
+content_wrapper:
+  inner_wrapper:
+    content_container:
+      actual_content:
+        text: "Hello"
+
+# After: flat
+content:
+  class: content
+  text: "Hello"
+```
 
 ### Interaction Simplification
-- **Reduce choices**: Fewer buttons, fewer options, clearer path forward (paradox of choice is real)
+- **Reduce choices**: Fewer buttons, fewer options, clearer path forward
 - **Smart defaults**: Make common choices automatic, only ask when necessary
-- **Inline actions**: Replace modal flows with inline editing where possible
-- **Remove steps**: Can signup be one step instead of three? Can checkout be simplified?
 - **Clear CTAs**: ONE obvious next step, not five competing actions
 
 ### Content Simplification
 - **Shorter copy**: Cut every sentence in half, then do it again
 - **Active voice**: "Save changes" not "Changes will be saved"
 - **Remove jargon**: Plain language always wins
-- **Scannable structure**: Short paragraphs, bullet points, clear headings
-- **Essential information only**: Remove marketing fluff, legalese, hedging
-- **Remove redundant copy**: No headers restating intros, no repeated explanations, say it once
+- **Essential information only**: Remove fluff and hedging
+- **Remove redundant copy**: No headers restating intros, say it once
 
 ### Code Simplification
-- **Remove unused code**: Dead CSS, unused components, orphaned files
-- **Flatten component trees**: Reduce nesting depth
-- **Consolidate styles**: Merge similar styles, use utilities consistently
-- **Reduce variants**: Does that component need 12 variations, or can 3 cover 90% of cases?
+- **Remove unused YAML nodes**: Dead nodes that have no visible purpose
+- **Remove unused SCSS**: Styles that aren't applied to any node
+- **Flatten YAML trees**: Reduce nesting depth
+- **Consolidate SCSS**: Merge similar styles, use SCSS variables consistently
+- **Reduce component variants**: Does that component need 12 parameter options, or can 3 cover 90% of cases?
 
 **NEVER**:
 - Remove necessary functionality (simplicity ≠ feature-less)
-- Sacrifice accessibility for simplicity (clear labels and ARIA still required)
 - Make things so simple they're unclear (mystery ≠ minimalism)
 - Remove information users need to make decisions
 - Eliminate hierarchy completely (some things should stand out)
@@ -109,7 +135,6 @@ Ensure simplification improves usability:
 - **Reduced cognitive load**: Is it easier to understand what to do?
 - **Still complete**: Are all necessary features still accessible?
 - **Clearer hierarchy**: Is it obvious what matters most?
-- **Better performance**: Does simpler design load faster?
 
 ## Document Removed Complexity
 
@@ -118,4 +143,4 @@ If you removed features or options:
 - Consider if they need alternative access points
 - Note any user feedback to monitor
 
-Remember: You have great taste and judgment. Simplification is an act of confidence - knowing what to keep and courage to remove the rest. As Antoine de Saint-Exupéry said: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."
+Remember: Simplification is an act of confidence — knowing what to keep and courage to remove the rest. As Antoine de Saint-Exupéry said: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."

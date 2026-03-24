@@ -1,11 +1,11 @@
 ---
 name: normalize
-description: Normalize design to match your design system and ensure consistency
+description: Normalize Puree design to match your SCSS variables and component patterns, ensuring consistency
 user-invocable: true
-argument-hint: [FEATURE=<value>]
+argument-hint: [FEATURE=<component or pattern to normalize>]
 ---
 
-Analyze and redesign the feature to perfectly match our design system standards, aesthetics, and established patterns.
+Analyze and align a Puree feature to perfectly match your established SCSS variables, component patterns, and design conventions.
 
 ## MANDATORY PREPARATION
 
@@ -17,54 +17,72 @@ Use the frontend-design skill — it contains design principles, anti-patterns, 
 
 Before making changes, deeply understand the context:
 
-1. **Discover the design system**: Search for design system documentation, UI guidelines, component libraries, or style guides (grep for "design system", "ui guide", "style guide", etc.). Study it thoroughly until you understand:
+1. **Discover the design conventions**: Search for SCSS variable definitions, component files, and style patterns. Study them until you understand:
    - Core design principles and aesthetic direction
-   - Target audience and personas
-   - Component patterns and conventions
-   - Design tokens (colors, typography, spacing)
+   - SCSS variables (colors, spacing, typography, borders)
+   - Component patterns (naming, parameter conventions)
+   - Layout conventions (flex vs grid usage, spacing rhythm)
    
-   **CRITICAL**: If something isn't clear, ask. Don't guess at design system principles.
+   **CRITICAL**: If something isn't clear, ask. Don't guess at design conventions.
 
 2. **Analyze the current feature**: Assess what works and what doesn't:
-   - Where does it deviate from design system patterns?
+   - Where does it deviate from established SCSS variable usage?
    - Which inconsistencies are cosmetic vs. functional?
-   - What's the root cause—missing tokens, one-off implementations, or conceptual misalignment?
+   - What's the root cause — missing variables, one-off implementations, or conceptual misalignment?
 
-3. **Create a normalization plan**: Define specific changes that will align the feature with the design system:
-   - Which components can be replaced with design system equivalents?
-   - Which styles need to use design tokens instead of hard-coded values?
-   - How can UX patterns match established user flows?
+3. **Create a normalization plan**: Define specific changes that will align the feature:
+   - Which SCSS rules should use existing variables instead of hard-coded values?
+   - Which YAML structures can use existing components via `data: '[component]'`?
+   - How can interaction patterns match established conventions?
    
-   **IMPORTANT**: Great design is effective design. Prioritize UX consistency and usability over visual polish alone. Think through the best possible experience for your use case and personas first.
+   **IMPORTANT**: Great design is effective design. Prioritize UX consistency and usability over visual polish alone.
 
 ## Execute
 
 Systematically address all inconsistencies across these dimensions:
 
-- **Typography**: Use design system fonts, sizes, weights, and line heights. Replace hard-coded values with typographic tokens or classes.
-- **Color & Theme**: Apply design system color tokens. Remove one-off color choices that break the palette.
-- **Spacing & Layout**: Use spacing tokens (margins, padding, gaps). Align with grid systems and layout patterns used elsewhere.
-- **Components**: Replace custom implementations with design system components. Ensure props and variants match established patterns.
-- **Motion & Interaction**: Match animation timing, easing, and interaction patterns to other features.
-- **Responsive Behavior**: Ensure breakpoints and responsive patterns align with design system standards.
-- **Accessibility**: Verify contrast ratios, focus states, ARIA labels match design system requirements.
-- **Progressive Disclosure**: Match information hierarchy and complexity management to established patterns.
+- **Typography**: Use SCSS font-size variables and consistent weights. Replace hard-coded values with variables. Ensure fonts are loaded via YAML `font:` attribute.
+
+```scss
+// Before: inconsistent
+.title { font-size: 18px; color: #e0e0e0; }
+.subtitle { font-size: 15px; color: #bbb; }
+
+// After: normalized
+.title { font-size: $font-size-lg; color: $text-primary; }
+.subtitle { font-size: $font-size-md; color: $text-secondary; }
+```
+
+- **Color & Theme**: Apply SCSS color variables. Remove one-off color choices that break the palette.
+
+```scss
+// Before: hard-coded
+.panel { background-color: #2a2a3e; border: 1px solid rgba(255, 255, 255, 0.1); }
+
+// After: using variables
+.panel { background-color: $surface; border: $border-subtle; }
+```
+
+- **Spacing & Layout**: Use SCSS spacing variables (margins, padding, gaps). Align with layout patterns used elsewhere.
+- **Components**: Replace repeated YAML structures with component references. Ensure parameter values match established patterns.
+- **Transitions**: Match transition timing, easing, and property choices to other features. Only transition `background-color`, `color`, `border-color`, `opacity`.
+- **Responsive Behavior**: Ensure `@media` breakpoints align with conventions used elsewhere.
 
 **NEVER**:
-- Create new one-off components when design system equivalents exist
-- Hard-code values that should use design tokens
-- Introduce new patterns that diverge from the design system
-- Compromise accessibility for visual consistency
+- Create new one-off styles when SCSS variables exist for the same purpose
+- Hard-code values that should use SCSS variables
+- Introduce new patterns that diverge from established conventions
+- Use properties Puree doesn't support (`transform`, `z-index`, `@keyframes`, `calc()`, `em`, `rem`)
 
-This is not an exhaustive list—apply judgment to identify all areas needing normalization.
+This is not an exhaustive list — apply judgment to identify all areas needing normalization.
 
 ## Clean Up
 
 After normalization, ensure code quality:
 
-- **Consolidate reusable components**: If you created new components that should be shared, move them to the design system or shared UI component path.
-- **Remove orphaned code**: Delete unused implementations, styles, or files made obsolete by normalization.
-- **Verify quality**: Lint, type-check, and test according to repository guidelines. Ensure normalization didn't introduce regressions.
+- **Consolidate reusable components**: If you created new components that should be shared, move them to the components directory.
+- **Remove orphaned code**: Delete unused SCSS rules, YAML nodes, or Python handlers made obsolete by normalization.
+- **Verify quality**: Ensure normalization didn't introduce visual regressions.
 - **Ensure DRYness**: Look for duplication introduced during refactoring and consolidate.
 
-Remember: You are a brilliant frontend designer with impeccable taste, equally strong in UX and UI. Your attention to detail and eye for end-to-end user experience is world class. Execute with precision and thoroughness.
+Remember: You are a brilliant UI designer with impeccable taste. Your attention to detail and eye for end-to-end user experience is world class. Execute with precision and thoroughness.

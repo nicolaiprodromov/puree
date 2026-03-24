@@ -1,28 +1,30 @@
 ---
 name: optimize
-description: Improve interface performance across loading speed, rendering, animations, images, and bundle size. Makes experiences faster and smoother.
+description: Improve Puree interface performance across rendering speed, container efficiency, and resource usage.
 user-invocable: true
-argument-hint: [TARGET=<value>]
+argument-hint: [TARGET=<panel or component to optimize>]
 ---
 
-Identify and fix performance issues to create faster, smoother user experiences.
+Identify and fix performance issues in Puree UIs. Puree renders via ModernGL compute shaders — performance characteristics differ fundamentally from web browsers.
 
 ## Assess Performance Issues
 
 Understand current performance and identify problems:
 
 1. **Measure current state**:
-   - **Core Web Vitals**: LCP, FID/INP, CLS scores
-   - **Load time**: Time to interactive, first contentful paint
-   - **Bundle size**: JavaScript, CSS, image sizes
-   - **Runtime performance**: Frame rate, memory usage, CPU usage
-   - **Network**: Request count, payload sizes, waterfall
+   - **Container count**: Total number of YAML nodes in the tree (each becomes a GPU-rendered container)
+   - **Transition count**: Number of active CSS transitions running simultaneously
+   - **Image count and size**: Number and resolution of images loaded from `assets/`
+   - **Font count**: Number of different fonts loaded from `fonts/`
+   - **SCSS complexity**: Depth of selector nesting, number of rules
+   - **`mark_dirty()` frequency**: How often relayout is triggered from Python
 
 2. **Identify bottlenecks**:
-   - What's slow? (Initial load? Interactions? Animations?)
-   - What's causing it? (Large images? Expensive JavaScript? Layout thrashing?)
-   - How bad is it? (Perceivable? Annoying? Blocking?)
-   - Who's affected? (All users? Mobile only? Slow connections?)
+   - Is the container tree too deep or wide? (Too many nodes = slower GPU rendering)
+   - Are there unnecessary containers that could be eliminated?
+   - Are `mark_dirty()` calls happening too frequently? (Each triggers a full relayout)
+   - Are images oversized for their display area?
+   - Are transitions running on elements that don't need them?
 
 **CRITICAL**: Measure before and after. Premature optimization wastes time. Optimize what actually matters.
 
@@ -30,236 +32,259 @@ Understand current performance and identify problems:
 
 Create systematic improvement plan:
 
-### Loading Performance
+### Container Efficiency
 
-**Optimize Images**:
-- Use modern formats (WebP, AVIF)
-- Proper sizing (don't load 3000px image for 300px display)
-- Lazy loading for below-fold images
-- Responsive images (`srcset`, `picture` element)
-- Compress images (80-85% quality is usually imperceptible)
-- Use CDN for faster delivery
+**Minimize container count** — every YAML node creates a GPU-rendered container:
 
-```html
-<img 
-  src="hero.webp"
-  srcset="hero-400.webp 400w, hero-800.webp 800w, hero-1200.webp 1200w"
-  sizes="(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px"
-  loading="lazy"
-  alt="Hero image"
-/>
+```yaml
+# ❌ Bad: unnecessary wrapper containers
+wrapper:
+  inner_wrapper:
+    content_wrapper:
+      actual_content:
+        text: "Hello"
+
+# ✅ Good: flat structure, fewer containers
+actual_content:
+  text: "Hello"
 ```
 
-**Reduce JavaScript Bundle**:
-- Code splitting (route-based, component-based)
-- Tree shaking (remove unused code)
-- Remove unused dependencies
-- Lazy load non-critical code
-- Use dynamic imports for large components
+**Flatten the YAML tree** — fewer nesting levels means fewer containers to render:
+- Remove wrapper containers that exist only for structure
+- Combine containers where one can serve multiple purposes
+- Use `padding` and `margin` on the content container instead of adding spacer containers
 
-```javascript
-// Lazy load heavy component
-const HeavyChart = lazy(() => import('./HeavyChart'));
-```
-
-**Optimize CSS**:
-- Remove unused CSS
-- Critical CSS inline, rest async
-- Minimize CSS files
-- Use CSS containment for independent regions
-
-**Optimize Fonts**:
-- Use `font-display: swap` or `optional`
-- Subset fonts (only characters you need)
-- Preload critical fonts
-- Use system fonts when appropriate
-- Limit font weights loaded
-
-```css
-@font-face {
-  font-family: 'CustomFont';
-  src: url('/fonts/custom.woff2') format('woff2');
-  font-display: swap; /* Show fallback immediately */
-  unicode-range: U+0020-007F; /* Basic Latin only */
+**Use `display: none` for hidden content**:
+```scss
+// Hide sections that aren't currently needed
+.collapsed_section {
+  display: none;
 }
 ```
 
-**Optimize Loading Strategy**:
-- Critical resources first (async/defer non-critical)
-- Preload critical assets
-- Prefetch likely next pages
-- Service worker for offline/caching
-- HTTP/2 or HTTP/3 for multiplexing
+Containers with `display: none` are excluded from layout calculation and rendering entirely — use this aggressively for tabbed interfaces, conditional panels, and sections the user hasn't opened.
 
-### Rendering Performance
+### Component System Efficiency
 
-**Avoid Layout Thrashing**:
-```javascript
-// ❌ Bad: Alternating reads and writes (causes reflows)
-elements.forEach(el => {
-  const height = el.offsetHeight; // Read (forces layout)
-  el.style.height = height * 2; // Write
-});
+**Use components to avoid YAML duplication** — but be aware each instance creates its own container subtree:
 
-// ✅ Good: Batch reads, then batch writes
-const heights = elements.map(el => el.offsetHeight); // All reads
-elements.forEach((el, i) => {
-  el.style.height = heights[i] * 2; // All writes
-});
+```yaml
+# ❌ Bad: duplicating the same structure 10 times in index.yaml
+item_1:
+  style: list_item
+  icon_1:
+    style: item_icon
+  label_1:
+    style: item_label
+    text: "Item 1"
+item_2:
+  style: list_item
+  icon_2:
+    style: item_icon
+  # ... repeated 10 times
+
+# ✅ Good: use a component, but consider if you need all instances visible
+item_1:
+  data: '[list_item]'
+  item_text: 'Item 1'
+  item_icon: 'icon_1'
 ```
 
-**Optimize Rendering**:
-- Use CSS `contain` property for independent regions
-- Minimize DOM depth (flatter is faster)
-- Reduce DOM size (fewer elements)
-- Use `content-visibility: auto` for long lists
-- Virtual scrolling for very long lists (react-window, react-virtualized)
+**Limit visible list items** — if you have 50+ items, don't render them all. Use Python to dynamically populate a fixed number of visible containers and hide the rest.
 
-**Reduce Paint & Composite**:
-- Use `transform` and `opacity` for animations (GPU-accelerated)
-- Avoid animating layout properties (width, height, top, left)
-- Use `will-change` sparingly for known expensive operations
-- Minimize paint areas (smaller is faster)
+### SCSS Efficiency
 
-### Animation Performance
+**Avoid deeply nested selectors** — Puree's SCSS engine processes every rule against every container:
 
-**GPU Acceleration**:
-```css
-/* ✅ GPU-accelerated (fast) */
-.animated {
-  transform: translateX(100px);
-  opacity: 0.5;
-}
-
-/* ❌ CPU-bound (slow) */
-.animated {
-  left: 100px;
-  width: 300px;
-}
-```
-
-**Smooth 60fps**:
-- Target 16ms per frame (60fps)
-- Use `requestAnimationFrame` for JS animations
-- Debounce/throttle scroll handlers
-- Use CSS animations when possible
-- Avoid long-running JavaScript during animations
-
-**Intersection Observer**:
-```javascript
-// Efficiently detect when elements enter viewport
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      // Element is visible, lazy load or animate
+```scss
+// ❌ Bad: deep nesting creates complex selectors
+.root {
+  .panel {
+    .section {
+      .subsection {
+        .item {
+          .label {
+            color: #fff;
+          }
+        }
+      }
     }
-  });
-});
-```
+  }
+}
 
-### React/Framework Optimization
-
-**React-specific**:
-- Use `memo()` for expensive components
-- `useMemo()` and `useCallback()` for expensive computations
-- Virtualize long lists
-- Code split routes
-- Avoid inline function creation in render
-- Use React DevTools Profiler
-
-**Framework-agnostic**:
-- Minimize re-renders
-- Debounce expensive operations
-- Memoize computed values
-- Lazy load routes and components
-
-### Network Optimization
-
-**Reduce Requests**:
-- Combine small files
-- Use SVG sprites for icons
-- Inline small critical assets
-- Remove unused third-party scripts
-
-**Optimize APIs**:
-- Use pagination (don't load everything)
-- GraphQL to request only needed fields
-- Response compression (gzip, brotli)
-- HTTP caching headers
-- CDN for static assets
-
-**Optimize for Slow Connections**:
-- Adaptive loading based on connection (navigator.connection)
-- Optimistic UI updates
-- Request prioritization
-- Progressive enhancement
-
-## Core Web Vitals Optimization
-
-### Largest Contentful Paint (LCP < 2.5s)
-- Optimize hero images
-- Inline critical CSS
-- Preload key resources
-- Use CDN
-- Server-side rendering
-
-### First Input Delay (FID < 100ms) / INP (< 200ms)
-- Break up long tasks
-- Defer non-critical JavaScript
-- Use web workers for heavy computation
-- Reduce JavaScript execution time
-
-### Cumulative Layout Shift (CLS < 0.1)
-- Set dimensions on images and videos
-- Don't inject content above existing content
-- Use `aspect-ratio` CSS property
-- Reserve space for ads/embeds
-- Avoid animations that cause layout shifts
-
-```css
-/* Reserve space for image */
-.image-container {
-  aspect-ratio: 16 / 9;
+// ✅ Good: flat, targeted selectors
+.item_label {
+  color: #fff;
 }
 ```
+
+**Use SCSS variables to avoid repetition**:
+```scss
+$bg-dark: #1a1d24;
+$text-muted: rgba(181, 188, 199, 0.9);
+$border-radius: 8px;
+
+.card {
+  background-color: $bg-dark;
+  border-radius: $border-radius;
+}
+
+.subtitle {
+  color: $text-muted;
+}
+```
+
+**Use class selectors, not deep descendant chains**:
+```scss
+// ❌ Slower: engine must trace ancestry
+.root .panel .content .label { color: #fff; }
+
+// ✅ Faster: direct class match
+.content_label { color: #fff; }
+```
+
+### Image Optimization
+
+**Use appropriate image sizes** — don't load a 2000px image for a 50px icon:
+- Resize images in `assets/` to match their display size
+- Use PNG for icons and UI elements with transparency
+- Use JPG for photographic content (smaller file size)
+- Keep icon images small (32x32, 64x64 for standard icons)
+
+**Share images across components** — reference the same image name in multiple containers rather than duplicating files.
+
+### Transition Optimization
+
+**Only animate what's necessary** — each active transition consumes GPU resources:
+
+```scss
+// ❌ Bad: transitioning everything
+.button {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+}
+
+// ✅ Good: only transition what the user will notice
+.button {
+  transition: background-color 0.2s ease;
+}
+```
+
+**Keep transition durations short** — Puree transitions run on the GPU, but long durations (>0.5s) keep the animation loop active longer:
+- Hover feedback: 0.1s-0.2s
+- State changes: 0.2s-0.3s
+- Major visual changes: 0.3s-0.5s max
+
+**Don't transition containers that are hidden** — containers with `display: none` skip rendering, but transitioning them before hiding wastes frames.
+
+### mark_dirty() Optimization
+
+**Minimize `mark_dirty()` calls** — each call triggers a full relayout of the container tree:
+
+```python
+# ❌ Bad: multiple mark_dirty() calls for related changes
+label.text = "New text"
+label.mark_dirty()
+icon.set_property('opacity', '1.0')
+icon.mark_dirty()
+status.text = "Updated"
+status.mark_dirty()
+
+# ✅ Good: batch changes, then mark dirty on a common ancestor
+label.text = "New text"
+icon.set_property('opacity', '1.0')
+status.text = "Updated"
+# Mark the parent dirty once — children update too
+parent_container.mark_dirty()
+```
+
+**Avoid `mark_dirty()` in loops or high-frequency callbacks**:
+```python
+# ❌ Bad: marking dirty on every hover event
+def on_hover(container):
+    counter.text = str(int(counter.text) + 1)
+    counter.mark_dirty()  # Triggers relayout on every mouse move
+
+# ✅ Good: throttle updates or batch them
+import time
+last_update = 0
+
+def on_hover(container):
+    nonlocal last_update
+    now = time.time()
+    if now - last_update < 0.1:  # Throttle to 10 updates/sec
+        return
+    last_update = now
+    counter.text = str(int(counter.text) + 1)
+    counter.mark_dirty()
+```
+
+### Font Optimization
+
+**Limit font variety** — each font file is loaded into GPU memory:
+- Use 1-3 fonts maximum (regular, bold, italic of the same family)
+- Set `default_font` in the theme to avoid loading unnecessary fonts
+- Place only required font files in `fonts/`
+
+### @media Query Efficiency
+
+**Use `@media` to reduce visible content at smaller sizes**:
+```scss
+// Hide non-essential panels when space is tight
+@media (max-width: 350px) {
+  .detail_panel {
+    display: none;
+  }
+  .description_text {
+    display: none;
+  }
+}
+```
+
+This reduces the number of containers that need rendering at smaller panel sizes.
+
+### Hot Reload Efficiency
+
+During development, Puree supports hot reload. To maximize development speed:
+- Keep YAML files modular (smaller files reload faster)
+- Use components for reusable patterns (change once, updates everywhere)
+- Keep SCSS organized (easier to find and edit rules)
+- Test with hot reload frequently to catch performance issues early
 
 ## Performance Monitoring
 
-**Tools to use**:
-- Chrome DevTools (Lighthouse, Performance panel)
-- WebPageTest
-- Core Web Vitals (Chrome UX Report)
-- Bundle analyzers (webpack-bundle-analyzer)
-- Performance monitoring (Sentry, DataDog, New Relic)
+**What to watch**:
+- Container count in the YAML tree (use `grep -c` on YAML to estimate)
+- Visual smoothness of transitions (watch for stuttering)
+- Responsiveness of click/hover handlers
+- Memory usage in Blender's status bar
+- Time to render after `mark_dirty()` calls
 
-**Key metrics**:
-- LCP, FID/INP, CLS (Core Web Vitals)
-- Time to Interactive (TTI)
-- First Contentful Paint (FCP)
-- Total Blocking Time (TBT)
-- Bundle size
-- Request count
+**Profiling approach**:
+- Add timing in Python scripts to measure handler execution time
+- Count `mark_dirty()` calls to identify excessive relayouts
+- Temporarily remove sections to isolate performance bottlenecks
 
-**IMPORTANT**: Measure on real devices with real network conditions. Desktop Chrome with fast connection isn't representative.
+**IMPORTANT**: Test on the target hardware. Development machines may mask performance issues that appear on lower-spec systems.
 
 **NEVER**:
 - Optimize without measuring (premature optimization)
-- Sacrifice accessibility for performance
-- Break functionality while optimizing
-- Use `will-change` everywhere (creates new layers, uses memory)
-- Lazy load above-fold content
-- Optimize micro-optimizations while ignoring major issues (optimize the biggest bottleneck first)
-- Forget about mobile performance (often slower devices, slower connections)
+- Add containers "just in case" — every container costs GPU time
+- Use deeply nested SCSS selectors when flat classes work
+- Call `mark_dirty()` in tight loops or high-frequency events
+- Load oversized images for small display areas
+- Transition every property when only one or two matter
+- Forget that `display: none` is your best friend for performance
+- Sacrifice usability for performance (a fast but unusable UI is worthless)
 
 ## Verify Improvements
 
 Test that optimizations worked:
 
-- **Before/after metrics**: Compare Lighthouse scores
-- **Real user monitoring**: Track improvements for real users
-- **Different devices**: Test on low-end Android, not just flagship iPhone
-- **Slow connections**: Throttle to 3G, test experience
-- **No regressions**: Ensure functionality still works
-- **User perception**: Does it *feel* faster?
+- **Container count**: Compare before/after YAML node counts
+- **Visual smoothness**: Are transitions smooth? Do hover effects respond instantly?
+- **Responsiveness**: Do click handlers execute without visible delay?
+- **Panel resize**: Does the UI adapt quickly when Blender panels are resized?
+- **No regressions**: Ensure all functionality still works after optimization
+- **User perception**: Does it *feel* faster and more responsive?
 
-Remember: Performance is a feature. Fast experiences feel more responsive, more polished, more professional. Optimize systematically, measure ruthlessly, and prioritize user-perceived performance.
+Remember: Performance in Puree is primarily about container count, `mark_dirty()` frequency, and transition efficiency. Fewer containers, fewer relayouts, and targeted transitions make everything feel snappy.

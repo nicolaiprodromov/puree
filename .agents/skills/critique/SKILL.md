@@ -1,8 +1,8 @@
 ---
 name: critique
-description: Evaluate design effectiveness from a UX perspective. Assesses visual hierarchy, information architecture, emotional resonance, and overall design quality with actionable feedback.
+description: Evaluate Puree design effectiveness from a UX perspective. Assesses visual hierarchy, information architecture, emotional resonance, and overall design quality with actionable feedback.
 user-invocable: true
-argument-hint: [AREA=<value>]
+argument-hint: [AREA=<e.g. hierarchy, layout, color, typography>]
 ---
 
 ## MANDATORY PREPARATION
@@ -11,7 +11,7 @@ Use the frontend-design skill — it contains design principles, anti-patterns, 
 
 ---
 
-Conduct a holistic design critique, evaluating whether the interface actually works—not just technically, but as a designed experience. Think like a design director giving feedback.
+Conduct a holistic design critique of a Puree interface, evaluating whether it actually works — not just technically, but as a designed experience. Think like a design director giving feedback.
 
 ## Design Critique
 
@@ -19,9 +19,9 @@ Evaluate the interface across these dimensions:
 
 ### 1. AI Slop Detection (CRITICAL)
 
-**This is the most important check.** Does this look like every other AI-generated interface from 2024-2025?
+**This is the most important check.** Does this look like every other AI-generated interface?
 
-Review the design against ALL the **DON'T** guidelines in the frontend-design skill—they are the fingerprints of AI-generated work. Check for the AI color palette, gradient text, dark mode with glowing accents, glassmorphism, hero metric layouts, identical card grids, generic fonts, and all other tells.
+Review the design against ALL the **DON'T** guidelines in the frontend-design skill — they are the fingerprints of AI-generated work. Check for the AI color palette, gradient text, dark mode with glowing accents, glassmorphism, hero metric layouts, identical card grids, generic fonts, and all other tells.
 
 **The test**: If you showed this to someone and said "AI made this," would they believe you immediately? If yes, that's the problem.
 
@@ -33,20 +33,20 @@ Review the design against ALL the **DON'T** guidelines in the frontend-design sk
 
 ### 3. Information Architecture
 - Is the structure intuitive? Would a new user understand the organization?
-- Is related content grouped logically?
+- Is related content grouped logically in the YAML structure?
 - Are there too many choices at once? (cognitive overload)
-- Is the navigation clear and predictable?
+- Is navigation clear and predictable?
 
 ### 4. Emotional Resonance
 - What emotion does this interface evoke? Is that intentional?
 - Does it match the brand personality?
-- Does it feel trustworthy, approachable, premium, playful—whatever it should feel?
-- Would the target user feel "this is for me"?
+- Does it feel trustworthy, approachable, premium, playful — whatever it should feel?
+- Would the target Blender user feel "this is for me"?
 
 ### 5. Discoverability & Affordance
 - Are interactive elements obviously interactive?
 - Would a user know what to do without instructions?
-- Are hover/focus states providing useful feedback?
+- Are `:hover` and `:active` states providing useful feedback?
 - Are there hidden features that should be more visible?
 
 ### 6. Composition & Balance
@@ -58,14 +58,14 @@ Review the design against ALL the **DON'T** guidelines in the frontend-design sk
 ### 7. Typography as Communication
 - Does the type hierarchy clearly signal what to read first, second, third?
 - Is body text comfortable to read? (line length, spacing, size)
-- Do font choices reinforce the brand/tone?
+- Do font choices (from `fonts/` directory) reinforce the brand/tone?
 - Is there enough contrast between heading levels?
 
 ### 8. Color with Purpose
 - Is color used to communicate, not just decorate?
-- Does the palette feel cohesive?
+- Does the palette feel cohesive? Are SCSS variables used consistently?
 - Are accent colors drawing attention to the right things?
-- Does it work for colorblind users? (not just technically—does meaning still come through?)
+- Does it work for colorblind users? (not just technically — does meaning still come through?)
 
 ### 9. States & Edge Cases
 - Empty states: Do they guide users toward action, or just say "nothing here"?
@@ -73,11 +73,12 @@ Review the design against ALL the **DON'T** guidelines in the frontend-design sk
 - Error states: Are they helpful and non-blaming?
 - Success states: Do they confirm and guide next steps?
 
-### 10. Microcopy & Voice
-- Is the writing clear and concise?
-- Does it sound like a human (the right human for this brand)?
-- Are labels and buttons unambiguous?
-- Does error copy help users fix the problem?
+### 10. Puree-Specific Quality
+- Are transitions used appropriately? (only on `background-color`, `color`, `border-color`, `opacity`)
+- Is `mark_dirty()` called after all runtime property changes?
+- Are YAML node names using underscores (not hyphens)?
+- Are component params using `{{param, 'default'}}` syntax correctly?
+- Does `script.py` `main()` return `app`?
 
 ## Generate Critique Report
 
@@ -87,7 +88,7 @@ Structure your feedback as a design director would:
 **Start here.** Pass/fail: Does this look AI-generated? List specific tells from the skill's Anti-Patterns section. Be brutally honest.
 
 ### Overall Impression
-A brief gut reaction—what works, what doesn't, and the single biggest opportunity.
+A brief gut reaction — what works, what doesn't, and the single biggest opportunity.
 
 ### What's Working
 Highlight 2-3 things done well. Be specific about why they work.
@@ -99,7 +100,7 @@ For each issue:
 - **What**: Name the problem clearly
 - **Why it matters**: How this hurts users or undermines goals
 - **Fix**: What to do about it (be concrete)
-- **Command**: Which command to use (prefer: /animate, /quieter, /optimize, /adapt, /clarify, /distill, /delight, /onboard, /normalize, /audit, /harden, /polish, /extract, /bolder, /arrange, /typeset, /critique, /colorize, /overdrive — or other installed skills you're sure exist)
+- **Command**: Which command to use (prefer: /animate, /quieter, /clarify, /distill, /delight, /onboard, /normalize, /audit, /harden, /polish, /extract, /bolder, /arrange, /typeset, /critique, /colorize, /overdrive — or other installed skills you're sure exist)
 
 ### Minor Observations
 Quick notes on smaller issues worth addressing.
@@ -111,9 +112,9 @@ Provocative questions that might unlock better solutions:
 - "What would a confident version of this look like?"
 
 **Remember**:
-- Be direct—vague feedback wastes everyone's time
-- Be specific—"the submit button" not "some elements"
+- Be direct — vague feedback wastes everyone's time
+- Be specific — "the save_btn node" not "some elements"
 - Say what's wrong AND why it matters to users
 - Give concrete suggestions, not just "consider exploring..."
-- Prioritize ruthlessly—if everything is important, nothing is
-- Don't soften criticism—developers need honest feedback to ship great design
+- Prioritize ruthlessly — if everything is important, nothing is
+- Don't soften criticism — developers need honest feedback to ship great design
