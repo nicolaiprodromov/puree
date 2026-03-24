@@ -1497,12 +1497,14 @@ class XWZ_OT_start_ui(Operator):
         global _render_data, _modal_timer
         
         if _render_data and _render_data.running:
+            logger.warning("Demo already running")
             self.report({'WARNING'}, "Demo already running")
             return {'CANCELLED'}
         
         _render_data = RenderPipeline()
         
         if not _render_data.initialize():
+            logger.error("Failed to initialize compute shader demo")
             self.report({'ERROR'}, "Failed to initialize compute shader demo")
             _render_data = None
             return {'CANCELLED'}
@@ -1512,16 +1514,19 @@ class XWZ_OT_start_ui(Operator):
             bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start hit detect modal: {e}")
+            logger.warning(f"Failed to start hit detect modal: {e}")
 
         try:
             bpy.ops.xwz.scroll_modal_launch('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start scroll modal: {e}")
+            logger.warning(f"Failed to start scroll modal: {e}")
         
         try:
             bpy.ops.xwz.mouse_modal_launch('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start mouse modal: {e}")
+            logger.warning(f"Failed to start mouse modal: {e}")
         
         context.window_manager.modal_handler_add(self)
         _modal_timer = context.window_manager.event_timer_add(0.016, window=context.window)
@@ -1623,12 +1628,12 @@ class XWZ_OT_start_ui(Operator):
                 global _hot_reload_enabled
                 _hot_reload_enabled = True
                 
-                self.report({'INFO'}, "UI Started with hot reload enabled")
+                logger.info("UI Started with hot reload enabled")
             else:
-                self.report({'INFO'}, "UI Started (hot reload unavailable)")
+                logger.info("UI Started (hot reload unavailable)")
         except Exception as e:
             logger.warning(f"Hot reload initialization failed: {e}")
-            self.report({'INFO'}, "UI Started (hot reload disabled)")
+            logger.info("UI Started (hot reload disabled)")
         
         # Update debug panel to appear in the correct space
         try:
@@ -2159,7 +2164,7 @@ class XWZ_OT_stop_ui(Operator):
             if area.type == target_space:
                 area.tag_redraw()
             
-        self.report({'INFO'}, "Compute shader demo stopped")
+        logger.info("Compute shader demo stopped")
         return {'FINISHED'}
 
 classes = [

@@ -10,6 +10,8 @@
 # ╚═════════════════════════════════╝
 import bpy
 from bpy.types import Operator
+from .log import get_logger
+logger = get_logger(__name__)
 
 class XWZ_OT_enable_hot_reload(Operator):
     bl_idname      = "xwz.enable_hot_reload"
@@ -37,16 +39,16 @@ class XWZ_OT_enable_hot_reload(Operator):
                 
                 render._hot_reload_enabled = True
                 
-                self.report({'INFO'}, "Hot reload enabled")
+                logger.info("Hot reload enabled")
                 return {'FINISHED'}
             else:
+                logger.error("Failed to enable hot reload")
                 self.report({'ERROR'}, "Failed to enable hot reload")
                 return {'CANCELLED'}
                 
         except Exception as e:
+            logger.error(f"Hot reload error: {e}", exc_info=True)
             self.report({'ERROR'}, f"Hot reload error: {e}")
-            import traceback
-            traceback.print_exc()
             return {'CANCELLED'}
 
 
@@ -65,10 +67,11 @@ class XWZ_OT_disable_hot_reload(Operator):
             
             render._hot_reload_enabled = False
             
-            self.report({'INFO'}, "Hot reload disabled")
+            logger.info("Hot reload disabled")
             return {'FINISHED'}
             
         except Exception as e:
+            logger.error(f"Error disabling hot reload: {e}", exc_info=True)
             self.report({'ERROR'}, f"Error disabling hot reload: {e}")
             return {'CANCELLED'}
 
@@ -83,16 +86,16 @@ class XWZ_OT_trigger_ui_reload(Operator):
             from .hot_reload import trigger_ui_reload
             
             if trigger_ui_reload():
-                self.report({'INFO'}, "✓ UI reloaded")
+                logger.info("UI reloaded")
                 return {'FINISHED'}
             else:
+                logger.warning("UI reload completed with warnings")
                 self.report({'WARNING'}, "UI reload completed with warnings")
                 return {'FINISHED'}
                 
         except Exception as e:
+            logger.error(f"Reload failed: {e}", exc_info=True)
             self.report({'ERROR'}, f"Reload failed: {e}")
-            import traceback
-            traceback.print_exc()
             return {'CANCELLED'}
 
 

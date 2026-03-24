@@ -385,7 +385,7 @@ class DrawImageOP(bpy.types.Operator):
                 draw_all_images, (), 'WINDOW', 'POST_PIXEL')
         
         context.area.tag_redraw()
-        self.report({'INFO'}, f"Added image instance #{new_instance.id} with image {self.image_name}")
+        logger.debug(f"Added image instance #{new_instance.id} with image {self.image_name}")
         return {'FINISHED'}
 
 class RemoveImageOP(bpy.types.Operator):
@@ -400,9 +400,10 @@ class RemoveImageOP(bpy.types.Operator):
         for i, instance in enumerate(_image_instances):
             if instance.id == self.instance_id:
                 _image_instances.pop(i)
-                self.report({'INFO'}, f"Removed image instance #{self.instance_id}")
+                logger.debug(f"Removed image instance #{self.instance_id}")
                 break
         else:
+            logger.error(f"Image instance #{self.instance_id} not found")
             self.report({'ERROR'}, f"Image instance #{self.instance_id} not found")
             return {'CANCELLED'}
         
@@ -536,10 +537,11 @@ class UpdateImageOP(bpy.types.Operator):
                     updated_props = list(kwargs.keys())
 
                 else:
-                    self.report({'INFO'}, f"No properties specified to update for image instance #{self.instance_id}")
+                    logger.debug(f"No properties specified to update for image instance #{self.instance_id}")
                 
                 return {'FINISHED'}
         
+        logger.error(f"Image instance #{self.instance_id} not found")
         self.report({'ERROR'}, f"Image instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
