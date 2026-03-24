@@ -234,6 +234,8 @@ class RenderPipeline:
         except Exception:
             logger.error("Failed to create native shader", exc_info=True)
             return False
+    
+    def create_container_batch(self, count):
         """Build static vertex batch for N containers. Rebuilt when container count changes."""
         if not self.native_shader or count <= 0:
             return False
@@ -1476,6 +1478,8 @@ class RenderPipeline:
         except Exception:
             logger.error("Failed to write mouse buffer", exc_info=True)
             return False
+
+class XWZ_OT_start_ui(Operator):
     bl_idname      = "xwz.start_ui"
     bl_label       = "Start puree"
     bl_description = "Start puree UI"
