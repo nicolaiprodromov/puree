@@ -13,6 +13,22 @@ import json
 import sys
 import os
 import re
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 def read_manifest():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +36,7 @@ def read_manifest():
     manifest_path = os.path.join(addon_dir, 'blender_manifest.toml')
     
     if not os.path.exists(manifest_path):
-        print(f'Error: blender_manifest.toml not found at {manifest_path}')
+        logger.error(f'Error: blender_manifest.toml not found at {manifest_path}')
         return None, None, None
     
     try:
@@ -32,7 +48,7 @@ def read_manifest():
         id_match = re.search(r'^id\s*=\s*"([^"]+)"', content, re.MULTILINE)
         
         if not all([name_match, version_match, id_match]):
-            print('Error: Could not parse name, version, or id from blender_manifest.toml')
+            logger.error('Error: Could not parse name, version, or id from blender_manifest.toml')
             return None, None, None
         
         addon_name = name_match.group(1).replace(' ', '')
@@ -42,7 +58,7 @@ def read_manifest():
         return addon_name, version, package_id
         
     except Exception as e:
-        print(f'Error reading manifest: {str(e)}')
+        logger.error(f'Error reading manifest: {str(e)}')
         return None, None, None
 
 def install_addon(package_file, package_id):
@@ -74,21 +90,21 @@ except Exception as e:
         response_obj = json.loads(response)
         
         if response_obj.get('status') == 'success':
-            print('Installation successful!')
+            logger.info('Installation successful!')
             return True
         else:
-            print('Installation failed:', response_obj.get('message', 'Unknown error'))
+            logger.error(f"Installation failed: {response_obj.get('message', 'Unknown error')}")
             return False
             
     except ConnectionRefusedError:
-        print('Error: Could not connect to Blender MCP server on port 9876')
-        print('Make sure Blender is running with the MCP addon enabled')
+        logger.error('Error: Could not connect to Blender MCP server on port 9876')
+        logger.error('Make sure Blender is running with the MCP addon enabled')
         return False
     except socket.timeout:
-        print('Error: Timeout connecting to Blender MCP server')
+        logger.error('Error: Timeout connecting to Blender MCP server')
         return False
     except Exception as e:
-        print(f'Error: {str(e)}')
+        logger.error(f'Error: {str(e)}')
         return False
     finally:
         if client:
@@ -173,21 +189,21 @@ except Exception as e:
         response_obj = json.loads(response)
         
         if response_obj.get('status') == 'success':
-            print('Uninstallation successful!')
+            logger.info('Uninstallation successful!')
             return True
         else:
-            print('Uninstallation failed:', response_obj.get('message', 'Unknown error'))
+            logger.error(f"Uninstallation failed: {response_obj.get('message', 'Unknown error')}")
             return False
             
     except ConnectionRefusedError:
-        print('Error: Could not connect to Blender MCP server on port 9876')
-        print('Make sure Blender is running with the MCP addon enabled')
+        logger.error('Error: Could not connect to Blender MCP server on port 9876')
+        logger.error('Make sure Blender is running with the MCP addon enabled')
         return False
     except socket.timeout:
-        print('Error: Timeout connecting to Blender MCP server')
+        logger.error('Error: Timeout connecting to Blender MCP server')
         return False
     except Exception as e:
-        print(f'Error: {str(e)}')
+        logger.error(f'Error: {str(e)}')
         return False
     finally:
         if client:
@@ -201,9 +217,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         action = sys.argv[1].lower()
         if action not in ['install', 'uninstall']:
-            print('Usage: python install.py [install|uninstall]')
-            print('  install   - Install the addon (default)')
-            print('  uninstall - Uninstall the addon')
+            logger.info('Usage: python install.py [install|uninstall]')
+            logger.info('  install   - Install the addon (default)')
+            logger.info('  uninstall - Uninstall the addon')
             sys.exit(1)
     
     addon_name, version, package_id = read_manifest()
@@ -213,20 +229,20 @@ if __name__ == '__main__':
     success = False
     
     if action == 'install':
-        print(f'Installing addon: {addon_name} version {version} (ID: {package_id})')
+        logger.info(f'Installing addon: {addon_name} version {version} (ID: {package_id})')
         
         script_dir = os.path.dirname(os.path.abspath(__file__))
         package_file = os.path.join(script_dir, f'{addon_name}_{version}.zip')
         
         if not os.path.exists(package_file):
-            print(f'Error: Package file not found: {package_file}')
-            print('Please run build.bat first to create the package.')
+            logger.error(f'Error: Package file not found: {package_file}')
+            logger.error('Please run build.bat first to create the package.')
             sys.exit(1)
 
         success = install_addon(package_file, package_id)
         
     elif action == 'uninstall':
-        print(f'Uninstalling addon: {addon_name} (ID: {package_id})')
+        logger.info(f'Uninstalling addon: {addon_name} (ID: {package_id})')
         success = uninstall_addon(package_id)
     
     sys.exit(0 if success else 1)

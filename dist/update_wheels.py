@@ -11,7 +11,23 @@
 # ╚═════════════════════════════════╝
 import os
 import sys
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 
 def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
@@ -20,23 +36,23 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
     # Get list of actual wheel files
     wheels_dir = Path("wheels")
     if not wheels_dir.exists():
-        print(f"Error: wheels/ directory not found")
+        logger.error("Error: wheels/ directory not found")
         sys.exit(1)
     
     wheel_files = sorted([f"./wheels/{f.name}" for f in wheels_dir.glob("*.whl")])
     
     if not wheel_files:
-        print("Warning: No .whl files found in wheels/ directory")
+        logger.warning("No .whl files found in wheels/ directory")
         return
     
-    print(f"Found {len(wheel_files)} wheel files:")
+    logger.info(f"Found {len(wheel_files)} wheel files:")
     for whl in wheel_files:
-        print(f"  - {whl}")
+        logger.info(f"  - {whl}")
     
     # Read the manifest file
     manifest = Path(manifest_path)
     if not manifest.exists():
-        print(f"Error: {manifest_path} not found")
+        logger.error(f"Error: {manifest_path} not found")
         sys.exit(1)
     
     content = manifest.read_text()
@@ -44,7 +60,7 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
     # Find the wheels section
     wheels_start = content.find("wheels = [")
     if wheels_start == -1:
-        print("Error: 'wheels = [' not found in manifest")
+        logger.error("Error: 'wheels = [' not found in manifest")
         sys.exit(1)
     
     # Find the end of the wheels array
@@ -63,7 +79,7 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
                 break
     
     if wheels_end == -1:
-        print("Error: Could not find end of wheels array")
+        logger.error("Error: Could not find end of wheels array")
         sys.exit(1)
     
     # Build the new wheels section
@@ -80,7 +96,7 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
     # Write back to file
     manifest.write_text(new_content)
     
-    print(f"\n✓ Updated {manifest_path} with {len(wheel_files)} wheels")
+    logger.info(f"\n✓ Updated {manifest_path} with {len(wheel_files)} wheels")
 
 
 if __name__ == "__main__":

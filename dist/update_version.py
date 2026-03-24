@@ -9,7 +9,24 @@
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
 import sys
+import os
 import re
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 def update_version(version):
     manifest_path   = 'blender_manifest.toml'
@@ -88,11 +105,11 @@ def update_version(version):
     with open(cargo_toml_path, 'w', encoding='utf-8') as f:
         f.write(cargo_content)
     
-    print(f"Version updated to {version} in all files")
+    logger.info(f"Version updated to {version} in all files")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Error: VERSION argument required")
+        logger.error("Error: VERSION argument required")
         sys.exit(1)
     
     update_version(sys.argv[1])

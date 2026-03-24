@@ -13,11 +13,27 @@ import sys
 import shutil
 import glob
 import subprocess
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 def run_command(cmd, shell=True):
     result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"Error: {result.stderr}")
+        logger.error(f"Error: {result.stderr}")
         sys.exit(1)
     return result.stdout
 
@@ -25,14 +41,14 @@ def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     os.chdir(project_root)
     
-    print("\nBuilding Python package")
+    logger.info("\nBuilding Python package")
     
     for tarball in glob.glob("dist/*.tar.gz"):
         os.remove(tarball)
-        print(f"Removed {tarball}")
+        logger.info(f"Removed {tarball}")
     for old_wheel in glob.glob("dist/puree_ui-*.whl"):
         os.remove(old_wheel)
-        print(f"Removed {old_wheel}")
+        logger.info(f"Removed {old_wheel}")
     
     python_cmd = "python" if sys.platform == "win32" else "python3"
     run_command(f"{python_cmd} setup.py sdist bdist_wheel")
@@ -42,20 +58,20 @@ def main():
     
     for old_wheel in glob.glob(os.path.join(wheels_dir, "puree_ui-*.whl")):
         os.remove(old_wheel)
-        print(f"Removed old wheel: {os.path.basename(old_wheel)}")
+        logger.info(f"Removed old wheel: {os.path.basename(old_wheel)}")
     
     for wheel in glob.glob("dist/puree_ui-*.whl"):
         dest = os.path.join(wheels_dir, os.path.basename(wheel))
         shutil.copy2(wheel, dest)
-        print(f"Copied {os.path.basename(wheel)} to wheels/")
+        logger.info(f"Copied {os.path.basename(wheel)} to wheels/")
     
     if os.path.exists("build"):
         shutil.rmtree("build")
-        print("Removed build/")
+        logger.info("Removed build/")
     
     for egg_info in glob.glob("*.egg-info"):
         shutil.rmtree(egg_info)
-        print(f"Removed {egg_info}")
+        logger.info(f"Removed {egg_info}")
     
 
 if __name__ == "__main__":

@@ -17,7 +17,23 @@ import time
 import shutil
 import zipfile
 import tarfile
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 def get_version():
     manifest_path = Path(__file__).parent.parent / 'blender_manifest.toml'
@@ -38,7 +54,7 @@ def get_addon_name():
     raise Exception("Name not found in blender_manifest.toml")
 
 def create_release_archives(version):
-    print(f"Creating release archives for version {version}...")
+    logger.info(f"Creating release archives for version {version}...")
     
     addon_name = get_addon_name()
     project_root = Path(__file__).parent.parent
@@ -63,13 +79,13 @@ def create_release_archives(version):
         shutil.rmtree(temp_build_dir)
     temp_build_dir.mkdir(parents=True)
     
-    print("Copying release files...")
+    logger.info("Copying release files...")
     for item in release_items:
         source = project_root / item
         dest = temp_build_dir / item
         
         if not source.exists():
-            print(f"Warning: {item} not found, skipping...")
+            logger.warning(f"{item} not found, skipping...")
             continue
             
         if source.is_dir():
@@ -80,7 +96,7 @@ def create_release_archives(version):
     zip_file = release_dir / f"{addon_name}_{version}.zip"
     tar_file = release_dir / f"{addon_name}_{version}.tar.gz"
     
-    print(f"Creating {zip_file.name}...")
+    logger.info(f"Creating {zip_file.name}...")
     with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(temp_build_dir):
             for file in files:
@@ -88,7 +104,7 @@ def create_release_archives(version):
                 arcname = file_path.relative_to(temp_build_dir)
                 zf.write(file_path, arcname)
     
-    print(f"Creating {tar_file.name}...")
+    logger.info(f"Creating {tar_file.name}...")
     with tarfile.open(tar_file, 'w:gz') as tf:
         for root, dirs, files in os.walk(temp_build_dir):
             for file in files:
@@ -98,11 +114,11 @@ def create_release_archives(version):
     
     shutil.rmtree(temp_build_dir)
     
-    print(f"Release archives created successfully!")
+    logger.info("Release archives created successfully!")
     return zip_file, tar_file
 
 def create_github_release(version, zip_file, tar_file):
-    print(f"Creating GitHub release v{version}...")
+    logger.info(f"Creating GitHub release v{version}...")
     
     tag = f"v{version}"
     release_name = f"Puree UI {version}"
@@ -133,20 +149,20 @@ def create_github_release(version, zip_file, tar_file):
     
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"Release created successfully!")
-        print(f"URL: https://github.com/nicolaiprodromov/puree/releases/tag/{tag}")
+        logger.info("Release created successfully!")
+        logger.info(f"URL: https://github.com/nicolaiprodromov/puree/releases/tag/{tag}")
         
     except subprocess.CalledProcessError as e:
         if 'already exists' in e.stderr.lower():
-            print(f"Release {tag} already exists. Updating...")
+            logger.warning(f"Release {tag} already exists. Updating...")
             
             delete_cmd = ['gh', 'release', 'delete', tag, '--yes', '--repo', 'nicolaiprodromov/puree']
             subprocess.run(delete_cmd, check=False)
             
             subprocess.run(cmd, check=True)
-            print(f"Release updated successfully!")
+            logger.info("Release updated successfully!")
         else:
-            print(f"Error creating release: {e.stderr}")
+            logger.error(f"Error creating release: {e.stderr}")
             sys.exit(1)
     finally:
         if notes_file.exists():
@@ -154,7 +170,7 @@ def create_github_release(version, zip_file, tar_file):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python release.py <version>")
+        logger.info("Usage: python release.py <version>")
         sys.exit(1)
     
     version = sys.argv[1]
@@ -162,18 +178,18 @@ def main():
     try:
         result = subprocess.run(['gh', '--version'], capture_output=True)
         if result.returncode != 0:
-            print("Error: GitHub CLI (gh) is not installed or not in PATH")
-            print("Install it from: https://cli.github.com/")
+            logger.error("Error: GitHub CLI (gh) is not installed or not in PATH")
+            logger.error("Install it from: https://cli.github.com/")
             sys.exit(1)
     except FileNotFoundError:
-        print("Error: GitHub CLI (gh) is not installed or not in PATH")
-        print("Install it from: https://cli.github.com/")
+        logger.error("Error: GitHub CLI (gh) is not installed or not in PATH")
+        logger.error("Install it from: https://cli.github.com/")
         sys.exit(1)
     
     zip_file, tar_file = create_release_archives(version)
     create_github_release(version, zip_file, tar_file)
     
-    print("\nRelease process completed successfully!")
+    logger.info("\nRelease process completed successfully!")
 
 if __name__ == "__main__":
     main()

@@ -18,6 +18,23 @@ take effect without restarting Blender.
 import socket
 import json
 import sys
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
+logger.setLevel(logging.DEBUG)
+if not logger.handlers:
+    _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+    os.makedirs(_log_dir, exist_ok=True)
+    _fh = RotatingFileHandler(os.path.join(_log_dir, "puree.log"), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)-8s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(_fh)
+    _ch = logging.StreamHandler()
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_ch)
 
 
 RELOAD_CODE = r"""
@@ -30,9 +47,9 @@ mod = sys.modules.get(addon_module)
 if mod and hasattr(mod, 'unregister'):
     try:
         mod.unregister()
-        print("[dev-reload] unregister() called")
+        print("unregister() called")
     except Exception as e:
-        print(f"[dev-reload] unregister warning: {e}")
+        print(f"unregister warning: {e}")
 
 # 2. Purge all cached puree modules so Python re-reads from disk
 purged = []
@@ -46,7 +63,7 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
         purged.append(key)
 
-print(f"[dev-reload] purged {len(purged)} cached modules")
+print(f"purged {len(purged)} cached modules")
 
 # 3. Clear __pycache__ bytecode (follows symlinks into source dir)
 import pathlib, shutil
@@ -56,15 +73,15 @@ for sp in sys.path:
         for cache in puree_dir.rglob("__pycache__"):
             if cache.is_dir() and not cache.is_symlink():
                 shutil.rmtree(cache, ignore_errors=True)
-                print(f"[dev-reload] cleared {cache}")
+                print(f"cleared {cache}")
 
 # 4. Reimport the addon module and call register
 try:
     mod = importlib.import_module(addon_module)
     mod.register()
-    print("[dev-reload] ✓ addon reloaded successfully")
+    print("✓ addon reloaded successfully")
 except Exception as e:
-    print(f"[dev-reload] reload error: {e}")
+    print(f"reload error: {e}")
     import traceback
     traceback.print_exc()
     raise
@@ -91,23 +108,23 @@ def main():
         if response_obj.get('status') == 'success':
             result = response_obj.get('result', {}).get('result', '')
             if result:
-                print(result.strip())
-            print('✓ Reload complete')
+                logger.info(result.strip())
+            logger.info('✓ Reload complete')
             return True
         else:
             msg = response_obj.get('message', 'Unknown error')
-            print(f'✗ Reload failed: {msg}')
+            logger.error(f'✗ Reload failed: {msg}')
             return False
 
     except ConnectionRefusedError:
-        print('Error: Could not connect to Blender MCP server on port 9876')
-        print('Make sure Blender is running with the MCP addon enabled')
+        logger.error('Error: Could not connect to Blender MCP server on port 9876')
+        logger.error('Make sure Blender is running with the MCP addon enabled')
         return False
     except socket.timeout:
-        print('Error: Timeout — Blender may be busy or the MCP server is not responding')
+        logger.error('Error: Timeout — Blender may be busy or the MCP server is not responding')
         return False
     except Exception as e:
-        print(f'Error: {e}')
+        logger.error(f'Error: {e}')
         return False
     finally:
         if client:
