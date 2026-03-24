@@ -28,9 +28,11 @@ Configuration:
     - File logs always go to <addon_root>/logs/puree.log (rotating, 5 MB max, 3 backups)
     - Console is SILENT by default — all output goes only to the log file
     - Set PUREE_DEBUG=1 (env var) or call set_debug(True) to enable console output
+    - If the log file cannot be created, console falls back to showing ERROR+
     - Or set programmatically: set_debug(True)
 """
 import os
+import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -48,6 +50,7 @@ _SILENT_LEVEL = logging.CRITICAL + 1  # Above all levels — effectively mutes c
 
 _initialized = False
 _debug_mode = None
+_file_handler_ok = False
 
 
 def _is_debug() -> bool:
@@ -64,7 +67,7 @@ def set_debug(enabled: bool):
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     for handler in root.handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
-            handler.setLevel(logging.DEBUG if enabled else _SILENT_LEVEL)
+            handler.setLevel(logging.DEBUG if enabled else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR))
 
 
 def _get_log_dir() -> str:
@@ -77,19 +80,24 @@ def _get_log_dir() -> str:
 
 
 def _ensure_initialized():
-    global _initialized
+    global _initialized, _file_handler_ok
     if _initialized:
         return
 
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     root.setLevel(logging.DEBUG)
-    root.propagate = False  # Don't bubble up to root logger (prevents duplicates in Blender)
+    root.propagate = False  # Never bubble up to root logger (prevents Blender duplicates)
 
-    if root.handlers:
-        _initialized = True
-        return
+    # Always clear stale handlers from previous loads/reloads — prevents duplicates
+    for h in root.handlers[:]:
+        try:
+            h.close()
+        except Exception:
+            pass
+        root.removeHandler(h)
 
     # File handler — always logs everything
+    _file_handler_ok = False
     try:
         log_dir = _get_log_dir()
         os.makedirs(log_dir, exist_ok=True)
@@ -104,16 +112,32 @@ def _ensure_initialized():
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(_FILE_FORMAT, datefmt=_DATE_FORMAT))
         root.addHandler(file_handler)
-    except (OSError, PermissionError):
-        pass  # Can't write logs — continue with console only
+        _file_handler_ok = True
+    except Exception:
+        pass  # Fall through — console handler will compensate
 
-    # Console handler — silent by default, enabled with PUREE_DEBUG=1
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG if _is_debug() else _SILENT_LEVEL)
+    # Console handler — silent when file is working, ERROR fallback if file failed
+    # PUREE_DEBUG=1 always enables full console output
+    if _is_debug():
+        console_level = logging.DEBUG
+    elif _file_handler_ok:
+        console_level = _SILENT_LEVEL  # File handles everything, console stays quiet
+    else:
+        console_level = logging.ERROR  # No file — surface errors to console as fallback
+
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setLevel(console_level)
     console_handler.setFormatter(logging.Formatter(_CONSOLE_FORMAT))
     root.addHandler(console_handler)
 
     _initialized = True
+
+
+def reinitialize():
+    """Force re-initialization (e.g. after addon reload or log path change)."""
+    global _initialized
+    _initialized = False
+    _ensure_initialized()
 
 
 def get_logger(name: str) -> logging.Logger:

@@ -10,7 +10,7 @@
 # ╚═════════════════════════════════╝
 import os
 
-from .log import get_logger
+from .log import get_logger, reinitialize as _reinitialize_logging
 logger = get_logger(__name__)
 
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
@@ -95,6 +95,7 @@ def auto_start_ui_handler(dummy):
             bpy.app.timers.register(_try_start_ui, first_interval=0.1)
 
 def register():
+    _reinitialize_logging()  # Always re-init on addon (re)load — clears stale handlers
     import bpy
     from .render  import register as render_register
     from .text_op import register as txt_register

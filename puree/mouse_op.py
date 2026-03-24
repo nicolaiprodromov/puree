@@ -41,7 +41,7 @@ class MouseState:
             try:
                 callback('mouse', pos)
             except:
-                pass
+                logger.warning("Mouse callback error", exc_info=True)
     
     def update_click(self, clicked):
         self.is_clicked = clicked
@@ -49,7 +49,7 @@ class MouseState:
             try:
                 callback('click', clicked)
             except:
-                pass
+                logger.warning("Click callback error", exc_info=True)
     
     def register_callback(self, callback):
         if callback not in self.callbacks:

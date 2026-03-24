@@ -65,6 +65,7 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         try:
             mouse_x, mouse_y = self._get_mouse_pos()
         except:
+            logger.debug("Hit detection error", exc_info=True)
             return {'PASS_THROUGH'}
         
         if not _native_detector:
@@ -160,6 +161,7 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
             width, height = self._get_viewport_size()
             return 0 <= mouse_x <= width and 0 <= mouse_y <= height
         except:
+            logger.debug("Viewport bounds check error", exc_info=True)
             return False
     
     def _get_viewport_size(self):

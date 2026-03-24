@@ -137,7 +137,7 @@ def register_dynamic_panel():
         if space:
             target_space = space
     except:
-        pass
+        logger.debug("Failed to get target space", exc_info=True)
     
     # Unregister existing panel if any
     unregister_dynamic_panel()

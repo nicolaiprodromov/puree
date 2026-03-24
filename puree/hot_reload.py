@@ -121,7 +121,7 @@ class HotReloadManager:
             try:
                 self.watcher.unwatch_path(str(item))
             except:
-                pass
+                logger.debug("Failed to unwatch path", exc_info=True)
         self.watched_items.clear()
     
     def watch_file(self, filepath: str) -> bool:

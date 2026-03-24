@@ -448,6 +448,7 @@ class UI():
             try:
                 attr_value = color_processor.parse_color(attr_value)
             except Exception:
+                logger.debug("Failed to parse scrollbar color", exc_info=True)
                 attr_value = [1.0, 1.0, 1.0, 0.28] if 'thumb' in attr_name else [1.0, 1.0, 1.0, 0.06]
 
         return attr_name, attr_value

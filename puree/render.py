@@ -111,6 +111,7 @@ class RenderPipeline:
                     obj.release()
                 return True
             except Exception:
+                logger.debug("Failed to release ModernGL resource", exc_info=True)
                 return False
         return False
     def load_shader_file(self, filename):
@@ -120,6 +121,7 @@ class RenderPipeline:
             with open(shader_path, 'r') as f:
                 return f.read()
         except Exception:
+            logger.warning("Failed to read shader source", exc_info=True)
             return None
     def load_container_data(self):
         try:  
@@ -128,6 +130,7 @@ class RenderPipeline:
             self.container_data = parser_op._container_json_data
             return True
         except Exception:
+            logger.error("Failed to load container data", exc_info=True)
             return False
     def init_moderngl_context(self):
         try:
@@ -135,6 +138,7 @@ class RenderPipeline:
             self.mgl_context.gc_mode = 'context_gc'
             return True
         except Exception:
+            logger.error("Failed to initialize ModernGL context", exc_info=True)
             return False
     def create_compute_shader(self):
         shader_source = self.load_shader_file("container.glsl")
@@ -144,6 +148,7 @@ class RenderPipeline:
             self.compute_shader = self.mgl_context.compute_shader(shader_source)
             return True
         except Exception:
+            logger.error("Failed to create compute shader", exc_info=True)
             return False
     
     def create_outline_shader(self):
@@ -154,6 +159,7 @@ class RenderPipeline:
             self.outline_shader = self.mgl_context.compute_shader(shader_source)
             return True
         except Exception:
+            logger.error("Failed to create outline shader", exc_info=True)
             return False
     def create_buffers_and_textures(self):
         try:
@@ -192,6 +198,7 @@ class RenderPipeline:
             
             return True
         except Exception:
+            logger.error("Failed to create buffers and textures", exc_info=True)
             return False
     # ── Native rendering pipeline (eliminates compute+PBO readback) ──
     
@@ -522,6 +529,7 @@ class RenderPipeline:
             
             return True
         except Exception:
+            logger.error("Failed to run compute shader", exc_info=True)
             return False
     def initialize(self):
         from .space_config import find_target_area_and_region
@@ -810,9 +818,9 @@ class RenderPipeline:
                 self.mgl_context.gc()
             except AttributeError as e:
                 if "'InvalidObject' object has no attribute 'release'" not in str(e):
-                    pass
+                    logger.warning("Unexpected AttributeError during ModernGL context GC", exc_info=True)
             except Exception:
-                pass
+                logger.warning("Exception during ModernGL context GC", exc_info=True)
             finally:
                 self.mgl_context = None
         
@@ -841,7 +849,7 @@ class RenderPipeline:
             try:
                 del self.data_texture
             except Exception:
-                pass
+                logger.debug("Failed to delete data texture", exc_info=True)
             self.data_texture = None
         self.native_shader = None
         self.native_batch = None
@@ -867,6 +875,7 @@ class RenderPipeline:
                 return None
             return (angle, stops)
         except (ValueError, IndexError):
+            logger.debug("Failed to parse gradient stops", exc_info=True)
             return None
 
     def _prerender_gradient_row(self, stops, width=256):

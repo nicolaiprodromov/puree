@@ -64,7 +64,7 @@ class TextInputInstance:
                 if font_id is not None and font_id >= 0:
                     return font_id
             except:
-                pass
+                logger.debug("Font lookup failed", exc_info=True)
         return 0
     
     def refresh_font_id(self):
