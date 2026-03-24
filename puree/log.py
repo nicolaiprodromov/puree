@@ -11,7 +11,7 @@
 """
 Puree logging system.
 
-Usage in any module:
+Usage in any puree module:
     from .log import get_logger
     logger = get_logger(__name__)
 
@@ -20,16 +20,17 @@ Usage in any module:
     logger.warning("Something unexpected")
     logger.error("Something failed")
 
-For dist/ scripts (standalone CLI):
-    from puree.log import setup_cli_logging
-    logger = setup_cli_logging("install")
+Log destination:
+    <addon_root>/logs/puree.log  (rotating, 5 MB, 3 backups)
 
-Configuration:
-    - File logs always go to <addon_root>/logs/puree.log (rotating, 5 MB max, 3 backups)
-    - Console is SILENT by default — all output goes only to the log file
-    - Set PUREE_DEBUG=1 (env var) or call set_debug(True) to enable console output
-    - If the log file cannot be created, console falls back to showing ERROR+
-    - Or set programmatically: set_debug(True)
+    In dev mode (just dev-link), addon_root is the source repo (via symlink),
+    so logs land in <repo>/logs/.  In production (installed extension),
+    logs go alongside the addon.
+
+Console behaviour:
+    Silent by default — everything goes to the log file only.
+    Set PUREE_DEBUG=1 or call set_debug(True) for DEBUG+ on stderr.
+    If the log file cannot be created, console falls back to ERROR+.
 """
 import os
 import sys
@@ -43,6 +44,7 @@ _BACKUP_COUNT = 3
 _ROOT_LOGGER_NAME = "puree"
 
 _FILE_FORMAT = "[%(asctime)s] %(levelname)-8s %(name)s: %(message)s"
+_CLI_FORMAT = "%(message)s"
 _CONSOLE_FORMAT = "%(levelname)-8s %(name)s: %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -71,10 +73,16 @@ def set_debug(enabled: bool):
 
 
 def _get_log_dir() -> str:
+    """Resolve log directory: <addon_root>/logs/.
+
+    With dev-link (symlinked source), addon_root follows the symlink back
+    to the repo, so logs naturally land in <repo>/logs/.
+    """
     try:
         from . import get_addon_root
         addon_root = get_addon_root()
     except (ImportError, RuntimeError):
+        # Fallback: assume log.py lives at <root>/puree/log.py
         addon_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(addon_root, _LOG_DIR_NAME)
 
@@ -154,18 +162,18 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def setup_cli_logging(name: str) -> logging.Logger:
-    """
-    Configure logging for standalone CLI scripts (dist/).
+    """Configure logging for standalone CLI scripts (dist/).
 
-    Returns a logger with console output at INFO level and file logging.
+    Returns a logger with clean console output (INFO+) and file logging.
     """
     _ensure_initialized()
 
     logger = logging.getLogger(f"{_ROOT_LOGGER_NAME}.cli.{name}")
 
-    # CLI scripts always show INFO+ on console
+    # CLI scripts: show INFO+ on console with clean message-only format
     for handler in logging.getLogger(_ROOT_LOGGER_NAME).handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
             handler.setLevel(logging.INFO)
+            handler.setFormatter(logging.Formatter(_CLI_FORMAT))
 
     return logger

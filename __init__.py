@@ -23,7 +23,7 @@ if _puree_modules:
         try:
             importlib.reload(sys.modules[mod_name])
         except Exception as e:
-            print(f"[Puree] reload {mod_name}: {e}")
+            sys.stderr.write(f"[Puree] reload {mod_name}: {e}\n")
 
 from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
 from puree import set_addon_root
@@ -39,8 +39,8 @@ bl_info = {
 }
 
 def register():
-    # Set the addon root directory so puree knows where to find resources
-    set_addon_root(os.path.dirname(os.path.abspath(__file__)))
+    # Resolve symlinks so dev-link paths point to the actual source directory
+    set_addon_root(os.path.realpath(os.path.dirname(os.path.abspath(__file__))))
     # Register the framework
     xwz_ui_register()
     # Set default properties
