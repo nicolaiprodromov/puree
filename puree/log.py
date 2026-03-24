@@ -26,9 +26,8 @@ For dist/ scripts (standalone CLI):
 
 Configuration:
     - File logs always go to <addon_root>/logs/puree.log (rotating, 5 MB max, 3 backups)
-    - Console output is controlled by PUREE_DEBUG env var:
-        PUREE_DEBUG=1  → console shows DEBUG and above
-        PUREE_DEBUG=0  → console shows WARNING and above (default)
+    - Console is SILENT by default — all output goes only to the log file
+    - Set PUREE_DEBUG=1 (env var) or call set_debug(True) to enable console output
     - Or set programmatically: set_debug(True)
 """
 import os
@@ -44,6 +43,8 @@ _ROOT_LOGGER_NAME = "puree"
 _FILE_FORMAT = "[%(asctime)s] %(levelname)-8s %(name)s: %(message)s"
 _CONSOLE_FORMAT = "%(levelname)-8s %(name)s: %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+_SILENT_LEVEL = logging.CRITICAL + 1  # Above all levels — effectively mutes console
 
 _initialized = False
 _debug_mode = None
@@ -63,7 +64,7 @@ def set_debug(enabled: bool):
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     for handler in root.handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
-            handler.setLevel(logging.DEBUG if enabled else logging.WARNING)
+            handler.setLevel(logging.DEBUG if enabled else _SILENT_LEVEL)
 
 
 def _get_log_dir() -> str:
@@ -82,6 +83,7 @@ def _ensure_initialized():
 
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     root.setLevel(logging.DEBUG)
+    root.propagate = False  # Don't bubble up to root logger (prevents duplicates in Blender)
 
     if root.handlers:
         _initialized = True
@@ -105,9 +107,9 @@ def _ensure_initialized():
     except (OSError, PermissionError):
         pass  # Can't write logs — continue with console only
 
-    # Console handler — gated by debug flag
+    # Console handler — silent by default, enabled with PUREE_DEBUG=1
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG if _is_debug() else logging.WARNING)
+    console_handler.setLevel(logging.DEBUG if _is_debug() else _SILENT_LEVEL)
     console_handler.setFormatter(logging.Formatter(_CONSOLE_FORMAT))
     root.addHandler(console_handler)
 

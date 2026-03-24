@@ -23,6 +23,7 @@ from pathlib import Path
 
 logger = logging.getLogger(f"puree.cli.{os.path.splitext(os.path.basename(__file__))[0]}")
 logger.setLevel(logging.DEBUG)
+logger.propagate = False
 if not logger.handlers:
     _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
     os.makedirs(_log_dir, exist_ok=True)
