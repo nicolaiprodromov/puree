@@ -1,123 +1,222 @@
 # Interaction Design
 
-## The Eight Interactive States
+## Interactive States in Puree
 
-Every interactive element needs these states designed:
+Puree supports two CSS pseudo-classes for interactive states: `:hover` and `:active`. Design these states for every interactive element:
 
 | State | When | Visual Treatment |
 |-------|------|------------------|
 | **Default** | At rest | Base styling |
-| **Hover** | Pointer over (not touch) | Subtle lift, color shift |
-| **Focus** | Keyboard/programmatic focus | Visible ring (see below) |
-| **Active** | Being pressed | Pressed in, darker |
-| **Disabled** | Not interactive | Reduced opacity, no pointer |
-| **Loading** | Processing | Spinner, skeleton |
-| **Error** | Invalid state | Red border, icon, message |
-| **Success** | Completed | Green check, confirmation |
+| **Hover** | Pointer over element | Subtle color shift, lighter background |
+| **Active** | Being pressed/clicked | Darker or accent color, "pressed in" feel |
+| **Disabled** | Not interactive | Reduced opacity via SCSS, `pointer-events: none` |
 
-**The common miss**: Designing hover without focus, or vice versa. They're different. Keyboard users never see hover states.
-
-## Focus Rings: Do Them Right
-
-**Never `outline: none` without replacement.** It's an accessibility violation. Instead, use `:focus-visible` to show focus only for keyboard users:
-
-```css
-/* Hide focus ring for mouse/touch */
-button:focus {
-  outline: none;
+```scss
+.button {
+  background-color: rgba(37, 40, 48, 0.95);
+  color: rgba(220, 225, 235, 0.9);
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* Show focus ring for keyboard */
-button:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.button:hover {
+  background-color: rgba(52, 58, 70, 0.95);
+  color: rgba(245, 248, 250, 1);
+}
+
+.button:active {
+  background-color: rgba(52, 152, 219, 0.4);
+}
+
+.button_disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 ```
 
-**Focus ring design**:
-- High contrast (3:1 minimum against adjacent colors)
-- 2-3px thick
-- Offset from element (not inside it)
-- Consistent across all interactive elements
+**Note**: Puree does not support `:focus` or `:focus-visible` — the interface runs in Blender's viewport where keyboard focus management differs from browsers.
 
-## Form Design: The Non-Obvious
+## Python Event Handlers
 
-**Placeholders aren't labels**—they disappear on input. Always use visible `<label>` elements. **Validate on blur**, not on every keystroke (exception: password strength). Place errors **below** fields with `aria-describedby` connecting them.
+Puree's interactivity is driven by Python scripts. Events are attached via list callbacks:
 
-## Loading States
+### Available Events
 
-**Optimistic updates**: Show success immediately, rollback on failure. Use for low-stakes actions (likes, follows), not payments or destructive actions. **Skeleton screens > spinners**—they preview content shape and feel faster than generic spinners.
+| Event | How to Attach | When Fired |
+|-------|---------------|------------|
+| **Click** | `container.click.append(fn)` | Element is clicked |
+| **Hover in** | `container.hover.append(fn)` | Pointer enters element |
+| **Hover out** | `container.hoverout.append(fn)` | Pointer leaves element |
+| **Toggle** | `container.toggle.append(fn)` | Element toggled (has `_toggle_value`) |
+| **Scroll** | `container.scroll.append(fn)` | Scroll event on element |
 
-## Modals: The Inert Approach
+### Event Handler Pattern
 
-Focus trapping in modals used to require complex JavaScript. Now use the `inert` attribute:
+Every handler receives the container as its argument. Always call `mark_dirty()` after modifying properties:
 
-```html
-<!-- When modal is open -->
-<main inert>
-  <!-- Content behind modal can't be focused or clicked -->
-</main>
-<dialog open>
-  <h2>Modal Title</h2>
-  <!-- Focus stays inside modal -->
-</dialog>
+```python
+def main(self, app):
+    btn = app.find("action_button")
+
+    def on_click(container):
+        container.set_property('background-color', 'rgba(52, 152, 219, 0.8)')
+        container.text = "Clicked!"
+        container.mark_dirty()
+
+    def on_hover(container):
+        container.set_property('background-color', 'rgba(52, 58, 70, 0.95)')
+        container.mark_dirty()
+
+    def on_hoverout(container):
+        container.set_property('background-color', 'rgba(37, 40, 48, 0.95)')
+        container.mark_dirty()
+
+    btn.click.append(on_click)
+    btn.hover.append(on_hover)
+    btn.hoverout.append(on_hoverout)
+
+    return app
 ```
 
-Or use the native `<dialog>` element:
+### Toggle Pattern
 
-```javascript
-const dialog = document.querySelector('dialog');
-dialog.showModal();  // Opens with focus trap, closes on Escape
+Toggles provide a built-in `_toggle_value` boolean:
+
+```python
+def on_toggle(container):
+    if container['_toggle_value']:
+        container.set_property('background-color', 'rgba(46, 204, 113, 0.3)')
+    else:
+        container.set_property('background-color', 'rgba(37, 40, 48, 0.95)')
+    container.mark_dirty()
+
+toggle_btn.toggle.append(on_toggle)
 ```
 
-## The Popover API
+### Accessing Other Elements
 
-For tooltips, dropdowns, and non-modal overlays, use native popovers:
+Navigate the container tree using dot notation or `app.find()` / `app.get_by_id()`:
 
-```html
-<button popovertarget="menu">Open menu</button>
-<div id="menu" popover>
-  <button>Option 1</button>
-  <button>Option 2</button>
-</div>
+```python
+def main(self, app):
+    # Dot notation access
+    status = app.theme.root.sidebar.status_label
+
+    # find by ID
+    panel = app.find("info_panel")
+    # or
+    panel = app.get_by_id("info_panel")
+
+    def update_status(container):
+        status.text = "Active"
+        status.set_property('color', 'rgba(46, 204, 113, 0.9)')
+        status.mark_dirty()
+
+    panel.click.append(update_status)
+    return app
 ```
 
-**Benefits**: Light-dismiss (click outside closes), proper stacking, no z-index wars, accessible by default.
+## Designing Interactive Patterns
 
-## Destructive Actions: Undo > Confirm
+### Button Hierarchy
 
-**Undo is better than confirmation dialogs**—users click through confirmations mindlessly. Remove from UI immediately, show undo toast, actually delete after toast expires. Use confirmation only for truly irreversible actions (account deletion), high-cost actions, or batch operations.
+Not every button should look the same. Create a visual hierarchy:
 
-## Keyboard Navigation Patterns
+```scss
+// Primary action — bold, accent color
+.btn_primary {
+  background-color: #3498db;
+  color: rgba(255, 255, 255, 0.95);
+  padding: 10px 20px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+.btn_primary:hover { background-color: #5dade2; }
+.btn_primary:active { background-color: #2176ad; }
 
-### Roving Tabindex
+// Secondary action — subtle, outlined
+.btn_secondary {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(200, 205, 215, 0.9);
+  padding: 10px 20px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn_secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
 
-For component groups (tabs, menu items, radio groups), one item is tabbable; arrow keys move within:
-
-```html
-<div role="tablist">
-  <button role="tab" tabindex="0">Tab 1</button>
-  <button role="tab" tabindex="-1">Tab 2</button>
-  <button role="tab" tabindex="-1">Tab 3</button>
-</div>
+// Ghost action — minimal, text-only feel
+.btn_ghost {
+  background-color: transparent;
+  color: rgba(181, 188, 199, 0.7);
+  padding: 8px 12px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.btn_ghost:hover {
+  color: rgba(245, 248, 250, 0.95);
+  background-color: rgba(255, 255, 255, 0.05);
+}
 ```
 
-Arrow keys move `tabindex="0"` between items. Tab moves to the next component entirely.
+### Progressive Disclosure
 
-### Skip Links
+Start simple, reveal complexity through interaction. Use visibility and opacity to show/hide advanced sections:
 
-Provide skip links (`<a href="#main-content">Skip to main content</a>`) for keyboard users to jump past navigation. Hide off-screen, show on focus.
+```python
+def main(self, app):
+    toggle = app.find("show_advanced")
+    advanced = app.find("advanced_panel")
 
-## Gesture Discoverability
+    def on_toggle(container):
+        if container['_toggle_value']:
+            advanced.set_property('display', 'flex')
+            advanced.set_property('opacity', '1')
+        else:
+            advanced.set_property('display', 'none')
+        advanced.mark_dirty()
 
-Swipe-to-delete and similar gestures are invisible. Hint at their existence:
+    toggle.toggle.append(on_toggle)
+    return app
+```
 
-- **Partially reveal**: Show delete button peeking from edge
-- **Onboarding**: Coach marks on first use
-- **Alternative**: Always provide a visible fallback (menu with "Delete")
+### Empty States
 
-Don't rely on gestures as the only way to perform actions.
+Empty states are onboarding moments. Design them to teach, not just acknowledge:
+
+```yaml
+empty_state:
+  class: empty_state
+  icon:
+    class: empty_icon
+    img: folder_empty
+  message:
+    class: empty_message
+    text: "No projects yet"
+  action_hint:
+    class: empty_hint
+    text: "Create your first project to get started"
+```
+
+### Loading States
+
+Show specific feedback during operations:
+
+```python
+def on_export(container):
+    container.text = "Exporting..."
+    container.set_property('opacity', '0.6')
+    container.set_property('pointer-events', 'none')
+    container.mark_dirty()
+```
+
+### Destructive Actions: Undo Over Confirm
+
+Undo is better than confirmation dialogs — users click through confirmations mindlessly. For reversible actions, perform the action immediately and offer undo. Reserve confirmation dialogs for truly irreversible operations.
 
 ---
 
-**Avoid**: Removing focus indicators without alternatives. Using placeholder text as labels. Touch targets <44x44px. Generic error messages. Custom controls without ARIA/keyboard support.
+**Avoid**: Forgetting `mark_dirty()` after property changes. Forgetting to `return app` from `main()`. Attaching events to passive elements. Using hover for critical functionality (not all users can hover).

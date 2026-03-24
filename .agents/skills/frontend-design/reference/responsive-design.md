@@ -1,114 +1,193 @@
 # Responsive Design
 
-## Mobile-First: Write It Right
+## Adaptive Layout in Puree
 
-Start with base styles for mobile, use `min-width` queries to layer complexity. Desktop-first (`max-width`) means mobile loads unnecessary styles first.
+Puree interfaces run inside Blender panels, which can vary in size as users resize regions. Puree supports `@media` queries to adapt layout to different panel widths.
 
-## Breakpoints: Content-Driven
+**Supported queries**:
+- `@media (min-width: Npx)` — apply styles when panel is at least N pixels wide
+- `@media (max-width: Npx)` — apply styles when panel is at most N pixels wide
 
-Don't chase device sizes—let content tell you where to break. Start narrow, stretch until design breaks, add breakpoint there. Three breakpoints usually suffice (640, 768, 1024px). Use `clamp()` for fluid values without breakpoints.
+**Not supported**: `pointer`, `hover`, `prefers-reduced-motion`, `prefers-color-scheme`, `orientation` media features. No `env()`, no container queries.
 
-## Detect Input Method, Not Just Screen Size
+## Content-Driven Breakpoints
 
-**Screen size doesn't tell you input method.** A laptop with touchscreen, a tablet with keyboard—use pointer and hover queries:
+Don't pick arbitrary breakpoints — let your content tell you where the layout breaks. Start narrow, stretch until the design breaks, add a breakpoint there. Three breakpoints usually suffice for Blender panel layouts:
 
-```css
-/* Fine pointer (mouse, trackpad) */
-@media (pointer: fine) {
-  .button { padding: 8px 16px; }
+```scss
+// Narrow panel — single column
+.content_grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Coarse pointer (touch, stylus) */
-@media (pointer: coarse) {
-  .button { padding: 12px 20px; }  /* Larger touch target */
+// Medium panel — two columns
+@media (min-width: 500px) {
+  .content_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
 }
 
-/* Device supports hover */
-@media (hover: hover) {
-  .card:hover { transform: translateY(-2px); }
+// Wide panel — three columns with sidebar
+@media (min-width: 800px) {
+  .content_grid {
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 20px;
+  }
 }
-
-/* Device doesn't support hover (touch) */
-@media (hover: none) {
-  .card { /* No hover state - use active instead */ }
-}
-```
-
-**Critical**: Don't rely on hover for functionality. Touch users can't hover.
-
-## Safe Areas: Handle the Notch
-
-Modern phones have notches, rounded corners, and home indicators. Use `env()`:
-
-```css
-body {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* With fallback */
-.footer {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-}
-```
-
-**Enable viewport-fit** in your meta tag:
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-```
-
-## Responsive Images: Get It Right
-
-### srcset with Width Descriptors
-
-```html
-<img
-  src="hero-800.jpg"
-  srcset="
-    hero-400.jpg 400w,
-    hero-800.jpg 800w,
-    hero-1200.jpg 1200w
-  "
-  sizes="(max-width: 768px) 100vw, 50vw"
-  alt="Hero image"
->
-```
-
-**How it works**:
-- `srcset` lists available images with their actual widths (`w` descriptors)
-- `sizes` tells the browser how wide the image will display
-- Browser picks the best file based on viewport width AND device pixel ratio
-
-### Picture Element for Art Direction
-
-When you need different crops/compositions (not just resolutions):
-
-```html
-<picture>
-  <source media="(min-width: 768px)" srcset="wide.jpg">
-  <source media="(max-width: 767px)" srcset="tall.jpg">
-  <img src="fallback.jpg" alt="...">
-</picture>
 ```
 
 ## Layout Adaptation Patterns
 
-**Navigation**: Three stages—hamburger + drawer on mobile, horizontal compact on tablet, full with labels on desktop. **Tables**: Transform to cards on mobile using `display: block` and `data-label` attributes. **Progressive disclosure**: Use `<details>/<summary>` for content that can collapse on mobile.
+### Sidebar Collapse
 
-## Testing: Don't Trust DevTools Alone
+At narrow widths, collapse a sidebar into vertical stacking:
 
-DevTools device emulation is useful for layout but misses:
+```scss
+.app_layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
 
-- Actual touch interactions
-- Real CPU/memory constraints
-- Network latency patterns
-- Font rendering differences
-- Browser chrome/keyboard appearances
+@media (min-width: 600px) {
+  .app_layout {
+    flex-direction: row;
+  }
+}
 
-**Test on at least**: One real iPhone, one real Android, a tablet if relevant. Cheap Android phones reveal performance issues you'll never see on simulators.
+.sidebar {
+  width: 100%;
+  padding: 8px;
+}
+
+@media (min-width: 600px) {
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 16px;
+  }
+}
+```
+
+### Content Reflow
+
+Adapt content density — wider panels can show more detail:
+
+```scss
+.item_label {
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 500px) {
+  .item_label {
+    font-size: 14px;
+    white-space: normal;
+  }
+}
+```
+
+### Grid Column Adaptation
+
+Use grid with breakpoints to change column count:
+
+```scss
+.card_grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+@media (min-width: 450px) {
+  .card_grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 700px) {
+  .card_grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+```
+
+## Flexbox as the Primary Layout Tool
+
+Flexbox handles most responsive needs without breakpoints. `flex-wrap: wrap` allows items to reflow naturally:
+
+```scss
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+}
+
+.toolbar_item {
+  flex-grow: 1;
+  min-width: 80px;
+  height: 36px;
+}
+```
+
+Use `flex-grow`, `flex-shrink`, and `flex-basis` to control how elements distribute space:
+
+```scss
+.panel_left {
+  flex-basis: 200px;
+  flex-shrink: 0;
+}
+
+.panel_main {
+  flex-grow: 1;
+  min-width: 0; // Prevent overflow
+}
+```
+
+## Images in Different Panel Sizes
+
+Puree loads images via the `img:` YAML attribute. Images don't have `srcset` or responsive variants — use `--img-align-h` and `--img-align-v` for positioning, and constrain the container size:
+
+```scss
+.logo {
+  width: 48px;
+  height: 48px;
+  --img-align-h: center;
+  --img-align-v: center;
+}
+
+@media (min-width: 600px) {
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+}
+```
+
+## Units: px and % Only
+
+Puree supports `px` and `%` units. There are no `rem`, `em`, `vw`, `vh`, or `fr` units.
+
+- Use `%` for fluid widths that adapt to parent size (`width: 100%`, `width: 50%`)
+- Use `px` for fixed sizes, spacing, font sizes, and borders
+- Combine both: `width: 100%` with `max-width: 800px` and `min-width: 300px`
+
+## Testing Panel Sizes
+
+Test your interface at different panel widths in Blender by resizing the addon's region. Key widths to verify:
+- **Narrow** (~250-350px): Minimum usable size
+- **Medium** (~500-600px): Comfortable single-column
+- **Wide** (~800px+): Multi-column layouts
 
 ---
 
-**Avoid**: Desktop-first design. Device detection instead of feature detection. Separate mobile/desktop codebases. Ignoring tablet and landscape. Assuming all mobile devices are powerful.
+**Avoid**: Assuming a fixed panel width. Hiding critical functionality at narrow widths — adapt the layout instead. Using unsupported units (rem, vw, vh). Using unsupported media features (pointer, hover).

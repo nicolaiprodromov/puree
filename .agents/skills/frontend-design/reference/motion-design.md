@@ -1,99 +1,173 @@
 # Motion Design
 
+## Puree Transition System
+
+Puree supports CSS `transition` for state changes. This is the only animation mechanism — there are no `@keyframes`, no `animation` property, no `transform` animations.
+
+**Animatable properties**: `background-color`, `color` (text), `border-color`, `opacity`
+**Timing functions**: `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`
+**Delay**: `transition-delay` is supported
+
 ## Duration: The 100/300/500 Rule
 
-Timing matters more than easing. These durations feel right for most UI:
+Timing matters more than easing. These durations feel right for most UI transitions:
 
 | Duration | Use Case | Examples |
 |----------|----------|----------|
-| **100-150ms** | Instant feedback | Button press, toggle, color change |
-| **200-300ms** | State changes | Menu open, tooltip, hover states |
-| **300-500ms** | Layout changes | Accordion, modal, drawer |
-| **500-800ms** | Entrance animations | Page load, hero reveals |
+| **100-150ms** | Instant feedback | Button press, color change |
+| **200-300ms** | State changes | Hover effects, active states |
+| **300-500ms** | Emphasis | Panel reveals via opacity fade |
 
-**Exit animations are faster than entrances**—use ~75% of enter duration.
+**Exit transitions should be faster than entrances** — use ~75% of enter duration.
 
 ## Easing: Pick the Right Curve
 
-**Don't use `ease`.** It's a compromise that's rarely optimal. Instead:
+| Curve | Use For | SCSS |
+|-------|---------|------|
+| **ease-out** | Elements appearing, hover-in | `transition: opacity 0.3s ease-out` |
+| **ease-in** | Elements fading, hover-out | `transition: opacity 0.2s ease-in` |
+| **ease-in-out** | State toggles (there and back) | `transition: background-color 0.3s ease-in-out` |
+| **linear** | Continuous changes, opacity | `transition: opacity 0.5s linear` |
+| **ease** | General purpose fallback | `transition: color 0.2s ease` |
 
-| Curve | Use For | CSS |
-|-------|---------|-----|
-| **ease-out** | Elements entering | `cubic-bezier(0.16, 1, 0.3, 1)` |
-| **ease-in** | Elements leaving | `cubic-bezier(0.7, 0, 0.84, 0)` |
-| **ease-in-out** | State toggles (there → back) | `cubic-bezier(0.65, 0, 0.35, 1)` |
+## Transition Patterns in Puree
 
-**For micro-interactions, use exponential curves**—they feel natural because they mimic real physics (friction, deceleration):
+### Hover Feedback
 
-```css
-/* Quart out - smooth, refined (recommended default) */
---ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+The most common use: change `background-color` and/or `color` on hover.
 
-/* Quint out - slightly more dramatic */
---ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+```scss
+.nav_item {
+  background-color: rgba(26, 29, 36, 0.95);
+  color: rgba(181, 188, 199, 0.8);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
 
-/* Expo out - snappy, confident */
---ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+.nav_item:hover {
+  background-color: rgba(37, 40, 48, 0.95);
+  color: rgba(245, 248, 250, 0.95);
+}
+
+.nav_item:active {
+  background-color: rgba(52, 152, 219, 0.3);
+}
 ```
 
-**Avoid bounce and elastic curves.** They were trendy in 2015 but now feel tacky and amateurish. Real objects don't bounce when they stop—they decelerate smoothly. Overshoot effects draw attention to the animation itself rather than the content.
+### Multi-Property Transitions
 
-## The Only Two Properties You Should Animate
+Combine transitions for richer state changes:
 
-**transform** and **opacity** only—everything else causes layout recalculation. For height animations (accordions), use `grid-template-rows: 0fr → 1fr` instead of animating `height` directly.
-
-## Staggered Animations
-
-Use CSS custom properties for cleaner stagger: `animation-delay: calc(var(--i, 0) * 50ms)` with `style="--i: 0"` on each item. **Cap total stagger time**—10 items at 50ms = 500ms total. For many items, reduce per-item delay or cap staggered count.
-
-## Reduced Motion
-
-This is not optional. Vestibular disorders affect ~35% of adults over 40.
-
-```css
-/* Define animations normally */
+```scss
 .card {
-  animation: slide-up 500ms ease-out;
+  background-color: rgba(26, 29, 36, 0.95);
+  border-color: rgba(255, 255, 255, 0.06);
+  opacity: 0.9;
+  transition: background-color 0.2s ease,
+              border-color 0.3s ease,
+              opacity 0.3s ease-out;
 }
 
-/* Provide alternative for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: fade-in 200ms ease-out;  /* Crossfade instead of motion */
-  }
-}
-
-/* Or disable entirely */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+.card:hover {
+  background-color: rgba(37, 40, 48, 0.95);
+  border-color: rgba(52, 152, 219, 0.4);
+  opacity: 1;
 }
 ```
 
-**What to preserve**: Functional animations like progress bars, loading spinners (slowed down), and focus indicators should still work—just without spatial movement.
+### Active (Press) Feedback
 
-## Perceived Performance
+Use `:active` for immediate press feedback. Make it faster than hover:
 
-**Nobody cares how fast your site is—just how fast it feels.** Perception can be as effective as actual performance.
+```scss
+.button {
+  background-color: #3498db;
+  transition: background-color 0.15s ease;
+}
 
-**The 80ms threshold**: Our brains buffer sensory input for ~80ms to synchronize perception. Anything under 80ms feels instant and simultaneous. This is your target for micro-interactions.
+.button:hover {
+  background-color: #5dade2;
+}
 
-**Active vs passive time**: Passive waiting (staring at a spinner) feels longer than active engagement. Strategies to shift the balance:
+.button:active {
+  background-color: #2176ad;
+}
+```
 
-- **Preemptive start**: Begin transitions immediately while loading (iOS app zoom, skeleton UI). Users perceive work happening.
-- **Early completion**: Show content progressively—don't wait for everything. Video buffering, progressive images, streaming HTML.
-- **Optimistic UI**: Update the interface immediately, handle failures gracefully. Instagram likes work offline—the UI updates instantly, syncs later. Use for low-stakes actions; avoid for payments or destructive operations.
+### Fade Patterns via Opacity
 
-**Easing affects perceived duration**: Ease-in (accelerating toward completion) makes tasks feel shorter because the peak-end effect weights final moments heavily. Ease-out feels satisfying for entrances, but ease-in toward a task's end compresses perceived time.
+Use `opacity` transitions for reveal/hide effects:
 
-**Caution**: Too-fast responses can decrease perceived value. Users may distrust instant results for complex operations (search, analysis). Sometimes a brief delay signals "real work" is happening.
+```scss
+.tooltip {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
 
-## Performance
+.tooltip:hover {
+  opacity: 1;
+}
+```
 
-Don't use `will-change` preemptively—only when animation is imminent (`:hover`, `.animating`). For scroll-triggered animations, use Intersection Observer instead of scroll events; unobserve after animating once. Create motion tokens for consistency (durations, easings, common transitions).
+### Transition Delay for Sequencing
+
+Use `transition-delay` to create a staggered feel between multiple properties:
+
+```scss
+.panel_item {
+  background-color: rgba(26, 29, 36, 0.95);
+  color: rgba(181, 188, 199, 0.8);
+  border-color: rgba(255, 255, 255, 0.06);
+  transition: background-color 0.2s ease,
+              color 0.15s ease 0.05s,
+              border-color 0.3s ease 0.1s;
+}
+```
+
+## Runtime Transitions via Python
+
+When changing properties through Python scripts, transitions defined in SCSS still apply:
+
+```python
+def main(self, app):
+    panel = app.find("info_panel")
+
+    def highlight(container):
+        container.set_property('background-color', 'rgba(52, 152, 219, 0.3)')
+        container.set_property('border-color', 'rgba(52, 152, 219, 0.6)')
+        container.mark_dirty()
+
+    def reset(container):
+        container.set_property('background-color', 'rgba(26, 29, 36, 0.95)')
+        container.set_property('border-color', 'rgba(255, 255, 255, 0.06)')
+        container.mark_dirty()
+
+    panel.hover.append(highlight)
+    panel.hoverout.append(reset)
+    return app
+```
+
+If the element has `transition: background-color 0.2s ease, border-color 0.3s ease` in SCSS, the runtime property changes will animate smoothly.
+
+## Motion Tokens
+
+Create SCSS variables for consistent transition durations across your interface:
+
+```scss
+$duration-fast: 0.1s;
+$duration-normal: 0.2s;
+$duration-slow: 0.35s;
+
+$ease-default: ease;
+$ease-enter: ease-out;
+$ease-exit: ease-in;
+
+// Reusable transition shorthand
+.interactive {
+  transition: background-color $duration-normal $ease-default,
+              color $duration-normal $ease-default;
+}
+```
 
 ---
 
-**Avoid**: Animating everything (animation fatigue is real). Using >500ms for UI feedback. Ignoring `prefers-reduced-motion`. Using animation to hide slow loading.
+**Avoid**: Expecting `@keyframes`, `transform`, or `animation` to work. Transitions longer than 500ms for UI feedback. Animating properties other than `background-color`, `color`, `border-color`, `opacity`. Forgetting to call `mark_dirty()` after runtime changes.
