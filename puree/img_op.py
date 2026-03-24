@@ -14,6 +14,9 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Matrix
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 _image_instances = []
 _draw_handle = None
 _cached_viewport_height = None
@@ -54,7 +57,7 @@ class ImageManager:
                         self.images[image_name] = image_path
                         self.textures[image_name] = texture
                     except Exception as e:
-                        print(f"Failed to load image {image_file}: {e}")
+                        logger.error(f"Failed to load image {image_file}: {e}")
         
     def get_texture(self, image_name):
         return self.textures.get(image_name, None)
@@ -69,7 +72,7 @@ class ImageManager:
                 if image_file in bpy.data.images:
                     bpy.data.images.remove(bpy.data.images[image_file])
             except Exception as e:
-                print(f"Failed to remove image {image_name}: {e}")
+                logger.error(f"Failed to remove image {image_name}: {e}")
         
         self.textures.clear()
         self.images.clear()

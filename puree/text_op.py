@@ -13,6 +13,9 @@ import blf
 import gpu
 import os
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 _text_instances = []
 _draw_handle = None
 _text_dims_cache = {}
@@ -47,7 +50,7 @@ class FontManager:
                         self.fonts[font_name] = font_path
                         self.font_ids[font_name] = font_id
                     except Exception as e:
-                        print(f"Failed to load font {font_file}: {e}")
+                        logger.error(f"Failed to load font {font_file}: {e}")
     
     def get_font_id(self, font_name):
         return self.font_ids.get(font_name, 0)
@@ -101,7 +104,7 @@ class FontManager:
             try:
                 blf.unload(font_path)
             except Exception as e:
-                print(f"Failed to unload font {font_name} (path: {font_path}): {e}")
+                logger.error(f"Failed to unload font {font_name} (path: {font_path}): {e}")
         self.fonts.clear()
         self.font_ids.clear()
     

@@ -12,6 +12,8 @@ import bpy
 from bpy.types import Panel, PropertyGroup, UIList
 from bpy.props import CollectionProperty, StringProperty, IntProperty, BoolProperty
 from . import render
+from .log import get_logger
+logger = get_logger(__name__)
 
 class ContainerItem(PropertyGroup):
     container_id: StringProperty()
@@ -194,7 +196,7 @@ def register_dynamic_panel():
     _current_panel_class = XWZ_PT_dynamic_panel
     bpy.utils.register_class(XWZ_PT_dynamic_panel)
     
-    print(f"Registered debug panel for space: {target_space}")
+    logger.info(f"Registered debug panel for space: {target_space}")
 
 def unregister_dynamic_panel():
     global _current_panel_class

@@ -18,6 +18,9 @@ try:
 except ImportError:
     bpy = None
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 class HotReloadManager:
     def __init__(self):
         self.watcher = None
@@ -51,16 +54,16 @@ class HotReloadManager:
                 watch_scripts=True
             )
             
-            print(f"Hot reload initialized (debounce: {debounce_ms}ms)")
+            logger.info(f"Hot reload initialized (debounce: {debounce_ms}ms)")
             return True
             
         except Exception as e:
-            print(f"Failed to initialize hot reload: {e}")
+            logger.error(f"Failed to initialize hot reload: {e}")
             return False
     
     def setup_watches_from_config(self) -> bool:
         if not self.config_path or not self.config_path.exists():
-            print(f"Config file not found: {self.config_path}")
+            logger.error(f"Config file not found: {self.config_path}")
             return False
         
         try:
@@ -103,13 +106,11 @@ class HotReloadManager:
                 if full_path.exists() and full_path.is_dir():
                     self.watch_directory(str(full_path))
             
-            print(f"Hot reload watching {len(self.watched_items)} items")
+            logger.info(f"Hot reload watching {len(self.watched_items)} items")
             return True
             
         except Exception as e:
-            print(f"Failed to setup watches from config: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Failed to setup watches from config: {e}", exc_info=True)
             return False
     
     def _clear_watches(self):
@@ -149,7 +150,7 @@ class HotReloadManager:
             return False
                 
         except Exception as e:
-            print(f"Error watching directory: {e}")
+            logger.error(f"Error watching directory: {e}")
             return False
     
     def unwatch_directory(self, directory: str) -> bool:
@@ -159,14 +160,14 @@ class HotReloadManager:
         try:
             return self.watcher.unwatch_path(str(directory))
         except Exception as e:
-            print(f"Error unwatching directory: {e}")
+            logger.error(f"Error unwatching directory: {e}")
             return False
     
     def register_callback(self, change_type: str, callback: Callable[[Dict[str, Any]], None]):
         if change_type in self.reload_callbacks:
             self.reload_callbacks[change_type].append(callback)
         else:
-            print(f"Unknown change type: {change_type}")
+            logger.warning(f"Unknown change type: {change_type}")
     
     def unregister_callback(self, change_type: str, callback: Callable):
         if change_type in self.reload_callbacks:
@@ -202,7 +203,7 @@ class HotReloadManager:
             return True
             
         except Exception as e:
-            print(f"Error checking for changes: {e}")
+            logger.error(f"Error checking for changes: {e}")
             return False
     
     def _process_change(self, change: Dict[str, Any]):
@@ -225,7 +226,7 @@ class HotReloadManager:
                 try:
                     callback(change)
                 except Exception as e:
-                    print(f"Callback error: {e}")
+                    logger.warning(f"Callback error: {e}")
     
     def enable(self):
         self.enabled = True
@@ -374,9 +375,7 @@ def trigger_ui_reload():
         return True
         
     except Exception as e:
-        print(f"Failed to reload UI: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Failed to reload UI: {e}", exc_info=True)
         return False
 
 

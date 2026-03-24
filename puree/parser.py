@@ -28,6 +28,8 @@ from stretchable.style.geometry.size import SizePointsPercent, SizePointsPercent
 
 from .components.container import Container
 from .components.style import Style
+from .log import get_logger
+logger = get_logger(__name__)
 from .native_bindings import ContainerProcessor, SCSSCompiler, ColorProcessor, CSSCascade
 
 node_flat = {}
@@ -344,8 +346,8 @@ class UI():
             try:
                 attr_value = color_processor.parse_color(attr_value)
             except Exception as e:
-                print(f"⚠️  Color parsing failed for '{attr_name}' = '{attr_value}': {e}")
-                print(f"   Using default black color")
+                logger.warning(f"Color parsing failed for '{attr_name}' = '{attr_value}': {e}")
+                logger.warning(f"Using default black color")
                 attr_value = [0.0, 0.0, 0.0, 1.0]
 
         elif attr_name in float_props:
@@ -534,7 +536,7 @@ class UI():
         try:
             normal_resolved = cascade.resolve(flat_containers, "normal", viewport) or {}
         except Exception as e:
-            print(f"⚠️  CSSCascade resolve(normal) failed: {e}")
+            logger.warning(f"CSSCascade resolve(normal) failed: {e}")
 
         for container_id, props in normal_resolved.items():
             container = self._find_container(container_id)
@@ -568,7 +570,7 @@ class UI():
             try:
                 resolved = cascade.resolve(flat_containers, state, viewport) or {}
             except Exception as e:
-                print(f"⚠️  CSSCascade resolve({state}) failed: {e}")
+                logger.warning(f"CSSCascade resolve({state}) failed: {e}")
                 continue
 
             for container_id, props in resolved.items():

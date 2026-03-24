@@ -13,6 +13,9 @@ import importlib.util
 import os
 from time import sleep
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 class Compiler():
     def __init__(self, ui):
         self.ui = ui
@@ -33,5 +36,5 @@ class Compiler():
                         self.ui = module.main(self, self.ui)
                 sleep(0.1)
             except (ImportError, FileNotFoundError) as e:
-                print(f"Failed to import {module_name}: {e}")
+                logger.error(f"Failed to import {module_name}: {e}")
         return self.ui

@@ -10,6 +10,9 @@
 # ╚═════════════════════════════════╝
 import os
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
@@ -32,7 +35,7 @@ def _try_start_ui():
     wm = bpy.context.window_manager
     conf_path = getattr(wm, "xwz_ui_conf_path", None)
     if not conf_path:
-        print("No xwz_ui_conf_path set — auto-start skipped.")
+        logger.debug("No xwz_ui_conf_path set — auto-start skipped.")
         return None
     
     global _try_start_retries
@@ -40,9 +43,9 @@ def _try_start_ui():
     
     if not parse_space_config(conf_path):
         if _try_start_retries < 5:
-            print(f"Failed to parse space configuration for {conf_path} (attempt {_try_start_retries}), retrying...")
+            logger.warning(f"Failed to parse space configuration for {conf_path} (attempt {_try_start_retries}), retrying...")
         else:
-            print(f"Failed to parse space configuration for {conf_path} after {_try_start_retries} attempts. Auto-start disabled.")
+            logger.error(f"Failed to parse space configuration for {conf_path} after {_try_start_retries} attempts. Auto-start disabled.")
             return None  # Stop retrying
         return 0.5
     
@@ -50,14 +53,14 @@ def _try_start_ui():
     
     if not config_status['space_available']:
         target_space = config_status.get('target_space', 'Unknown')
-        print(f"Target space '{target_space}' not available yet, retrying...")
+        logger.info(f"Target space '{target_space}' not available yet, retrying...")
         return 0.5
     
     area = config_status['area']
     region = config_status['region']
     
     if not (area and region):
-        print("Found target space but no WINDOW region, retrying...")
+        logger.info("Found target space but no WINDOW region, retrying...")
         return 0.5
     
     for window in bpy.context.window_manager.windows:
@@ -74,16 +77,14 @@ def _try_start_ui():
                     with bpy.context.temp_override(**override):
                         bpy.ops.xwz.start_ui()
                     target_space = config_status.get('target_space', 'Unknown')
-                    print(f"Puree UI auto-started successfully in {target_space}")
+                    logger.info(f"Puree UI auto-started successfully in {target_space}")
                     return None
                 except Exception as e:
-                    print(f"Failed to auto-start Puree UI: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error(f"Failed to auto-start Puree UI: {e}", exc_info=True)
                     return None
     
     target_space = config_status.get('target_space', 'Unknown')
-    print(f"Target space '{target_space}' found but not accessible, retrying...")
+    logger.info(f"Target space '{target_space}' found but not accessible, retrying...")
     return 0.5
 
 def auto_start_ui_handler(dummy):
@@ -157,7 +158,7 @@ def unregister():
             except:
                 pass
     except Exception as e:
-        print(f"Warning: Error during forced cleanup: {e}")
+        logger.warning(f"Error during forced cleanup: {e}")
     
     del bpy.types.WindowManager.xwz_ui_conf_path
     del bpy.types.WindowManager.xwz_debug_panel

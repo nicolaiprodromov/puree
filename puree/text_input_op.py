@@ -14,6 +14,8 @@ import time
 
 from .text_op import FontManager, font_manager
 from .mouse_op import mouse_state
+from .log import get_logger
+logger = get_logger(__name__)
 
 _text_input_instances = []
 _draw_handle = None
@@ -559,7 +561,7 @@ class CreateTextInputOP(bpy.types.Operator):
         
         font_to_use = self.font_name if self.font_name else None
         if font_to_use and font_to_use not in font_manager.get_available_fonts():
-            print(f"Warning: Font '{font_to_use}' not found, using default")
+            logger.warning(f"Font '{font_to_use}' not found, using default")
             font_to_use = None
         
         new_instance = TextInputInstance(
@@ -694,7 +696,7 @@ class GetTextInputValueOP(bpy.types.Operator):
         
         for instance in _text_input_instances:
             if instance.id == self.instance_id:
-                print(f"Text input #{self.instance_id} value: {instance.text}")
+                logger.debug(f"Text input #{self.instance_id} value: {instance.text}")
                 return {'FINISHED'}
         
         self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")

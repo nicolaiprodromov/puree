@@ -12,6 +12,13 @@ import os
 import sys
 from typing import List, Dict, Any
 
+try:
+    from .log import get_logger
+    logger = get_logger(__name__)
+except Exception:
+    import logging
+    logger = logging.getLogger(__name__)
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 native_binaries_dir = os.path.join(current_dir, 'native_binaries')
 
@@ -21,7 +28,7 @@ if native_binaries_dir not in sys.path:
 try:
     import puree_rust_core
 except ImportError as e:
-    print(f"Import error: {e}")
+    logger.error(f"Import error: {e}")
     raise RuntimeError("Puree requires the core modules") from e
 
 finally:
@@ -38,7 +45,7 @@ class HitDetector:
             self._detector.load_containers(container_list)
             return True
         except Exception as e:
-            print(f"❌ Error loading containers: {e}")
+            logger.error(f"Error loading containers: {e}")
             return False
     
     def update_mouse(self, x: float, y: float, clicked: bool, scroll_delta: float = 0.0):
@@ -141,7 +148,7 @@ class ContainerProcessor:
             self._processor.update_positions_bulk(container_indices, x_offsets, y_offsets)
             return True
         except Exception as e:
-            print(f"❌ Error updating positions: {e}")
+            logger.error(f"Error updating positions: {e}")
             return False
     
     def get_containers(self) -> List[Dict[str, Any]]:
@@ -157,7 +164,7 @@ class ContainerProcessor:
             self._processor.update_states_bulk(container_ids, hovered, clicked)
             return True
         except Exception as e:
-            print(f"❌ Error updating states: {e}")
+            logger.error(f"Error updating states: {e}")
             return False
 
 

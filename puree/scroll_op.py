@@ -11,6 +11,9 @@
 import bpy
 import math
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 class ScrollState:
     _instance = None
     
@@ -39,9 +42,7 @@ class ScrollState:
             try:
                 callback(delta, absolute_value)
             except Exception as e:
-                import traceback
-                print(f"Scroll callback error: {e}")
-                traceback.print_exc()
+                logger.error(f"Scroll callback error: {e}", exc_info=True)
     
     def register_callback(self, callback):
         if callback not in self.callbacks:
@@ -144,7 +145,7 @@ class XWZ_OT_scroll_launch(bpy.types.Operator):
             with context.temp_override(**context_dict):
                 bpy.ops.xwz.scroll_modal('INVOKE_DEFAULT')
         except Exception as e:
-            print(f"Error invoking scroll modal: {e}")
+            logger.error(f"Error invoking scroll modal: {e}")
         return {'FINISHED'}
 
 scroll_state = ScrollState()

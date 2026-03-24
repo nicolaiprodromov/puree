@@ -14,6 +14,8 @@ import os
 from typing import Optional, Dict, Any, List, Tuple
 from .native_bindings import ConfigParser
 from . import get_addon_root
+from .log import get_logger
+logger = get_logger(__name__)
 
 _parsed_config = None
 _target_space = None
@@ -33,7 +35,7 @@ class SpaceAwareConfig:
             full_path = os.path.join(addon_dir, conf_path)
             
             if not os.path.exists(full_path):
-                print(f"Config file not found: {full_path}")
+                logger.error(f"Config file not found: {full_path}")
                 return False
                 
             with open(full_path, 'r') as f:
@@ -59,7 +61,7 @@ class SpaceAwareConfig:
                 target_theme = parse_result.themes[0]
             
             if not target_theme:
-                print("No valid theme found in config")
+                logger.error("No valid theme found in config")
                 return False
             
             self.selected_theme = target_theme.name
@@ -68,20 +70,18 @@ class SpaceAwareConfig:
             space_validation = self.config_parser.validate_space(target_theme.space)
             
             if not space_validation.is_valid:
-                print(f"Invalid space configuration: {space_validation.error_message}")
-                print(f"Supported spaces: {', '.join(self.config_parser.get_supported_spaces())}")
+                logger.warning(f"Invalid space configuration: {space_validation.error_message}")
+                logger.warning(f"Supported spaces: {', '.join(self.config_parser.get_supported_spaces())}")
                 return False
             
             self.target_space = space_validation.area_type
             self.space_handler_name = space_validation.handler_name
             
-            print(f"Parsed config for theme '{self.selected_theme}' targeting space '{self.target_space}'")
+            logger.info(f"Parsed config for theme '{self.selected_theme}' targeting space '{self.target_space}'")
             return True
             
         except Exception as e:
-            print(f"Error parsing config: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error parsing config: {e}", exc_info=True)
             return False
     
     def get_space_info(self) -> Tuple[Optional[str], Optional[str]]:
@@ -104,7 +104,7 @@ def parse_space_config(conf_path: str) -> bool:
             from . import panel
             panel.update_panel_space()
         except Exception as e:
-            print(f"Failed to update panel space: {e}")
+            logger.error(f"Failed to update panel space: {e}")
     else:
         _parsed_config = None
         _target_space = None
@@ -148,7 +148,7 @@ def get_space_class():
     try:
         return getattr(bpy.types, _space_handler_name)
     except AttributeError:
-        print(f"Unknown space handler: {_space_handler_name}")
+        logger.warning(f"Unknown space handler: {_space_handler_name}")
         return None
 
 def validate_current_configuration() -> Dict[str, Any]:

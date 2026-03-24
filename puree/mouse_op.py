@@ -11,6 +11,9 @@
 import bpy
 import time
 
+from .log import get_logger
+logger = get_logger(__name__)
+
 class MouseState:
     _instance = None
     
@@ -124,7 +127,7 @@ class XWZ_OT_mouse_launch(bpy.types.Operator):
             with context.temp_override(**context_dict):
                 bpy.ops.xwz.mouse_modal('INVOKE_DEFAULT')
         except Exception as e:
-            print(f"Error invoking mouse modal: {e}")
+            logger.error(f"Error invoking mouse modal: {e}")
             
         return {'FINISHED'}
 

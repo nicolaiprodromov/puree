@@ -15,8 +15,9 @@ import time
 import moderngl as mgl
 from .components.container import container_default
 import numpy as np
-import traceback
 from collections import deque
+from .log import get_logger
+logger = get_logger(__name__)
 
 from gpu_extras.batch import batch_for_shader
 from bpy.types import Operator, Panel
@@ -231,10 +232,8 @@ class RenderPipeline:
             self.native_shader = gpu.shader.create_from_info(shader_info)
             return True
         except Exception:
-            traceback.print_exc()
+            logger.error("Failed to create native shader", exc_info=True)
             return False
-    
-    def create_container_batch(self, count):
         """Build static vertex batch for N containers. Rebuilt when container count changes."""
         if not self.native_shader or count <= 0:
             return False
@@ -262,7 +261,7 @@ class RenderPipeline:
             self.container_count = count
             return True
         except Exception:
-            traceback.print_exc()
+            logger.error("Failed to create container batch", exc_info=True)
             return False
     
     def _pack_container_data_texture(self, containers):
@@ -310,7 +309,7 @@ class RenderPipeline:
             self._data_needs_update = False
             return True
         except Exception:
-            traceback.print_exc()
+            logger.error("Failed to create data texture", exc_info=True)
             return False
     
     def update_data_texture(self, containers):
@@ -529,7 +528,7 @@ class RenderPipeline:
         if area and region:
             self.region_size = (region.width, region.height)
         else:
-            print("Warning: Target space not found, using fallback size")
+            logger.warning("Target space not found, using fallback size")
             self.region_size = (800, 600)
         
         if not self.load_container_data():
@@ -578,7 +577,7 @@ class RenderPipeline:
         
         space_class = get_space_class()
         if not space_class:
-            print("Warning: No valid space class found, falling back to SpaceView3D")
+            logger.warning("No valid space class found, falling back to SpaceView3D")
             space_class = bpy.types.SpaceView3D
         
         self.draw_handler = space_class.draw_handler_add(
@@ -756,12 +755,12 @@ class RenderPipeline:
             self.native_batch.draw(self.native_shader)
             gpu.matrix.pop()
         except Exception:
-            traceback.print_exc()
+            logger.error("Error drawing containers", exc_info=True)
         
         try:
             self._draw_scrollbars()
         except Exception:
-            traceback.print_exc()
+            logger.error("Error drawing scrollbars", exc_info=True)
         
         # Restore GPU state to what the editor expects
         gpu.state.blend_set(saved_blend)
@@ -919,7 +918,7 @@ class RenderPipeline:
             )
             return True
         except Exception:
-            traceback.print_exc()
+            logger.error("Failed to create gradient texture", exc_info=True)
             self.gradient_texture = None
             return False
 
@@ -1475,10 +1474,8 @@ class RenderPipeline:
             
             return True
         except Exception:
-            traceback.print_exc()
+            logger.error("Failed to write mouse buffer", exc_info=True)
             return False
-
-class XWZ_OT_start_ui(Operator):
     bl_idname      = "xwz.start_ui"
     bl_label       = "Start puree"
     bl_description = "Start puree UI"
@@ -1617,7 +1614,7 @@ class XWZ_OT_start_ui(Operator):
             else:
                 self.report({'INFO'}, "UI Started (hot reload unavailable)")
         except Exception as e:
-            print(f"Hot reload initialization failed: {e}")
+            logger.warning(f"Hot reload initialization failed: {e}")
             self.report({'INFO'}, "UI Started (hot reload disabled)")
         
         # Update debug panel to appear in the correct space
@@ -1625,7 +1622,7 @@ class XWZ_OT_start_ui(Operator):
             from . import panel
             panel.update_panel_space()
         except Exception as e:
-            print(f"Failed to update debug panel space: {e}")
+            logger.error(f"Failed to update debug panel space: {e}")
         
         # Force initial redraw to ensure UI appears immediately
         from .space_config import get_target_space
@@ -1691,7 +1688,7 @@ class XWZ_OT_start_ui(Operator):
                             manager = get_hot_reload_manager()
                             manager.check_for_changes()
                         except Exception as e:
-                            print(f"Hot reload error: {e}")
+                            logger.warning(f"Hot reload error: {e}")
 
                 _render_data.update_fps()
 
@@ -2128,7 +2125,7 @@ class XWZ_OT_stop_ui(Operator):
                 cleanup_hot_reload()
                 _hot_reload_enabled = False
             except Exception as e:
-                print(f"Hot reload cleanup error: {e}")
+                logger.warning(f"Hot reload cleanup error: {e}")
 
         bpy.ops.xwz.hit_stop()
         scroll_state.stop_scrolling()
