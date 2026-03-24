@@ -1,0 +1,58 @@
+$as_dot_bg: rgba(88, 155, 240, 0.9) !default;
+$as_dot_glow: rgba(88, 155, 240, 0.3) !default;
+
+.action_step {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 32px;
+    padding: 0px 12px;
+    margin-bottom: 3px;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+.action_step_dot {
+    width: 7px;
+    height: 7px;
+    margin-right: 10px;
+    background-color: $as_dot_bg;
+    border-radius: 999px;
+    box-shadow: 0px 0px 6px 2px $as_dot_glow;
+}
+
+.action_step_body {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 100%;
+}
+
+.action_step_label {
+    width: 110px;
+    height: 100%;
+    color: rgba(215, 222, 240, 0.78);
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
+}
+
+.action_step_detail {
+    width: 420px;
+    height: 100%;
+    color: rgba(175, 186, 214, 0.42);
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
+}

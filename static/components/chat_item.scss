@@ -1,0 +1,64 @@
+$ci_bg: rgba(0, 0, 0, 0) !default;
+$ci_border: rgba(0, 0, 0, 0) !default;
+$ci_title_color: rgba(215, 222, 240, 0.68) !default;
+$ci_date_color: rgba(175, 186, 214, 0.34) !default;
+
+.chat_item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 52px;
+    padding: 0px 14px;
+    background-color: $ci_bg;
+    border-width: 1px;
+    border-color: $ci_border;
+    border-radius: 10px;
+    margin-bottom: 2px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    &:active {
+        background-color: rgba(255, 255, 255, 0.07);
+    }
+}
+
+.chat_item_icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    --img-align-h: center;
+    --img-align-v: center;
+    opacity: 0.4;
+}
+
+.chat_item_body {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    width: 175px;
+    height: 100%;
+}
+
+.chat_item_title {
+    width: 100%;
+    height: 20px;
+    color: $ci_title_color;
+    font-size: 13px;
+    text-align: left;
+    --text-align-v: center;
+}
+
+.chat_item_date {
+    width: 100%;
+    height: 16px;
+    color: $ci_date_color;
+    font-size: 11px;
+    text-align: left;
+    --text-align-v: center;
+}

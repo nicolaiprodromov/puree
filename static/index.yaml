@@ -1,196 +1,431 @@
 app:
-  selected_theme: example4_theme
-  default_theme: example4_theme
+  selected_theme: example5_theme
+  default_theme: example5_theme
 
   theme:
-    - name: example4_theme
-      author: GitHub Copilot
-      space: NODE_EDITOR
+    - name: example5_theme
+      author: Copilot
       version: 1.0.0
       default_font: NeueMontreal-Regular
       scripts:
-        - examples/example4/script.py
+        - examples/example5/script.py
       styles:
-        - examples/example4/style.scss
+        - examples/example5/style.scss
+      components: examples/example5/components/
 
       root:
         class: root
 
-        panel:
-          class: panel
+        shell:
+          class: shell
 
-          panel_header:
-            class: panel_header
-            text: EXPLORER
-            font: NeueMontreal-Bold
-            passive: true
+          # ═══════════════════════════════════════
+          #  SIDEBAR — Chat history
+          # ═══════════════════════════════════════
+          sidebar:
+            class: sidebar
 
-          # Outer scroll: ~700px content in 380px viewport
-          outer_scroll:
-            class: outer_scroll
+            sidebar_header:
+              class: sidebar_header
 
-            section_a_label:
-              class: section_label
-              text: WORKSPACE
-              font: NeueMontreal-Bold
-              passive: true
+              sidebar_brand:
+                class: sidebar_brand
 
-            file_1:
-              class: file_item
-              text: __init__.py
-              passive: true
-
-            file_2:
-              class: file_item
-              text: parser.py
-              passive: true
-
-            file_3:
-              class: file_item
-              text: render.py
-              passive: true
-
-            file_4:
-              class: file_item
-              text: parser_op.py
-              passive: true
-
-            file_5:
-              class: file_item
-              text: hit_op.py
-              passive: true
-
-            file_6:
-              class: file_item
-              text: text_op.py
-              passive: true
-
-            file_7:
-              class: file_item
-              text: img_op.py
-              passive: true
-
-            file_8:
-              class: file_item
-              text: native_bindings.py
-              passive: true
-
-            # Inner section — nested scroll inside outer scroll
-            inner_section:
-              class: inner_section
-
-              inner_label:
-                class: inner_label
-                text: PINNED FILES
-                font: NeueMontreal-Bold
-                passive: true
-
-              # Inner scroll: 12 items × 26px = 312px content in 150px viewport
-              inner_scroll:
-                class: inner_scroll
-
-                inner_1:
-                  class: inner_item
-                  text: render.py
+                sidebar_icon:
+                  class: sidebar_icon
+                  img: star_on
                   passive: true
 
-                inner_2:
-                  class: inner_item
-                  text: parser.py
+                sidebar_label:
+                  class: sidebar_label
+                  text: Chats
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_3:
-                  class: inner_item
-                  text: style.scss
+              new_chat_btn:
+                class: new_chat_btn
+
+                new_chat_icon:
+                  class: new_chat_icon
+                  img: light_on
                   passive: true
 
-                inner_4:
-                  class: inner_item
-                  text: cascade.rs
+                new_chat_text:
+                  class: new_chat_text
+                  text: New
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_5:
-                  class: inner_item
-                  text: index.yaml
+            chat_list:
+              class: chat_list
+
+              chat_active:
+                data: '[chat_item]'
+                ci_icon: dial
+                ci_title: Scene Optimization
+                ci_date: Today
+                ci_bg: rgba(88, 155, 240, 0.06)
+                ci_border: rgba(88, 155, 240, 0.12)
+                ci_title_color: '#edf0f8'
+
+              chat_materials:
+                data: '[chat_item]'
+                ci_icon: light_on
+                ci_title: Material Generator
+                ci_date: Yesterday
+
+              chat_uvs:
+                data: '[chat_item]'
+                ci_icon: eye_on
+                ci_title: UV Unwrap Helper
+                ci_date: Mar 22
+
+              chat_shaders:
+                data: '[chat_item]'
+                ci_icon: click
+                ci_title: Shader Debug
+                ci_date: Mar 21
+
+              chat_assets:
+                data: '[chat_item]'
+                ci_icon: toggle
+                ci_title: Asset Organizer
+                ci_date: Mar 20
+
+              chat_lighting:
+                data: '[chat_item]'
+                ci_icon: hover
+                ci_title: Lighting Setup
+                ci_date: Mar 18
+
+          # ═══════════════════════════════════════
+          #  MAIN — Chat view
+          # ═══════════════════════════════════════
+          main:
+            class: main
+
+            # ─── Header ───
+            main_header:
+              class: main_header
+
+              header_title_group:
+                class: header_title_group
+
+                header_title:
+                  class: header_title
+                  text: Scene Optimization
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_6:
-                  class: inner_item
-                  text: container_data.rs
+                header_subtitle:
+                  class: header_subtitle
+                  text: Analyzing viewport performance
+                  font: NeueMontreal-Italic
                   passive: true
 
-                inner_7:
-                  class: inner_item
-                  text: layout.rs
+              model_selector:
+                class: model_selector
+
+                model_dot:
+                  class: model_dot
                   passive: true
 
-                inner_8:
-                  class: inner_item
-                  text: __init__.py
+                model_name:
+                  class: model_name
+                  text: Claude 3.5 Sonnet
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_9:
-                  class: inner_item
-                  text: script.py
+            # ─── Messages ───
+            messages_scroll:
+              class: messages_scroll
+
+              # ──── User message 1 ────
+              msg_1:
+                class: msg_row
+
+                msg_1_avatar_col:
+                  class: msg_avatar_col
+
+                  msg_1_avatar:
+                    class: msg_avatar user_avatar
+                    img: user
+                    passive: true
+
+                msg_1_content:
+                  class: msg_content
+
+                  msg_1_role:
+                    class: msg_role user_role
+                    text: You
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  msg_1_bubble:
+                    class: msg_bubble user_bubble
+
+                    msg_1_text:
+                      class: msg_text
+                      text: "Analyze my scene and suggest performance optimizations for viewport rendering. Focus on polygon count and material complexity."
+                      font: NeueMontreal-Regular
+                      passive: true
+
+              # ──── Assistant message 1 ────
+              msg_2:
+                class: msg_row
+
+                msg_2_avatar_col:
+                  class: msg_avatar_col
+
+                  msg_2_avatar:
+                    class: msg_avatar assistant_avatar
+                    img: star_on
+                    passive: true
+
+                msg_2_content:
+                  class: msg_content
+
+                  msg_2_role:
+                    class: msg_role assistant_role
+                    text: Assistant
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  msg_2_actions:
+                    class: msg_actions
+
+                    msg_2_step_1:
+                      data: '[action_step]'
+                      as_label: Thinking
+                      as_detail: "Breaking down scene analysis approach..."
+                      as_dot_bg: rgba(238, 178, 62, 0.9)
+                      as_dot_glow: rgba(238, 178, 62, 0.3)
+
+                    msg_2_step_2:
+                      data: '[action_step]'
+                      as_label: Scene Analysis
+                      as_detail: "Inspected 47 objects · 2.3M vertices · 18 materials"
+                      as_dot_bg: rgba(88, 155, 240, 0.9)
+                      as_dot_glow: rgba(88, 155, 240, 0.3)
+
+                    msg_2_step_3:
+                      data: '[action_step]'
+                      as_label: Code Execution
+                      as_detail: "Profiled draw calls and shader complexity per material"
+                      as_dot_bg: rgba(170, 140, 255, 0.9)
+                      as_dot_glow: rgba(170, 140, 255, 0.3)
+
+                  msg_2_bubble:
+                    class: msg_bubble assistant_bubble
+
+                    msg_2_text:
+                      class: msg_text assistant_text
+                      text: "Found 8 high-poly meshes over 200k faces, 3 materials with 4+ textures each, and a particle system generating 1.2M instances. Recommend starting with subdivision reduction."
+                      font: NeueMontreal-Regular
+                      passive: true
+
+              # ──── User message 2 ────
+              msg_3:
+                class: msg_row
+
+                msg_3_avatar_col:
+                  class: msg_avatar_col
+
+                  msg_3_avatar:
+                    class: msg_avatar user_avatar
+                    img: user
+                    passive: true
+
+                msg_3_content:
+                  class: msg_content
+
+                  msg_3_role:
+                    class: msg_role user_role
+                    text: You
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  msg_3_refs:
+                    class: msg_refs
+
+                    msg_3_ref_cube:
+                      data: '[ref_chip]'
+                      rc_icon: dial
+                      rc_label: Cube
+
+                    msg_3_ref_scene:
+                      data: '[ref_chip]'
+                      rc_icon: eye_on
+                      rc_label: Scene.001
+                      rc_width: 100px
+                      rc_bg: rgba(170, 140, 255, 0.07)
+                      rc_border: rgba(170, 140, 255, 0.14)
+                      rc_color: rgba(190, 170, 255, 0.88)
+
+                  msg_3_bubble:
+                    class: msg_bubble user_bubble
+
+                    msg_3_text:
+                      class: msg_text
+                      text: "Apply subdivision reduction to all meshes over 100k faces. Keep the Cube at its current level."
+                      font: NeueMontreal-Regular
+                      passive: true
+
+              # ──── Assistant message 2 ────
+              msg_4:
+                class: msg_row
+
+                msg_4_avatar_col:
+                  class: msg_avatar_col
+
+                  msg_4_avatar:
+                    class: msg_avatar assistant_avatar
+                    img: star_on
+                    passive: true
+
+                msg_4_content:
+                  class: msg_content
+
+                  msg_4_role:
+                    class: msg_role assistant_role
+                    text: Assistant
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                  msg_4_actions:
+                    class: msg_actions
+
+                    msg_4_step_1:
+                      data: '[action_step]'
+                      as_label: Executing
+                      as_detail: "Scanning mesh polygon counts across 47 objects..."
+                      as_dot_bg: rgba(88, 155, 240, 0.9)
+                      as_dot_glow: rgba(88, 155, 240, 0.3)
+
+                    msg_4_step_2:
+                      data: '[action_step]'
+                      as_label: Modified
+                      as_detail: "Reduced subdivision on 8 meshes — saved 1.4M faces"
+                      as_dot_bg: rgba(82, 200, 110, 0.9)
+                      as_dot_glow: rgba(82, 200, 110, 0.3)
+
+                  msg_4_bubble:
+                    class: msg_bubble assistant_bubble
+
+                    msg_4_text:
+                      class: msg_text assistant_text
+                      text: "Done. Reduced subdivision levels on 8 meshes while preserving Cube. Scene is now at 890k vertices — viewport should feel significantly faster."
+                      font: NeueMontreal-Regular
+                      passive: true
+
+            # ─── Suggestion chips ───
+            suggestions_row:
+              class: suggestions_row
+
+              sug_analyze:
+                class: sug_chip
+
+                sug_analyze_text:
+                  class: sug_text
+                  text: Analyze Scene
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_10:
-                  class: inner_item
-                  text: hit_op.py
+              sug_material:
+                class: sug_chip
+
+                sug_material_text:
+                  class: sug_text
+                  text: Generate Material
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_11:
-                  class: inner_item
-                  text: text_op.py
+              sug_uv:
+                class: sug_chip
+
+                sug_uv_text:
+                  class: sug_text
+                  text: Fix UV Maps
+                  font: NeueMontreal-Bold
                   passive: true
 
-                inner_12:
-                  class: inner_item
-                  text: native_bindings.py
+              sug_script:
+                class: sug_chip
+
+                sug_script_text:
+                  class: sug_text
+                  text: Write Script
+                  font: NeueMontreal-Bold
                   passive: true
 
-            section_b_label:
-              class: section_label
-              text: RECENT
-              font: NeueMontreal-Bold
-              passive: true
+              sug_render:
+                class: sug_chip
 
-            file_9:
-              class: file_item
-              text: container_data.rs
-              passive: true
+                sug_render_text:
+                  class: sug_text
+                  text: Optimize Render
+                  font: NeueMontreal-Bold
+                  passive: true
 
-            file_10:
-              class: file_item
-              text: cascade.rs
-              passive: true
+            # ─── Input bar ───
+            input_bar:
+              class: input_bar
 
-            file_11:
-              class: file_item
-              text: layout.rs
-              passive: true
+              attach_group:
+                class: attach_group
 
-            file_12:
-              class: file_item
-              text: text_layout.rs
-              passive: true
+                attach_obj_btn:
+                  class: attach_btn
 
-            file_13:
-              class: file_item
-              text: style.scss
-              passive: true
+                  attach_obj_icon:
+                    class: attach_icon
+                    img: dial
+                    passive: true
 
-            file_14:
-              class: file_item
-              text: index.yaml
-              passive: true
+                  attach_obj_text:
+                    class: attach_label
+                    text: Object
+                    font: NeueMontreal-Bold
+                    passive: true
 
-            file_15:
-              class: file_item
-              text: script.py
-              passive: true
+                attach_file_btn:
+                  class: attach_btn
 
-            file_16:
-              class: file_item
-              text: requirements.txt
-              passive: true
+                  attach_file_icon:
+                    class: attach_icon
+                    img: eye_on
+                    passive: true
+
+                  attach_file_text:
+                    class: attach_label
+                    text: File
+                    font: NeueMontreal-Bold
+                    passive: true
+
+                attach_text_btn:
+                  class: attach_btn
+
+                  attach_text_icon:
+                    class: attach_icon
+                    img: toggle
+                    passive: true
+
+                  attach_text_text:
+                    class: attach_label
+                    text: Text
+                    font: NeueMontreal-Bold
+                    passive: true
+
+              input_field:
+                class: input_field
+                data: "<INPUT>|Ask about your scene..."
+                font: NeueMontreal-Regular
+
+              send_btn:
+                class: send_btn
+
+                send_label:
+                  class: send_label
+                  text: Send
+                  font: NeueMontreal-Bold
+                  passive: true

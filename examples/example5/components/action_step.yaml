@@ -1,0 +1,22 @@
+action_step:
+  class: action_step
+
+  action_step_dot:
+    class: action_step_dot
+    passive: true
+
+  action_step_body:
+    class: action_step_body
+    passive: true
+
+    action_step_label:
+      class: action_step_label
+      text: "{{as_label, 'Processing'}}"
+      font: NeueMontreal-Bold
+      passive: true
+
+    action_step_detail:
+      class: action_step_detail
+      text: "{{as_detail, ''}}"
+      font: NeueMontreal-Regular
+      passive: true
