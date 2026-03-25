@@ -27,7 +27,7 @@ Log destination:
     so logs land in <repo>/logs/.  In production (installed extension),
     logs go alongside the addon.
 
-Console behaviour:
+Console behavior:
     Silent by default — everything goes to the log file only.
     Set PUREE_DEBUG=1 or call set_debug(True) for DEBUG+ on stderr.
     If the log file cannot be created, console falls back to ERROR+.
