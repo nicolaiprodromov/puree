@@ -2,7 +2,7 @@
 name: audit
 description: Perform comprehensive audit of Puree interface quality across theming, layout, and design consistency. Generates detailed report of issues with severity ratings and recommendations.
 user-invocable: true
-argument-hint: [AREA=<e.g. color, layout, typography, theming>]
+argument-hint: 'Specify audit focus area (e.g. "color consistency", "layout", "typography", "full audit")'
 ---
 
 Run systematic quality checks on a Puree interface and generate a comprehensive audit report with prioritized issues and actionable recommendations. Don't fix issues — document them for other commands to address.

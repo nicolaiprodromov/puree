@@ -1,8 +1,8 @@
 ---
 name: overdrive
-description: Push Puree interfaces past conventional limits with technically ambitious implementations.
+description: Push Puree UI (YAML/SCSS/Python) past conventional limits with technically ambitious implementations.
 user-invocable: true
-argument-hint: [TARGET=<component or effect to push>]
+argument-hint: 'Describe the component or effect to push further (e.g. "scene-reactive header", "animated data grid")'
 ---
 
 Start your response with:

@@ -2,7 +2,7 @@
 name: clarify
 description: Improve unclear UX copy, error messages, microcopy, labels, and instructions. Makes Puree interfaces easier to understand and use.
 user-invocable: true
-argument-hint: [TARGET=<label, message, or UI text>]
+argument-hint: 'Describe the label, message, or UI text to improve (e.g. "error messages", "tooltip copy")'
 ---
 
 Identify and improve unclear, confusing, or poorly written interface text to make the product easier to understand and use.

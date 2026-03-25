@@ -5,13 +5,13 @@ app:
   theme:
     - name: example5_theme
       author: Copilot
-      version: 2.0.0
+      version: 2.1.0
       default_font: NeueMontreal-Regular
       scripts:
-        - examples/example5/script.py
+        - static/script.py
       styles:
-        - examples/example5/style.scss
-      components: examples/example5/components/
+        - static/style.scss
+      components: static/components/
 
       root:
         class: root
@@ -19,9 +19,6 @@ app:
         shell:
           class: shell
 
-          # ═══════════════════════════════
-          #  SIDEBAR
-          # ═══════════════════════════════
           sidebar:
             class: sidebar
 
@@ -30,7 +27,7 @@ app:
 
               sidebar_label:
                 class: sidebar_label
-                text: Chats
+                text: Conversations
                 font: NeueMontreal-Bold
                 passive: true
 
@@ -39,66 +36,120 @@ app:
 
                 new_chat_text:
                   class: new_chat_text
-                  text: "+ New"
+                  text: New chat
                   font: NeueMontreal-Bold
                   passive: true
+
+            sidebar_intro:
+              class: sidebar_intro
+
+              intro_eyebrow:
+                class: intro_eyebrow
+                text: Viewport Copilot
+                font: NeueMontreal-Bold
+                passive: true
+
+              intro_title:
+                class: intro_title
+                text: Scene help that stays inside Blender.
+                font: NeueMontreal-Bold
+                passive: true
+
+              intro_copy:
+                class: intro_copy
+                text: Geometry, materials, lighting, and scene actions in one thread.
+                font: NeueMontreal-Regular
+                passive: true
+
+            chat_section_label:
+              class: chat_section_label
+              text: Recent threads
+              font: NeueMontreal-Bold
+              passive: true
 
             chat_list:
               class: chat_list
 
-              chat_active:
+              chat_slot_0:
                 data: '[chat_item]'
-                ci_icon: dial
-                ci_title: Scene Optimization
-                ci_date: Today
-                ci_bg: rgba(88, 155, 240, 0.06)
-                ci_border: rgba(88, 155, 240, 0.12)
-                ci_title_color: '#edf0f8'
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-              chat_materials:
+              chat_slot_1:
                 data: '[chat_item]'
-                ci_icon: light_on
-                ci_title: Material Generator
-                ci_date: Yesterday
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-              chat_uvs:
+              chat_slot_2:
                 data: '[chat_item]'
-                ci_icon: eye_on
-                ci_title: UV Unwrap Helper
-                ci_date: Mar 22
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-              chat_shaders:
+              chat_slot_3:
                 data: '[chat_item]'
-                ci_icon: click
-                ci_title: Shader Debug
-                ci_date: Mar 21
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-              chat_assets:
+              chat_slot_4:
                 data: '[chat_item]'
-                ci_icon: toggle
-                ci_title: Asset Organizer
-                ci_date: Mar 20
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-              chat_lighting:
+              chat_slot_5:
                 data: '[chat_item]'
-                ci_icon: hover
-                ci_title: Lighting Setup
-                ci_date: Mar 18
+                ci_title: ' '
+                ci_date: ' '
+                ci_height: '0px'
+                ci_opacity: '0'
+                ci_padding: '0px'
+                ci_border_width: '0px'
+                ci_icon_size: '0px'
 
-          # ═══════════════════════════════
-          #  MAIN
-          # ═══════════════════════════════
           main:
             class: main
 
             main_header:
               class: main_header
 
-              header_title:
-                class: header_title
-                text: Scene Optimization
-                font: NeueMontreal-Bold
-                passive: true
+              header_block:
+                class: header_block
+
+                header_kicker:
+                  class: header_kicker
+                  text: Blender assistant
+                  font: NeueMontreal-Bold
+                  passive: true
+
+                header_title:
+                  class: header_title
+                  text: ' '
+                  font: NeueMontreal-Bold
+                  passive: true
 
               model_selector:
                 class: model_selector
@@ -113,116 +164,71 @@ app:
                   font: NeueMontreal-Bold
                   passive: true
 
+            home_page:
+              class: home_page
+
+              home_icon:
+                class: home_icon
+                img: star_on
+                passive: true
+
+              home_title:
+                class: home_title
+                text: Viewport Copilot
+                font: NeueMontreal-Bold
+                passive: true
+
+              home_subtitle:
+                class: home_subtitle
+                text: Start a new conversation to get help with your scene.
+                font: NeueMontreal-Regular
+                passive: true
+
+              home_start_btn:
+                class: home_start_btn
+
+                home_start_text:
+                  class: home_start_text
+                  text: New conversation
+                  font: NeueMontreal-Bold
+                  passive: true
+
             messages_scroll:
               class: messages_scroll
 
-              slot_0:
+              message_0:
                 data: '[msg_slot]'
-              slot_1:
+              message_1:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_2:
+              message_2:
                 data: '[msg_slot]'
-              slot_3:
+              message_3:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_4:
+              message_4:
                 data: '[msg_slot]'
-              slot_5:
+              message_5:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_6:
+              message_6:
                 data: '[msg_slot]'
-              slot_7:
+              message_7:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_8:
+              message_8:
                 data: '[msg_slot]'
-              slot_9:
+              message_9:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_10:
+              message_10:
                 data: '[msg_slot]'
-              slot_11:
+              message_11:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_12:
+              message_12:
                 data: '[msg_slot]'
-              slot_13:
+              message_13:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_14:
+              message_14:
                 data: '[msg_slot]'
-              slot_15:
+              message_15:
                 data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_16:
-                data: '[msg_slot]'
-              slot_17:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_18:
-                data: '[msg_slot]'
-              slot_19:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_20:
-                data: '[msg_slot]'
-              slot_21:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_22:
-                data: '[msg_slot]'
-              slot_23:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_24:
-                data: '[msg_slot]'
-              slot_25:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_26:
-                data: '[msg_slot]'
-              slot_27:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
-              slot_28:
-                data: '[msg_slot]'
-              slot_29:
-                data: '[msg_slot]'
-                ms_icon: star_on
-                ms_role: Assistant
-                ms_role_color: rgba(170, 140, 255, 0.82)
 
-            # ─── Input area ───
             input_area:
               class: input_area
 
@@ -262,7 +268,7 @@ app:
 
                 input_field:
                   class: input_field
-                  data: "<INPUT>|Message..."
+                  data: "<INPUT>|Ask about this scene..."
                   font: NeueMontreal-Regular
 
                 send_btn:
@@ -273,3 +279,9 @@ app:
                     text: Send
                     font: NeueMontreal-Bold
                     passive: true
+
+              input_hint:
+                class: input_hint
+                text: "Tip: attach selected objects with @Object or add file refs with #file:"
+                font: NeueMontreal-Regular
+                passive: true

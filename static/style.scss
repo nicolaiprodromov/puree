@@ -1,85 +1,83 @@
 // ═══════════════════════════════════════════════
-//  Example 5 — LLM Agentic Chat for Blender
-//  Color palette: Blender-native tinted neutrals
+//  Example 5 — Blender Chat Panel
+//  Warm graphite palette with a viewport-friendly edge treatment
 // ═══════════════════════════════════════════════
 
-// Palette — cool-tinted darks, one accent
-$canvas:        #060a16;
-$shell_bg:      rgba(10, 13, 22, 0.97);
-$shell_bg2:     rgba(14, 18, 30, 0.98);
-$sidebar_bg:    rgba(12, 15, 25, 0.96);
-$sidebar_bg2:   rgba(14, 18, 30, 0.98);
+$space-xs: 4px;
+$space-sm: 8px;
+$space-md: 12px;
+$space-lg: 16px;
+$space-xl: 24px;
+
+$shell_bg:      rgba(17, 15, 18, 0.97);
+$shell_bg2:     rgba(29, 24, 28, 0.98);
+$sidebar_bg:    rgba(20, 17, 20, 0.97);
+$sidebar_bg2:   rgba(28, 23, 27, 0.98);
+$main_bg:       rgba(25, 21, 24, 0.94);
+$main_bg2:      rgba(34, 28, 31, 0.94);
 $header_bg:     rgba(255, 255, 255, 0.02);
-$input_bg:      rgba(8, 11, 20, 0.98);
-$input_bg2:     rgba(10, 14, 26, 0.99);
+$surface:       rgba(255, 255, 255, 0.03);
+$surface_hover: rgba(255, 255, 255, 0.055);
+$surface_strong: rgba(255, 255, 255, 0.07);
+$input_bg:      rgba(13, 12, 14, 0.94);
 
-$text_hi:       #edf0f8;
-$text_mid:      rgba(215, 222, 240, 0.68);
-$text_soft:     rgba(175, 186, 214, 0.42);
-$text_muted:    rgba(155, 166, 194, 0.28);
+$text_hi:       #f3ede4;
+$text_mid:      rgba(226, 214, 198, 0.84);
+$text_soft:     rgba(189, 171, 151, 0.78);
+$text_muted:    rgba(150, 134, 118, 0.68);
+$text_faint:    rgba(123, 109, 96, 0.56);
 
-$accent:        rgba(88, 155, 240, 0.92);
-$accent_sub:    rgba(88, 155, 240, 0.12);
-$accent_border: rgba(88, 155, 240, 0.16);
-$success:       rgba(82, 200, 110, 0.92);
-$warning:       rgba(238, 178, 62, 0.92);
-$violet:        rgba(170, 140, 255, 0.92);
+$accent:        rgba(214, 163, 91, 0.96);
+$accent_soft:   rgba(214, 163, 91, 0.10);
+$accent_hover:  rgba(214, 163, 91, 0.17);
+$accent_border: rgba(214, 163, 91, 0.26);
 
-$border:        rgba(255, 255, 255, 0.06);
-$border_hover:  rgba(255, 255, 255, 0.10);
-$surface:       rgba(255, 255, 255, 0.025);
-$surface_hover: rgba(255, 255, 255, 0.05);
+$border:        rgba(255, 255, 255, 0.07);
+$border_soft:   rgba(255, 255, 255, 0.05);
+$border_hover:  rgba(255, 255, 255, 0.12);
 
-$radius_lg:     22px;
-$radius_md:     12px;
-$radius_sm:     8px;
-$radius_pill:   999px;
+$radius-sm:     12px;
+$radius-md:     16px;
+$radius-lg:     22px;
+$radius-pill:   999px;
 
 
-// ─── Root ───
 .root {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
     width: 100%;
     height: 100%;
+    background-color: transparent;
     overflow: hidden;
-    background: linear-gradient(145deg, $canvas, rgba(8, 14, 26, 1));
 }
 
-
-// ─── Shell ───
 .shell {
     display: flex;
     flex-direction: row;
     align-items: start;
     justify-content: start;
-    width: 1080px;
-    height: 680px;
-    background: linear-gradient(135deg, $shell_bg, #{$shell_bg2});
-    border-width: 1px;
+    width: 708px;
+    height: 100%;
+    background: linear-gradient(180deg, $shell_bg, #{$shell_bg2});
+    border-width: 0px 1px 0px 0px;
     border-color: $border;
-    border-radius: $radius_lg;
-    box-shadow: 0px 24px 64px rgba(0, 4, 14, 0.5);
+    border-radius: 0px $radius-lg $radius-lg 0px;
+    box-shadow: 0px 20px 44px rgba(0, 0, 0, 0.28);
     overflow: hidden;
 }
 
 
-// ═══════════════════════════════════════
-//  SIDEBAR
-// ═══════════════════════════════════════
-
 .sidebar {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    width: 240px;
+    width: 236px;
     height: 100%;
     background: linear-gradient(180deg, $sidebar_bg, #{$sidebar_bg2});
-    border-right: 1px solid rgba(0, 0, 0, 0);
-    border-color: $border;
+    border-width: 0px 1px 0px 0px;
+    border-color: $border_soft;
+    flex-shrink: 0;
 }
 
 .sidebar_header {
@@ -88,35 +86,18 @@ $radius_pill:   999px;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: 52px;
-    padding: 0px 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0);
-    border-color: $border;
-}
-
-.sidebar_brand {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: start;
-    width: 100px;
-    height: 100%;
-}
-
-.sidebar_icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 10px;
-    --img-align-h: center;
-    --img-align-v: center;
-    opacity: 0.5;
+    height: 56px;
+    padding: 0px $space-lg;
+    border-width: 0px 0px 1px 0px;
+    border-color: $border_soft;
+    background-color: $header_bg;
 }
 
 .sidebar_label {
-    width: 60px;
+    width: 128px;
     height: 100%;
     color: $text_soft;
-    font-size: 12px;
+    font-size: 11px;
     text-align: left;
     --text-align-v: center;
     text-transform: uppercase;
@@ -128,105 +109,158 @@ $radius_pill:   999px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 76px;
-    height: 30px;
+    width: 84px;
+    height: 32px;
     background-color: $surface;
     border-width: 1px;
     border-color: $border;
-    border-radius: $radius_sm;
-    transition: background-color 0.15s ease;
+    border-radius: $radius-pill;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
 
     &:hover {
         background-color: $surface_hover;
-        border-color: $border_hover;
+        border-color: $accent_border;
     }
 
     &:active {
-        background-color: rgba(88, 155, 240, 0.08);
+        background-color: $accent_soft;
+        border-color: $accent_border;
     }
 }
 
-.new_chat_icon {
-    width: 12px;
-    height: 12px;
-    margin-right: 6px;
-    --img-align-h: center;
-    --img-align-v: center;
-    opacity: 0.5;
-}
-
 .new_chat_text {
-    width: 38px;
+    width: 58px;
     height: 100%;
     color: $text_mid;
-    font-size: 12px;
+    font-size: 11px;
+    text-align: center;
+    --text-align-v: center;
+}
+
+.sidebar_intro {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 208px;
+    height: 124px;
+    margin: 14px 14px 10px 14px;
+    padding: 14px;
+    background: linear-gradient(165deg, rgba(214, 163, 91, 0.14), rgba(255, 255, 255, 0.03));
+    border-width: 1px;
+    border-color: $accent_border;
+    border-radius: 18px;
+    box-shadow: 0px 14px 24px rgba(0, 0, 0, 0.12);
+}
+
+.intro_eyebrow {
+    width: 100%;
+    height: 16px;
+    color: $accent;
+    font-size: 10px;
     text-align: left;
     --text-align-v: center;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+}
+
+.intro_title {
+    width: 100%;
+    height: 54px;
+    margin-top: 4px;
+    color: $text_hi;
+    font-size: 15px;
+    text-align: left;
+    --text-align-v: top;
+    line-height: 1.3;
+}
+
+.intro_copy {
+    width: 100%;
+    height: 34px;
+    margin-top: 4px;
+    color: $text_soft;
+    font-size: 12px;
+    text-align: left;
+    --text-align-v: top;
+    line-height: 1.35;
+}
+
+.chat_section_label {
+    width: 100%;
+    height: 18px;
+    padding: 0px 16px;
+    margin-bottom: 8px;
+    color: $text_faint;
+    font-size: 10px;
+    text-align: left;
+    --text-align-v: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .chat_list {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    justify-content: start;
     width: 100%;
-    height: 628px;
-    padding: 8px 8px;
+    height: 0px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0px 14px 14px 14px;
+    gap: 6px;
     overflow: scroll;
 }
 
 
-// ═══════════════════════════════════════
-//  MAIN AREA
-// ═══════════════════════════════════════
-
 .main {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    width: 840px;
+    width: 472px;
     height: 100%;
+    background: linear-gradient(180deg, $main_bg, #{$main_bg2});
+    flex-shrink: 0;
 }
 
-
-// ─── Header ───
 .main_header {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: 52px;
-    padding: 0px 20px;
+    height: 68px;
+    padding: 0px 18px;
     background-color: $header_bg;
-    border-bottom: 1px solid rgba(0, 0, 0, 0);
-    border-color: $border;
+    border-width: 0px 0px 1px 0px;
+    border-color: $border_soft;
+    flex-shrink: 0;
 }
 
-.header_title_group {
+.header_block {
     display: flex;
     flex-direction: column;
     align-items: start;
     justify-content: center;
-    width: 400px;
+    width: 260px;
     height: 100%;
+}
+
+.header_kicker {
+    width: 100%;
+    height: 14px;
+    color: $text_muted;
+    font-size: 10px;
+    text-align: left;
+    --text-align-v: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .header_title {
     width: 100%;
-    height: 22px;
+    height: 26px;
+    margin-top: 4px;
     color: $text_hi;
-    font-size: 15px;
-    text-align: left;
-    --text-align-v: center;
-}
-
-.header_subtitle {
-    width: 100%;
-    height: 16px;
-    color: $text_soft;
-    font-size: 12px;
+    font-size: 18px;
     text-align: left;
     --text-align-v: center;
 }
@@ -236,36 +270,31 @@ $radius_pill:   999px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 180px;
-    height: 30px;
-    padding: 0px 14px;
+    width: 142px;
+    height: 34px;
     background-color: $surface;
     border-width: 1px;
     border-color: $border;
-    border-radius: $radius_pill;
-    transition: background-color 0.15s ease;
+    border-radius: $radius-pill;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
 
-    &:hover {
-        background-color: $surface_hover;
-        border-color: $border_hover;
-    }
-
-    &:active {
-        background-color: rgba(88, 155, 240, 0.06);
-    }
+.model_selector:hover {
+    background-color: $surface_hover;
+    border-color: $accent_border;
 }
 
 .model_dot {
-    width: 7px;
-    height: 7px;
-    margin-right: 10px;
-    background-color: $success;
-    border-radius: $radius_pill;
-    box-shadow: 0px 0px 6px 2px rgba(82, 200, 110, 0.3);
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    background-color: rgba(111, 177, 127, 0.94);
+    border-radius: $radius-pill;
+    box-shadow: 0px 0px 8px rgba(111, 177, 127, 0.35);
 }
 
 .model_name {
-    width: 140px;
+    width: 92px;
     height: 100%;
     color: $text_mid;
     font-size: 12px;
@@ -273,316 +302,193 @@ $radius_pill:   999px;
     --text-align-v: center;
 }
 
-
-// ═══════════════════════════════════════
-//  MESSAGES
-// ═══════════════════════════════════════
 
 .messages_scroll {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    justify-content: start;
     width: 100%;
-    height: 496px;
-    padding: 16px 20px;
+    height: 0px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 18px 18px 10px 18px;
+    gap: 10px;
     overflow: scroll;
 }
 
-.msg_row {
-    display: flex;
-    flex-direction: row;
-    align-items: start;
-    justify-content: start;
-    width: 100%;
-    margin-bottom: 20px;
-}
 
-.msg_avatar_col {
+// ─── Home page (empty state) ───
+
+.home_page {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: start;
-    width: 40px;
-    height: 100%;
-    padding-top: 2px;
+    justify-content: center;
+    width: 100%;
+    height: 0px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0px 40px;
 }
 
-.msg_avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: $radius_sm;
+.home_icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    background-color: $accent_soft;
+    border-width: 1px;
+    border-color: $accent_border;
+    border-radius: 16px;
     --img-align-h: center;
     --img-align-v: center;
+    opacity: 0.72;
 }
 
-.user_avatar {
-    background-color: rgba(88, 155, 240, 0.1);
-    border-width: 1px;
-    border-color: rgba(88, 155, 240, 0.14);
-    opacity: 0.8;
-}
-
-.assistant_avatar {
-    background-color: rgba(170, 140, 255, 0.1);
-    border-width: 1px;
-    border-color: rgba(170, 140, 255, 0.14);
-    opacity: 0.8;
-}
-
-.msg_content {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    width: 740px;
-    height: auto;
-}
-
-.msg_role {
-    width: 100px;
-    height: 18px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    text-align: left;
-    --text-align-v: center;
-}
-
-.user_role {
-    color: $accent;
-}
-
-.assistant_role {
-    color: $violet;
-}
-
-.msg_actions {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
+.home_title {
     width: 100%;
+    height: 28px;
+    color: $text_hi;
+    font-size: 20px;
+    text-align: center;
+    --text-align-v: center;
     margin-bottom: 8px;
 }
 
-.msg_refs {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: start;
-    width: 100%;
-    height: 30px;
-    margin-bottom: 6px;
-}
-
-.msg_bubble {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: $radius_md;
-}
-
-.user_bubble {
-    background-color: rgba(255, 255, 255, 0.03);
-    border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.04);
-}
-
-.assistant_bubble {
-    background-color: rgba(0, 0, 0, 0);
-}
-
-.msg_text {
-    width: 100%;
+.home_subtitle {
+    width: 280px;
     height: 40px;
-    color: $text_mid;
+    color: $text_soft;
     font-size: 13px;
-    text-align: left;
+    text-align: center;
     --text-align-v: top;
-    line-height: 1.5;
+    line-height: 1.4;
+    margin-bottom: 24px;
 }
 
-.assistant_text {
-    color: $text_hi;
-    height: 54px;
-}
-
-
-// ═══════════════════════════════════════
-//  SUGGESTIONS
-// ═══════════════════════════════════════
-
-.suggestions_row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: start;
-    width: 100%;
-    height: 38px;
-    padding: 0px 20px;
-    gap: 6px;
-}
-
-.sug_chip {
+.home_start_btn {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    height: 28px;
-    padding: 0px 14px;
-    background-color: $surface;
+    width: 160px;
+    height: 40px;
+    background-color: $accent_soft;
     border-width: 1px;
-    border-color: $border;
-    border-radius: $radius_pill;
-    transition: background-color 0.15s ease;
+    border-color: $accent_border;
+    border-radius: $radius-pill;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
 
     &:hover {
-        background-color: $surface_hover;
-        border-color: $border_hover;
+        background-color: $accent_hover;
+        border-color: rgba(214, 163, 91, 0.34);
     }
 
     &:active {
-        background-color: rgba(88, 155, 240, 0.08);
-        border-color: $accent_border;
+        background-color: rgba(214, 163, 91, 0.24);
     }
 }
 
-.sug_text {
+.home_start_text {
+    width: 130px;
     height: 100%;
-    color: $text_soft;
-    font-size: 11px;
+    color: $accent;
+    font-size: 12px;
     text-align: center;
     --text-align-v: center;
 }
 
-// Per-chip widths
-.sug_analyze {
-    width: 112px;
+
+.input_area {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    height: 126px;
+    padding: 12px 18px 14px 18px;
+    border-width: 1px 0px 0px 0px;
+    border-color: $border_soft;
+    background: linear-gradient(180deg, rgba(18, 16, 18, 0.78), rgba(12, 11, 13, 0.92));
 }
 
-.sug_material {
-    width: 128px;
-}
-
-.sug_uv {
-    width: 100px;
-}
-
-.sug_script {
-    width: 104px;
-}
-
-.sug_render {
-    width: 120px;
-}
-
-.sug_analyze .sug_text {
-    width: 84px;
-}
-
-.sug_material .sug_text {
-    width: 100px;
-}
-
-.sug_uv .sug_text {
-    width: 72px;
-}
-
-.sug_script .sug_text {
-    width: 76px;
-}
-
-.sug_render .sug_text {
-    width: 92px;
-}
-
-
-// ═══════════════════════════════════════
-//  INPUT BAR
-// ═══════════════════════════════════════
-
-.input_bar {
+.attach_row {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: start;
     width: 100%;
-    height: 72px;
-    padding: 12px 20px;
-    gap: 8px;
+    height: 28px;
+    gap: 6px;
+    margin-bottom: 10px;
 }
 
-.attach_group {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: start;
-    height: 44px;
-    gap: 4px;
-}
-
-.attach_btn {
+.attach_pill {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 78px;
-    height: 36px;
-    padding: 0px 10px;
+    width: 84px;
+    height: 28px;
     background-color: $surface;
     border-width: 1px;
     border-color: $border;
-    border-radius: $radius_sm;
-    transition: background-color 0.15s ease;
-
-    &:hover {
-        background-color: $surface_hover;
-        border-color: $border_hover;
-    }
-
-    &:active {
-        background-color: rgba(88, 155, 240, 0.06);
-    }
+    border-radius: $radius-pill;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
-.attach_icon {
-    width: 13px;
-    height: 13px;
-    margin-right: 6px;
+.attach_pill:hover {
+    background-color: $surface_hover;
+    border-color: $border_hover;
+}
+
+.attach_pill:active {
+    background-color: $accent_soft;
+    border-color: $accent_border;
+}
+
+.attach_pill_icon {
+    width: 12px;
+    height: 12px;
+    margin-right: 5px;
     --img-align-h: center;
     --img-align-v: center;
-    opacity: 0.4;
+    opacity: 0.56;
 }
 
-.attach_label {
-    width: 40px;
+.attach_pill_text {
+    width: 42px;
     height: 100%;
     color: $text_soft;
-    font-size: 11px;
+    font-size: 10px;
     text-align: left;
     --text-align-v: center;
+}
+
+.input_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    height: 46px;
 }
 
 .input_field {
-    width: 480px;
-    height: 44px;
-    padding: 0px 16px;
-    background: linear-gradient(135deg, $input_bg, #{$input_bg2});
+    width: 360px;
+    height: 46px;
+    padding: 10px 14px;
+    background-color: $input_bg;
     border-width: 1px;
     border-color: $border;
-    border-radius: $radius_md;
+    border-radius: $radius-md;
     color: $text_hi;
     font-size: 13px;
     text-align: left;
-    --text-align-v: center;
-    transition: border-color 0.2s ease;
+    --text-align-v: top;
+    transition: border-color 0.18s ease;
+}
 
-    &:hover {
-        border-color: $border_hover;
-    }
+.input_field:hover {
+    border-color: $accent_border;
 }
 
 .send_btn {
@@ -590,29 +496,40 @@ $radius_pill:   999px;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: 72px;
-    height: 44px;
-    background: linear-gradient(135deg, rgba(88, 155, 240, 0.16), rgba(88, 155, 240, 0.1));
+    width: 76px;
+    height: 46px;
+    margin-left: 8px;
+    background-color: $accent_soft;
     border-width: 1px;
     border-color: $accent_border;
-    border-radius: $radius_md;
-    transition: background-color 0.15s ease;
+    border-radius: $radius-md;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
 
-    &:hover {
-        background: linear-gradient(135deg, rgba(88, 155, 240, 0.24), rgba(88, 155, 240, 0.16));
-        border-color: rgba(88, 155, 240, 0.24);
-    }
+.send_btn:hover {
+    background-color: $accent_hover;
+    border-color: rgba(214, 163, 91, 0.34);
+}
 
-    &:active {
-        background: linear-gradient(135deg, rgba(88, 155, 240, 0.32), rgba(88, 155, 240, 0.22));
-    }
+.send_btn:active {
+    background-color: rgba(214, 163, 91, 0.24);
 }
 
 .send_label {
-    width: 40px;
+    width: 38px;
     height: 100%;
     color: $accent;
-    font-size: 13px;
+    font-size: 12px;
     text-align: center;
+    --text-align-v: center;
+}
+
+.input_hint {
+    width: 100%;
+    height: 18px;
+    margin-top: 8px;
+    color: $text_faint;
+    font-size: 10px;
+    text-align: left;
     --text-align-v: center;
 }

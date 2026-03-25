@@ -1,8 +1,8 @@
 ---
 name: polish
-description: Final quality pass before shipping. Fixes alignment, spacing, consistency, and detail issues that separate good from great.
+description: Final quality pass for Puree UI before shipping. Fixes alignment, spacing, consistency, and detail issues in YAML/SCSS/Python that separate good from great.
 user-invocable: true
-argument-hint: [TARGET=<panel or component to polish>]
+argument-hint: 'Describe the panel or component to polish (e.g. "settings panel final pass", "toolbar alignment")'
 ---
 
 ## MANDATORY PREPARATION

@@ -21,3 +21,4 @@ chat_item:
       text: "{{ci_date, 'Today'}}"
       font: NeueMontreal-Regular
       passive: true
+      passive: true

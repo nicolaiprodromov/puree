@@ -70,6 +70,10 @@ blender_version := "5.1"
 ext_dir := env("HOME") / ".config/blender" / blender_version / "extensions/user_default"
 site_packages := env("HOME") / ".config/blender" / blender_version / "extensions/.local/lib/python3.13/site-packages"
 
+# Reload the addon in a running Blender (requires MCP server on port 9876)
+dev-reload:
+    @{{python}} dist/dev_reload.py
+
 # Link source into Blender extensions (replaces installed copy)
 dev-link:
     #!/usr/bin/env bash
@@ -155,7 +159,3 @@ dev-install-deps:
         "$BLENDER_PY" -m pip install --target "$SITE" --no-deps --force-reinstall --quiet "$whl" 2>/dev/null || true
         echo "  ✓ $base"
     done
-
-# Reload the addon in a running Blender (requires MCP server on port 9876)
-dev-reload:
-    @{{python}} dist/dev_reload.py

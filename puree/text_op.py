@@ -309,6 +309,8 @@ def draw_all_text():
     viewport_height = _cached_viewport_height or 0
     
     for instance in _text_instances:
+        if not instance.text or not instance.text.strip():
+            continue
         use_scissor = instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
         
         # GPU scissor for true pixel-level clipping (scroll containers)
@@ -338,12 +340,32 @@ def draw_all_text():
         # Split text into lines based on white_space mode
         ws = instance.white_space
         raw_text = instance.text
+        container_w_for_wrap = instance.mask[2] if instance.mask and instance.mask[2] > 0 else 0
+        
         if ws == 'PRE' and '\n' in raw_text:
             lines = raw_text.split('\n')
-        elif ws == 'NOWRAP' or '\n' not in raw_text:
+        elif ws == 'NOWRAP':
             lines = [raw_text]
+        elif ws == 'NORMAL' and container_w_for_wrap > 0:
+            # Word-wrap: break text into lines that fit within the container width
+            lines = []
+            # First split on explicit newlines, then wrap each paragraph
+            paragraphs = raw_text.split('\n')
+            for para in paragraphs:
+                words = para.split(' ')
+                current_line = ''
+                for word in words:
+                    test_line = (current_line + ' ' + word) if current_line else word
+                    tw, _ = blf.dimensions(instance.font_id, test_line)
+                    if instance.letter_spacing > 0 and len(test_line) > 1:
+                        tw += instance.letter_spacing * (len(test_line) - 1)
+                    if tw > container_w_for_wrap and current_line:
+                        lines.append(current_line)
+                        current_line = word
+                    else:
+                        current_line = test_line
+                lines.append(current_line)
         else:
-            # NORMAL: collapse whitespace, single line (wrapping handled below)
             lines = [raw_text]
         
         # Compute total block dimensions for alignment

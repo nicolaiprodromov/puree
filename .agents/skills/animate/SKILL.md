@@ -1,8 +1,8 @@
 ---
 name: animate
-description: Review a Puree feature and enhance it with purposeful transitions and state changes that improve usability.
+description: Review a Puree UI feature and enhance it with purposeful transitions and state changes that improve usability.
 user-invocable: true
-argument-hint: [TARGET=<component or interaction, e.g. "nav_bar hover">]
+argument-hint: 'Describe the component or interaction to animate (e.g. "nav_bar hover", "button press feedback")'
 ---
 
 Analyze a Puree feature and strategically add transitions and state changes that enhance understanding, provide feedback, and create delight.

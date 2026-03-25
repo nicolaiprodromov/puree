@@ -1,8 +1,8 @@
 ---
 name: distill
-description: Strip designs to their essence by removing unnecessary complexity. Great design is simple, powerful, and clean.
+description: Strip Puree UI designs to their essence by removing unnecessary complexity. Great design is simple, powerful, and clean.
 user-invocable: true
-argument-hint: [TARGET=<component or panel>]
+argument-hint: 'Describe the component or panel to simplify (e.g. "settings panel", "toolbar layout")'
 ---
 
 Remove unnecessary complexity from Puree designs, revealing the essential elements and creating clarity through ruthless simplification.

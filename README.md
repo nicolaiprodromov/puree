@@ -43,10 +43,6 @@ puree replaces Blender's imperative `bpy.types.Panel` approach with declarative 
 
 Imperative UI code couples structure with styling, changing a button's color means editing Python logic. puree separates concerns architecturally: YAML defines component hierarchy, SCSS handles presentation via selectors. This mirrors the separation of HTML/CSS, enabling style changes without touching code and true component reusability across contexts.
 
-### *Different Approaches*
-
-Native `bpy.types.Panel` offers API stability; web views (CEF/Electron) provide familiar tech with higher overhead; raw OpenGL gives full control but requires building everything from scratch. puree provides high-level abstractions (YAML/SCSS, flexbox) with direct GPU access.
-
 ---
 
 ## What is puree good for?
@@ -83,14 +79,9 @@ Here's a short tutorial to get you started with Puree:
 <video src="docs/images/example4.mp4" controls width="50%">
 </video>
 
-> [!IMPORTANT]
-> It's not recommend to install dependencies with pip in the blender python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
-
 > [!WARNING]
 > ### **puree is in beta - WIP**
 > - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
-> - The API is not 90% stable, some breaking changes will happen.
-
 
 1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
 

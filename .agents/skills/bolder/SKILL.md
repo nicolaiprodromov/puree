@@ -1,8 +1,8 @@
 ---
 name: bolder
-description: Amplify safe or boring designs to make them more visually interesting and stimulating. Increases impact while maintaining usability.
+description: Amplify safe or boring Puree UI designs to make them more visually interesting and stimulating. Increases impact while maintaining usability.
 user-invocable: true
-argument-hint: [TARGET=<component or panel section>]
+argument-hint: 'Describe the component or panel section to amplify (e.g. "header bar", "action buttons")'
 ---
 
 Increase visual impact and personality in designs that are too safe, generic, or visually underwhelming, creating more engaging and memorable Puree interfaces.

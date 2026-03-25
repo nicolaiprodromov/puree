@@ -1,8 +1,8 @@
 ---
 name: critique
-description: Evaluate Puree design effectiveness from a UX perspective. Assesses visual hierarchy, information architecture, emotional resonance, and overall design quality with actionable feedback.
+description: Evaluate Puree UI (YAML/SCSS/Python) design effectiveness from a UX perspective. Assesses visual hierarchy, information architecture, emotional resonance, and overall design quality with actionable feedback.
 user-invocable: true
-argument-hint: [AREA=<e.g. hierarchy, layout, color, typography>]
+argument-hint: 'Specify critique focus (e.g. "visual hierarchy", "color usage", "overall design review")'
 ---
 
 ## MANDATORY PREPARATION

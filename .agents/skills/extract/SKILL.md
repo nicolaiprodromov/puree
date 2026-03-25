@@ -2,7 +2,7 @@
 name: extract
 description: Extract and consolidate reusable Puree components, SCSS variables, and patterns. Identifies opportunities for systematic reuse and enriches your component library.
 user-invocable: true
-argument-hint: [TARGET=<YAML pattern or SCSS tokens to extract>]
+argument-hint: 'Describe the YAML pattern or SCSS tokens to extract (e.g. "repeated button styles", "color variables")'
 ---
 
 Identify reusable patterns, components, and SCSS variables in a Puree project, then extract and consolidate them for systematic reuse.

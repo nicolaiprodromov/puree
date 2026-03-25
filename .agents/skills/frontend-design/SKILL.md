@@ -2,7 +2,7 @@
 name: frontend-design
 description: Create distinctive, production-grade Puree UI interfaces with high design quality. Use this skill when the user asks to build UI panels, dashboards, toolbars, or Blender addon interfaces. Generates creative, polished YAML/SCSS/Python code that avoids generic AI aesthetics.
 user-invocable: true
-argument-hint: [DESCRIPTION=<what to build, e.g. "settings panel with dark theme">]
+argument-hint: 'Describe what to build (e.g. "settings panel with dark theme", "render queue dashboard")'
 ---
 
 This skill guides creation of distinctive, production-grade Puree UI interfaces for Blender that avoid generic "AI slop" aesthetics. Implement real working YAML/SCSS/Python code with exceptional attention to aesthetic details and creative choices.

@@ -1,8 +1,8 @@
 ---
 name: adapt
-description: Adapt Puree UI designs to work across different Blender panel sizes and workspace configurations.
+description: Adapt Puree UI (YAML/SCSS) designs to work across different Blender panel sizes and workspace configurations.
 user-invocable: true
-argument-hint: [TARGET=<panel or component>] [CONTEXT=<e.g. narrow sidebar, wide viewport>]
+argument-hint: 'Describe the panel or component and target context (e.g. "toolbar for narrow sidebar", "settings panel for wide viewport")'
 ---
 
 Adapt existing Puree designs to work effectively across different Blender panel sizes, workspace configurations, and monitor resolutions.

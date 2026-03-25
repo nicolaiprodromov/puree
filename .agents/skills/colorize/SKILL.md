@@ -1,8 +1,8 @@
 ---
 name: colorize
-description: Add strategic color to Puree features that are too monochromatic or lack visual interest. Makes interfaces more engaging and expressive.
+description: Add strategic color to Puree UI (YAML/SCSS) that is too monochromatic or lacks visual interest. Makes interfaces more engaging and expressive.
 user-invocable: true
-argument-hint: [TARGET=<component or panel section>]
+argument-hint: 'Describe the component or panel section to add color to (e.g. "status indicators", "sidebar nav")'
 ---
 
 Strategically introduce color to Puree designs that are too monochromatic, gray, or lacking in visual warmth and personality.

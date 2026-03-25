@@ -1,8 +1,8 @@
 ---
 name: optimize
-description: Improve Puree interface performance across rendering speed, container efficiency, and resource usage.
+description: Improve Puree UI (YAML/SCSS/Python) performance across rendering speed, container efficiency, and resource usage.
 user-invocable: true
-argument-hint: [TARGET=<panel or component to optimize>]
+argument-hint: 'Describe the panel or component to optimize (e.g. "main panel with 200+ containers", "transition-heavy toolbar")'
 ---
 
 Identify and fix performance issues in Puree UIs. Puree renders via ModernGL compute shaders — performance characteristics differ fundamentally from web browsers.

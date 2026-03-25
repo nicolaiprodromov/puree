@@ -1,8 +1,8 @@
 ---
 name: quieter
-description: Tone down overly bold or visually aggressive Puree designs. Reduces intensity while maintaining design quality and impact.
+description: Tone down overly bold or visually aggressive Puree UI designs. Reduces intensity while maintaining design quality and impact.
 user-invocable: true
-argument-hint: [TARGET=<component or panel section>]
+argument-hint: 'Describe the component or panel section to tone down (e.g. "header gradients", "alert colors")'
 ---
 
 Reduce visual intensity in Puree designs that are too bold, aggressive, or overstimulating, creating a more refined and approachable aesthetic without losing effectiveness.

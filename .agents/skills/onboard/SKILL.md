@@ -1,8 +1,8 @@
 ---
 name: onboard
-description: Design or improve onboarding flows, empty states, and first-time user experiences. Helps users get started successfully and understand value quickly.
+description: Design or improve Puree UI onboarding flows, empty states, and first-time user experiences. Helps users get started successfully and understand value quickly.
 user-invocable: true
-argument-hint: [TARGET=<flow, e.g. "first launch" or "empty state">]
+argument-hint: 'Describe the onboarding flow to design (e.g. "first launch experience", "empty project state")'
 ---
 
 ## MANDATORY PREPARATION

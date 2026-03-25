@@ -1,8 +1,8 @@
 ---
 name: harden
-description: Improve Puree interface resilience through text overflow handling, error states, and edge case management.
+description: Improve Puree UI (YAML/SCSS/Python) resilience through text overflow handling, error states, and edge case management.
 user-invocable: true
-argument-hint: [TARGET=<component or panel to harden>]
+argument-hint: 'Describe the component or panel to harden (e.g. "text input fields", "file list panel")'
 ---
 
 Strengthen Puree interfaces against edge cases, errors, missing resources, and real-world usage scenarios that break idealized designs.

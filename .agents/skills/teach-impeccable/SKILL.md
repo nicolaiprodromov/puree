@@ -1,8 +1,8 @@
 ---
 name: teach-impeccable
-description: One-time setup that gathers design context for your project and saves it to your AI config file. Run once to establish persistent design guidelines.
+description: One-time setup that gathers design context for your Puree UI project and saves it to your AI config file. Run once to establish persistent design guidelines.
 user-invocable: true
-argument-hint: [CONFIG=<path to copilot-instructions.md or pyproject.toml>]
+argument-hint: 'Optionally specify config file path (e.g. ".github/copilot-instructions.md")'
 ---
 
 Gather design context for this Puree project, then persist it for all future sessions.

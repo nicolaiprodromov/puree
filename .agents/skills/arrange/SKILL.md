@@ -1,8 +1,8 @@
 ---
 name: arrange
-description: Improve layout, spacing, and visual rhythm. Fixes monotonous grids, inconsistent spacing, and weak visual hierarchy to create intentional compositions.
+description: Improve Puree layout, spacing, and visual rhythm in YAML/SCSS. Fixes monotonous grids, inconsistent spacing, and weak visual hierarchy to create intentional compositions.
 user-invocable: true
-argument-hint: [TARGET=<panel or layout section>]
+argument-hint: 'Describe the panel or layout section to improve (e.g. "main toolbar grid", "settings panel spacing")'
 ---
 
 Assess and improve layout and spacing that feels monotonous, crowded, or structurally weak — turning generic arrangements into intentional, rhythmic compositions.

@@ -1,8 +1,8 @@
 ---
 name: normalize
-description: Normalize Puree design to match your SCSS variables and component patterns, ensuring consistency
+description: Normalize Puree UI (YAML/SCSS) design to match your SCSS variables and component patterns, ensuring consistency
 user-invocable: true
-argument-hint: [FEATURE=<component or pattern to normalize>]
+argument-hint: 'Describe the component or pattern to normalize (e.g. "button styles", "spacing tokens")'
 ---
 
 Analyze and align a Puree feature to perfectly match your established SCSS variables, component patterns, and design conventions.

@@ -1,7 +1,12 @@
 $ci_bg: rgba(0, 0, 0, 0) !default;
 $ci_border: rgba(0, 0, 0, 0) !default;
-$ci_title_color: rgba(215, 222, 240, 0.68) !default;
-$ci_date_color: rgba(175, 186, 214, 0.34) !default;
+$ci_title_color: rgba(226, 214, 198, 0.80) !default;
+$ci_date_color: rgba(150, 134, 118, 0.64) !default;
+$ci_height: 60px !default;
+$ci_opacity: 1 !default;
+$ci_padding: 0px 12px !default;
+$ci_border_width: 1px !default;
+$ci_icon_size: 34px !default;
 
 .chat_item {
     display: flex;
@@ -9,31 +14,37 @@ $ci_date_color: rgba(175, 186, 214, 0.34) !default;
     align-items: center;
     justify-content: start;
     width: 100%;
-    height: 40px;
-    padding: 0px 10px;
+    height: $ci_height;
+    padding: $ci_padding;
+    overflow: hidden;
+    opacity: $ci_opacity;
     background-color: $ci_bg;
-    border-width: 1px;
+    border-width: $ci_border_width;
     border-color: $ci_border;
-    border-radius: 8px;
-    margin-bottom: 2px;
-    transition: background-color 0.15s ease;
+    border-radius: 16px;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
 
     &:hover {
-        background-color: rgba(255, 255, 255, 0.04);
+        background-color: rgba(255, 255, 255, 0.035);
+        border-color: rgba(255, 255, 255, 0.06);
     }
 
     &:active {
-        background-color: rgba(255, 255, 255, 0.07);
+        background-color: rgba(255, 255, 255, 0.055);
     }
 }
 
 .chat_item_icon {
-    width: 14px;
-    height: 14px;
-    margin-right: 8px;
+    width: $ci_icon_size;
+    height: $ci_icon_size;
+    margin-right: 12px;
+    background-color: rgba(255, 255, 255, 0.035);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     --img-align-h: center;
     --img-align-v: center;
-    opacity: 0.4;
+    opacity: 0.74;
 }
 
 .chat_item_body {
@@ -41,24 +52,24 @@ $ci_date_color: rgba(175, 186, 214, 0.34) !default;
     flex-direction: column;
     align-items: start;
     justify-content: center;
-    width: 120px;
+    width: 150px;
     height: 100%;
 }
 
 .chat_item_title {
     width: 100%;
-    height: 18px;
+    height: 20px;
     color: $ci_title_color;
-    font-size: 12px;
+    font-size: 13px;
     text-align: left;
     --text-align-v: center;
 }
 
 .chat_item_date {
     width: 100%;
-    height: 14px;
+    height: 16px;
     color: $ci_date_color;
-    font-size: 10px;
+    font-size: 11px;
     text-align: left;
     --text-align-v: center;
 }

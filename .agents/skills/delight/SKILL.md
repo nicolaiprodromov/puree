@@ -1,8 +1,8 @@
 ---
 name: delight
-description: Add moments of joy, personality, and unexpected touches that make Puree interfaces memorable and enjoyable to use. Elevates functional to delightful.
+description: Add moments of joy, personality, and unexpected touches that make Puree UI (YAML/SCSS/Python) memorable and enjoyable to use. Elevates functional to delightful.
 user-invocable: true
-argument-hint: [TARGET=<component or interaction>]
+argument-hint: 'Describe the component or interaction to add delight to (e.g. "empty state", "success confirmation")'
 ---
 
 Identify opportunities to add moments of joy, personality, and unexpected polish that transform functional Puree interfaces into delightful experiences.

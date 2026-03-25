@@ -1,8 +1,8 @@
 ---
 name: typeset
-description: Improve typography by fixing font choices, hierarchy, sizing, weight consistency, and readability. Makes text feel intentional and polished.
+description: Improve Puree typography by fixing font choices, hierarchy, sizing, weight consistency, and readability in YAML/SCSS. Makes text feel intentional and polished.
 user-invocable: true
-argument-hint: [TARGET=<panel or text-heavy component>]
+argument-hint: 'Describe the panel or text-heavy component to improve (e.g. "info panel typography", "sidebar labels")'
 ---
 
 Assess and improve typography that feels generic, inconsistent, or poorly structured — turning default-looking text into intentional, well-crafted type.
