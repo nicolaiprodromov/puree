@@ -195,9 +195,10 @@ venv VENV_PATH=".venv":
     echo "  Activate: source {{VENV_PATH}}/bin/activate"
     echo "  Try:      puree --version"
 
-# Install = create venv + install CLI (alias for venv)
+# Install = rebuild wheel + create venv + install CLI
+# Rebuilds the wheel first so wheels/ is always fresh for `puree init`
 # Optionally pass a path: just install /path/to/my/venv
-install VENV_PATH=".venv": (venv VENV_PATH)
+install VENV_PATH=".venv": build_package (venv VENV_PATH)
 
 # ── Release workflow ─────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ app:
     - name: example5_theme
       author: Copilot
       version: 2.1.0
+      default_font: NeueMontreal-Regular
       scripts:
         - static/script.py
       styles:
@@ -179,6 +180,7 @@ app:
                   class: home_start_text
                   text: New conversation
 
+            messages_scroll:
               class: messages_scroll
 
               message_0:

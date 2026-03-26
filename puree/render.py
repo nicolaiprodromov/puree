@@ -1688,6 +1688,7 @@ class XWZ_OT_start_ui(Operator):
             texture_changed = False
             size_changed = False
             transitions_active = False
+            hover_changed = False
             
             if target_area and target_region:
                 # Throttle hot reload checks to every N frames instead of every frame
@@ -1799,6 +1800,10 @@ class XWZ_OT_start_ui(Operator):
                                     new_data[i][key] = old_data[i][key]
                     
                     hit_op._container_data = new_data
+                    
+                    # Reload hit detector with updated layout positions
+                    if hasattr(hit_op, '_native_detector') and hit_op._native_detector:
+                        hit_op._native_detector.load_containers(hit_op._container_data)
                     
                     # Cache original positions and text/image positions for scroll
                     _render_data._cache_original_positions(new_data)

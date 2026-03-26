@@ -52,7 +52,7 @@ class Theme():
         self.version      = ""
         self.scripts      = []
         self.style_files  = []
-        self.default_font = ""
+        self.default_font = "default"
         self.components   = ""
         self.palette      = {}
         self.styles       = Styles()
@@ -143,7 +143,7 @@ class UI():
             self.theme.version = theme[self.theme_index]['version']
             self.theme.scripts = theme[self.theme_index]['scripts']
             self.theme.style_files = theme[self.theme_index]['styles']
-            self.theme.default_font = theme[self.theme_index].get('default_font', '')
+            self.theme.default_font = theme[self.theme_index].get('default_font', 'default')
             self.theme.components = theme[self.theme_index]['components']
 
         self._component_css = ""

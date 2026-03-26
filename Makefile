@@ -152,7 +152,7 @@ venv:
 	@echo "  Activate: source .venv/bin/activate"
 	@echo "  Try:      puree --version"
 
-install: venv
+install: build_package venv
 
 # ── Release workflow ─────────────────────────────────────────────────
 

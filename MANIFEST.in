@@ -1,7 +1,7 @@
 include README.md
 include LICENSE
 include requirements.txt
-recursive-include puree/shaders *.glsl
+recursive-include puree/shaders *.glsl *.vert *.frag
 recursive-include puree/wheels *.whl
 recursive-include puree/scaffold *.md
 recursive-include puree/native_binaries *.so *.pyd *.dylib

@@ -32,6 +32,8 @@ setup(
     package_data={
         "puree": [
             "shaders/*.glsl",
+            "shaders/*.vert",
+            "shaders/*.frag",
             "wheels/*.whl",
             "native_binaries/*.so",
             "native_binaries/*.pyd",

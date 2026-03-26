@@ -19,4 +19,3 @@ chat_item:
       class: chat_item_date
       text: "{{ci_date, 'Today'}}"
       passive: true
-      passive: true
