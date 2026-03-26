@@ -9,5 +9,4 @@ ref_chip:
   ref_chip_label:
     class: ref_chip_label
     text: "{{rc_label, 'Object'}}"
-    font: NeueMontreal-Bold
     passive: true

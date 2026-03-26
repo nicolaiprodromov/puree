@@ -24,7 +24,7 @@ puree/
 │   ├── hot_reload.py         # File watcher + live reload
 │   ├── hot_reload_ops.py     # Hot reload Blender operators
 │   ├── reload_server.py      # Built-in TCP server (127.0.0.1:19746) — reload, ping, logs
-│   ├── cli.py                # CLI tool: puree init/build/install
+│   ├── cli.py                # CLI tool: puree init/build/install/link/unlink/reload
 │   ├── native_bindings.py    # Rust FFI: HitDetector, SCSSCompiler, ColorProcessor
 │   ├── text_op.py            # Text rendering operator
 │   ├── text_input_op.py      # Text input handling operator
@@ -113,6 +113,9 @@ Fixing bugs or extending the framework itself. Files in `puree/`, `puree/puree_c
 puree init            # Initialize new project in current directory
 puree build           # Build extension zip using Blender on PATH
 puree install         # Install built extension into Blender
+puree link            # Symlink project into Blender for development
+puree unlink          # Remove the development symlink
+puree reload          # Reload addon in running Blender (via TCP reload server)
 ```
 
 ### For developers (working on puree itself):

@@ -6,7 +6,6 @@ app:
     - name: example5_theme
       author: Copilot
       version: 2.1.0
-      default_font: NeueMontreal-Regular
       scripts:
         - static/script.py
       styles:
@@ -28,7 +27,6 @@ app:
               sidebar_label:
                 class: sidebar_label
                 text: Conversations
-                font: NeueMontreal-Bold
                 passive: true
 
               new_chat_btn:
@@ -37,7 +35,6 @@ app:
                 new_chat_text:
                   class: new_chat_text
                   text: New chat
-                  font: NeueMontreal-Bold
                   passive: true
 
             sidebar_intro:
@@ -46,25 +43,21 @@ app:
               intro_eyebrow:
                 class: intro_eyebrow
                 text: Viewport Copilot
-                font: NeueMontreal-Bold
                 passive: true
 
               intro_title:
                 class: intro_title
                 text: Scene HLEP that stays inside Blender.
-                font: NeueMontreal-Bold
                 passive: true
 
               intro_copy:
                 class: intro_copy
                 text: Geometry, materials, lighting, and scene actions in one thread.
-                font: NeueMontreal-Regular
                 passive: true
 
             chat_section_label:
               class: chat_section_label
               text: Recent threads
-              font: NeueMontreal-Bold
               passive: true
 
             chat_list:
@@ -142,13 +135,11 @@ app:
                 header_kicker:
                   class: header_kicker
                   text: Blender assistant
-                  font: NeueMontreal-Bold
                   passive: true
 
                 header_title:
                   class: header_title
                   text: ' '
-                  font: NeueMontreal-Bold
                   passive: true
 
               model_selector:
@@ -161,7 +152,6 @@ app:
                 model_name:
                   class: model_name
                   text: Claude Sonnet
-                  font: NeueMontreal-Bold
                   passive: true
 
             home_page:
@@ -175,13 +165,11 @@ app:
               home_title:
                 class: home_title
                 text: Viewport Copilot
-                font: NeueMontreal-Bold
                 passive: true
 
               home_subtitle:
                 class: home_subtitle
                 text: Start a new conversation to get help with your scene.
-                font: NeueMontreal-Regular
                 passive: true
 
               home_start_btn:
@@ -190,10 +178,7 @@ app:
                 home_start_text:
                   class: home_start_text
                   text: New conversation
-                  font: NeueMontreal-Bold
-                  passive: true
 
-            messages_scroll:
               class: messages_scroll
 
               message_0:
@@ -246,7 +231,6 @@ app:
                   attach_obj_text:
                     class: attach_pill_text
                     text: Object
-                    font: NeueMontreal-Bold
                     passive: true
 
                 attach_file_btn:
@@ -260,7 +244,6 @@ app:
                   attach_file_text:
                     class: attach_pill_text
                     text: File
-                    font: NeueMontreal-Bold
                     passive: true
 
               input_row:
@@ -269,7 +252,6 @@ app:
                 input_field:
                   class: input_field
                   data: "<INPUT>|Ask about this scene..."
-                  font: NeueMontreal-Regular
 
                 send_btn:
                   class: send_btn
@@ -277,11 +259,9 @@ app:
                   send_label:
                     class: send_label
                     text: Send
-                    font: NeueMontreal-Bold
                     passive: true
 
               input_hint:
                 class: input_hint
                 text: "Tip: attach selected objects with @Object or add file refs with #file:"
-                font: NeueMontreal-Regular
                 passive: true

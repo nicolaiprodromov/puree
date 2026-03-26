@@ -1,20 +1,13 @@
 # Created by XWZ
 # ◕‿◕ Distributed for free at:
 # https://github.com/nicolaiprodromov/puree
-"""
-Minimal TCP reload server — built into Puree so `just reload` can
-trigger a full addon restart in a running Blender instance.
-
-Listens on 127.0.0.1:PUREE_RELOAD_PORT (default 19746).
-Accepts these commands:
-    "reload"    → schedules addon reload on the main Blender thread
-    "ping"      → responds "pong" (health check)
-    "log_path"  → responds with the absolute path to puree.log
-    "logs"      → responds with last 50 lines of the log
-    "logs N"    → responds with last N lines of the log
-
-The server runs in a daemon thread and auto-starts/stops with the addon.
-"""
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import socket
 import threading
 

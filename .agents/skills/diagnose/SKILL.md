@@ -77,7 +77,7 @@ Set `PUREE_DEBUG=1` environment variable to also echo to Blender's system consol
 
 1. Make the minimal fix
 2. Check if the fix affects other subsystems (buffer stride changes affect ALL rendering)
-3. Test with `just link && just reload` for fast iteration
+3. Test with `just link && just reload` (or `puree link && puree reload`) for fast iteration
 4. Test edge cases: empty tree, deep nesting, rapid hot reload, panel resize
 
 ### 5. Common Root Causes

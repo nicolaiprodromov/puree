@@ -41,7 +41,7 @@ User Files (YAML/SCSS/Python)
 | `puree/hot_reload.py` | File watcher + live reload | `HotReloadManager` — `PyFileWatcher` (Rust) |
 | `puree/hot_reload_ops.py` | Hot reload Blender operators | Operator wrappers for reload actions |
 | `puree/reload_server.py` | Built-in TCP reload server | `ReloadServer` — 127.0.0.1:19746, `ping`/`reload`/`log_path`/`logs` |
-| `puree/cli.py` | CLI tool (`puree init/build/install`) | `main()` via `puree` console script |
+| `puree/cli.py` | CLI tool (`puree init/build/install/link/unlink/reload`) | `main()` via `puree` console script |
 | `puree/transition_manager.py` | CSS transition animations | `TransitionManager` — easing, interpolation |
 | `puree/input_router.py` | Event consumption routing | `InputRouter` singleton |
 | `puree/hit_op.py` | Hit detection modal | `XWZ_OT_hit_detect` — `HitDetector` (Rust) |
@@ -106,10 +106,10 @@ File change on disk
   → Full re-render: GPU buffers rebuilt
 ```
 
-### Dev Reload Flow (`just reload`)
+### Dev Reload Flow (`just reload` / `puree reload`)
 
 ```
-dist/dev_reload.py runs
+dist/dev_reload.py (or puree reload CLI) runs
   → Primary: TCP connect to 127.0.0.1:19746 (ReloadServer)
   → Sends "reload" command → server responds "ok"
   → ReloadServer schedules reload via bpy.app.timers
@@ -210,6 +210,8 @@ just release x.y.z    # Full release workflow
 
 > All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
 
+> Users of the `puree` CLI also have `puree link`, `puree unlink`, and `puree reload` for addon development.
+
 ## Known Issues & Gotchas
 
 | Issue | Details | Workaround |
@@ -226,7 +228,7 @@ just release x.y.z    # Full release workflow
 
 ## Testing
 
-- Test with `just link && just reload` in Blender 5.1+
+- Test with `just link && just reload` (or `puree link && puree reload`) in Blender 5.1+
 - Check multiple panel sizes (narrow sidebar, wide properties panel)
 - Test hot reload stability (rapid saves)
 - Verify hit detection accuracy after resize

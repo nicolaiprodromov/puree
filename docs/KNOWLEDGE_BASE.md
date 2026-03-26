@@ -94,7 +94,7 @@ For Python code changes (which need a full module purge + re-register), Puree ha
 
 1. **ReloadServer** (`puree/reload_server.py`) — listens on `127.0.0.1:19746`, accepts `reload`, `ping`, `log_path`, and `logs [N]` commands
 2. **Auto-starts** with the addon — no manual activation needed. Starts in `__init__.py register()`, stops in `unregister()`.
-3. **Triggered by** `just reload` / `make reload` → runs `dist/dev_reload.py`
+3. **Triggered by** `just reload` / `make reload` / `puree reload` → runs `dist/dev_reload.py` (or CLI equivalent)
 4. **Reload flow**: Stop server → unregister addon → purge all `puree.*` modules from `sys.modules` → clear `__pycache__` → re-import + re-register (fresh server starts)
 5. **Sentinel fallback**: If TCP isn't reachable, `dev_reload.py` writes `.puree_reload` file. A Blender timer (`_check_reload_sentinel`, 2s interval) picks it up.
 6. **Thread-safe**: Server runs in a daemon thread; reload is scheduled via `bpy.app.timers.register()` on Blender's main thread.
@@ -196,6 +196,13 @@ just clear-logs       # Delete all log files
 just deploy           # Shortcut: link + reload
 ```
 
+For addon development (using puree CLI):
+```bash
+puree link            # One-time: symlink addon into Blender extensions
+puree reload          # After changes: reload in running Blender (TCP server)
+puree unlink          # Remove the development symlink
+```
+
 For engine work (requires rebuild):
 ```bash
 just build_core       # After Rust changes
@@ -219,6 +226,9 @@ Puree ships a CLI tool (`puree`) for end users, installed via `pip install puree
 puree init            # Scaffold a new project (YAML, SCSS, script.py, manifest)
 puree build           # Build extension zip using Blender on PATH
 puree install         # Install built extension into Blender
+puree link            # Symlink project into Blender for development
+puree unlink          # Remove the development symlink
+puree reload          # Reload addon in running Blender (via TCP reload server)
 ```
 
 The CLI lives in `puree/cli.py` and is exposed via `[project.scripts]` in `pyproject.toml`.

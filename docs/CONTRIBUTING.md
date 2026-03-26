@@ -64,7 +64,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 4. Run `just build_core` to build the core binaries
 5. Run `just link` to symlink the source into Blender's extensions directory (auto-installs wheel dependencies)
 6. Open Blender — the addon is live. A built-in reload server (TCP on port 19746) starts automatically with the addon.
-    - Use `just reload` after making code changes (triggers reload via the TCP server).
+    - Use `just reload` (or `puree reload`) after making code changes (triggers reload via the TCP server).
     - Use `just tail` to live-follow the log, or `just logs` to see the last 50 lines.
     - Or use `just deploy` as a shortcut for `just link && just reload`.
 
@@ -98,7 +98,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 
 1. Create a feature branch from `master`
 2. Make your changes with clear, descriptive commits
-3. Test your changes with `just link && just reload` in Blender 5.1+
+3. Test your changes with `just link && just reload` (or `puree link && puree reload`) in Blender 5.1+
 4. Ensure no regressions in existing functionality
 5. Submit a pull request with a clear description of changes
 

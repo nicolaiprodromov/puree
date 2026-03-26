@@ -19,8 +19,8 @@ These files are the Puree framework engine. They run inside Blender's Python env
 | `transition_manager.py` | Interpolate animatable properties over time | Any layout or event work |
 | `hot_reload.py` | Watch files, trigger reparse on change | Render directly |
 | `hot_reload_ops.py` | Blender operators for hot reload actions | File watching, rendering |
-| `reload_server.py` | TCP server for `just reload`, log access (`log_path`, `logs`) | Rendering, parsing, layout |
-| `cli.py` | CLI tool (`puree init/build/install`) | Blender API calls (runs outside Blender) |
+| `reload_server.py` | TCP server for `just reload` / `puree reload`, log access (`log_path`, `logs`) | Rendering, parsing, layout |
+| `cli.py` | CLI tool (`puree init/build/install/link/unlink/reload`) | Blender API calls (runs outside Blender) |
 | `native_bindings.py` | Wrap Rust FFI calls | Pure Python implementations of native functions |
 
 ## Blender Operator Patterns

@@ -181,21 +181,23 @@ deploy:
 # ── Venv (for testing CLI locally) ───────────────────────────────────
 
 # Create venv and install puree CLI in editable mode
-venv:
+# Optionally pass a path: just venv /path/to/my/venv
+venv VENV_PATH=".venv":
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -d .venv ]; then
-        {{python}} -m venv .venv
-        echo "✓ Created .venv"
+    if [ ! -d "{{VENV_PATH}}" ]; then
+        {{python}} -m venv "{{VENV_PATH}}"
+        echo "✓ Created {{VENV_PATH}}"
     fi
-    .venv/bin/pip install --upgrade pip --quiet
-    .venv/bin/pip install --editable . --quiet
-    echo "✓ Installed puree CLI in .venv"
-    echo "  Activate: source .venv/bin/activate"
+    "{{VENV_PATH}}/bin/pip" install --upgrade pip --quiet
+    "{{VENV_PATH}}/bin/pip" install --editable . --quiet
+    echo "✓ Installed puree CLI in {{VENV_PATH}}"
+    echo "  Activate: source {{VENV_PATH}}/bin/activate"
     echo "  Try:      puree --version"
 
 # Install = create venv + install CLI (alias for venv)
-install: venv
+# Optionally pass a path: just install /path/to/my/venv
+install VENV_PATH=".venv": (venv VENV_PATH)
 
 # ── Release workflow ─────────────────────────────────────────────────
 

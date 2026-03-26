@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/Asset%204.png?raw=true" alt="Puree UI Logo" width="100%"/>
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/Asset%204.png?raw=true" alt="purée UI Logo" width="100%"/>
 
 <br>
 
@@ -9,11 +9,11 @@
 [![Blender](https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
-*`puree` UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+*`purée` UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
 
-> `puree` is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> `purée` is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 </div>
 
@@ -21,7 +21,7 @@ It's meant for all Blender users that want to enhance their ability to present t
 
 ## Why does Blender need a UI framework?
 
-Blender's native UI excels at tool panels but wasn't designed for complex, stateful interfaces. puree exists because:
+Blender's native UI excels at tool panels but wasn't designed for complex, stateful interfaces. purée exists because:
 
 ### *GPU API Constraints*
 
@@ -33,23 +33,23 @@ Blender's `gpu` module provides Python bindings for GPU rendering, but with arch
 
 ### *Why Abstraction Matters*
 
-Like browsers evolving from DOM manipulation to high-level frameworks like React, Blender needs higher-level abstractions. Native `bpy.types.UILayout` handles tool panels, but complex UIs need state management and component patterns. puree provides these abstractions with GPU acceleration. Focus on *what* your UI does, not *how* to draw it.
+Like browsers evolving from DOM manipulation to high-level frameworks like React, Blender needs higher-level abstractions. Native `bpy.types.UILayout` handles tool panels, but complex UIs need state management and component patterns. purée provides these abstractions with GPU acceleration. Focus on *what* your UI does, not *how* to draw it.
 
 ### *Design Patterns*
 
-puree replaces Blender's imperative `bpy.types.Panel` approach with declarative component trees using YAML/SCSS separation. Flexbox layouts via **Stretchable** (Rust) and GPU-accelerated hit detection enable real-time interactivity like hover states and smooth transitions.
+purée replaces Blender's imperative `bpy.types.Panel` approach with declarative component trees using YAML/SCSS separation. Flexbox layouts via **Stretchable** (Rust) and GPU-accelerated hit detection enable real-time interactivity like hover states and smooth transitions.
 
 ### *Developer Ergonomics*
 
-Imperative UI code couples structure with styling, changing a button's color means editing Python logic. puree separates concerns architecturally: YAML defines component hierarchy, SCSS handles presentation via selectors. This mirrors the separation of HTML/CSS, enabling style changes without touching code and true component reusability across contexts.
+Imperative UI code couples structure with styling, changing a button's color means editing Python logic. purée separates concerns architecturally: YAML defines component hierarchy, SCSS handles presentation via selectors. This mirrors the separation of HTML/CSS, enabling style changes without touching code and true component reusability across contexts.
 
 ---
 
-## What is puree good for?
+## What is purée good for?
 
 *From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu.*
 
-Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
+Check the [examples](/examples) folder for detailed examples of what can be accomplished with **purée**.
 
 <div align="center">
 
@@ -74,16 +74,16 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 
 ## Quick Start
 
-Here's a short tutorial to get you started with Puree:
+Here's a short tutorial to get you started with purée:
 
 <video src="docs/images/example4.mp4" controls width="50%">
 </video>
 
 > [!IMPORTANT]
-> ### **puree is in beta - WIP**
-> - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> ### **purée is in beta - WIP**
+> - purée currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 
-1. **Install puree:**
+1. **Install purée:**
 
     ```bash
     pip install puree-ui
@@ -112,13 +112,19 @@ Here's a short tutorial to get you started with Puree:
     puree install
     ```
 
-5. **Open Blender** — look for the Puree tab in the N-panel of the 3D Viewport.
+5. **Open Blender** — look for the purée tab in the N-panel of the 3D Viewport.
+6. **For faster development** (optional) — use symlink mode instead of build+install:
 
+    ```bash
+    puree link            # Symlink project into Blender (one-time)
+    puree reload          # Reload after code changes
+    puree unlink          # Remove symlink when done
+    ```
 ---
 
 ## How it works
 
-Puree follows a hybrid Rust/Python pipeline optimized for performance:
+purée follows a hybrid Rust/Python pipeline optimized for performance:
 
 1. **Parse** – Rust-native parsers process YAML/SCSS into styled container trees
 2. **Layout** – Stretchable flexbox engine computes responsive layouts  
@@ -246,6 +252,6 @@ Found a bug or have a feature request? [Open an issue](https://github.com/nicola
 
 <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-2B2B2B?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-2B2B2B?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://pyo3.rs/"><img src="https://img.shields.io/badge/PyO3-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
 
-> *Special thanks to the open-source community and the developers behind the projects that make **puree** possible.*
+> *Special thanks to the open-source community and the developers behind the projects that make **purée** possible.*
 
 <img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/munky.gif?raw=true" width="100px">

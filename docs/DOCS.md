@@ -64,6 +64,14 @@ puree build       # Build the extension zip (requires Blender on PATH)
 puree install     # Install the extension into Blender
 ```
 
+For faster development iteration, use symlink mode:
+
+```bash
+puree link        # Symlink project into Blender for development
+puree reload      # Reload addon in running Blender after code changes
+puree unlink      # Remove the development symlink when done
+```
+
 ### 2. Clone the repo (for framework development)
 
 <details>
@@ -124,7 +132,7 @@ Click here for installation commands
 4. Run `just build_core` to build the core binaries
 5. Run `just link` to symlink the source into Blender's extensions directory (auto-installs deps)
 6. Open Blender — the addon is live. A built-in reload server auto-starts on port 19746.
-    - Use `just reload` after code changes (triggers reload via TCP server).
+    - Use `just reload` (or `puree reload`) after code changes (triggers reload via TCP server).
     - Use `just tail` to live-follow the log, or `just logs` to see the last 50 lines.
     - Or use `just deploy` as a shortcut for `just link && just reload`.
 

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""
-Puree CLI — Bootstrap, build, and install Puree UI addons for Blender.
-
-Usage:
-    puree init              Initialize a new Puree project in the current directory
-    puree build             Build the extension zip using Blender on PATH
-    puree install           Install the built extension into Blender
-    puree --version         Show version
-    puree --help            Show this help
-"""
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import argparse
 import os
 import platform
@@ -71,6 +71,67 @@ def _get_blender_python_version(blender_exe):
     return "3.13"
 
 
+def _find_local_wheels_dir():
+    """Return the repo's wheels/ dir if puree is running from a local/editable install.
+
+    Returns None when installed from PyPI (no local source tree available).
+    Exits with an error if the dir exists but contains no puree_ui wheel — meaning
+    the user needs to run `just build_core && just build_package` first.
+    """
+    try:
+        import puree as _puree_pkg
+        candidate = Path(_puree_pkg.__file__).parent.parent / "wheels"
+        if not candidate.is_dir():
+            return None
+        if not list(candidate.glob("puree_ui-*.whl")):
+            print("Error: Local wheels/ directory found but contains no puree_ui wheel.")
+            print("       Run 'just build_core && just build_package' first.")
+            sys.exit(1)
+        return candidate
+    except Exception:
+        return None
+
+
+def _get_addon_id(project_dir):
+    """Read the extension ID from blender_manifest.toml."""
+    manifest = project_dir / "blender_manifest.toml"
+    content = manifest.read_text()
+    match = re.search(r'^id\s*=\s*"([^"]+)"', content, re.MULTILINE)
+    if not match:
+        print("Error: Could not find 'id' in blender_manifest.toml")
+        sys.exit(1)
+    return match.group(1)
+
+
+def _get_blender_paths(blender_exe):
+    """Determine Blender extension and site-packages paths from version info."""
+    version = _get_blender_version(blender_exe)
+    if not version:
+        print("Error: Could not determine Blender version.")
+        sys.exit(1)
+
+    py_version = _get_blender_python_version(blender_exe)
+
+    system = platform.system()
+    if system == "Linux":
+        base = Path.home() / ".config" / "blender" / version
+    elif system == "Darwin":
+        base = Path.home() / "Library" / "Application Support" / "Blender" / version
+    elif system == "Windows":
+        base = Path(os.environ.get("APPDATA", "")) / "Blender Foundation" / "Blender" / version
+    else:
+        print(f"Error: Unsupported platform '{system}'.")
+        sys.exit(1)
+
+    ext_path = base / "extensions" / "user_default"
+    if system == "Windows":
+        site_packages = base / "extensions" / ".local" / "Lib" / "site-packages"
+    else:
+        site_packages = base / "extensions" / ".local" / "lib" / f"python{py_version}" / "site-packages"
+
+    return str(ext_path), str(site_packages)
+
+
 # ── Templates ────────────────────────────────────────────────────────
 
 INIT_YAML = textwrap.dedent("""\
@@ -82,7 +143,6 @@ INIT_YAML = textwrap.dedent("""\
         - name: default_theme
           author: me
           version: 1.0.0
-          default_font: NeueMontreal-Regular
           scripts:
             - static/script.py
           styles:
@@ -95,7 +155,6 @@ INIT_YAML = textwrap.dedent("""\
             hero:
               class: hero
               text: PUREE
-              font: NeueMontreal-Bold
               passive: true
 """)
 
@@ -104,7 +163,7 @@ INIT_SCSS = textwrap.dedent("""\
     $blue:  #3d7eff;
     $white: #ffffff;
 
-    root {
+    .root {
         flex-direction:  column;
         justify-content: center;
         align-items:     center;
@@ -113,7 +172,7 @@ INIT_SCSS = textwrap.dedent("""\
         background-color: $pink;
     }
 
-    hero {
+    .hero {
         width:           80%;
         height:          40%;
         justify-content: center;
@@ -134,8 +193,12 @@ INIT_SCRIPT = textwrap.dedent("""\
 INIT_ENTRY = textwrap.dedent("""\
     import bpy
     import os
+    import sys
+    import importlib
+    import pathlib
     from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
     from puree import set_addon_root
+    from puree.reload_server import ReloadServer, PUREE_RELOAD_PORT
 
     bl_info = {
         "name"       : "My Puree Addon",
@@ -147,16 +210,85 @@ INIT_ENTRY = textwrap.dedent("""\
         "category"   : "Interface"
     }
 
+    # ── Reload server (enables `puree reload`) ───────────────────────
+    _reload_server = None
+    _ADDON_MODULE = __name__
+    _RELOAD_SENTINEL = pathlib.Path(__file__).resolve().parent / ".puree_reload"
+
+
+    def _deferred_reload():
+        _perform_reload()
+        return None
+
+
+    def _perform_reload():
+        global _reload_server
+        if _reload_server:
+            _reload_server.stop()
+            _reload_server = None
+        mod = sys.modules.get(_ADDON_MODULE)
+        if mod and hasattr(mod, "unregister"):
+            try:
+                mod.unregister()
+            except Exception:
+                pass
+        for key in list(sys.modules.keys()):
+            if key == "puree" or key.startswith("puree."):
+                del sys.modules[key]
+        for key in list(sys.modules.keys()):
+            if _ADDON_MODULE in key:
+                del sys.modules[key]
+        import shutil
+        addon_dir = pathlib.Path(__file__).resolve().parent
+        for cache in addon_dir.rglob("__pycache__"):
+            if cache.is_dir() and not cache.is_symlink():
+                shutil.rmtree(cache, ignore_errors=True)
+        try:
+            mod = importlib.import_module(_ADDON_MODULE)
+            mod.register()
+        except Exception as e:
+            print(f"[Puree] Reload error: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+    def _check_reload_sentinel():
+        try:
+            if _RELOAD_SENTINEL.exists():
+                _RELOAD_SENTINEL.unlink(missing_ok=True)
+                _perform_reload()
+        except Exception:
+            pass
+        return 2.0
+
+
     def register():
-        set_addon_root(os.path.dirname(os.path.abspath(__file__)))
+        global _reload_server
+        set_addon_root(os.path.realpath(os.path.dirname(os.path.abspath(__file__))))
         xwz_ui_register()
         wm = bpy.context.window_manager
         wm.xwz_ui_conf_path = "static/index.yaml"
         wm.xwz_debug_panel  = True
         wm.xwz_auto_start   = True
+        _reload_server = ReloadServer(port=PUREE_RELOAD_PORT, reload_fn=_deferred_reload)
+        _reload_server.start()
+        if not bpy.app.timers.is_registered(_check_reload_sentinel):
+            bpy.app.timers.register(_check_reload_sentinel, persistent=True)
+
 
     def unregister():
+        global _reload_server
+        if _reload_server:
+            _reload_server.stop()
+            _reload_server = None
+        if bpy.app.timers.is_registered(_check_reload_sentinel):
+            try:
+                bpy.app.timers.unregister(_check_reload_sentinel)
+            except Exception:
+                pass
+        _RELOAD_SENTINEL.unlink(missing_ok=True)
         xwz_ui_unregister()
+
 
     if __name__ == "__main__":
         register()
@@ -278,28 +410,47 @@ def cmd_init(args):
     (cwd / "__init__.py").write_text(INIT_ENTRY)
     (cwd / "blender_manifest.toml").write_text(_manifest_template(py_version))
 
+    # Copy AI configuration scaffold (.agents/, .github/)
+    scaffold_dir = Path(__file__).parent / "scaffold"
+    if scaffold_dir.is_dir():
+        for sub in (".agents", ".github"):
+            src = scaffold_dir / sub
+            dst = cwd / sub
+            if src.is_dir() and not dst.exists():
+                shutil.copytree(src, dst)
+        print("  Created AI configuration (.agents/, .github/)")
+
     print("  Created project structure")
 
-    # Download wheels
-    print("  Downloading wheels...")
+    # Populate wheels directory
+    print("  Collecting wheels...")
     wheels_dir = cwd / "wheels"
-    try:
-        subprocess.run(
-            [
-                sys.executable, "-m", "pip", "download",
-                "--only-binary=:all:",
-                "--python-version", py_version,
-                "--dest", str(wheels_dir),
-                "puree-ui",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
-        print("  You can download them manually: pip download --only-binary=:all: "
-              f"--python-version {py_version} --dest wheels puree-ui")
+    local_wheels_dir = _find_local_wheels_dir()
+    if local_wheels_dir:
+        # Running from a local/editable install — copy all pre-built wheels
+        # directly, no network needed.
+        for whl in sorted(local_wheels_dir.glob("*.whl")):
+            shutil.copy2(whl, wheels_dir / whl.name)
+            print(f"    ✓ {whl.name}")
+    else:
+        # Installed from PyPI — download wheels from the network.
+        try:
+            subprocess.run(
+                [
+                    sys.executable, "-m", "pip", "download",
+                    "--only-binary=:all:",
+                    "--python-version", py_version,
+                    "--dest", str(wheels_dir),
+                    "puree-ui",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
+            print("  You can download them manually: pip download --only-binary=:all: "
+                  f"--python-version {py_version} --dest wheels puree-ui")
 
     # Update manifest with actual wheel filenames
     _update_manifest_wheels(cwd)
@@ -453,6 +604,112 @@ def cmd_install(args):
         sys.exit(1)
 
 
+def cmd_link(args):
+    """Symlink project into Blender's extensions for development."""
+    cwd = Path.cwd()
+
+    manifest = cwd / "blender_manifest.toml"
+    if not manifest.exists():
+        print("Error: blender_manifest.toml not found in current directory.")
+        print("Run 'puree init' first.")
+        sys.exit(1)
+
+    addon_id = _get_addon_id(cwd)
+    blender_exe = _find_blender()
+
+    print(f"Linking {addon_id} for development...")
+    print(f"  Blender: {blender_exe}")
+
+    ext_dir, site_packages = _get_blender_paths(blender_exe)
+    ext_dir = Path(ext_dir)
+    site_packages = Path(site_packages)
+    addon_link = ext_dir / addon_id
+
+    # Ensure extensions directory exists
+    ext_dir.mkdir(parents=True, exist_ok=True)
+
+    # Remove existing addon (symlink or installed copy)
+    if addon_link.is_symlink():
+        print("  Symlink already exists, updating...")
+        addon_link.unlink()
+    elif addon_link.is_dir():
+        print("  Removing installed extension copy...")
+        shutil.rmtree(addon_link)
+
+    # Create symlink
+    addon_link.symlink_to(cwd)
+    print(f"  \u2713 Linked: {addon_link} \u2192 {cwd}")
+
+    # Install wheel dependencies into Blender's extension site-packages
+    # Extract wheels directly (zip files) to avoid pip rejecting cross-version wheels
+    import zipfile
+    wheels_dir = cwd / "wheels"
+    if wheels_dir.exists() and list(wheels_dir.glob("*.whl")):
+        print("  Installing wheel dependencies...")
+        site_packages.mkdir(parents=True, exist_ok=True)
+        for whl in sorted(wheels_dir.glob("*.whl")):
+            try:
+                with zipfile.ZipFile(whl, 'r') as zf:
+                    zf.extractall(site_packages)
+                print(f"    \u2713 {whl.name}")
+            except Exception as e:
+                print(f"    \u2717 {whl.name}: {e}")
+
+    print()
+    print("Dev mode active. Open Blender to load the addon.")
+    print("Use 'puree reload' after code changes.")
+
+
+def cmd_unlink(args):
+    """Remove the development symlink from Blender's extensions."""
+    cwd = Path.cwd()
+
+    manifest = cwd / "blender_manifest.toml"
+    if not manifest.exists():
+        print("Error: blender_manifest.toml not found in current directory.")
+        sys.exit(1)
+
+    addon_id = _get_addon_id(cwd)
+    blender_exe = _find_blender()
+    ext_dir, _ = _get_blender_paths(blender_exe)
+
+    addon_link = Path(ext_dir) / addon_id
+
+    if addon_link.is_symlink():
+        addon_link.unlink()
+        print(f"\u2713 Removed symlink: {addon_link}")
+    else:
+        print(f"No symlink found at {addon_link}")
+
+    print("Dev mode deactivated.")
+
+
+def cmd_reload(args):
+    """Reload addon in a running Blender instance."""
+    import socket
+    import time
+
+    # Primary: TCP reload via Puree's built-in reload server
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3.0)
+        s.connect(("127.0.0.1", 19746))
+        s.sendall(b"reload")
+        resp = s.recv(64).decode("utf-8", errors="ignore").strip()
+        s.close()
+        if resp == "ok":
+            print("[Puree] \u2713 Reload triggered (via reload server)")
+            return
+    except (ConnectionRefusedError, OSError, socket.timeout):
+        pass
+
+    # Fallback: sentinel file
+    print("[Puree] Reload server not reachable, using sentinel fallback...")
+    sentinel = Path.cwd() / ".puree_reload"
+    sentinel.write_text(str(time.time()))
+    print("[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s")
+
+
 # ── Entry Point ──────────────────────────────────────────────────────
 
 def main():
@@ -470,6 +727,9 @@ def main():
     subparsers.add_parser("init", help="Initialize a new Puree project in the current directory")
     subparsers.add_parser("build", help="Build the extension zip using Blender on PATH")
     subparsers.add_parser("install", help="Install the built extension into Blender")
+    subparsers.add_parser("link", help="Symlink project into Blender for development")
+    subparsers.add_parser("unlink", help="Remove the development symlink")
+    subparsers.add_parser("reload", help="Reload addon in a running Blender instance")
 
     args = parser.parse_args()
 
@@ -481,6 +741,9 @@ def main():
         "init": cmd_init,
         "build": cmd_build,
         "install": cmd_install,
+        "link": cmd_link,
+        "unlink": cmd_unlink,
+        "reload": cmd_reload,
     }
 
     commands[args.command](args)

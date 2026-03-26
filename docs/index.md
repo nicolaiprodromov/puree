@@ -88,6 +88,14 @@ Here's how to get started with Puree:
 
 5. **Open Blender** — look for the Puree tab in the N-panel of the 3D Viewport.
 
+6. **For faster development** (optional) — use symlink mode instead of build+install:
+
+    ```bash
+    puree link            # Symlink project into Blender (one-time)
+    puree reload          # Reload after code changes
+    puree unlink          # Remove symlink when done
+    ```
+
 ---
 
 ## How it works
