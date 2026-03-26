@@ -16,29 +16,11 @@ addon_dir=$(pwd)
 
 echo "working from: $addon_dir"
 
-blender_exe=""
-latest_version=""
-
-if [ -f "/usr/bin/blender" ]; then
-    blender_exe="/usr/bin/blender"
-    latest_version=$(blender --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
-elif [ -f "/usr/local/bin/blender" ]; then
-    blender_exe="/usr/local/bin/blender"
-    latest_version=$(blender --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
-elif [ -f "/opt/blender/blender" ]; then
-    blender_exe="/opt/blender/blender"
-    latest_version=$(blender --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
-elif [ -f "/snap/bin/blender" ]; then
-    blender_exe="/snap/bin/blender"
-    latest_version=$(blender --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
-elif command -v blender >/dev/null 2>&1; then
-    blender_exe=$(which blender)
-    latest_version=$(blender --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
-fi
+blender_exe=$(which blender 2>/dev/null || true)
 
 if [ -z "$blender_exe" ]; then
-    echo "ERROR: Blender 4.0+ installation not found!"
-    echo "Please ensure Blender 4.0 or newer is installed."
+    echo "ERROR: 'blender' not found on PATH!"
+    echo "Please ensure Blender is installed and available in your system PATH."
     exit 1
 fi
 

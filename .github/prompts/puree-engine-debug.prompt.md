@@ -37,7 +37,7 @@ Read the relevant modules and trace data from input to output:
 ## Step 4: Fix and Verify
 
 1. Make the minimal fix
-2. Run `just dev-link && just dev-reload`
+2. Run `just link && just reload`
 3. Verify the fix doesn't break other subsystems
 4. Update documentation if the fix reveals a broader pattern
 

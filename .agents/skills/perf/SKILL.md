@@ -33,7 +33,8 @@ Add timing to the suspected bottleneck:
 
 ```python
 import time
-from puree.log import logger
+from .log import get_logger
+logger = get_logger(__name__)
 
 start = time.perf_counter()
 # ... operation ...
@@ -42,6 +43,7 @@ logger.info(f"[PERF] operation_name: {elapsed:.2f}ms")
 ```
 
 For frame timing, check `render.py` — it may already have timing hooks.
+Use `just tail` to live-follow the log, or `just logs` to see recent output.
 
 ### 3. Common Optimizations
 

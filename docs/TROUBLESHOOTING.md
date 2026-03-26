@@ -1,6 +1,6 @@
 ---
 layout: page
-title : 4. Troubleshooting
+title : 6. Troubleshooting
 ---
 
 ## Linux
@@ -12,4 +12,4 @@ title : 4. Troubleshooting
 
 |  | Previous Page | Next Page |
 |----------|----------|------|
-| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [API Reference](API.md) | [Get Help](SUPPORT.md) |
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Puree vs CSS](PUREE_VS_CSS.md) | [Get Help](SUPPORT.md) |

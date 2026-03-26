@@ -1,3 +1,8 @@
+---
+layout: page
+title : 4. Puree Specification
+---
+
 # Puree UI Specification for LLMs
 
 > This document is the authoritative reference for generating Puree UI code.
@@ -830,3 +835,9 @@ For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 8. **Colors auto-convert**: sRGB in CSS → linear in Blender (automatic)
 9. **`passive: true`** makes an element completely non-interactive (no hover/click)
 10. **`display: none`** hides an element and removes it from layout
+
+---
+
+|  | Previous Page | Next Page |
+|----------|----------|------|
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [API Reference](API.md) | [Puree vs CSS](PUREE_VS_CSS.md) |

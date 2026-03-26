@@ -1321,9 +1321,17 @@ class RenderPipeline:
                     continue
                 clip = self._get_scroll_clip_for_container(idx, containers)
                 if clip:
-                    # Store scroll clip separately — mask stays as container bounds for alignment
                     cx, cy, cw, ch = clip
-                    block['scroll_clip'] = [cx, cy, cw, ch]
+                    mx, my = block['mask_x'], block['mask_y']
+                    mw, mh = block['mask_width'], block['mask_height']
+                    ix = max(mx, cx)
+                    iy = max(my, cy)
+                    ir = min(mx + mw, cx + cw)
+                    ib = min(my + mh, cy + ch)
+                    block['mask_x'] = ix
+                    block['mask_y'] = iy
+                    block['mask_width'] = max(0, ir - ix)
+                    block['mask_height'] = max(0, ib - iy)
         if text_input_blocks:
             for cid, block in text_input_blocks.items():
                 idx = self._container_id_to_index.get(cid, -1)
@@ -1489,14 +1497,12 @@ class XWZ_OT_start_ui(Operator):
         global _render_data, _modal_timer
         
         if _render_data and _render_data.running:
-            logger.warning("Demo already running")
             self.report({'WARNING'}, "Demo already running")
             return {'CANCELLED'}
         
         _render_data = RenderPipeline()
         
         if not _render_data.initialize():
-            logger.error("Failed to initialize compute shader demo")
             self.report({'ERROR'}, "Failed to initialize compute shader demo")
             _render_data = None
             return {'CANCELLED'}
@@ -1506,19 +1512,16 @@ class XWZ_OT_start_ui(Operator):
             bpy.ops.xwz.hit_detect('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start hit detect modal: {e}")
-            logger.warning(f"Failed to start hit detect modal: {e}")
 
         try:
             bpy.ops.xwz.scroll_modal_launch('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start scroll modal: {e}")
-            logger.warning(f"Failed to start scroll modal: {e}")
         
         try:
             bpy.ops.xwz.mouse_modal_launch('INVOKE_DEFAULT')
         except Exception as e:
             self.report({'WARNING'}, f"Failed to start mouse modal: {e}")
-            logger.warning(f"Failed to start mouse modal: {e}")
         
         context.window_manager.modal_handler_add(self)
         _modal_timer = context.window_manager.event_timer_add(0.016, window=context.window)
@@ -1587,14 +1590,6 @@ class XWZ_OT_start_ui(Operator):
             if block and 'scroll_clip' in block:
                 text_instance.clip = list(block['scroll_clip'])
         
-        # Set scissor clips on image instances for scroll containers
-        from . import img_op as img_op_mod
-        for image_instance in img_op_mod._image_instances:
-            cid = image_instance.container_id
-            block = parser_op.image_blocks.get(cid) if hasattr(parser_op, 'image_blocks') else None
-            if block and 'scroll_clip' in block:
-                image_instance.clip = list(block['scroll_clip'])
-        
         for _container_id in parser_op.text_input_blocks:
             block = parser_op.text_input_blocks[_container_id]
             bpy.ops.xwz.create_text_input(
@@ -1628,12 +1623,12 @@ class XWZ_OT_start_ui(Operator):
                 global _hot_reload_enabled
                 _hot_reload_enabled = True
                 
-                logger.info("UI Started with hot reload enabled")
+                self.report({'INFO'}, "UI Started with hot reload enabled")
             else:
-                logger.info("UI Started (hot reload unavailable)")
+                self.report({'INFO'}, "UI Started (hot reload unavailable)")
         except Exception as e:
             logger.warning(f"Hot reload initialization failed: {e}")
-            logger.info("UI Started (hot reload disabled)")
+            self.report({'INFO'}, "UI Started (hot reload disabled)")
         
         # Update debug panel to appear in the correct space
         try:
@@ -1805,10 +1800,6 @@ class XWZ_OT_start_ui(Operator):
                     
                     hit_op._container_data = new_data
                     
-                    # Reload hit detector with updated layout positions
-                    if hasattr(hit_op, '_native_detector') and hit_op._native_detector:
-                        hit_op._native_detector.load_containers(hit_op._container_data)
-                    
                     # Cache original positions and text/image positions for scroll
                     _render_data._cache_original_positions(new_data)
                     _render_data._cache_original_text_positions(parser_op.text_blocks)
@@ -1876,13 +1867,11 @@ class XWZ_OT_start_ui(Operator):
                         container_id = image_instance.container_id
                         if container_id in parser_op.image_blocks:
                             block = parser_op.image_blocks[container_id]
-                            clip = list(block['scroll_clip']) if 'scroll_clip' in block else None
                             image_instance.update_all(
                                 image_name=block['image_name'],
                                 pos=[block['x_pos'], block['y_pos']],
                                 size=[block['width'], block['height']],
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
-                                clip=clip,
                                 aspect_ratio=block['aspect_ratio'],
                                 align_h=block.get('align_h', 'LEFT').upper(),
                                 align_v=block.get('align_v', 'TOP').upper(),
@@ -1971,31 +1960,18 @@ class XWZ_OT_start_ui(Operator):
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
                                 
-                                # Compute scrolled mask from original position (like text does)
-                                orig_pos = _render_data._original_positions.get(idx)
-                                if orig_pos:
-                                    c_size = hit_op._container_data[idx].get('size', [0, 0])
-                                    mask_x = orig_pos[0] - sx
-                                    mask_y = orig_pos[1] - sy
-                                    mask_w = float(c_size[0])
-                                    mask_h = float(c_size[1])
-                                else:
-                                    c = hit_op._container_data[idx]
-                                    c_pos = c.get('position', [0, 0])
-                                    c_size = c.get('size', [0, 0])
-                                    mask_x = float(c_pos[0])
-                                    mask_y = float(c_pos[1])
-                                    mask_w = float(c_size[0])
-                                    mask_h = float(c_size[1])
-                                
-                                clip = list(scroll_clip) if scroll_clip else None
+                                mask_x = block['mask_x']
+                                mask_y = block['mask_y']
+                                mask_w = block['mask_width']
+                                mask_h = block['mask_height']
+                                if scroll_clip:
+                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
                                 
                                 image_instance.update_all(
                                     image_name=block['image_name'],
                                     pos=[block['x_pos'], block['y_pos']],
                                     size=[block['width'], block['height']],
                                     mask=[mask_x, mask_y, mask_w, mask_h],
-                                    clip=clip,
                                     aspect_ratio=block['aspect_ratio'],
                                     align_h=block.get('align_h', 'LEFT').upper(),
                                     align_v=block.get('align_v', 'TOP').upper(),
@@ -2086,16 +2062,6 @@ class XWZ_OT_start_ui(Operator):
                                 text_instance.clip = list(block['scroll_clip'])
                             else:
                                 text_instance.clip = None
-                        
-                        # Update image instance clips from scroll_clip data
-                        from . import img_op as _img_op_resize
-                        for image_instance in _img_op_resize._image_instances:
-                            cid = image_instance.container_id
-                            block = parser_op.image_blocks.get(cid) if hasattr(parser_op, 'image_blocks') else None
-                            if block and 'scroll_clip' in block:
-                                image_instance.clip = list(block['scroll_clip'])
-                            else:
-                                image_instance.clip = None
                         
                         # Reapply scroll offsets after resize
                         if _render_data._scroll_offsets:
@@ -2193,7 +2159,7 @@ class XWZ_OT_stop_ui(Operator):
             if area.type == target_space:
                 area.tag_redraw()
             
-        logger.info("Compute shader demo stopped")
+        self.report({'INFO'}, "Compute shader demo stopped")
         return {'FINISHED'}
 
 classes = [

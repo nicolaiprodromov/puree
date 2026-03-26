@@ -29,6 +29,9 @@ dependencies = [
     "attrs==25.3.0",
 ]
 
+[project.scripts]
+puree = "puree.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/nicolaiprodromov/puree"
 Repository = "https://github.com/nicolaiprodromov/puree"

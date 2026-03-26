@@ -38,5 +38,10 @@ setup(
             "native_binaries/*.dylib",
         ],
     },
+    entry_points={
+        "console_scripts": [
+            "puree=puree.cli:main",
+        ],
+    },
     include_package_data=True,
 )

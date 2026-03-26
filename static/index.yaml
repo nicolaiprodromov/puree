@@ -51,7 +51,7 @@ app:
 
               intro_title:
                 class: intro_title
-                text: Scene help that stays inside Blender.
+                text: Scene HLEP that stays inside Blender.
                 font: NeueMontreal-Bold
                 passive: true
 

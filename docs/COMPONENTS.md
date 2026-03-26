@@ -30,7 +30,7 @@ puree_project/
     │   │   ├── test_button.yaml  # Component definition
     │   │   └── card.yaml         # Component definition
     │   ├── index.yaml
-    │   └── style.css
+    │   └── style.scss
     └── __init__.py
 ```
 
@@ -274,7 +274,7 @@ card:
 ```
 {% endraw %}
 
-**File: `static/style.css`**
+**File: `static/style.scss`**
 
 ```css
 default_card {

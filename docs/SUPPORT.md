@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 5. Support
+title: 7. Support
 ---
 
 <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
@@ -26,16 +26,16 @@ If you need help with this project, please try the following:
 
 If you discover a security vulnerability, please **do not** open a public issue. Instead, please report it privately through GitHub's Security Advisory feature or by contacting the maintainers directly.
 
-## Commercial Support
-
-This project is provided as-is. Commercial support is not currently available.
-
 ## Contributing
 
 Interested in contributing? Please refer to [Contributing](CONTRIBUTING.md) for guidelines.
 
 ---
 
-|  | Previous Page | Next Page |
+<div style="border:solid 1px rgb(255,255,255,.2);padding:20px;border-radius:9px;" align="center">
+
+| <div style="width:230px;opacity:40%;"> *Disclaimer* </div> | <div style="opacity:40%;"> *Previous Page* </div> | <div style="opacity:40%;"> *Next Page* </div> |
 |----------|----------|------|
-| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Troubleshooting](TROUBLESHOOTING.md) | [Home](index.md) |
+| <div style="width:230px;opacity:40%;"> *This project is under active development and provided as-is with no guarantees. The owners of this repository are not responsible from any loss of data.* </div> | [`Troubleshooting`](TROUBLESHOOTING.md) | [`Home`](index.md) |
+
+</div>

@@ -12,11 +12,15 @@ These files are the Puree framework engine. They run inside Blender's Python env
 | File | Does | Never Do |
 |------|------|----------|
 | `parser.py` | Parse YAML, build Container tree, apply CSS cascade | Render anything, handle events |
+| `parser_op.py` | Sync dirty containers, flatten node tree for GPU | Parse YAML, render |
 | `compiler.py` | Execute user `script.py` files | Parse YAML, modify styles |
 | `render.py` | Pack GPU buffers, manage shaders, composite to viewport | Parse YAML, handle user events |
 | `hit_op.py` | Detect which container is under mouse, fire callbacks | Render, parse, modify styles |
 | `transition_manager.py` | Interpolate animatable properties over time | Any layout or event work |
 | `hot_reload.py` | Watch files, trigger reparse on change | Render directly |
+| `hot_reload_ops.py` | Blender operators for hot reload actions | File watching, rendering |
+| `reload_server.py` | TCP server for `just reload`, log access (`log_path`, `logs`) | Rendering, parsing, layout |
+| `cli.py` | CLI tool (`puree init/build/install`) | Blender API calls (runs outside Blender) |
 | `native_bindings.py` | Wrap Rust FFI calls | Pure Python implementations of native functions |
 
 ## Blender Operator Patterns
@@ -68,10 +72,32 @@ Without `mark_dirty()`, the GPU buffer isn't updated. This is the single most co
 ## Logging
 
 ```python
-from puree.log import logger
+from .log import get_logger
+logger = get_logger(__name__)
+
 logger.debug("detail message")
 logger.info("status message")
 logger.error("error message")
 ```
 
-Output goes to Blender's system console (terminal on Linux/Mac, Window → Toggle System Console on Windows).
+All output goes to `<addon_root>/logs/puree.log` (rotating, 5 MB, 3 backups).
+Console is silent by default; set `PUREE_DEBUG=1` for stderr output.
+
+To capture user script `print()` output into the log:
+```python
+from .log import capture_output
+with capture_output("user"):
+    module.main(self, app)
+```
+
+To get the current log file path at runtime:
+```python
+from .log import get_log_path
+path = get_log_path()  # e.g. /home/user/.config/blender/5.1/.../logs/puree.log
+```
+
+The reload server also exposes log access via TCP:
+- `log_path` command → returns the log file path
+- `logs N` command → returns last N lines of the log
+
+Dev commands: `just tail` (live follow), `just logs` (last 50 lines), `just clear-logs`.

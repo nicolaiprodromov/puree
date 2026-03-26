@@ -10,10 +10,10 @@
 # ╚═════════════════════════════════╝
 import os
 
-from .log import get_logger, reinitialize as _reinitialize_logging
+from .log import get_logger, get_log_path, reinitialize as _reinitialize_logging
 logger = get_logger(__name__)
 
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root']
+__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
 _try_start_retries = 0

@@ -13,7 +13,7 @@ import importlib.util
 import os
 from time import sleep
 
-from .log import get_logger
+from .log import get_logger, capture_output
 logger = get_logger(__name__)
 
 class Compiler():
@@ -31,9 +31,10 @@ class Compiler():
                 spec = importlib.util.spec_from_file_location(module_name, script_path)
                 if spec and spec.loader:
                     module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    if hasattr(module, 'main'):
-                        self.ui = module.main(self, self.ui)
+                    with capture_output("user"):
+                        spec.loader.exec_module(module)
+                        if hasattr(module, 'main'):
+                            self.ui = module.main(self, self.ui)
                 sleep(0.1)
             except (ImportError, FileNotFoundError) as e:
                 logger.error(f"Failed to import {module_name}: {e}")

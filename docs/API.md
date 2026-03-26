@@ -3,163 +3,172 @@ layout: page
 title : 3. API Reference
 ---
 
-## Style Properties
+## CSS Properties
 
-The `Style` class defines the visual appearance and layout behavior of UI nodes. All properties are set via CSS/SCSS — do not modify `Style` fields directly. Use `container.set_property('css-property', value)` for runtime changes.
+All properties are set via SCSS files. Use `container.set_property('css-property', value)` for runtime changes. Both kebab-case (`background-color`) and underscore (`background_color`) are accepted.
+
+**Reading style at runtime:** Access via `container.style.field_name`. Enum values are UPPERCASE at runtime — e.g. `container.style.display` returns `'FLEX'` or `'NONE'`.
 
 ### Colors & Backgrounds
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `background_color` | `background-color` | Fill color (RGBA) |
-| `background_color_2` | *(internal)* | 2nd gradient stop — set via `background: linear-gradient()` |
-| `background_gradient_rot` | *(internal)* | Gradient angle — set via `background: linear-gradient()` |
-| `gradient_stops` | *(internal)* | Multi-stop gradient — set via `background: linear-gradient()` |
-| `hover_background_color` | `:hover { background-color }` | Hover fill color |
-| `hover_background_color_2` | *(internal)* | Hover gradient 2nd stop |
-| `hover_background_gradient_rot` | *(internal)* | Hover gradient angle |
-| `hover_gradient_stops` | *(internal)* | Hover multi-stop gradient |
-| `click_background_color` | `:active { background-color }` | Click fill color |
-| `click_background_color_2` | *(internal)* | Click gradient 2nd stop |
-| `click_background_gradient_rot` | *(internal)* | Click gradient angle |
-| `click_gradient_stops` | *(internal)* | Click multi-stop gradient |
-| `color` | `color` | Text color (RGBA, inherited) |
-| `hover_color` | `:hover { color }` | Hover text color |
-| `click_color` | `:active { color }` | Click text color |
-| `opacity` | `opacity` | Element opacity (0–1) |
-| `hover_opacity` | `:hover { opacity }` | Hover opacity |
-| `click_opacity` | `:active { opacity }` | Click opacity |
+| CSS Property | Description |
+|---|---|
+| `background-color` | Fill color |
+| `background` | Shorthand: solid color or `linear-gradient()` |
+| `background-image` | Alias for `background: linear-gradient()` |
+| `color` | Text color (inherited by children) |
+| `opacity` | Element opacity (0–1) |
+| `visibility` | `visible`, `hidden` (hidden keeps layout space) |
+
+**Hover and active states** are set via standard SCSS pseudo-classes. Only these four properties are supported in `:hover` / `:active` rules (layout properties like width/padding are ignored):
+
+| Pseudo-class | Animatable properties |
+|---|---|
+| `:hover { }` | `background-color`, `color`, `border-color`, `opacity` |
+| `:active { }` | `background-color`, `color`, `border-color`, `opacity` |
 
 ### Typography
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `font_size` | `font-size` | Text size in px |
-| `font_family` | *(YAML `font:`)* | Font face name |
-| `font_weight` | `font-weight` | `NORMAL`, `BOLD` |
-| `font_style` | `font-style` | `NORMAL`, `ITALIC` |
-| `text_align` | `text-align` | `LEFT`, `CENTER`, `RIGHT` |
-| `text_align_v` | `--text-align-v` | `TOP`, `CENTER`, `BOTTOM` |
-| `text_transform` | `text-transform` | `NONE`, `UPPERCASE`, `LOWERCASE`, `CAPITALIZE` |
-| `text_decoration` | `text-decoration` | `NONE`, `UNDERLINE` |
-| `text_overflow` | `text-overflow` | `CLIP`, `ELLIPSIS` |
-| `white_space` | `white-space` | `NORMAL`, `NOWRAP` |
-| `line_height` | `line-height` | Multiplier (unitless) |
-| `letter_spacing` | `letter-spacing` | Spacing in px |
-| `text_x` | `--text-x` | Horizontal text offset |
-| `text_y` | `--text-y` | Vertical text offset |
-| `text_shadow_color` | `text-shadow` | Shadow color |
-| `text_shadow_offset_x` | `text-shadow` | Shadow X offset |
-| `text_shadow_offset_y` | `text-shadow` | Shadow Y offset |
-| `text_shadow_blur` | `text-shadow` | Shadow blur |
+| CSS Property | Description |
+|---|---|
+| `font-size` | Text size in px |
+| `text-align` | `left`, `center`, `right` |
+| `--text-align-v` | Vertical alignment: `top`, `center`, `bottom` |
+| `--text-x` | Horizontal text offset in px |
+| `--text-y` | Vertical text offset in px |
+| `font-weight` | `normal`, `bold` |
+| `font-style` | `normal`, `italic` |
+| `text-decoration` | `none`, `underline` |
+| `text-transform` | `none`, `uppercase`, `lowercase`, `capitalize` |
+| `letter-spacing` | Character spacing in px |
+| `line-height` | Unitless multiplier (e.g. `1.2`) |
+| `white-space` | `normal` (wrap), `nowrap` |
+| `text-overflow` | `clip`, `ellipsis` — requires `white-space: nowrap` |
+| `text-shadow` | `offset-x offset-y blur color` — single shadow only |
+
+> Font face is selected via YAML `font:` attribute, not CSS `font-family`.
 
 ### Box Model
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `width` | `width` | Element width |
-| `height` | `height` | Element height |
-| `min_width` | `min-width` | Minimum width |
-| `max_width` | `max-width` | Maximum width |
-| `min_height` | `min-height` | Minimum height |
-| `max_height` | `max-height` | Maximum height |
-| `border_radius` | `border-radius` | All-corner radius |
-| `border_radius_tl/tr/br/bl` | `border-*-*-radius` | Per-corner radii |
-| `border_width` | `border-width` | Uniform border width |
-| `border_width_top/right/bottom/left` | `border-*-width` | Per-side widths |
-| `border_color` | `border-color` | Border color |
-| `border_color_2` | *(internal)* | Border gradient 2nd stop — set via `border-image: linear-gradient()` |
-| `border_gradient_rot` | *(internal)* | Border gradient angle — set via `border-image: linear-gradient()` |
-| `hover_border_color` | `:hover { border-color }` | Hover border color |
-| `click_border_color` | `:active { border-color }` | Click border color |
-| `box_shadow_color` | `box-shadow` | Shadow color |
-| `box_shadow_offset` | `box-shadow` | Shadow offset (x, y) |
-| `box_shadow_blur` | `box-shadow` | Shadow blur |
+| CSS Property | Description |
+|---|---|
+| `width` | Element width (`px`, `%`) |
+| `height` | Element height (`px`, `%`) |
+| `min-width` / `max-width` | Width constraints |
+| `min-height` / `max-height` | Height constraints |
+| `padding` / `padding-top` / `padding-right` / `padding-bottom` / `padding-left` | Padding (px or %) |
+| `margin` / `margin-top` / `margin-right` / `margin-bottom` / `margin-left` | Margin (px or %) |
+| `border-radius` | All-corner radius |
+| `border-top-left-radius` | Top-left corner |
+| `border-top-right-radius` | Top-right corner |
+| `border-bottom-right-radius` | Bottom-right corner |
+| `border-bottom-left-radius` | Bottom-left corner |
+| `border-width` | Uniform width, or `top right bottom left` shorthand |
+| `border-top-width` / `border-right-width` / `border-bottom-width` / `border-left-width` | Per-side widths |
+| `border-color` | Uniform border color |
+| `border` | Shorthand: `1px solid red` |
+| `border-top` / `border-right` / `border-bottom` / `border-left` | Per-side shorthand |
+| `border-image` | `linear-gradient()` for gradient border. Requires `border-width: Npx` |
+| `box-shadow` | `offset-x offset-y blur color` — single shadow only |
+| `box-sizing` | `content-box`, `border-box` |
+
+> Per-side border **colors** are not supported — use a uniform `border-color`.
 
 ### Layout
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `display` | `display` | `FLEX`, `GRID`, `BLOCK`, `NONE` |
-| `position` | `position` | `RELATIVE`, `ABSOLUTE` |
-| `top/right/bottom/left` | `top/right/bottom/left` | Position offsets |
-| `overflow` | `overflow` | `VISIBLE`, `HIDDEN`, `SCROLL`, `AUTO` |
-| `overflow_x` | `overflow-x` | Horizontal overflow |
-| `overflow_y` | `overflow-y` | Vertical overflow |
-| `box_sizing` | `box-sizing` | `CONTENT_BOX`, `BORDER_BOX` |
-| `visibility` | `visibility` | `VISIBLE`, `HIDDEN` |
-| `pointer_events` | `pointer-events` | `AUTO`, `NONE` |
-| `z_index` | *(internal)* | Rendering layer |
-| `align_items` | `align-items` | `START`, `END`, `CENTER`, `STRETCH`, `BASELINE` |
-| `justify_items` | `justify-items` | `START`, `END`, `CENTER`, `STRETCH`, `BASELINE` |
-| `align_self` | `align-self` | Per-item alignment override |
-| `justify_self` | `justify-self` | Per-item justify override |
-| `align_content` | `align-content` | `START`, `END`, `CENTER`, `STRETCH`, `SPACE_BETWEEN`, `SPACE_AROUND`, `SPACE_EVENLY` |
-| `justify_content` | `justify-content` | Same values as `align-content` |
-| `flex_direction` | `flex-direction` | `ROW`, `COLUMN`, `ROW_REVERSE`, `COLUMN_REVERSE` |
-| `flex_wrap` | `flex-wrap` | `NO_WRAP`, `WRAP`, `WRAP_REVERSE` |
-| `flex_grow` | `flex-grow` | Growth factor |
-| `flex_shrink` | `flex-shrink` | Shrink factor |
-| `flex_basis` | `flex-basis` | Base size |
-| `gap` | `gap` | Gap between items |
-| `row_gap` | `row-gap` | Row gap |
-| `column_gap` | `column-gap` | Column gap |
-| `grid_auto_flow` | `grid-auto-flow` | `ROW`, `COLUMN` |
-| `grid_template_rows` | `grid-template-rows` | Row track sizes |
-| `grid_template_columns` | `grid-template-columns` | Column track sizes |
-| `grid_row` | `grid-row` | Row placement |
-| `grid_column` | `grid-column` | Column placement |
+| CSS Property | Description |
+|---|---|
+| `display` | `flex`, `grid`, `block`, `none` |
+| `position` | `relative`, `absolute` |
+| `top` / `right` / `bottom` / `left` | Position offsets |
+| `overflow` | `visible`, `hidden`, `scroll`, `auto` |
+| `overflow-x` / `overflow-y` | Per-axis overflow |
+| `scrollbar-width` | Scrollbar track width: `none`, `thin` (6px), `auto` (8px), or px value |
+| `scrollbar-color` | `<thumb-color> <track-color>` shorthand |
+| `scrollbar-thumb-color` | Scrollbar thumb/handle color |
+| `scrollbar-track-color` | Scrollbar track background color |
+| `pointer-events` | `auto`, `none` |
+| `align-items` | `start`, `end`, `center`, `stretch`, `baseline` |
+| `justify-items` | `start`, `end`, `center`, `stretch`, `baseline` |
+| `align-self` | Per-item alignment override |
+| `justify-self` | Per-item justify override |
+| `align-content` | `start`, `end`, `center`, `stretch`, `space-between`, `space-around`, `space-evenly` |
+| `justify-content` | Same values as `align-content` |
+| `flex-direction` | `row`, `column`, `row-reverse`, `column-reverse` |
+| `flex-wrap` | `nowrap`, `wrap`, `wrap-reverse` |
+| `flex-grow` | Growth factor |
+| `flex-shrink` | Shrink factor |
+| `flex-basis` | Base size |
+| `gap` | Gap between flex/grid items |
+| `row-gap` / `column-gap` | Per-axis gap |
+| `grid-auto-flow` | `row`, `column` |
+| `grid-template-rows` / `grid-template-columns` | Explicit track sizes |
+| `grid-auto-rows` / `grid-auto-columns` | Implicit track sizes |
+| `grid-row` / `grid-column` | Item placement |
 
-### Image
+### Image (Extensions)
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `img_align_h` | `--img-align-h` | `LEFT`, `CENTER`, `RIGHT` |
-| `img_align_v` | `--img-align-v` | `TOP`, `CENTER`, `BOTTOM` |
+| CSS Property | Description |
+|---|---|
+| `--img-align-h` | Image horizontal alignment: `left`, `center`, `right` |
+| `--img-align-v` | Image vertical alignment: `top`, `center`, `bottom` |
 
 ### Transitions
 
-| Property | CSS Equivalent | Description |
-|----------|---------------|-------------|
-| `transition_property` | `transition-property` | Animatable property name |
-| `transition_duration` | `transition-duration` | Duration in seconds |
-| `transition_timing_function` | `transition-timing-function` | `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out` |
-| `transition_delay` | `transition-delay` | Delay in seconds |
-| `transitions` | `transition: a, b, ...` | List of parsed transition dicts for multi-property |
+Only `background-color`, `color`, `border-color`, and `opacity` are animatable.
+
+| CSS Property | Description |
+|---|---|
+| `transition` | Shorthand: `property duration timing-function` — comma-separated for multiple |
+| `transition-property` | Property name to animate |
+| `transition-duration` | Duration in seconds (`0.3s`) |
+| `transition-timing-function` | `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out` |
+| `transition-delay` | Delay before starting (`0.1s`) |
 
 ---
 
 ## Container Properties
 
-The `Container` class represents an individual UI node in the interface hierarchy.
+The `Container` class represents a UI node. Access nodes via dot notation in `script.py`:
+
+```python
+button = app.theme.root.sidebar.nav_button
+```
 
 | Property | Type | Description |
-|----------|------|-------------|
-| `id` | `str` | Unique identifier |
-| `parent` | `Optional[Container]` | Reference to parent container |
-| `children` | `Optional[List[Container]]` | List of child containers |
-| `style` | `Style` | Resolved style object |
-| `data` | `Optional[str]` | Custom data string |
-| `img` | `Optional[str]` | Image asset name (no extension) |
-| `text` | `Optional[str]` | Text content |
-| `font` | `Optional[str]` | Font face name (no extension) |
+|---|---|---|
+| `id` | `str` | Element ID, auto-generated from YAML path |
+| `parent` | `Container` | Parent container |
+| `children` | `List[Container]` | Child containers |
+| `text` | `str` | Text content |
+| `img` | `str` | Image asset name (no extension) |
+| `font` | `str` | Font face name (no extension) |
+| `data` | `str` | Component reference string |
+| `passive` | `bool` | If `True`, element ignores all interaction events |
+| `style` | `Style` | Resolved style object — read via `container.style.property_name` |
 | `click` | `List` | Click event handler list |
 | `toggle` | `List` | Toggle event handler list |
 | `scroll` | `List` | Scroll event handler list |
 | `hover` | `List` | Hover-in event handler list |
 | `hoverout` | `List` | Hover-out event handler list |
-| `passive` | `bool` | Non-interactive (no hover/click) |
-| `_toggle_value` | `bool` | Current toggle state |
-| `_toggled` | `bool` | Whether currently toggled |
-| `_clicked` | `bool` | Whether currently clicked |
-| `_hovered` | `bool` | Whether currently hovered |
-| `_scroll_value` | `float` | Current scroll position |
-| `_dirty` | `bool` | Needs GPU sync — set `True` then call `mark_dirty()` |
+| `_toggled` | `bool` | Whether currently toggled (read-only) |
+| `_clicked` | `bool` | Whether currently clicked (read-only) |
+| `_hovered` | `bool` | Whether currently hovered (read-only) |
+| `_toggle_value` | `bool` | Current toggle state value (read-only) |
+| `_scroll_value` | `float` | Current scroll offset in px (read-only) |
 
-> Properties prefixed with `_` are internal state — do not modify directly. Use `mark_dirty()` after any runtime property changes.
+---
+
+## Container Methods
+
+| Method | Description |
+|---|---|
+| `mark_dirty()` | Flags the container for GPU re-sync on the next frame. **Required** after any runtime property change. |
+| `set_property(name, value)` | Set a CSS property at runtime. Accepts CSS names (`background-color`) or underscore equivalents. Handles color parsing, gradient parsing, and layout recalculation automatically. |
+| `get_by_id(target_id)` | Search this subtree for a container by ID. Returns `Container` or `None`. |
 
 ---
 
 |  | Previous Page | Next Page |
 |----------|----------|------|
-| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Components](COMPONENTS.md) | [Troubleshooting](TROUBLESHOOTING.md) |
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Components](COMPONENTS.md) | [Puree Specification](PUREE_SPEC.md) |

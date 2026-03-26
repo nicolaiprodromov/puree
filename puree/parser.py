@@ -238,12 +238,7 @@ class UI():
                                                 return child_container.id
                                             elif value.startswith(component_base_name + '_'):
                                                 return value.replace(component_base_name, child_container.id, 1)
-                                            else:
-                                                # Prefix other inner component classes to match CSS namespacing
-                                                # e.g. slot_avatar -> <instance_id>_slot_avatar
-                                                if not value.startswith(child_container.id):
-                                                    return f"{child_container.id}_{value}"
-                                                return value
+                                            return value
                                         
                                         def load_component(comp_data, parent, params):
                                             for attr_name, attr_value in comp_data.items():
@@ -356,14 +351,7 @@ class UI():
                 attr_value = [0.0, 0.0, 0.0, 1.0]
 
         elif attr_name in float_props:
-            if isinstance(attr_value, str):
-                clean = attr_value.replace('px', '').replace('%', '').strip()
-                try:
-                    attr_value = float(clean)
-                except (ValueError, TypeError):
-                    attr_value = 0.0
-            else:
-                attr_value = float(attr_value)
+            attr_value = float(attr_value.replace('px', '').strip())
 
         elif attr_name in rotation_props:
             attr_value = float(attr_value.replace('deg', '').strip())
@@ -1220,29 +1208,11 @@ class UI():
         scrollbar_width_map = {}
         scrollbar_thumb_map = {}
         scrollbar_track_map = {}
-
-        def flatten_number(val, default=0.0):
-            if val is None:
-                return default
-            if isinstance(val, (int, float)):
-                return float(val)
-            text = str(val).strip().lower()
-            if not text:
-                return default
-            token = text.split()[0]
-            for suffix in ('px', '%', 'deg', 's'):
-                if token.endswith(suffix):
-                    token = token[:-len(suffix)].strip()
-            try:
-                return float(token)
-            except (TypeError, ValueError):
-                return default
-
         def collect_style_props(container):
             if hasattr(container.style, 'visibility'):
                 visibility_map[container.id] = container.style.visibility
-            opacity_map[container.id] = flatten_number(container.style.opacity)
-            zindex_map[container.id] = int(flatten_number(container.style.z_index))
+            opacity_map[container.id] = float(container.style.opacity)
+            zindex_map[container.id] = int(container.style.z_index)
             overflow_type_map[container.id] = container.style.overflow
             position_type_map[container.id] = container.style.position
             if hasattr(container.style, 'transitions') and container.style.transitions:
@@ -1250,12 +1220,12 @@ class UI():
             elif hasattr(container.style, 'transition_property') and container.style.transition_duration > 0:
                 transition_map[container.id] = [{
                     'property': container.style.transition_property,
-                    'duration': flatten_number(container.style.transition_duration),
+                    'duration': float(container.style.transition_duration),
                     'timing': container.style.transition_timing_function,
-                    'delay': flatten_number(container.style.transition_delay),
+                    'delay': float(container.style.transition_delay),
                 }]
             if hasattr(container.style, 'scrollbar_width') and container.style.scrollbar_width:
-                scrollbar_width_map[container.id] = flatten_number(container.style.scrollbar_width)
+                scrollbar_width_map[container.id] = float(container.style.scrollbar_width)
             if hasattr(container.style, 'scrollbar_thumb_color'):
                 scrollbar_thumb_map[container.id] = container.style.scrollbar_thumb_color
             if hasattr(container.style, 'scrollbar_track_color'):
@@ -1312,26 +1282,14 @@ class UI():
             else:
                 return str(val)
 
-        def style_number(val, default=0.0):
-            if val is None:
-                return default
+        def safe_float(val):
+            """Convert a style value to float, stripping CSS units if present."""
             if isinstance(val, (int, float)):
                 return float(val)
+            if isinstance(val, str):
+                return float(val.replace('px', '').replace('%', '').replace('deg', '').strip() or '0')
+            return 0.0
 
-            text = ensure_string(val).strip().lower()
-            if not text:
-                return default
-
-            # Handle CSS-like runtime values such as "1px" or "16px 12px".
-            token = text.split()[0]
-            for suffix in ('px', '%', 'deg'):
-                if token.endswith(suffix):
-                    token = token[:-len(suffix)].strip()
-            try:
-                return float(token)
-            except (TypeError, ValueError):
-                return default
-        
         display_str = ensure_string(container.style.display)
         overflow_str = ensure_string(container.style.overflow)
         
@@ -1343,44 +1301,44 @@ class UI():
                 'overflow': overflow_str,
                 'background_color': list(container.style.background_color),
                 'background_color_2': list(container.style.background_color_2),
-                'background_gradient_rot': style_number(container.style.background_gradient_rot),
+                'background_gradient_rot': safe_float(container.style.background_gradient_rot),
                 'hover_background_color': list(container.style.hover_background_color),
                 'hover_background_color_2': list(container.style.hover_background_color_2),
-                'hover_background_gradient_rot': style_number(container.style.hover_background_gradient_rot),
+                'hover_background_gradient_rot': safe_float(container.style.hover_background_gradient_rot),
                 'click_background_color': list(container.style.click_background_color),
                 'click_background_color_2': list(container.style.click_background_color_2),
-                'click_background_gradient_rot': style_number(container.style.click_background_gradient_rot),
+                'click_background_gradient_rot': safe_float(container.style.click_background_gradient_rot),
                 'border_color': list(container.style.border_color),
                 'border_color_2': list(container.style.border_color_2),
-                'border_gradient_rot': style_number(container.style.border_gradient_rot),
+                'border_gradient_rot': safe_float(container.style.border_gradient_rot),
                 'hover_border_color': list(container.style.hover_border_color),
                 'click_border_color': list(container.style.click_border_color),
-                'hover_opacity': style_number(container.style.hover_opacity),
-                'click_opacity': style_number(container.style.click_opacity),
+                'hover_opacity': safe_float(container.style.hover_opacity),
+                'click_opacity': safe_float(container.style.click_opacity),
                 'hover_color': list(container.style.hover_color),
                 'click_color': list(container.style.click_color),
-                'border_radius': style_number(container.style.border_radius),
-                'border_radius_tl': style_number(container.style.border_radius_tl or container.style.border_radius),
-                'border_radius_tr': style_number(container.style.border_radius_tr or container.style.border_radius),
-                'border_radius_br': style_number(container.style.border_radius_br or container.style.border_radius),
-                'border_radius_bl': style_number(container.style.border_radius_bl or container.style.border_radius),
-                'border_width': style_number(container.style.border_width),
-                'border_width_top': style_number(container.style.border_width_top),
-                'border_width_right': style_number(container.style.border_width_right),
-                'border_width_bottom': style_number(container.style.border_width_bottom),
-                'border_width_left': style_number(container.style.border_width_left),
+                'border_radius': safe_float(container.style.border_radius),
+                'border_radius_tl': safe_float(container.style.border_radius_tl or container.style.border_radius),
+                'border_radius_tr': safe_float(container.style.border_radius_tr or container.style.border_radius),
+                'border_radius_br': safe_float(container.style.border_radius_br or container.style.border_radius),
+                'border_radius_bl': safe_float(container.style.border_radius_bl or container.style.border_radius),
+                'border_width': safe_float(container.style.border_width),
+                'border_width_top': safe_float(container.style.border_width_top),
+                'border_width_right': safe_float(container.style.border_width_right),
+                'border_width_bottom': safe_float(container.style.border_width_bottom),
+                'border_width_left': safe_float(container.style.border_width_left),
                 'gradient_stops': str(container.style.gradient_stops),
                 'hover_gradient_stops': str(container.style.hover_gradient_stops),
                 'click_gradient_stops': str(container.style.click_gradient_stops),
                 'color': list(container.style.color),
-                'font_size': style_number(container.style.font_size),
-                'text_x': style_number(container.style.text_x),
-                'text_y': style_number(container.style.text_y),
+                'font_size': safe_float(container.style.font_size),
+                'text_x': safe_float(container.style.text_x),
+                'text_y': safe_float(container.style.text_y),
                 'box_shadow_color': list(container.style.box_shadow_color),
                 'box_shadow_offset': list(container.style.box_shadow_offset),
-                'box_shadow_blur': style_number(container.style.box_shadow_blur),
+                'box_shadow_blur': safe_float(container.style.box_shadow_blur),
                 'aspect_ratio': bool(container.style.aspect_ratio),
-                'opacity': style_number(container.style.opacity),
+                'opacity': safe_float(container.style.opacity),
             },
             'data': str(container.data),
             'img': str(container.img),
@@ -1390,7 +1348,7 @@ class UI():
             'click': container.click,
             'toggle': container.toggle,
             'scroll': container.scroll,
-            '_scroll_value': style_number(container._scroll_value),
+            '_scroll_value': safe_float(container._scroll_value),
             'hover': container.hover,
             'hoverout': container.hoverout,
             'children': [self._container_to_dict(child) for child in container.children]

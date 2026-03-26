@@ -11,7 +11,7 @@ Get oriented with the Puree project. Read the key files to understand what Puree
 Read these files in order:
 1. `.github/copilot-instructions.md` — Project overview and critical rules
 2. `docs/PUREE_SPEC.md` — Complete framework specification with examples
-3. `.impeccable.md` — Design context and aesthetic direction
+3. `docs/.impeccable.md` — Design context and aesthetic direction
 4. An example panel (e.g., `static/index.yaml`, `static/style.scss`, `static/script.py`)
 5. Check `fonts/` for available fonts, `assets/` for available images
 

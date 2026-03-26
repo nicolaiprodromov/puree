@@ -1,3 +1,8 @@
+---
+layout: page
+title : 5. Puree vs CSS
+---
+
 # Puree vs Classic CSS — Exact Differences
 
 This document covers every place where Puree diverges from standard CSS and browser layout. **As of the CSS parity update, SCSS property names are identical to standard CSS** — only YAML structure and Python scripting differ.
@@ -233,3 +238,9 @@ Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 | DOM reflow on property change | `mark_dirty()` triggers relayout |
 | CSS transitions | ✅ Supported for `background-color`, `color`, `border-color`, `opacity` — multi-property via `transition: a 0.2s, b 0.3s` |
 | `element.style.background = 'linear-gradient(...)'` | `container.set_property('background', 'linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0,0,0,0))')` |
+
+---
+
+|  | Previous Page | Next Page |
+|----------|----------|------|
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Puree Specification](PUREE_SPEC.md) | [Troubleshooting](TROUBLESHOOTING.md) |

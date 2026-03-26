@@ -10,115 +10,49 @@
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
 """
-Reload the Puree addon in a running Blender instance via the MCP socket.
+Trigger a full addon reload in a running Blender instance.
 
-Clears cached Python modules and re-registers the addon so code changes
-take effect without restarting Blender.
+Primary: connects to Puree's built-in reload server (TCP 127.0.0.1:19746).
+Fallback: writes a sentinel file that the Puree timer picks up.
 """
 import socket
-import json
 import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from puree.log import setup_cli_logging
-logger = setup_cli_logging(os.path.splitext(os.path.basename(__file__))[0])
+import time
+from pathlib import Path
+
+RELOAD_PORT = 19746
+SENTINEL = Path(__file__).resolve().parent.parent / ".puree_reload"
 
 
-RELOAD_CODE = r"""
-import sys, importlib, bpy
-
-addon_module = "bl_ext.user_default.xwz_puree_ui"
-mod = sys.modules.get(addon_module)
-
-# 1. Call unregister directly (avoids extension manager reinstalling wheels)
-if mod and hasattr(mod, 'unregister'):
+def reload_via_tcp():
+    """Send reload command over TCP. Returns True on success."""
     try:
-        mod.unregister()
-        print("unregister() called")
-    except Exception as e:
-        print(f"unregister warning: {e}")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3.0)
+        s.connect(("127.0.0.1", RELOAD_PORT))
+        s.sendall(b"reload")
+        resp = s.recv(64).decode("utf-8", errors="ignore").strip()
+        s.close()
+        return resp == "ok"
+    except (ConnectionRefusedError, OSError, socket.timeout):
+        return False
 
-# 2. Purge all cached puree modules so Python re-reads from disk
-purged = []
-for key in list(sys.modules.keys()):
-    if key == "puree" or key.startswith("puree."):
-        del sys.modules[key]
-        purged.append(key)
-# Also purge the extension module itself
-for key in list(sys.modules.keys()):
-    if "xwz_puree_ui" in key:
-        del sys.modules[key]
-        purged.append(key)
 
-print(f"purged {len(purged)} cached modules")
-
-# 3. Clear __pycache__ bytecode (follows symlinks into source dir)
-import pathlib, shutil
-for sp in sys.path:
-    puree_dir = pathlib.Path(sp) / "puree"
-    if puree_dir.exists():
-        for cache in puree_dir.rglob("__pycache__"):
-            if cache.is_dir() and not cache.is_symlink():
-                shutil.rmtree(cache, ignore_errors=True)
-                print(f"cleared {cache}")
-
-# 4. Reimport the addon module and call register
-try:
-    mod = importlib.import_module(addon_module)
-    mod.register()
-    print("✓ addon reloaded successfully")
-except Exception as e:
-    print(f"reload error: {e}")
-    import traceback
-    traceback.print_exc()
-    raise
-"""
+def reload_via_sentinel():
+    """Write sentinel file for timer-based fallback."""
+    SENTINEL.write_text(str(time.time()))
+    return True
 
 
 def main():
-    client = None
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.settimeout(15)
-        client.connect(('localhost', 9876))
+    if reload_via_tcp():
+        print("[Puree] ✓ Reload triggered (via reload server)")
+        return True
 
-        command = {
-            "type": "execute_code",
-            "params": {"code": RELOAD_CODE}
-        }
-        message = json.dumps(command) + '\n'
-        client.send(message.encode('utf-8'))
-
-        response = client.recv(16384).decode('utf-8')
-        response_obj = json.loads(response)
-
-        if response_obj.get('status') == 'success':
-            result = response_obj.get('result', {}).get('result', '')
-            if result:
-                logger.info(result.strip())
-            logger.info('✓ Reload complete')
-            return True
-        else:
-            msg = response_obj.get('message', 'Unknown error')
-            logger.error(f'✗ Reload failed: {msg}')
-            return False
-
-    except ConnectionRefusedError:
-        logger.error('Error: Could not connect to Blender MCP server on port 9876')
-        logger.error('Make sure Blender is running with the MCP addon enabled')
-        return False
-    except socket.timeout:
-        logger.error('Error: Timeout — Blender may be busy or the MCP server is not responding')
-        return False
-    except Exception as e:
-        logger.error(f'Error: {e}')
-        return False
-    finally:
-        if client:
-            try:
-                client.close()
-            except:
-                pass
+    print("[Puree] Reload server not reachable, using sentinel fallback...")
+    reload_via_sentinel()
+    print("[Puree] ✓ Sentinel written — Blender will pick this up within ~2s")
+    return True
 
 
 if __name__ == '__main__':

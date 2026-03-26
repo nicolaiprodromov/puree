@@ -79,175 +79,40 @@ Here's a short tutorial to get you started with Puree:
 <video src="docs/images/example4.mp4" controls width="50%">
 </video>
 
-> [!WARNING]
+> [!IMPORTANT]
 > ### **puree is in beta - WIP**
 > - puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 
-1. **Download the package with pip or download the [latest release](https://github.com/nicolaiprodromov/puree/releases)**
+1. **Install puree:**
 
     ```bash
-    pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
+    pip install puree-ui
     ```
 
-2. **Create your project structure:**
+2. **Create a new project:**
 
     ```bash
-    my_addon/x
-        ├── static/
-        │   ├── index.yaml
-        │   └── style.scss
-        └── __init__.py <-- your addon entry point
+    mkdir my_addon && cd my_addon
+    puree init
     ```
 
-3. **Define your addon manifest in `blender_manifest.toml`:**
+    This creates a complete project with all dependencies, a `blender_manifest.toml`, and a starter UI (pink box with "PUREE" in bold blue text).
 
-    Rename the `blender_manifest.example.toml` to `blender_manifest.toml` and modify to fit your addons metadata.
+3. **Build the extension:**
 
-    ```toml
-    schema_version = "1.0.0"
-
-    id         = "your_addon_id"
-    version    = "your_addon_version"
-    name       = "your_addon_name"
-    tagline    = "your_addon_tagline"
-    maintainer = "your_name"
-    type       = "add-on"
-
-    blender_version_min = "your_addon_version_blend_min"
-
-    license = [
-    "SPDX:GPL-3.0-or-later",
-    ]
-
-    copyright = [
-    "your_copyright_year your_name",
-    ]
-
-    platforms = [
-    "windows-x64",
-    "linux-x64",
-    "macos-arm64",
-    "macos-x64"
-    ]
-
-    wheels = [
-    "./wheels/PyYAML-6.0.2-cp311-cp311-win_amd64.whl",
-    "./wheels/attrs-25.3.0-py3-none-any.whl",
-    "./wheels/glcontext-3.0.0-cp311-cp311-win_amd64.whl",
-    "./wheels/moderngl-5.12.0-cp311-cp311-win_amd64.whl",
-    "./wheels/puree_ui-0.1.2-py3-none-any.whl",
-    "./wheels/stretchable-1.1.7-cp38-abi3-win_amd64.whl",
-    "./wheels/typing_extensions-4.15.0-py3-none-any.whl",
-    ]
-
-    [build]
-    paths_exclude_pattern = [
-    "__pycache__/",
-    "*.zip",
-    "*.pyc",
-    ".gitignore",
-    ".vscode/",
-    ".git/",
-    ]
+    ```bash
+    puree build
     ```
 
-4. **Define your addon entrypoint in `__init__.py`:**
+    Requires Blender on your system PATH.
 
-    Rename the `__init__.example.py` to `__init__.py` and modify to fit your addons metadata.
+4. **Install into Blender:**
 
-    ```python
-    import bpy
-    import os
-    from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
-    from puree import set_addon_root
-
-    bl_info = {
-        "name"       : "your_addon_name",
-        "author"     : "your_name",
-        "version"    : (1, 0, 0),
-        "blender"    : (4, 2, 0),
-        "location"   : "3D View > Sidebar > Your Addon",
-        "description": "Your addon description",
-        "category"   : "Your Addon Category"
-    }
-
-    def register():
-        # Set the addon root directory so puree knows where to find resources
-        set_addon_root(os.path.dirname(os.path.abspath(__file__)))
-        # Register the framework
-        xwz_ui_register()
-        # Set default properties
-        # ui_conf_path is relative to the addon root directory and
-        # is required to point puree to the main configuration file of your UI
-        wm = bpy.context.window_manager
-        wm.xwz_ui_conf_path = "static/index.yaml"
-        wm.xwz_debug_panel  = True
-        wm.xwz_auto_start   = True
-
-    def unregister():
-        # Unregister the framework
-        xwz_ui_unregister()
-        
-    if __name__ == "__main__":
-        register()
+    ```bash
+    puree install
     ```
 
-5. **Define your UI in `index.yaml`:**
-
-    ```yaml
-    app:
-        selected_theme: xwz_default
-        default_theme: xwz_default
-        theme:
-            - name: xwz_default
-            author: xwz
-            version: 1.0.0
-
-            space: VIEW_3D
-
-            default_font: NeueMontreal-Regular
-
-            scripts:
-                - static/script.py
-            styles:
-                - static/style.scss
-            components: static/components/
-
-            root:
-                style: root
-                test_box:
-                    style: test_box
-                    text : Red Box
-    ```
-
-6. **Style it in `style.scss`:**
-
-    ```scss
-    root{
-        flex-direction : column;
-        justify-content: center;
-        align-items    : center;
-        width          : 100%;
-        height         : 100%;
-        color          : rgba(0,0,0,0);
-    }
-
-    test_box{
-        width       : 300px;
-        height      : 300px;
-        color       : #ff0000;
-        text-color  : #fff;
-        text-scale  : 40px;
-        text-align-h: center;
-        text-align-v: center;
-    }
-    ```
-
-7. **Zip the files.**
-
-8. **Install in Blender**: `Edit > Preferences > Add-ons > Install from disk`
-
-9. Done. If you open the latest version of Blender you have installed on your system you should see a `puree` tab in the N-panel of the 3D Viewport - click the button and you will see a blue rectangle with text.
+5. **Open Blender** — look for the Puree tab in the N-panel of the 3D Viewport.
 
 ---
 
@@ -356,7 +221,6 @@ flowchart LR
 This architecture enables:
 
 - **Native performance** – Critical paths run in compiled Rust code
-- **Hot reload**         – Rust file watcher auto-updates on YAML/SCSS changes
 - **GPU acceleration**   – All rendering & parallel computation happens in shaders
 - **Reactive layouts**   – Automatic layout recompute on interactions, viewport resize, etc.
 

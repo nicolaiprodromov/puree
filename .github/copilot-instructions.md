@@ -15,19 +15,30 @@ Puree is a **GPU-accelerated UI framework for Blender addons**. It lets develope
 puree/
 ├── puree/                    # ← THE ENGINE (Python + Rust + GLSL)
 │   ├── parser.py             # YAML → Container tree
+│   ├── parser_op.py          # Parser state sync operator
 │   ├── compiler.py           # Executes user script.py
 │   ├── render.py             # GPU rendering pipeline (ModernGL)
 │   ├── transition_manager.py # CSS transition animations
 │   ├── hit_op.py             # Hit detection modal operator
-│   ├── input_router.py       # Event consumption routing  
+│   ├── input_router.py       # Event consumption routing
 │   ├── hot_reload.py         # File watcher + live reload
+│   ├── hot_reload_ops.py     # Hot reload Blender operators
+│   ├── reload_server.py      # Built-in TCP server (127.0.0.1:19746) — reload, ping, logs
+│   ├── cli.py                # CLI tool: puree init/build/install
 │   ├── native_bindings.py    # Rust FFI: HitDetector, SCSSCompiler, ColorProcessor
 │   ├── text_op.py            # Text rendering operator
+│   ├── text_input_op.py      # Text input handling operator
 │   ├── img_op.py             # Image loading operator
+│   ├── mouse_op.py           # Mouse state tracking operator
+│   ├── scroll_op.py          # Scroll state tracking operator
 │   ├── panel.py              # Blender debug panel
 │   ├── components/           # Container class, Style class, defaults
 │   ├── puree_core/           # Rust source (compiled → native_binaries/)
 │   └── shaders/              # GLSL compute/vertex/fragment shaders
+├── dist/                     # ← BUILD SCRIPTS & TOOLS
+│   ├── dev_reload.py         # Triggers reload in running Blender
+│   ├── build.sh / build.bat  # Platform build scripts
+│   └── release.py            # Release automation
 ├── static/                   # ← BUILT-IN UI (example/default panel)
 │   ├── index.yaml
 │   ├── style.scss
@@ -41,7 +52,7 @@ puree/
 │   └── COMPONENTS.md         # Component system docs
 ├── assets/                   # Images (PNG, SVG)
 ├── fonts/                    # Font files (.ttf, .otf) — NeueMontreal family
-├── __init__.py               # Blender addon entry point
+├── __init__.py               # Blender addon entry point + reload server lifecycle
 └── blender_manifest.toml     # Blender extension manifest
 ```
 
@@ -97,15 +108,34 @@ Fixing bugs or extending the framework itself. Files in `puree/`, `puree/puree_c
 
 ## Build Commands
 
+### For users (via `pip install puree-ui`):
+```bash
+puree init            # Initialize new project in current directory
+puree build           # Build extension zip using Blender on PATH
+puree install         # Install built extension into Blender
+```
+
+### For developers (working on puree itself):
 ```bash
 just build_core       # Compile Rust native binary
-just deploy           # Full build + install to Blender
-just dev-link         # Symlink source for development
-just dev-reload       # Reload in running Blender
+just build_package    # Build Python package
+just build            # Build extension zip using Blender on PATH
+just link             # Symlink source into Blender extensions (auto-installs deps)
+just unlink           # Remove dev symlinks
+just reload           # Reload addon in running Blender (via TCP reload server)
+just tail             # Live-follow the Puree log file
+just logs             # Print last 50 lines of the log (just logs 100 for more)
+just clear-logs       # Delete all log files
+just deploy           # Link + reload (quick dev cycle)
+just install          # Install puree CLI locally for testing (creates .venv)
+just venv             # Create venv and install CLI in editable mode
+just install-deps     # Install wheel dependencies into Blender site-packages
 just wheels           # Download Python dependency wheels
 just bump x.y.z       # Version bump everywhere
 just release x.y.z    # Full release workflow
 ```
+
+> All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
 
 ## Known Issues & Gotchas
 
@@ -113,6 +143,7 @@ just release x.y.z    # Full release workflow
 |-------|--------|
 | Dynamic row hide | `height: 0` alone doesn't fully hide — also clear padding and border-width |
 | Hot reload + GL | Rapid saves can crash the ModernGL context |
+| Reload server | TCP server on 127.0.0.1:19746 auto-starts with addon; commands: `reload`, `ping`, `log_path`, `logs [N]`; sentinel file `.puree_reload` is fallback |
 | Hit detection stale | Panel resize can break hit detection — cache needs clearing |
 | Display case mismatch | SCSS uses `none`/`flex`, Python runtime uses `NONE`/`FLEX` |
 | Text rendering async | Text renders separately from GPU containers, can lag |

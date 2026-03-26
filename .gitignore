@@ -1,5 +1,6 @@
 logs/
 blender/
+.venv/
 
 *.blend
 *.blend1
@@ -9,6 +10,7 @@ blender/
 assets/*.svg
 docs.aep_AME/
 docs/.bgpu.md
+.puree_reload
 
 *.zip
 *.tar.gz

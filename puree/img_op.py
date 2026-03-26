@@ -144,7 +144,6 @@ class ImageInstance:
         self.position     = pos
         self.size         = size
         self.mask         = mask
-        self.clip         = None  # Separate scissor clip rect [x, y, w, h] for scroll clipping
         self.aspect_ratio = aspect_ratio
         self.align_h      = align_h
         self.align_v      = align_v
@@ -218,7 +217,7 @@ class ImageInstance:
         self.opacity = max(0.0, min(1.0, new_opacity))
         self._trigger_redraw()
     
-    def update_all(self, image_name=None, size=None, pos=None, mask=None, clip=None, aspect_ratio=None, align_h=None, align_v=None, opacity=None):
+    def update_all(self, image_name=None, size=None, pos=None, mask=None, aspect_ratio=None, align_h=None, align_v=None, opacity=None):
         if image_name is not None and image_name in image_manager.get_available_images():
             self.image_name = image_name
             self.texture = image_manager.get_texture(image_name)
@@ -229,8 +228,6 @@ class ImageInstance:
             self.position = list(pos)
         if mask is not None:
             self.mask = mask
-        if clip is not None:
-            self.clip = clip
         if aspect_ratio is not None:
             self.aspect_ratio = aspect_ratio
         if align_h is not None:
@@ -271,17 +268,7 @@ def draw_all_images():
         if not instance.texture or not instance.batch:
             continue
         
-        use_scissor = instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
-        
-        # GPU scissor for true pixel-level clipping (scroll containers)
-        if use_scissor:
-            sc_x = int(instance.clip[0])
-            sc_y = int(viewport_height - instance.clip[1] - instance.clip[3])
-            sc_w = int(instance.clip[2])
-            sc_h = int(instance.clip[3])
-            gpu.state.scissor_test_set(True)
-            gpu.state.scissor_set(sc_x, sc_y, sc_w, sc_h)
-        elif instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             xmin = instance.mask[0]
             ymin = viewport_height - instance.mask[1] - instance.mask[3]
             xmax = instance.mask[0] + instance.mask[2]
@@ -331,7 +318,7 @@ def draw_all_images():
         
         gpu.matrix.pop_projection()
         
-        if use_scissor or (instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0):
+        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
             gpu.state.scissor_test_set(False)
     
     gpu.state.blend_set(saved_blend)
@@ -398,7 +385,7 @@ class DrawImageOP(bpy.types.Operator):
                 draw_all_images, (), 'WINDOW', 'POST_PIXEL')
         
         context.area.tag_redraw()
-        logger.debug(f"Added image instance #{new_instance.id} with image {self.image_name}")
+        self.report({'INFO'}, f"Added image instance #{new_instance.id} with image {self.image_name}")
         return {'FINISHED'}
 
 class RemoveImageOP(bpy.types.Operator):
@@ -413,10 +400,9 @@ class RemoveImageOP(bpy.types.Operator):
         for i, instance in enumerate(_image_instances):
             if instance.id == self.instance_id:
                 _image_instances.pop(i)
-                logger.debug(f"Removed image instance #{self.instance_id}")
+                self.report({'INFO'}, f"Removed image instance #{self.instance_id}")
                 break
         else:
-            logger.error(f"Image instance #{self.instance_id} not found")
             self.report({'ERROR'}, f"Image instance #{self.instance_id} not found")
             return {'CANCELLED'}
         
@@ -550,11 +536,10 @@ class UpdateImageOP(bpy.types.Operator):
                     updated_props = list(kwargs.keys())
 
                 else:
-                    logger.debug(f"No properties specified to update for image instance #{self.instance_id}")
+                    self.report({'INFO'}, f"No properties specified to update for image instance #{self.instance_id}")
                 
                 return {'FINISHED'}
         
-        logger.error(f"Image instance #{self.instance_id} not found")
         self.report({'ERROR'}, f"Image instance #{self.instance_id} not found")
         return {'CANCELLED'}
 

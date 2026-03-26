@@ -315,9 +315,6 @@ def trigger_ui_reload():
                     align_h=block.get('align_h', 'LEFT').upper(),
                     align_v=block.get('align_v', 'CENTER').upper()
                 )
-            else:
-                # Container text was cleared — hide this text instance
-                text_instance.update_all(text=' ', mask=[0, 0, 0, 0])
         
         from . import text_input_op
         for input_instance in text_input_op._text_input_instances:
@@ -355,9 +352,6 @@ def trigger_ui_reload():
                     align_v=block.get('align_v', 'TOP').upper(),
                     opacity=block.get('opacity', 1.0)
                 )
-            else:
-                # Container image was cleared — hide this image instance
-                image_instance.update_all(size=[0, 0], mask=[0, 0, 0, 0], opacity=0.0)
         
         render._render_data.update_container_buffer_full(hit_op._container_data)
         

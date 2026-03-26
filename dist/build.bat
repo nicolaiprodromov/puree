@@ -17,77 +17,14 @@ set addon_dir=%cd%
 
 echo working from: %addon_dir%
 
-set "blender_exe="
-set "latest_version="
-
-if exist "C:\Program Files\Blender Foundation\Blender 4.5\blender.exe" (
-    set "blender_exe=C:\Program Files\Blender Foundation\Blender 4.5\blender.exe"
-    set "latest_version=4.5"
-    goto :found_blender
+where blender >nul 2>nul
+if errorlevel 1 (
+    echo ERROR: 'blender' not found on PATH!
+    echo Please ensure Blender is installed and available in your system PATH.
+    exit /b 1
 )
 
-if exist "C:\Program Files (x86)\Blender Foundation\Blender 4.5\blender.exe" (
-    set "blender_exe=C:\Program Files (x86)\Blender Foundation\Blender 4.5\blender.exe"
-    set "latest_version=4.5"
-    goto :found_blender
-)
-
-if exist "C:\Program Files\Blender Foundation\Blender 4.4\blender.exe" (
-    set "blender_exe=C:\Program Files\Blender Foundation\Blender 4.4\blender.exe"
-    set "latest_version=4.4"
-    goto :found_blender
-)
-
-if exist "C:\Program Files (x86)\Blender Foundation\Blender 4.4\blender.exe" (
-    set "blender_exe=C:\Program Files (x86)\Blender Foundation\Blender 4.4\blender.exe"
-    set "latest_version=4.4"
-    goto :found_blender
-)
-
-if exist "C:\Program Files\Blender Foundation\Blender 4.3\blender.exe" (
-    set "blender_exe=C:\Program Files\Blender Foundation\Blender 4.3\blender.exe"
-    set "latest_version=4.3"
-    goto :found_blender
-)
-
-if exist "C:\Program Files (x86)\Blender Foundation\Blender 4.3\blender.exe" (
-    set "blender_exe=C:\Program Files (x86)\Blender Foundation\Blender 4.3\blender.exe"
-    set "latest_version=4.3"
-    goto :found_blender
-)
-
-if exist "C:\Program Files\Blender Foundation\Blender 4.2\blender.exe" (
-    set "blender_exe=C:\Program Files\Blender Foundation\Blender 4.2\blender.exe"
-    set "latest_version=4.2"
-    goto :found_blender
-)
-
-if exist "C:\Program Files (x86)\Blender Foundation\Blender 4.2\blender.exe" (
-    set "blender_exe=C:\Program Files (x86)\Blender Foundation\Blender 4.2\blender.exe"
-    set "latest_version=4.2"
-    goto :found_blender
-)
-
-if exist "C:\Program Files\Blender Foundation\Blender 4.1\blender.exe" (
-    set "blender_exe=C:\Program Files\Blender Foundation\Blender 4.1\blender.exe"
-    set "latest_version=4.1"
-    goto :found_blender
-)
-
-if exist "C:\Program Files (x86)\Blender Foundation\Blender 4.1\blender.exe" (
-    set "blender_exe=C:\Program Files (x86)\Blender Foundation\Blender 4.1\blender.exe"
-    set "latest_version=4.1"
-    goto :found_blender
-)
-
-
-echo ERROR: Blender 4.0+ installation not found!
-echo Please ensure Blender 4.0 or newer is installed.
-pause
-exit /b 1
-
-:found_blender
-echo %latest_version% at: %blender_exe%
+set "blender_exe=blender"
 
 for /f "usebackq tokens=1* delims==" %%a in (`findstr /r "^name" blender_manifest.toml`) do (
     set "addon_name=%%b"

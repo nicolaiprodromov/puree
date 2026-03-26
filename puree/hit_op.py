@@ -14,6 +14,8 @@ from .scroll_op import scroll_state
 from .mouse_op import mouse_state
 from .native_bindings import HitDetector
 from .input_router import input_router
+from .log import get_logger
+logger = get_logger(__name__)
 
 hit_modal_running = False
 _container_data = []

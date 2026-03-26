@@ -56,7 +56,7 @@
 |-------|---------|
 | `/normalize` | Align with SCSS variables and component patterns |
 | `/extract` | Create reusable components, consolidate patterns |
-| `/teach-impeccable` | One-time setup: persist design context to `.impeccable.md` |
+| `/teach-impeccable` | One-time setup: persist design context to `docs/.impeccable.md` |
 
 ### Engine Maintenance (puree-maintainer)
 
@@ -101,6 +101,6 @@
 | File | Purpose | Loaded By |
 |------|---------|-----------|
 | `.github/copilot-instructions.md` | Global project context | Every Copilot conversation (automatic) |
-| `.impeccable.md` | Design context and aesthetics | Design skills (automatic) |
+| `docs/.impeccable.md` | Design context and aesthetics | Design skills (automatic) |
 | `docs/KNOWLEDGE_BASE.md` | Institutional knowledge, gotchas | Manual reference |
 | `/memories/repo/puree-notes.md` | Running notes and discoveries | Memory system |

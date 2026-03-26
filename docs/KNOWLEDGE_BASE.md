@@ -81,10 +81,23 @@ Puree only consumes events when the mouse is over a Puree container. This allows
 
 ## Hot Reload — How It Works and Breaks
 
+### File Watcher (SCSS/YAML changes)
+
 - `PyFileWatcher` (Rust) polls watched directories every ~300ms
 - On file change: full reparse + recompile + relayout + re-render
 - **Known fragility**: Rapid saves (e.g., save-all in editor) can trigger multiple reloads before the first finishes. The ModernGL context can be invalidated mid-reload, causing crashes.
 - **SCSS cache**: Uses file mtime for invalidation. `git checkout` doesn't always update mtime, so cached SCSS may be stale after branch switches.
+
+### Dev Reload Server (Python code changes)
+
+For Python code changes (which need a full module purge + re-register), Puree has a built-in TCP reload server:
+
+1. **ReloadServer** (`puree/reload_server.py`) — listens on `127.0.0.1:19746`, accepts `reload`, `ping`, `log_path`, and `logs [N]` commands
+2. **Auto-starts** with the addon — no manual activation needed. Starts in `__init__.py register()`, stops in `unregister()`.
+3. **Triggered by** `just reload` / `make reload` → runs `dist/dev_reload.py`
+4. **Reload flow**: Stop server → unregister addon → purge all `puree.*` modules from `sys.modules` → clear `__pycache__` → re-import + re-register (fresh server starts)
+5. **Sentinel fallback**: If TCP isn't reachable, `dev_reload.py` writes `.puree_reload` file. A Blender timer (`_check_reload_sentinel`, 2s interval) picks it up.
+6. **Thread-safe**: Server runs in a daemon thread; reload is scheduled via `bpy.app.timers.register()` on Blender's main thread.
 
 ## Transitions — What Animates and What Doesn't
 
@@ -153,7 +166,7 @@ bpy.app.timers.register(deferred)
 
 | Problem | Check |
 |---------|-------|
-| Blank panel | Is `_try_start_ui()` called? Check Blender system console for errors. |
+| Blank panel | Is `_try_start_ui()` called? Check `just logs` or `just tail` for errors. |
 | Wrong colors | sRGB→linear conversion. Check if color is doubled or missing. |
 | Container at wrong position | Buffer stride mismatch between Python and GLSL. |
 | Hover on wrong element | Hit detection cache stale after resize. |
@@ -175,14 +188,37 @@ bpy.app.timers.register(deferred)
 
 For UI work (fast iteration):
 ```bash
-just dev-link         # One-time: symlink source to Blender extensions
-just dev-reload       # After changes: reload in running Blender
+just link             # One-time: symlink source into Blender extensions
+just reload           # After changes: reload in running Blender (TCP server)
+just tail             # Live-follow the Puree log file
+just logs             # Print last 50 lines of the log (just logs 100 for more)
+just clear-logs       # Delete all log files
+just deploy           # Shortcut: link + reload
 ```
 
 For engine work (requires rebuild):
 ```bash
 just build_core       # After Rust changes
-just deploy           # Full rebuild + install
+just reload           # Reload in running Blender
+```
+
+For CLI testing:
+```bash
+just venv             # Create venv + install CLI in editable mode
+source .venv/bin/activate
+puree --version
 ```
 
 For hot reload during UI development: Just save the file. `PyFileWatcher` detects changes and triggers reparse/rerender automatically.
+
+## CLI Tool
+
+Puree ships a CLI tool (`puree`) for end users, installed via `pip install puree-ui`:
+
+```bash
+puree init            # Scaffold a new project (YAML, SCSS, script.py, manifest)
+puree build           # Build extension zip using Blender on PATH
+puree install         # Install built extension into Blender
+```
+
+The CLI lives in `puree/cli.py` and is exposed via `[project.scripts]` in `pyproject.toml`.

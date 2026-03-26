@@ -1,7 +1,7 @@
 ---
 name: puree-maintainer
 description: "Specialized agent for maintaining and extending the Puree framework codebase itself (Python engine, Rust core, GLSL shaders, parser, compiler, renderer). Use when: fixing engine bugs, adding CSS properties, extending the parser/compiler, improving hot reload, optimizing GPU rendering, modifying native bindings."
-tools: [read, edit, search, execute, agent]
+tools: [execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/awaitTerminal, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/getNotebookSummary, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, github/add_comment_to_pending_review, github/add_issue_comment, github/add_reply_to_pull_request_comment, github/assign_copilot_to_issue, github/create_branch, github/create_or_update_file, github/create_pull_request, github/create_pull_request_with_copilot, github/create_repository, github/delete_file, github/fork_repository, github/get_commit, github/get_copilot_job_status, github/get_file_contents, github/get_label, github/get_latest_release, github/get_me, github/get_release_by_tag, github/get_tag, github/get_team_members, github/get_teams, github/issue_read, github/issue_write, github/list_branches, github/list_commits, github/list_issue_types, github/list_issues, github/list_pull_requests, github/list_releases, github/list_tags, github/merge_pull_request, github/pull_request_read, github/pull_request_review_write, github/push_files, github/request_copilot_review, github/search_code, github/search_issues, github/search_pull_requests, github/search_repositories, github/search_users, github/sub_issue_write, github/update_pull_request, github/update_pull_request_branch, ms-vscode.vscode-websearchforcopilot/websearch]
 argument-hint: "Describe what to fix, extend, or investigate in the Puree engine"
 ---
 
@@ -32,12 +32,16 @@ User Files (YAML/SCSS/Python)
 
 | Module | Purpose | Key Entry Points |
 |--------|---------|-----------------|
-| `__init__.py` (root) | Addon registration, `_try_start_ui()` | `register()`, `unregister()` |
+| `__init__.py` (root) | Addon registration, reload server lifecycle | `register()`, `unregister()`, `_perform_reload()` |
 | `puree/parser.py` | YAML parsing → Container tree | `UI` class, `Theme`, `Container` |
+| `puree/parser_op.py` | Parser state sync | `sync_dirty_containers()`, `flatten_node_tree()` |
 | `puree/compiler.py` | User script execution | `Compiler.compile()` — runs `main(self, app)` |
 | `puree/render.py` | GPU rendering pipeline | `RenderPipeline` — ModernGL buffers, shaders |
 | `puree/panel.py` | Debug panel in Blender UI | `XWZ_PT_dynamic_panel` |
 | `puree/hot_reload.py` | File watcher + live reload | `HotReloadManager` — `PyFileWatcher` (Rust) |
+| `puree/hot_reload_ops.py` | Hot reload Blender operators | Operator wrappers for reload actions |
+| `puree/reload_server.py` | Built-in TCP reload server | `ReloadServer` — 127.0.0.1:19746, `ping`/`reload`/`log_path`/`logs` |
+| `puree/cli.py` | CLI tool (`puree init/build/install`) | `main()` via `puree` console script |
 | `puree/transition_manager.py` | CSS transition animations | `TransitionManager` — easing, interpolation |
 | `puree/input_router.py` | Event consumption routing | `InputRouter` singleton |
 | `puree/hit_op.py` | Hit detection modal | `XWZ_OT_hit_detect` — `HitDetector` (Rust) |
@@ -52,7 +56,7 @@ User Files (YAML/SCSS/Python)
 | `puree/native_bindings.py` | Rust FFI wrappers | `HitDetector`, `SCSSCompiler`, `ColorProcessor`, `PyFileWatcher` |
 | `puree/space_config.py` | Blender space configuration | Panel placement settings |
 | `puree/utils.py` | Screen-space math utilities | `osb()`, `recursive_search()` |
-| `puree/log.py` | Logging setup | Puree logger configuration |
+| `puree/log.py` | Centralized logging | `get_logger()`, `get_log_path()`, `capture_output()`, rotating file handler |
 
 ### Subpackages
 
@@ -102,6 +106,23 @@ File change on disk
   → Full re-render: GPU buffers rebuilt
 ```
 
+### Dev Reload Flow (`just reload`)
+
+```
+dist/dev_reload.py runs
+  → Primary: TCP connect to 127.0.0.1:19746 (ReloadServer)
+  → Sends "reload" command → server responds "ok"
+  → ReloadServer schedules reload via bpy.app.timers
+  → __init__.py _perform_reload():
+      → Stop ReloadServer
+      → Unregister addon
+      → Purge all puree modules from sys.modules
+      → Clear __pycache__ bytecode
+      → Re-import and register (starts fresh ReloadServer)
+  → Fallback: write .puree_reload sentinel file
+      → _check_reload_sentinel() timer (2s interval) picks it up
+```
+
 ### GPU Buffer Layout
 
 Each container is packed into a Shader Storage Buffer Object (SSBO) with a stride of **68 floats per container**:
@@ -128,7 +149,7 @@ Each container is packed into a Shader Storage Buffer Object (SSBO) with a strid
 
 ### Rust Code (puree_core/)
 
-1. **Build with** `just build_core` or `make build_core`
+1. **Build with** `just build_core`
 2. **PyO3 bindings** — Rust functions exposed to Python via PyO3. Changes require rebuild.
 3. **Hit detection** uses container positions from the GPU buffer, not re-layout.
 4. **SCSS compilation** uses `grass` crate (Rust port of Dart Sass).
@@ -171,15 +192,23 @@ Each container is packed into a Shader Storage Buffer Object (SSBO) with a strid
 ```bash
 just build_core       # Compile Rust to native binary
 just build_package    # Build Python package
-just build            # Package addon zip
-just install          # Install to Blender (needs Blender MCP)
-just deploy           # Full: build_core + build_package + build + install
-just dev-link         # Symlink for development (no rebuild needed)
-just dev-reload       # Reload in running Blender
+just build            # Build extension zip (uses Blender on PATH)
+just link             # Symlink source into Blender extensions (auto-installs deps)
+just unlink           # Remove dev symlinks
+just reload           # Reload addon in running Blender (via TCP reload server)
+just tail             # Live-follow the Puree log file
+just logs             # Print last 50 lines of the log (just logs 100 for more)
+just clear-logs       # Delete all log files
+just deploy           # Link + reload (quick dev cycle)
+just install          # Install puree CLI locally for testing (creates .venv)
+just venv             # Create venv and install CLI in editable mode
+just install-deps     # Install wheel dependencies into Blender site-packages
 just wheels           # Download Python dependency wheels
 just bump x.y.z       # Bump version everywhere
 just release x.y.z    # Full release workflow
 ```
+
+> All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
 
 ## Known Issues & Gotchas
 
@@ -197,7 +226,7 @@ just release x.y.z    # Full release workflow
 
 ## Testing
 
-- Test with `just deploy` in Blender 4.2+ (or 5.x)
+- Test with `just link && just reload` in Blender 5.1+
 - Check multiple panel sizes (narrow sidebar, wide properties panel)
 - Test hot reload stability (rapid saves)
 - Verify hit detection accuracy after resize

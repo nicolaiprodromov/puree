@@ -8,7 +8,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 
 <details>
 <summary>
-Click here for installation commands
+🖥️ Click here for installation commands
 </summary>
 
 <br>
@@ -48,11 +48,10 @@ Click here for installation commands
 
     | Dependencies |
     |-------------|
-    | [Blender 4.1+](https://www.blender.org/download/) |
+    | [Blender 5.1+](https://www.blender.org/download/) (must be on PATH) |
     | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
     | [Rust](https://rust-lang.org/tools/install/) |
     | [Python 3.10+](https://www.python.org/downloads/) |
-    | [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) |
 
 2. Clone this repository.
 
@@ -62,24 +61,35 @@ Click here for installation commands
     ```
 
 3. Run `just wheels` or `make wheels` to download the python dependencies and add them automatically to the manifest file
-4. Run `just build_core` or `make build_core` to build the core binaries
-5. Run `just build_package` or `make build_package` to build the python package.
-6. Run `just build` or `make build` to build the addon zip file (make sure Blender is running).
-7. Run `just install` or `make install` to install the addon in Blender.
-    - Alternatively, run `just deploy` or `make deploy` to build core, build package, and build and install addon in one command (make sure Blender is running).
+4. Run `just build_core` to build the core binaries
+5. Run `just link` to symlink the source into Blender's extensions directory (auto-installs wheel dependencies)
+6. Open Blender — the addon is live. A built-in reload server (TCP on port 19746) starts automatically with the addon.
+    - Use `just reload` after making code changes (triggers reload via the TCP server).
+    - Use `just tail` to live-follow the log, or `just logs` to see the last 50 lines.
+    - Or use `just deploy` as a shortcut for `just link && just reload`.
 
 ### Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `make build` / `just build` | Packages the addon into a zip file in `dist/` |
-| `make install` / `just install` | Installs the addon to Blender (requires [Blender MCP](https://github.com/XWZ/blender-mcp-addon)) |
-| `make uninstall` / `just uninstall` | Removes the addon from Blender |
-| `make wheels` / `just wheels` | Downloads platform-specific dependency wheels to `puree/wheels/` |
-| `make build_package` / `just build_package` | Builds the python puree package |
-| `make deploy` / `just deploy` | Full workflow: builds package & addon, creates zip, uninstalls old version, installs new version |
-| `make bump VERSION=x.y.z` / `just bump x.y.z` | Updates version across all project files and rebuilds |
-| `make release VERSION=x.y.z` / `just release x.y.z` | Complete release workflow: bumps version, commits, pushes, and creates GitHub release |
+| `just build_core` | Compile Rust native binary |
+| `just build_package` | Build the Python puree package |
+| `just build` | Build extension zip using Blender on PATH |
+| `just link` | Symlink source into Blender extensions for development (auto-installs deps) |
+| `just unlink` | Remove dev symlinks |
+| `just reload` | Reload addon in running Blender (via built-in TCP reload server) |
+| `just tail` | Live-follow the Puree log file |
+| `just logs` | Print last 50 lines of the log (`just logs 100` for more) |
+| `just clear-logs` | Delete all log files |
+| `just deploy` | Link + reload (quick dev cycle) |
+| `just install` | Install puree CLI locally for testing (creates .venv) |
+| `just venv` | Create venv and install CLI in editable mode |
+| `just install-deps` | Install wheel dependencies into Blender’s extension site-packages |
+| `just wheels` | Download platform-specific dependency wheels |
+| `just bump x.y.z` | Update version across all project files and rebuild |
+| `just release x.y.z` | Complete release workflow: bumps version, commits, pushes, and creates GitHub release |
+
+> All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
 
 > [!NOTE]
 > Before bumping version, make sure all changes are committed.
@@ -88,7 +98,7 @@ Click here for installation commands
 
 1. Create a feature branch from `master`
 2. Make your changes with clear, descriptive commits
-3. Test your changes with `make deploy` in Blender 4.2+
+3. Test your changes with `just link && just reload` in Blender 5.1+
 4. Ensure no regressions in existing functionality
 5. Submit a pull request with a clear description of changes
 

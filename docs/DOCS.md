@@ -8,7 +8,7 @@ title : 1. Documentation
 
 The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
-> Puree is built on top of **ModernGL**, **TinyCSS2**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> Puree is built on top of **ModernGL**, **grass** (Rust SCSS compiler), and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 ## Overview
 
@@ -19,7 +19,7 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
     1. [`index.yaml` breakdown](#indexyaml-breakdown)
         - [App structure](#app-structure)
         
-    2. [`style.css` breakdown](#stylecss-breakdown)
+    2. [`style.scss` breakdown](#stylescss-breakdown)
         - [CSS Custom Properties (Variables)](#css-custom-properties-variables)
         - [Color Space Conversion](#color-space-conversion)
 
@@ -43,21 +43,28 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 
 ## Installation
 
-**There are 3 ways to start making a user interface using puree with increasing levels of complexity:**
+**There are 2 ways to start making a user interface using puree:**
 
-### 1. Download latest release
+### 1. Install with pip (recommended)
 
-Go to Releases and download the archive. Unpack it, modify the example files, build and install addon. `Edit > Preferences > Add-ons > Install from disk` or simply drag and drop the .zip file in Blender.
+Install puree and use the CLI to bootstrap a new project:
 
-### 2. Install with pip
-
-> It's not recommend to install dependencies with pip in the blender's python context, so better download the puree wheel and it's dependencies, and reference them in the `blender_manifest.toml` file of your addon.
-
-```plaintext
-pip download --only-binary=:all: --python-version 3.11 --dest wheels puree-ui
+```bash
+pip install puree-ui
+mkdir my_addon && cd my_addon
+puree init
 ```
 
-### 3. Clone the repo
+This creates a complete project structure with all dependencies, a `blender_manifest.toml`, and a starter UI (pink box with "PUREE" in blue).
+
+Then build and install:
+
+```bash
+puree build       # Build the extension zip (requires Blender on PATH)
+puree install     # Install the extension into Blender
+```
+
+### 2. Clone the repo (for framework development)
 
 <details>
 <summary>
@@ -101,11 +108,10 @@ Click here for installation commands
 
     | Dependencies |
     |-------------|
-    | [Blender 4.1+](https://www.blender.org/download/) |
+    | [Blender 5.1+](https://www.blender.org/download/) (must be on PATH) |
     | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
     | [Rust](https://rust-lang.org/tools/install/) |
     | [Python 3.10+](https://www.python.org/downloads/) |
-    | [Blender MCP Addon](https://github.com/XWZ/blender-mcp-addon) |
 
 2. Clone this repository.
 
@@ -114,12 +120,13 @@ Click here for installation commands
     cd puree
     ```
 
-3. Run `just wheels` or `make wheels` to download the python dependencies and add them automatically to the manifest file
-4. Run `just build_core` or `make build_core` to build the core binaries
-5. Run `just build_package` or `make build_package` to build the python package.
-6. Run `just build` or `make build` to build the addon zip file (make sure Blender is running).
-7. Run `just install` or `make install` to install the addon in Blender.
-    - Alternatively, run `just deploy` or `make deploy` to build core, build package, and build and install addon in one command (make sure Blender is running).
+3. Run `just wheels` to download the python dependencies and add them automatically to the manifest file
+4. Run `just build_core` to build the core binaries
+5. Run `just link` to symlink the source into Blender's extensions directory (auto-installs deps)
+6. Open Blender — the addon is live. A built-in reload server auto-starts on port 19746.
+    - Use `just reload` after code changes (triggers reload via TCP server).
+    - Use `just tail` to live-follow the log, or `just logs` to see the last 50 lines.
+    - Or use `just deploy` as a shortcut for `just link && just reload`.
 
 ---
 
@@ -129,10 +136,14 @@ The bare minimum file structure for a project is as follows:
 
 ```
 puree_project/
-    ├── index.yaml
-    ├── style.css
-    ├── __init__.py <-- your addon entry point
+    ├── static/
+    │   ├── index.yaml
+    │   └── style.scss
+    ├── blender_manifest.toml
+    └── __init__.py   <-- your addon entry point
 ```
+
+> Use `puree init` to scaffold this automatically.
 
 ---
 
@@ -151,7 +162,7 @@ app:
       author: xwz
       version: 1.0.0
       styles:
-        - static/style.css
+        - static/style.scss
       scripts:
         - static/script.py
       root:
@@ -169,7 +180,7 @@ The equivalent of the `body` tag in HTML is the `root` node in Puree. The elemen
 
 The `root` section contains the nodes that define the hierarchy and properties of your interface. You must nest other nodes within the root nto create your interface.
 
-Each node can have its own properties, styles, and child nodes. In the example above, the `bg` node is a child of the `root` node, and it has its own style defined in the `style.css` file.
+Each node can have its own properties, styles, and child nodes. In the example above, the `bg` node is a child of the `root` node, and it has its own style defined in the `style.scss` file.
 
 You can also draw images and text by changing the `img` and `text` properties. The images must be stored in a `assets/` folder in the root of your project. Fonts must be stored in a `fonts/` folder in the root of your project.
 
@@ -185,24 +196,24 @@ puree_project/
     │   ├── your fonts
     ├── static/
     │   ├── index.toml
-    │   └── style.css
+    │   └── style.scss
     │   └── script.py
     ├── __init__.py <-- your addon entry point
 ```
 
 ---
 
-## `style.css` breakdown
+## `style.scss` breakdown
 
-You can define custom styles for your app using a CSS-like syntax to specify styles for your app's nodes.
+You can define custom styles for your app using SCSS (a superset of CSS) to specify styles for your app's nodes.
 
-Puree does not implement the full CSS specification, but does implement some new features specific to the framework. 
+Puree compiles SCSS via the `grass` Rust crate. Standard SCSS features (variables, nesting, mixins, `!default`) all work. Puree does not implement the full CSS specification, but does implement some new features specific to the framework.
 
 >For more details and the list of supported properties, refer to the [API Reference](API.md).
 
 > *Ultimately, the point is not to replicate CSS, but to provide a familiar syntax for defining styles in a way that is easy to read and write.*
 
-Here is an example of what a `style.css` file might look like: 
+Here is an example of what a `style.scss` file might look like: 
 
 ```css
 root {

@@ -64,18 +64,20 @@ When the bug isn't obvious from code reading:
 
 ```python
 # Temporary debugging — add to the suspected module
-from puree.log import logger
+from .log import get_logger
+logger = get_logger(__name__)
 logger.debug(f"Container {container.id}: pos=({container.layout.x}, {container.layout.y}), size=({container.layout.width}, {container.layout.height})")
 logger.debug(f"Style: bg={container.style.background_color}, display={container.style.display}")
 ```
 
-Check Blender's system console for output (Window → Toggle System Console on Windows, or run Blender from terminal on Linux/Mac).
+Output goes to `<addon_root>/logs/puree.log`. Use `just tail` to live-follow it, or `just logs` to see recent output.
+Set `PUREE_DEBUG=1` environment variable to also echo to Blender's system console.
 
 ### 4. Fix and Verify
 
 1. Make the minimal fix
 2. Check if the fix affects other subsystems (buffer stride changes affect ALL rendering)
-3. Test with `just dev-link && just dev-reload` for fast iteration
+3. Test with `just link && just reload` for fast iteration
 4. Test edge cases: empty tree, deep nesting, rapid hot reload, panel resize
 
 ### 5. Common Root Causes
