@@ -99,10 +99,6 @@ class XWZ_OT_scroll(bpy.types.Operator):
                 scroll_delta = math.floor(self.trackpad_y_accum / sensitivity)
                 self.trackpad_y_accum -= scroll_delta * sensitivity
             
-        if event.type == 'ESC':
-            scroll_state.set_operator(None)
-            return {'CANCELLED'}
-            
         if scroll_delta != 0:
             self.scroll_offset += scroll_delta
             scroll_state.update(scroll_delta, self.scroll_offset)

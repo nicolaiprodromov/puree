@@ -102,9 +102,6 @@ class XWZ_OT_mouse(bpy.types.Operator):
             if self.click_enabled:
                 mouse_state.update_click(False)
         
-        if event.type in {'ESC'}:
-            return {'CANCELLED'}
-        
         return {'PASS_THROUGH'}
 
 class XWZ_OT_mouse_launch(bpy.types.Operator):

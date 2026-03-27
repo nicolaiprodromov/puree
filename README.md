@@ -15,6 +15,8 @@ It's meant for all Blender users that want to enhance their ability to present t
 
 > `purée` is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
+<img src="docs/images/usage1.gif" alt="purée UI Logo" width="70%"/>
+
 </div>
 
 ---

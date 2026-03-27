@@ -2099,10 +2099,6 @@ class XWZ_OT_start_ui(Operator):
                             area.tag_redraw()
                             break
 
-        elif event.type in {'ESC'}:
-            self.cancel(context)
-            return {'CANCELLED'}
-        
         return {'PASS_THROUGH'}
     
     def cancel(self, context):
