@@ -226,6 +226,12 @@ class Container():
     def is_focused(self) -> bool:
         from ..focus import focus_manager
         return focus_manager.is_focused(self.id)
+
+    @property
+    def keys(self):
+        """Returns a ContainerKeyProxy for scoping keyboard shortcuts to this container."""
+        from ..keyboard import ContainerKeyProxy
+        return ContainerKeyProxy(self.id)
     
     @staticmethod
     def is_layout_property(name):

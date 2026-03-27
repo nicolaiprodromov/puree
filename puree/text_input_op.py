@@ -426,6 +426,20 @@ class KeyboardHandler(bpy.types.Operator):
             return {'CANCELLED'}
         
         if _active_input_id is None:
+            # Still dispatch global keyboard shortcuts even when no text input focused
+            if event.value == 'PRESS':
+                try:
+                    from .keyboard import keys as key_manager
+                    from .focus import focus_manager
+                    consumed = key_manager.dispatch(
+                        event,
+                        focused_container_id=focus_manager.get_focused_id(),
+                        any_input_focused=False
+                    )
+                    if consumed:
+                        return {'RUNNING_MODAL'}
+                except Exception:
+                    pass
             return {'PASS_THROUGH'}
         
         active_input = None
@@ -551,6 +565,20 @@ class KeyboardHandler(bpy.types.Operator):
             except Exception:
                 pass
             return {'RUNNING_MODAL'}
+
+        # Dispatch to keyboard shortcut manager (with text input context)
+        try:
+            from .keyboard import keys as key_manager
+            from .focus import focus_manager
+            consumed = key_manager.dispatch(
+                event,
+                focused_container_id=focus_manager.get_focused_id(),
+                any_input_focused=True
+            )
+            if consumed:
+                return {'RUNNING_MODAL'}
+        except Exception:
+            pass
 
         return {'PASS_THROUGH'}
 
