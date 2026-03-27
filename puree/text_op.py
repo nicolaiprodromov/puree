@@ -538,7 +538,7 @@ class DrawTextOP(bpy.types.Operator):
                 draw_all_text, (), 'WINDOW', 'POST_PIXEL')
         
         context.area.tag_redraw()
-        self.report({'INFO'}, f"Added text instance #{new_instance.id} with font {self.font_name}")
+        logger.info(f"Added text instance #{new_instance.id} with font {self.font_name}")
         return {'FINISHED'}
 
 class RemoveTextOP(bpy.types.Operator):
@@ -553,10 +553,10 @@ class RemoveTextOP(bpy.types.Operator):
         for i, instance in enumerate(_text_instances):
             if instance.id == self.instance_id:
                 _text_instances.pop(i)
-                self.report({'INFO'}, f"Removed text instance #{self.instance_id}")
+                logger.info(f"Removed text instance #{self.instance_id}")
                 break
         else:
-            self.report({'ERROR'}, f"Text instance #{self.instance_id} not found")
+            logger.error(f"Text instance #{self.instance_id} not found")
             return {'CANCELLED'}
         
         if not _text_instances and _draw_handle is not None:
@@ -667,13 +667,13 @@ class UpdateTextOP(bpy.types.Operator):
                 if kwargs:
                     instance.update_all(**kwargs)
                     updated_props = list(kwargs.keys())
-                    self.report({'INFO'}, f"Updated text instance #{self.instance_id}: {', '.join(updated_props)}")
+                    logger.info(f"Updated text instance #{self.instance_id}: {', '.join(updated_props)}")
                 else:
-                    self.report({'INFO'}, f"No properties specified to update for text instance #{self.instance_id}")
+                    logger.info(f"No properties specified to update for text instance #{self.instance_id}")
                 
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text instance #{self.instance_id} not found")
+        logger.error(f"Text instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 def register():

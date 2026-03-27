@@ -113,9 +113,7 @@ def _perform_reload():
         mod.register()
         logger.info("addon reloaded (%d modules purged)", purged)
     except Exception as e:
-        logger.error("reload error: %s", e)
-        import traceback
-        traceback.print_exc()
+        logger.error("reload error: %s", e, exc_info=True)
 
 
 def _check_reload_sentinel():

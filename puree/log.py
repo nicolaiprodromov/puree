@@ -261,12 +261,10 @@ class _TeeStream:
 
     def write(self, msg: str) -> int:
         if msg:
-            self._original.write(msg)
             self._buffer_and_log(msg)
         return len(msg) if msg else 0
 
     def flush(self):
-        self._original.flush()
         if self._line_buf.strip():
             self._logger.log(self._level, self._line_buf.rstrip())
             self._line_buf = ""

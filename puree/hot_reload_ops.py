@@ -39,16 +39,14 @@ class XWZ_OT_enable_hot_reload(Operator):
                 
                 render._hot_reload_enabled = True
                 
-                self.report({'INFO'}, "Hot reload enabled")
+                logger.info("Hot reload enabled")
                 return {'FINISHED'}
             else:
-                self.report({'ERROR'}, "Failed to enable hot reload")
+                logger.error("Failed to enable hot reload")
                 return {'CANCELLED'}
                 
         except Exception as e:
-            self.report({'ERROR'}, f"Hot reload error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Hot reload error: {e}", exc_info=True)
             return {'CANCELLED'}
 
 
@@ -67,11 +65,11 @@ class XWZ_OT_disable_hot_reload(Operator):
             
             render._hot_reload_enabled = False
             
-            self.report({'INFO'}, "Hot reload disabled")
+            logger.info("Hot reload disabled")
             return {'FINISHED'}
             
         except Exception as e:
-            self.report({'ERROR'}, f"Error disabling hot reload: {e}")
+            logger.error(f"Error disabling hot reload: {e}")
             return {'CANCELLED'}
 
 
@@ -85,16 +83,14 @@ class XWZ_OT_trigger_ui_reload(Operator):
             from .hot_reload import trigger_ui_reload
             
             if trigger_ui_reload():
-                self.report({'INFO'}, "✓ UI reloaded")
+                logger.info("UI reloaded")
                 return {'FINISHED'}
             else:
-                self.report({'WARNING'}, "UI reload completed with warnings")
+                logger.warning("UI reload completed with warnings")
                 return {'FINISHED'}
                 
         except Exception as e:
-            self.report({'ERROR'}, f"Reload failed: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Reload failed: {e}", exc_info=True)
             return {'CANCELLED'}
 
 

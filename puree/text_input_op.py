@@ -592,7 +592,7 @@ class CreateTextInputOP(bpy.types.Operator):
             bpy.ops.xwz.text_input_keyboard('INVOKE_DEFAULT')
         
         context.area.tag_redraw()
-        self.report({'INFO'}, f"Created text input instance #{new_instance.id}")
+        logger.info(f"Created text input instance #{new_instance.id}")
         return {'FINISHED'}
 
 class RemoveTextInputOP(bpy.types.Operator):
@@ -609,10 +609,10 @@ class RemoveTextInputOP(bpy.types.Operator):
                 if _active_input_id == instance.id:
                     _active_input_id = None
                 _text_input_instances.pop(i)
-                self.report({'INFO'}, f"Removed text input instance #{self.instance_id}")
+                logger.info(f"Removed text input instance #{self.instance_id}")
                 break
         else:
-            self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+            logger.error(f"Text input instance #{self.instance_id} not found")
             return {'CANCELLED'}
         
         if not _text_input_instances and _draw_handle is not None:
@@ -664,7 +664,7 @@ class FocusTextInputOP(bpy.types.Operator):
                 context.area.tag_redraw()
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+        logger.error(f"Text input instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 class BlurTextInputOP(bpy.types.Operator):
@@ -682,7 +682,7 @@ class BlurTextInputOP(bpy.types.Operator):
                 context.area.tag_redraw()
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+        logger.error(f"Text input instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 class GetTextInputValueOP(bpy.types.Operator):
@@ -699,7 +699,7 @@ class GetTextInputValueOP(bpy.types.Operator):
                 logger.debug(f"Text input #{self.instance_id} value: {instance.text}")
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+        logger.error(f"Text input instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 class SetTextInputValueOP(bpy.types.Operator):
@@ -720,7 +720,7 @@ class SetTextInputValueOP(bpy.types.Operator):
                 instance._request_refresh()
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+        logger.error(f"Text input instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 class UpdateTextInputOP(bpy.types.Operator):
@@ -816,13 +816,13 @@ class UpdateTextInputOP(bpy.types.Operator):
                 
                 if updated_props:
                     instance._request_refresh()
-                    self.report({'INFO'}, f"Updated text input #{self.instance_id}: {', '.join(updated_props)}")
+                    logger.info(f"Updated text input #{self.instance_id}: {', '.join(updated_props)}")
                 else:
-                    self.report({'INFO'}, f"No properties specified to update for text input #{self.instance_id}")
+                    logger.info(f"No properties specified to update for text input #{self.instance_id}")
                 
                 return {'FINISHED'}
         
-        self.report({'ERROR'}, f"Text input instance #{self.instance_id} not found")
+        logger.error(f"Text input instance #{self.instance_id} not found")
         return {'CANCELLED'}
 
 def register():
