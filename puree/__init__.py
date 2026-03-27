@@ -9,6 +9,22 @@
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
 import os
+import sys
+import logging
+import pathlib
+import importlib as _importlib
+
+# ── Force-reload submodules on Blender script reload ─────────────────
+# When Blender re-executes the addon root, it reloads this package.
+# We must also force-reload all child modules so code changes take effect.
+_submodules = [k for k in sys.modules if k.startswith("puree.")]
+if _submodules:
+    _boot_logger = logging.getLogger("puree.boot")
+    for _mod_name in sorted(_submodules):
+        try:
+            _importlib.reload(sys.modules[_mod_name])
+        except Exception as _e:
+            _boot_logger.warning("reload %s: %s", _mod_name, _e)
 
 from .log import get_logger, get_log_path, reinitialize as _reinitialize_logging
 logger = get_logger(__name__)
@@ -16,17 +32,103 @@ logger = get_logger(__name__)
 __all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
+_ADDON_MODULE_NAME = None
 _try_start_retries = 0
 
+# ── Reload server state ─────────────────────────────────────────────
+_reload_server = None
+
+
 def set_addon_root(path):
-    global _ADDON_ROOT
-    _ADDON_ROOT = path
+    global _ADDON_ROOT, _ADDON_MODULE_NAME
+    _ADDON_ROOT = os.path.realpath(path)
+    # Auto-detect the addon module name from the caller
+    import inspect
+    frame = inspect.currentframe().f_back
+    _ADDON_MODULE_NAME = frame.f_globals.get('__name__')
 
 def get_addon_root():
     global _ADDON_ROOT
     if _ADDON_ROOT is not None:
         return _ADDON_ROOT
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+# ── Reload machinery ────────────────────────────────────────────────
+
+def _get_sentinel_path():
+    return pathlib.Path(get_addon_root()) / ".puree_reload"
+
+
+def _deferred_reload():
+    """Timer callback — runs on main Blender thread to perform the reload."""
+    _perform_reload()
+    return None  # run once
+
+
+def _perform_reload():
+    """Stop server, purge cached modules, re-register the addon."""
+    import importlib
+    import shutil
+
+    global _reload_server
+    addon_module = _ADDON_MODULE_NAME
+    if not addon_module:
+        logger.error("Cannot reload: addon module name unknown")
+        return
+
+    # 0. Stop the reload server so the port is free for the new instance
+    if _reload_server:
+        _reload_server.stop()
+        _reload_server = None
+
+    # 1. Unregister
+    mod = sys.modules.get(addon_module)
+    if mod and hasattr(mod, 'unregister'):
+        try:
+            mod.unregister()
+        except Exception as e:
+            logger.warning("unregister warning: %s", e)
+
+    # 2. Purge all cached puree modules
+    purged = 0
+    for key in list(sys.modules.keys()):
+        if key == "puree" or key.startswith("puree."):
+            del sys.modules[key]
+            purged += 1
+    for key in list(sys.modules.keys()):
+        if key == addon_module or key.startswith(addon_module + "."):
+            del sys.modules[key]
+            purged += 1
+
+    # 3. Clear __pycache__ bytecode
+    addon_dir = pathlib.Path(get_addon_root())
+    for cache in addon_dir.rglob("__pycache__"):
+        if cache.is_dir() and not cache.is_symlink():
+            shutil.rmtree(cache, ignore_errors=True)
+
+    # 4. Re-import and register (starts a fresh reload server)
+    try:
+        mod = importlib.import_module(addon_module)
+        mod.register()
+        logger.info("addon reloaded (%d modules purged)", purged)
+    except Exception as e:
+        logger.error("reload error: %s", e)
+        import traceback
+        traceback.print_exc()
+
+
+def _check_reload_sentinel():
+    """Fallback timer — polls for sentinel file written by `just reload`."""
+    try:
+        sentinel = _get_sentinel_path()
+        if sentinel.exists():
+            sentinel.unlink(missing_ok=True)
+            _perform_reload()
+    except Exception as e:
+        logger.error("reload watcher error: %s", e)
+    return 2.0  # low frequency fallback
+
 
 def _try_start_ui():
     import bpy
@@ -132,6 +234,19 @@ def register():
         bpy.app.handlers.load_post.append(auto_start_ui_handler)
     bpy.app.timers.register(_try_start_ui, first_interval=1.0)
 
+    # Start the built-in reload server (enables `just reload` / `puree reload`)
+    from .reload_server import ReloadServer, PUREE_RELOAD_PORT
+    global _reload_server
+    _reload_server = ReloadServer(
+        port=PUREE_RELOAD_PORT,
+        reload_fn=_deferred_reload,
+    )
+    _reload_server.start()
+
+    # Sentinel fallback (covers edge cases where TCP isn't reachable)
+    if not bpy.app.timers.is_registered(_check_reload_sentinel):
+        bpy.app.timers.register(_check_reload_sentinel, persistent=True)
+
 def unregister():
     import bpy
     from .render  import unregister as render_unregister
@@ -161,6 +276,22 @@ def unregister():
     except Exception as e:
         logger.warning(f"Error during forced cleanup: {e}")
     
+    # Stop the reload server
+    global _reload_server
+    if _reload_server:
+        _reload_server.stop()
+        _reload_server = None
+
+    # Stop sentinel fallback
+    if bpy.app.timers.is_registered(_check_reload_sentinel):
+        try:
+            bpy.app.timers.unregister(_check_reload_sentinel)
+        except Exception:
+            pass
+
+    # Clean up any stale sentinel
+    _get_sentinel_path().unlink(missing_ok=True)
+
     del bpy.types.WindowManager.xwz_ui_conf_path
     del bpy.types.WindowManager.xwz_debug_panel
     del bpy.types.WindowManager.xwz_auto_start

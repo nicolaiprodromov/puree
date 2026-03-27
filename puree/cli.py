@@ -195,10 +195,13 @@ INIT_ENTRY = textwrap.dedent("""\
     import os
     import sys
     import importlib
-    import pathlib
+
+    # Force-reload puree submodules on Blender script reload
+    if "puree" in sys.modules:
+        importlib.reload(sys.modules["puree"])
+
     from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
     from puree import set_addon_root
-    from puree.reload_server import ReloadServer, PUREE_RELOAD_PORT
 
     bl_info = {
         "name"       : "My Puree Addon",
@@ -210,83 +213,17 @@ INIT_ENTRY = textwrap.dedent("""\
         "category"   : "Interface"
     }
 
-    # ── Reload server (enables `puree reload`) ───────────────────────
-    _reload_server = None
-    _ADDON_MODULE = __name__
-    _RELOAD_SENTINEL = pathlib.Path(__file__).resolve().parent / ".puree_reload"
-
-
-    def _deferred_reload():
-        _perform_reload()
-        return None
-
-
-    def _perform_reload():
-        global _reload_server
-        if _reload_server:
-            _reload_server.stop()
-            _reload_server = None
-        mod = sys.modules.get(_ADDON_MODULE)
-        if mod and hasattr(mod, "unregister"):
-            try:
-                mod.unregister()
-            except Exception:
-                pass
-        for key in list(sys.modules.keys()):
-            if key == "puree" or key.startswith("puree."):
-                del sys.modules[key]
-        for key in list(sys.modules.keys()):
-            if _ADDON_MODULE in key:
-                del sys.modules[key]
-        import shutil
-        addon_dir = pathlib.Path(__file__).resolve().parent
-        for cache in addon_dir.rglob("__pycache__"):
-            if cache.is_dir() and not cache.is_symlink():
-                shutil.rmtree(cache, ignore_errors=True)
-        try:
-            mod = importlib.import_module(_ADDON_MODULE)
-            mod.register()
-        except Exception as e:
-            print(f"[Puree] Reload error: {e}")
-            import traceback
-            traceback.print_exc()
-
-
-    def _check_reload_sentinel():
-        try:
-            if _RELOAD_SENTINEL.exists():
-                _RELOAD_SENTINEL.unlink(missing_ok=True)
-                _perform_reload()
-        except Exception:
-            pass
-        return 2.0
-
 
     def register():
-        global _reload_server
-        set_addon_root(os.path.realpath(os.path.dirname(os.path.abspath(__file__))))
+        set_addon_root(os.path.dirname(os.path.abspath(__file__)))
         xwz_ui_register()
         wm = bpy.context.window_manager
         wm.xwz_ui_conf_path = "static/index.yaml"
         wm.xwz_debug_panel  = True
         wm.xwz_auto_start   = True
-        _reload_server = ReloadServer(port=PUREE_RELOAD_PORT, reload_fn=_deferred_reload)
-        _reload_server.start()
-        if not bpy.app.timers.is_registered(_check_reload_sentinel):
-            bpy.app.timers.register(_check_reload_sentinel, persistent=True)
 
 
     def unregister():
-        global _reload_server
-        if _reload_server:
-            _reload_server.stop()
-            _reload_server = None
-        if bpy.app.timers.is_registered(_check_reload_sentinel):
-            try:
-                bpy.app.timers.unregister(_check_reload_sentinel)
-            except Exception:
-                pass
-        _RELOAD_SENTINEL.unlink(missing_ok=True)
         xwz_ui_unregister()
 
 
