@@ -27,9 +27,10 @@ if _submodules:
             _boot_logger.warning("reload %s: %s", _mod_name, _e)
 
 from .log import get_logger, get_log_path, reinitialize as _reinitialize_logging
+from .storage import Storage
 logger = get_logger(__name__)
 
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path']
+__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
 _ADDON_MODULE_NAME = None
@@ -289,6 +290,13 @@ def unregister():
 
     # Clean up any stale sentinel
     _get_sentinel_path().unlink(missing_ok=True)
+
+    # Clean up all Puree-managed timers
+    try:
+        from .timers import _cleanup_all as _cleanup_timers
+        _cleanup_timers()
+    except Exception as e:
+        logger.warning(f"Timer cleanup warning: {e}")
 
     del bpy.types.WindowManager.xwz_ui_conf_path
     del bpy.types.WindowManager.xwz_debug_panel
