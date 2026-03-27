@@ -30,9 +30,10 @@ from .log import get_logger, get_log_path, reinitialize as _reinitialize_logging
 from .storage import Storage
 from .virtual_scroll import VirtualScroll
 from .markdown import render_markdown
+from .collapse import collapse_manager
 logger = get_logger(__name__)
 
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage', 'render_markdown', 'VirtualScroll']
+__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage', 'render_markdown', 'VirtualScroll', 'collapse_manager']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
 _ADDON_MODULE_NAME = None

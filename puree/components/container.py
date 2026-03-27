@@ -168,6 +168,8 @@ class Container():
         
         self._dirty        : bool  = False
         self._layout_node  : Optional[object] = None
+
+        self.collapsed     : bool  = False
     
     def __getattr__(self, name):
         if name in ('children', 'style', '__dict__'):
@@ -196,7 +198,8 @@ class Container():
             'layer', 'passive', 'click', 'toggle', 'scroll', 'hover', 'hoverout',
             'on_focus', 'on_blur', 'tab_index', 'focusable',
             '_toggle_value', '_toggled', '_clicked', '_hovered',
-            '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty', '_layout_node'
+            '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty', '_layout_node',
+            'collapsed',
         }
         
         if name in container_attrs:
@@ -256,6 +259,30 @@ class Container():
         """Returns a ContainerKeyProxy for scoping keyboard shortcuts to this container."""
         from ..keyboard import ContainerKeyProxy
         return ContainerKeyProxy(self.id)
+
+    # -------------------------------------------------------------------------
+    # Collapse / expand (Feature 7)
+    # -------------------------------------------------------------------------
+
+    def collapse(self) -> None:
+        """Hide all non-header (non-first) children."""
+        from ..collapse import collapse_manager
+        collapse_manager.collapse(self)
+
+    def expand(self) -> None:
+        """Show all children."""
+        from ..collapse import collapse_manager
+        collapse_manager.expand(self)
+
+    def toggle_collapse(self) -> None:
+        """Toggle between collapsed and expanded states."""
+        from ..collapse import collapse_manager
+        collapse_manager.toggle(self)
+
+    @property
+    def is_collapsed(self) -> bool:
+        """True if this container is currently collapsed."""
+        return bool(self.collapsed)
     
     @staticmethod
     def is_layout_property(name):

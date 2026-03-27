@@ -78,6 +78,10 @@ class UI():
         self.create_node_tree(canvas_size)
         self.flatten_node_tree()
 
+        # Apply initial collapse states declared in YAML (collapsed: true)
+        from .collapse import collapse_manager
+        collapse_manager.apply_initial_states(self.theme.root)
+
     def get_by_id(self, target_id):
         return self.theme.root.get_by_id(target_id)
 
