@@ -32,7 +32,7 @@ from .virtual_scroll import VirtualScroll
 from .markdown import render_markdown
 logger = get_logger(__name__)
 
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage', 'render_markdown']
+__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage', 'render_markdown', 'VirtualScroll']
 __version__ = "0.1.0"
 _ADDON_ROOT = None
 _ADDON_MODULE_NAME = None
