@@ -1352,6 +1352,9 @@ class UI():
             '_scroll_value': safe_float(container._scroll_value),
             'hover': container.hover,
             'hoverout': container.hoverout,
+            'on_focus': container.on_focus,
+            'on_blur': container.on_blur,
+            'focusable': bool(container.focusable),
             'children': [self._container_to_dict(child) for child in container.children]
         }
         return container_dict

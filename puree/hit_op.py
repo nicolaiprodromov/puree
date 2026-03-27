@@ -146,6 +146,19 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                             if input_instance.is_focused:
                                 bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
                     
+                    # Focus management: focus on click for focusable containers
+                    if not text_input_clicked:
+                        if container.get('focusable', False):
+                            try:
+                                from .focus import focus_manager
+                                focus_manager.focus(
+                                    container_id,
+                                    container.get('on_focus', []),
+                                    container.get('on_blur', [])
+                                )
+                            except Exception:
+                                pass
+
                     for click_handler in container['click']:
                         click_handler(container)
                     

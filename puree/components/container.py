@@ -152,6 +152,10 @@ class Container():
         self.scroll        : List  = []
         self.hover         : List  = []
         self.hoverout      : List  = []
+        self.on_focus      : List  = []
+        self.on_blur       : List  = []
+        self.tab_index     : int   = -1
+        self.focusable     : bool  = False
         
         self._toggle_value : bool  = False
         self._toggled      : bool  = False
@@ -190,6 +194,7 @@ class Container():
         container_attrs = {
             'id', 'parent', 'children', 'style', 'data', 'img', 'text', 'font',
             'layer', 'passive', 'click', 'toggle', 'scroll', 'hover', 'hoverout',
+            'on_focus', 'on_blur', 'tab_index', 'focusable',
             '_toggle_value', '_toggled', '_clicked', '_hovered',
             '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty', '_layout_node'
         }
@@ -208,6 +213,19 @@ class Container():
     
     def mark_dirty(self):
         self._dirty = True
+
+    def focus(self) -> None:
+        from ..focus import focus_manager
+        focus_manager.focus(self.id, self.on_focus, self.on_blur, container_ref=self)
+
+    def blur(self) -> None:
+        from ..focus import focus_manager
+        focus_manager.blur(self.id)
+
+    @property
+    def is_focused(self) -> bool:
+        from ..focus import focus_manager
+        return focus_manager.is_focused(self.id)
     
     @staticmethod
     def is_layout_property(name):
@@ -363,6 +381,10 @@ class ContainerDefault():
         self.scroll        = []
         self.hover         = []
         self.hoverout      = []
+        self.on_focus      = []
+        self.on_blur       = []
+        self.tab_index     = -1
+        self.focusable     = False
         self._toggle_value = False
         self._toggled      = False
         self._clicked      = False

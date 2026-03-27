@@ -228,13 +228,25 @@ class TextInputInstance:
         _active_input_id = self.id
         self.cursor_blink_time = time.time()
         self.show_cursor = True
-    
+        # Notify FocusManager
+        try:
+            from .focus import focus_manager
+            focus_manager.focus(self.container_id, [], [])
+        except Exception:
+            pass
+
     def blur(self):
         global _active_input_id
         self.is_focused = False
         if _active_input_id == self.id:
             _active_input_id = None
         self.selection_start = None
+        # Notify FocusManager
+        try:
+            from .focus import focus_manager
+            focus_manager.blur(self.container_id)
+        except Exception:
+            pass
     
     def _request_refresh(self):
         self._last_refresh = time.time()
@@ -522,6 +534,24 @@ class KeyboardHandler(bpy.types.Operator):
                 active_input.insert_text(event.ascii)
                 return {'RUNNING_MODAL'}
         
+        if event.type == 'TAB' and event.value == 'PRESS' and not event.shift:
+            # Tab through focusable containers
+            try:
+                from .focus import focus_manager
+                focus_manager.tab_next()
+            except Exception:
+                pass
+            return {'RUNNING_MODAL'}
+
+        if event.type == 'TAB' and event.value == 'PRESS' and event.shift:
+            # Shift+Tab — go backwards
+            try:
+                from .focus import focus_manager
+                focus_manager.tab_prev()
+            except Exception:
+                pass
+            return {'RUNNING_MODAL'}
+
         return {'PASS_THROUGH'}
 
 class CreateTextInputOP(bpy.types.Operator):
