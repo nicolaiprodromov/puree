@@ -8,7 +8,7 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
-.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs deploy install install-deps venv bump release
+.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy install install-deps venv bump release
 
 BLENDER_VERSION := 5.1
 ADDON_DIR       := $(CURDIR)
@@ -136,6 +136,44 @@ install-deps:
 		"$$BLENDER_PY" -m pip install --target "$(SITE_PACKAGES)" --no-deps --force-reinstall --quiet "$$whl" 2>/dev/null || true; \
 		echo "  ✓ $$base"; \
 	done
+
+refresh:
+	@if [ -z "$(TARGET)" ]; then echo "Error: TARGET required. Usage: make refresh TARGET=/path/to/project"; exit 1; fi
+	@SRC_WHL=$$(ls wheels/puree_ui-*.whl 2>/dev/null | head -1); \
+	if [ -z "$$SRC_WHL" ]; then echo "Error: No puree_ui wheel in wheels/. Run 'make build_package' first."; exit 1; fi; \
+	if [ ! -f "$(TARGET)/blender_manifest.toml" ]; then echo "Error: No blender_manifest.toml in $(TARGET)"; exit 1; fi; \
+	if [ ! -d "$(TARGET)/wheels" ]; then echo "Error: No wheels/ directory in $(TARGET)"; exit 1; fi; \
+	rm -f "$(TARGET)/wheels"/puree_ui-*.whl; \
+	cp "$$SRC_WHL" "$(TARGET)/wheels/"; \
+	echo "✓ Copied $$(basename $$SRC_WHL) → $(TARGET)/wheels/"; \
+	$(PYTHON) -c "\
+import re, pathlib; \
+proj = pathlib.Path('$(TARGET)'); \
+manifest = proj / 'blender_manifest.toml'; \
+wheels_dir = proj / 'wheels'; \
+whl_files = sorted(['./wheels/' + f.name for f in wheels_dir.glob('*.whl')]); \
+lines = '\n'.join(f'  \"' + w + '\",' for w in whl_files); \
+new_block = f'wheels = [\n{lines}\n]'; \
+content = manifest.read_text(); \
+content = re.sub(r'wheels\s*=\s*\[.*?\]', new_block, content, flags=re.DOTALL); \
+manifest.write_text(content)"; \
+	echo "✓ Updated blender_manifest.toml wheels list"; \
+	ADDON_ID=$$(grep '^id' "$(TARGET)/blender_manifest.toml" | cut -d'=' -f2 | tr -d ' "'); \
+	EXT_LINK="$(EXT_DIR)/$$ADDON_ID"; \
+	if [ -L "$$EXT_LINK" ]; then \
+		echo "  Project is linked — refreshing site-packages..."; \
+		$(PYTHON) -c "\
+import zipfile, pathlib, shutil; \
+whl = pathlib.Path('$$SRC_WHL'); \
+site = pathlib.Path('$(SITE_PACKAGES)'); \
+site.mkdir(parents=True, exist_ok=True); \
+[shutil.rmtree(old) if old.is_dir() else old.unlink() for old in site.glob('puree_ui-*')]; \
+puree_pkg = site / 'puree'; \
+shutil.rmtree(puree_pkg) if puree_pkg.is_dir() and not puree_pkg.is_symlink() else None; \
+zipfile.ZipFile(whl, 'r').extractall(site); \
+print(f'  ✓ Extracted {whl.name} into site-packages')"; \
+	fi; \
+	echo "Done!"
 
 deploy: link reload
 

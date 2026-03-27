@@ -173,6 +173,80 @@ install-deps:
         echo "  ✓ $base"
     done
 
+# Refresh puree_ui wheel in a target project folder (fixes stale wheels after engine changes)
+# Usage: just refresh /path/to/my-addon
+refresh TARGET:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    TARGET="{{TARGET}}"
+    SRC_WHEELS="$(pwd)/wheels"
+    DST_WHEELS="$TARGET/wheels"
+
+    # Validate source
+    SRC_WHL=$(ls "$SRC_WHEELS"/puree_ui-*.whl 2>/dev/null | head -1)
+    if [ -z "$SRC_WHL" ]; then
+        echo "Error: No puree_ui wheel in $SRC_WHEELS"
+        echo "       Run 'just build_package' first."
+        exit 1
+    fi
+
+    # Validate target
+    if [ ! -f "$TARGET/blender_manifest.toml" ]; then
+        echo "Error: No blender_manifest.toml in $TARGET"
+        echo "       Is this a Puree project?"
+        exit 1
+    fi
+    if [ ! -d "$DST_WHEELS" ]; then
+        echo "Error: No wheels/ directory in $TARGET"
+        exit 1
+    fi
+
+    # Replace the puree_ui wheel
+    rm -f "$DST_WHEELS"/puree_ui-*.whl
+    cp "$SRC_WHL" "$DST_WHEELS/"
+    echo "✓ Copied $(basename "$SRC_WHL") → $DST_WHEELS/"
+
+    # Update blender_manifest.toml wheels list
+    {{python}} << PYEOF
+    import re, pathlib
+    proj = pathlib.Path('$TARGET')
+    manifest = proj / 'blender_manifest.toml'
+    wheels_dir = proj / 'wheels'
+    whl_files = sorted(['./wheels/' + f.name for f in wheels_dir.glob('*.whl')])
+    lines = '\n'.join(f'  "{w}",' for w in whl_files)
+    new_block = f'wheels = [\n{lines}\n]'
+    content = manifest.read_text()
+    content = re.sub(r'wheels\s*=\s*\[.*?\]', new_block, content, flags=re.DOTALL)
+    manifest.write_text(content)
+    PYEOF
+    echo "✓ Updated blender_manifest.toml wheels list"
+
+    # If project is linked to Blender, re-extract the wheel into site-packages
+    SITE="{{site_packages}}"
+    ADDON_ID=$(grep '^id' "$TARGET/blender_manifest.toml" | cut -d'=' -f2 | tr -d ' "')
+    EXT_LINK="{{ext_dir}}/$ADDON_ID"
+    if [ -L "$EXT_LINK" ]; then
+        echo "  Project is linked — refreshing site-packages..."
+        {{python}} << PYEOF
+    import zipfile, pathlib, shutil
+    whl = pathlib.Path('$SRC_WHL')
+    site = pathlib.Path('$SITE')
+    site.mkdir(parents=True, exist_ok=True)
+    for old in site.glob('puree_ui-*'):
+        if old.is_dir():
+            shutil.rmtree(old)
+        else:
+            old.unlink()
+    puree_pkg = site / 'puree'
+    if puree_pkg.is_dir() and not puree_pkg.is_symlink():
+        shutil.rmtree(puree_pkg)
+    with zipfile.ZipFile(whl, 'r') as zf:
+        zf.extractall(site)
+    print(f'  ✓ Extracted {whl.name} into site-packages')
+    PYEOF
+    fi
+    echo "Done!"
+
 # Link + reload (quick dev cycle)
 deploy:
     just link
