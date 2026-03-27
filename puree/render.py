@@ -1576,6 +1576,8 @@ class XWZ_OT_start_ui(Operator):
                 font_style      = block.get('font_style', 'NORMAL'),
                 white_space     = block.get('white_space', 'NORMAL'),
                 text_overflow   = block.get('text_overflow', 'CLIP'),
+                overflow_wrap   = block.get('overflow_wrap', 'NORMAL'),
+                word_break      = block.get('word_break', 'NORMAL'),
                 text_shadow_color    = block.get('text_shadow_color', [0, 0, 0, 0]),
                 text_shadow_offset_x = block.get('text_shadow_offset_x', 0.0),
                 text_shadow_offset_y = block.get('text_shadow_offset_y', 0.0),
@@ -1843,7 +1845,11 @@ class XWZ_OT_start_ui(Operator):
                                 mask=[block['mask_x'], block['mask_y'], block['mask_width'], block['mask_height']],
                                 clip=clip,
                                 align_h=block.get('align_h', 'LEFT').upper(),
-                                align_v=block.get('align_v', 'CENTER').upper()
+                                align_v=block.get('align_v', 'CENTER').upper(),
+                                white_space=block.get('white_space', 'NORMAL'),
+                                text_overflow=block.get('text_overflow', 'CLIP'),
+                                overflow_wrap=block.get('overflow_wrap', 'NORMAL'),
+                                word_break=block.get('word_break', 'NORMAL'),
                             )
                     
                     from . import text_input_op
@@ -1946,7 +1952,11 @@ class XWZ_OT_start_ui(Operator):
                                     mask=[mask_x, mask_y, mask_w, mask_h],
                                     clip=clip,
                                     align_h=block.get('align_h', 'LEFT').upper(),
-                                    align_v=block.get('align_v', 'CENTER').upper()
+                                    align_v=block.get('align_v', 'CENTER').upper(),
+                                    white_space=block.get('white_space', 'NORMAL'),
+                                    text_overflow=block.get('text_overflow', 'CLIP'),
+                                    overflow_wrap=block.get('overflow_wrap', 'NORMAL'),
+                                    word_break=block.get('word_break', 'NORMAL'),
                                 )
                         
                         # Update image positions — only for containers inside scroll areas

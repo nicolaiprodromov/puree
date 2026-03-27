@@ -127,6 +127,7 @@ class TextInstance:
     def __init__(self, container_id, text="Hello", font_name=None, size=20, pos=[50, 50], color=[1,1,1,1], mask=None, align_h='LEFT', align_v='CENTER',
                  text_decoration='NONE', letter_spacing=0.0, line_height=0.0,
                  font_weight='NORMAL', font_style='NORMAL', white_space='NORMAL', text_overflow='CLIP',
+                 overflow_wrap='NORMAL', word_break='NORMAL',
                  text_shadow_color=None, text_shadow_offset_x=0.0, text_shadow_offset_y=0.0, text_shadow_blur=0.0):
         self.container_id = container_id
         self.id        = len(_text_instances)
@@ -147,6 +148,8 @@ class TextInstance:
         self.line_height     = line_height
         self.white_space     = white_space
         self.text_overflow   = text_overflow
+        self.overflow_wrap   = overflow_wrap
+        self.word_break      = word_break
         self.text_shadow_color  = text_shadow_color if text_shadow_color is not None else [0, 0, 0, 0]
         self.text_shadow_offset = [text_shadow_offset_x, text_shadow_offset_y]
         self.text_shadow_blur   = text_shadow_blur
@@ -194,7 +197,8 @@ class TextInstance:
         self._trigger_redraw()
     def update_all(self, text=None, font_name=None, size=None, pos=None, color=None, mask=None, clip=None, align_h=None, align_v=None,
                    text_decoration=None, letter_spacing=None, line_height=None,
-                   font_weight=None, font_style=None, white_space=None, text_overflow=None):
+                   font_weight=None, font_style=None, white_space=None, text_overflow=None,
+                   overflow_wrap=None, word_break=None):
         dims_dirty = False
         if text is not None and text != self.text:
             self.text = text
@@ -237,6 +241,10 @@ class TextInstance:
             self.white_space = white_space
         if text_overflow is not None:
             self.text_overflow = text_overflow
+        if overflow_wrap is not None:
+            self.overflow_wrap = overflow_wrap
+        if word_break is not None:
+            self.word_break = word_break
         if dims_dirty:
             self._invalidate_dims_cache()
         self._trigger_redraw()
@@ -291,6 +299,99 @@ def _draw_text_decoration(x, y, text_width, text_height, font_size, color, decor
     batch.draw(shader)
     gpu.state.blend_set(saved_blend)
 
+def _word_wrap_text(text, container_width, font_id, size, letter_spacing, word_break='NORMAL', overflow_wrap='NORMAL'):
+    """Break text at word boundaries to fit within container_width.
+    
+    Handles:
+    - white-space: normal → word wrapping at space boundaries
+    - overflow-wrap: break-word → break long words that exceed container width
+    - word-break: break-all → break at any character boundary
+    """
+    if container_width <= 0:
+        return [text]
+    
+    blf.size(font_id, size)
+    
+    def _measure(s):
+        w, _ = blf.dimensions(font_id, s)
+        if letter_spacing > 0 and len(s) > 1:
+            w += letter_spacing * (len(s) - 1)
+        return w
+    
+    # word-break: break-all → break at any character (like CJK line breaking)
+    break_all = word_break == 'BREAK_ALL'
+    # overflow-wrap: break-word → break long unbreakable words
+    break_word = overflow_wrap == 'BREAK_WORD' or word_break == 'BREAK_WORD'
+    
+    # Split on explicit newlines first, then wrap each paragraph
+    paragraphs = text.split('\n')
+    result_lines = []
+    
+    for paragraph in paragraphs:
+        if not paragraph:
+            result_lines.append('')
+            continue
+        
+        if break_all:
+            # Break at any character boundary
+            current_line = ''
+            for ch in paragraph:
+                test = current_line + ch
+                if _measure(test) > container_width and current_line:
+                    result_lines.append(current_line)
+                    current_line = ch
+                else:
+                    current_line = test
+            if current_line:
+                result_lines.append(current_line)
+        else:
+            # Word-level wrapping
+            words = paragraph.split(' ')
+            current_line = ''
+            
+            for word in words:
+                if not current_line:
+                    test_line = word
+                else:
+                    test_line = current_line + ' ' + word
+                
+                if _measure(test_line) <= container_width:
+                    current_line = test_line
+                elif not current_line:
+                    # Single word exceeds container width
+                    if break_word:
+                        # Break the long word character by character
+                        for ch in word:
+                            test = current_line + ch
+                            if _measure(test) > container_width and current_line:
+                                result_lines.append(current_line)
+                                current_line = ch
+                            else:
+                                current_line = test
+                    else:
+                        # Don't break — put the whole word on current line (will overflow/clip)
+                        current_line = word
+                else:
+                    # Push current line, start new line with this word
+                    result_lines.append(current_line)
+                    # Check if the new word itself exceeds container width
+                    if break_word and _measure(word) > container_width:
+                        current_line = ''
+                        for ch in word:
+                            test = current_line + ch
+                            if _measure(test) > container_width and current_line:
+                                result_lines.append(current_line)
+                                current_line = ch
+                            else:
+                                current_line = test
+                    else:
+                        current_line = word
+            
+            if current_line:
+                result_lines.append(current_line)
+    
+    return result_lines if result_lines else ['']
+
 def draw_all_text():
     global _cached_viewport_height
     
@@ -338,13 +439,25 @@ def draw_all_text():
         # Split text into lines based on white_space mode
         ws = instance.white_space
         raw_text = instance.text
-        if ws == 'PRE' and '\n' in raw_text:
+        container_w = instance.mask[2] if instance.mask and instance.mask[2] > 0 else 0
+        
+        if ws == 'PRE':
+            # PRE: preserve whitespace and explicit newlines, no wrapping
             lines = raw_text.split('\n')
-        elif ws == 'NOWRAP' or '\n' not in raw_text:
+        elif ws == 'NOWRAP':
+            # NOWRAP: no wrapping at all, single line
             lines = [raw_text]
         else:
-            # NORMAL: collapse whitespace, single line (wrapping handled below)
-            lines = [raw_text]
+            # NORMAL: word-wrap text to fit within container width
+            if container_w > 0:
+                lines = _word_wrap_text(
+                    raw_text, container_w,
+                    instance.font_id, instance.size, instance.letter_spacing,
+                    word_break=instance.word_break,
+                    overflow_wrap=instance.overflow_wrap
+                )
+            else:
+                lines = [raw_text]
         
         # Compute total block dimensions for alignment
         if len(lines) > 1:
@@ -382,9 +495,6 @@ def draw_all_text():
                 y_pos = instance.mask[1] + (container_height - block_height) / 2
             elif instance.align_v == 'BOTTOM':
                 y_pos = instance.mask[1] + container_height - block_height
-        
-        # Text-overflow: ELLIPSIS truncation
-        container_w = instance.mask[2] if instance.mask and instance.mask[2] > 0 else 0
         
         blf.color(instance.font_id, *instance.color)
         
@@ -495,6 +605,8 @@ class DrawTextOP(bpy.types.Operator):
     font_style      : bpy.props.StringProperty(name="Font Style", default="NORMAL")
     white_space     : bpy.props.StringProperty(name="White Space", default="NORMAL")
     text_overflow   : bpy.props.StringProperty(name="Text Overflow", default="CLIP")
+    overflow_wrap   : bpy.props.StringProperty(name="Overflow Wrap", default="NORMAL")
+    word_break      : bpy.props.StringProperty(name="Word Break", default="NORMAL")
     text_shadow_color    : bpy.props.FloatVectorProperty(name="Text Shadow Color", subtype='COLOR', size=4, default=(0.0, 0.0, 0.0, 0.0))
     text_shadow_offset_x : bpy.props.FloatProperty(name="Text Shadow Offset X", default=0.0)
     text_shadow_offset_y : bpy.props.FloatProperty(name="Text Shadow Offset Y", default=0.0)
@@ -524,6 +636,8 @@ class DrawTextOP(bpy.types.Operator):
             font_style=self.font_style,
             white_space=self.white_space,
             text_overflow=self.text_overflow,
+            overflow_wrap=self.overflow_wrap,
+            word_break=self.word_break,
             text_shadow_color=list(self.text_shadow_color),
             text_shadow_offset_x=self.text_shadow_offset_x,
             text_shadow_offset_y=self.text_shadow_offset_y,

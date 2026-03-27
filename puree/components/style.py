@@ -54,6 +54,8 @@ class Style():
         self.letter_spacing          : float       = 0.0
         self.text_overflow           : str         = 'CLIP'
         self.white_space             : str         = 'NORMAL'
+        self.overflow_wrap           : str         = 'NORMAL'
+        self.word_break              : str         = 'NORMAL'
 
         self.img_align_h            : str         = 'LEFT'
         self.img_align_v            : str         = 'TOP'

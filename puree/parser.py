@@ -325,6 +325,7 @@ class UI():
             'justify_content', 'justify_items', 'justify_self',
             'text_align', 'text_align_v',
             'text_transform', 'text_decoration', 'text_overflow', 'white_space',
+            'overflow_wrap', 'word_break',
             'img_align_h', 'img_align_v',
             'grid_auto_flow',
             'gradient_stops', 'hover_gradient_stops', 'click_gradient_stops'
