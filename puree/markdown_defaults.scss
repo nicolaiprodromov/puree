@@ -1,0 +1,81 @@
+// Puree built-in markdown styles.
+// These are intentionally minimal so they render sensibly out of the box.
+// Override any class in your own SCSS file — your rules will take precedence
+// because your stylesheet is appended after these defaults.
+
+.md_paragraph {
+  display: flex;
+  font-size: 14px;
+}
+
+.md_h1 {
+  display: flex;
+  font-size: 22px;
+  padding-bottom: 4px;
+}
+
+.md_h2 {
+  display: flex;
+  font-size: 18px;
+}
+
+.md_h3 {
+  display: flex;
+  font-size: 16px;
+}
+
+.md_heading {
+  display: flex;
+  font-size: 15px;
+}
+
+.md_code_block {
+  display: flex;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.md_code_inline {
+  display: flex;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.md_list_item {
+  display: flex;
+  font-size: 14px;
+  padding-left: 12px;
+}
+
+.md_blockquote {
+  display: flex;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  padding-left: 8px;
+  font-size: 14px;
+}
+
+.md_divider {
+  display: flex;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.15);
+  margin: 8px 0px;
+}
+
+.md_inline_row {
+  display: flex;
+  flex-direction: row;
+}
+
+.md_bold {
+  display: flex;
+  font-size: 14px;
+}
+
+.md_text_span {
+  display: flex;
+  font-size: 14px;
+}

@@ -31,9 +31,18 @@ from .storage import Storage
 from .virtual_scroll import VirtualScroll
 from .markdown import render_markdown
 from .collapse import collapse_manager
+from .focus import focus_manager
+from .keyboard import keys
+from .net import http, sse
+from .timers import set_interval, set_timeout, clear as clear_timer
 logger = get_logger(__name__)
 
-__all__ = ['register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path', 'Storage', 'render_markdown', 'VirtualScroll', 'collapse_manager']
+__all__ = [
+    'register', 'unregister', 'set_addon_root', 'get_addon_root', 'get_log_path',
+    'Storage', 'render_markdown', 'VirtualScroll', 'collapse_manager',
+    'focus_manager', 'keys', 'http', 'sse',
+    'set_interval', 'set_timeout', 'clear_timer',
+]
 __version__ = "0.1.0"
 _ADDON_ROOT = None
 _ADDON_MODULE_NAME = None

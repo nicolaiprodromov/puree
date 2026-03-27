@@ -541,6 +541,15 @@ class UI():
         # Collect component CSS too
         style_str += self._component_css
 
+        # Prepend built-in markdown defaults so user styles override them
+        _md_defaults_path = os.path.join(os.path.dirname(__file__), 'markdown_defaults.scss')
+        if os.path.exists(_md_defaults_path):
+            try:
+                _md_scss = SCSSCompiler()
+                style_str = _md_scss.compile_file(_md_defaults_path) + style_str
+            except Exception as _md_err:
+                logger.warning("Failed to compile markdown_defaults.scss: %s", _md_err)
+
         # Cache for dynamic re-use (add_child / remove_child rebuilds)
         self._compiled_css_str = style_str
 

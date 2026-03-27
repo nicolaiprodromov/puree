@@ -65,14 +65,18 @@ class FocusManager:
         return self._focused_id == container_id
 
     def tab_next(self) -> None:
-        """Tab to next focusable container."""
+        """Tab to next focusable container (sorted by tab_index ascending)."""
         try:
             from . import parser_op
             containers = parser_op._container_json_data
-            focusable = [
-                (c['id'], c.get('on_focus', []), c.get('on_blur', []))
-                for c in containers if c.get('focusable', False)
-            ]
+            focusable = sorted(
+                [
+                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    for c in containers
+                    if c.get('focusable', False) and c.get('tab_index', -1) >= 0
+                ],
+                key=lambda x: x[3],
+            )
         except Exception as e:
             logger.error(f"tab_next error: {e}", exc_info=True)
             return
@@ -89,14 +93,18 @@ class FocusManager:
             self.focus(focusable[idx][0], focusable[idx][1], focusable[idx][2])
 
     def tab_prev(self) -> None:
-        """Shift+Tab to previous focusable container."""
+        """Shift+Tab to previous focusable container (sorted by tab_index ascending)."""
         try:
             from . import parser_op
             containers = parser_op._container_json_data
-            focusable = [
-                (c['id'], c.get('on_focus', []), c.get('on_blur', []))
-                for c in containers if c.get('focusable', False)
-            ]
+            focusable = sorted(
+                [
+                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    for c in containers
+                    if c.get('focusable', False) and c.get('tab_index', -1) >= 0
+                ],
+                key=lambda x: x[3],
+            )
         except Exception as e:
             logger.error(f"tab_prev error: {e}", exc_info=True)
             return

@@ -170,6 +170,10 @@ class Container():
         self._layout_node  : Optional[object] = None
 
         self.collapsed     : bool  = False
+
+        self.virtual       : bool  = False
+        self.item_height             = 60        # int px or 'auto'
+        self._virtual_scroll         = None      # VirtualScroll instance (lazy-init)
     
     def __getattr__(self, name):
         if name in ('children', 'style', '__dict__'):
@@ -194,12 +198,13 @@ class Container():
     
     def __setattr__(self, name, value):
         container_attrs = {
-            'id', 'parent', 'children', 'style', 'data', 'img', 'text', 'font',
+            'id', 'parent', 'children', 'style', 'classes', 'data', 'img', 'text', 'font',
             'layer', 'passive', 'click', 'toggle', 'scroll', 'hover', 'hoverout',
             'on_focus', 'on_blur', 'tab_index', 'focusable',
             '_toggle_value', '_toggled', '_clicked', '_hovered',
             '_prev_toggled', '_prev_clicked', '_prev_hovered', '_scroll_value', '_dirty', '_layout_node',
             'collapsed',
+            'virtual', 'item_height', '_virtual_scroll',
         }
         
         if name in container_attrs:
@@ -241,7 +246,51 @@ class Container():
         from ..dynamic import dynamic_manager
         dynamic_manager.clear_children(self)
 
-    def focus(self) -> None:
+    # -------------------------------------------------------------------------
+    # Markdown rendering (Feature 5)
+    # -------------------------------------------------------------------------
+
+    def set_markdown(self, text: str, fonts: dict = None, classes: dict = None) -> None:
+        """Clear children and render *text* as markdown into this container."""
+        from ..markdown import render_markdown
+        render_markdown(self, text, fonts=fonts, classes=classes)
+        self.mark_dirty()
+
+    # -------------------------------------------------------------------------
+    # Virtual scrolling (Feature 4)
+    # -------------------------------------------------------------------------
+
+    def set_virtual_data(self, data_list: list) -> None:
+        """Assign data to this container's virtual scroll list.
+
+        Creates a :class:`~puree.virtual_scroll.VirtualScroll` instance on
+        first call.  If an item renderer has already been set, the view is
+        updated immediately.
+        """
+        from ..virtual_scroll import VirtualScroll
+        if self._virtual_scroll is None:
+            self._virtual_scroll = VirtualScroll(self, item_height=self.item_height)
+        self._virtual_scroll.set_data(data_list)
+        if self._virtual_scroll._renderer is not None:
+            self._virtual_scroll.update()
+        self.mark_dirty()
+
+    def set_item_renderer(self, fn) -> None:
+        """Set the item renderer callback for this container's virtual scroll list.
+
+        The callable receives ``(container, item, index)`` and should populate
+        *container* with nodes representing *item*.  If data has already been
+        assigned, the view is updated immediately.
+        """
+        from ..virtual_scroll import VirtualScroll
+        if self._virtual_scroll is None:
+            self._virtual_scroll = VirtualScroll(self, item_height=self.item_height)
+        self._virtual_scroll.set_renderer(fn)
+        if self._virtual_scroll._data:
+            self._virtual_scroll.update()
+        self.mark_dirty()
+
+
         from ..focus import focus_manager
         focus_manager.focus(self.id, self.on_focus, self.on_blur, container_ref=self)
 
