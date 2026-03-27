@@ -68,6 +68,11 @@ class UI():
         self.root_node      = None
         self.canvas_size    = canvas_size
 
+        # Dynamic container support
+        self._component_registry  = {}   # template_name -> {yaml_data, scss_path, base_name, base_dir}
+        self._compiled_css_str    = ""   # full CSS string after parse_css(); reused for dynamic re-apply
+        self._dynamic_css         = ""   # accumulates CSS for dynamically-added component instances
+
         self.parse_toml(path, base_dir)
         self.parse_css()
         self.create_node_tree(canvas_size)
@@ -265,6 +270,14 @@ class UI():
                                                         setattr(parent, attr_name.replace('-', '_'), substituted)
                                         
                                         load_component(component_data[component_key], child_container, component_params)
+                                        # Cache component template for dynamic instantiation
+                                        if component_key not in self._component_registry:
+                                            self._component_registry[component_key] = {
+                                                'yaml_data': component_data[component_key],
+                                                'scss_path': scss_file_path if os.path.exists(scss_file_path) else None,
+                                                'base_name': component_base_name,
+                                                'base_dir': root,
+                                            }
                                         component_loaded = True
                                     break
                             if component_loaded:
@@ -524,6 +537,9 @@ class UI():
         # Collect component CSS too
         style_str += self._component_css
 
+        # Cache for dynamic re-use (add_child / remove_child rebuilds)
+        self._compiled_css_str = style_str
+
         # Build container list and run cascade
         cascade = CSSCascade()
         cascade.parse_css(style_str)
@@ -634,7 +650,187 @@ class UI():
             return None
         return search(self.theme.root)
 
-    def create_node_tree(self, canvas_size=(800, 600)):
+    # -------------------------------------------------------------------------
+    # Dynamic container support (Feature 2)
+    # -------------------------------------------------------------------------
+
+    def _apply_css_from_cache(self):
+        """Re-apply CSS cascade using cached compiled CSS + dynamic CSS. Called after dynamic container changes."""
+        from .native_bindings import CSSCascade
+        from .components.style import Style
+
+        full_css = self._compiled_css_str + self._dynamic_css
+        if not full_css.strip():
+            return
+
+        cascade = CSSCascade()
+        cascade.parse_css(full_css)
+
+        flat_containers = self._build_container_list()
+        viewport = (float(self.canvas_size[0]), float(self.canvas_size[1]))
+
+        try:
+            normal_resolved = cascade.resolve(flat_containers, "normal", viewport) or {}
+        except Exception as e:
+            logger.warning(f"Dynamic CSS cascade(normal) failed: {e}")
+            return
+
+        for container_id, props in normal_resolved.items():
+            container = self._find_container(container_id)
+            if container is None:
+                continue
+            if not isinstance(container.style, Style):
+                container.style = Style()
+                container.style.id = container_id
+            for prop, value in props.items():
+                result = self.parse_container_props_from_style(prop, value)
+                if isinstance(result, tuple) and len(result) == 2 and result[0] == '_transitions':
+                    t_list = result[1]
+                    container.style.transitions = t_list
+                    if t_list:
+                        first = t_list[0]
+                        container.style.transition_property = first['property']
+                        container.style.transition_duration = first['duration']
+                        container.style.transition_timing_function = first['timing']
+                        container.style.transition_delay = first['delay']
+                elif isinstance(result, tuple) and len(result) == 2 and result[0] == '_scrollbar_color':
+                    thumb, track = result[1]
+                    container.style.scrollbar_thumb_color = thumb
+                    container.style.scrollbar_track_color = track
+                else:
+                    attr_name, attr_value = result
+                    setattr(container.style, attr_name, attr_value)
+
+        for state, prefix in (("hover", "hover_"), ("active", "click_")):
+            try:
+                resolved = cascade.resolve(flat_containers, state, viewport) or {}
+            except Exception:
+                continue
+            for container_id, props in resolved.items():
+                container = self._find_container(container_id)
+                if container is None:
+                    continue
+                if not isinstance(container.style, Style):
+                    container.style = Style()
+                    container.style.id = container_id
+                normal_props = normal_resolved.get(container_id, {})
+                for prop, value in props.items():
+                    if normal_props.get(prop) == value:
+                        continue
+                    result = self.parse_container_props_from_style(prop, value)
+                    if isinstance(result, tuple) and len(result) == 2 and result[0] in ('_transitions', '_scrollbar_color'):
+                        continue
+                    attr_name, attr_value = result
+                    state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
+                    if hasattr(container.style, state_attr):
+                        setattr(container.style, state_attr, attr_value)
+
+        def ensure_styles(container):
+            if not isinstance(container.style, Style):
+                container.style = Style()
+                container.style.id = container.id
+            for child in container.children:
+                ensure_styles(child)
+        ensure_styles(self.theme.root)
+
+    def _instantiate_component_into(self, template_name: str, root_container, params: dict):
+        """
+        Populate root_container with children from a cached component template.
+        root_container is already created with the right ID by the caller.
+        """
+        import re as _re
+
+        template = self._component_registry.get(template_name)
+        if template is None:
+            raise ValueError(
+                f"Component '{template_name}' not found in registry. "
+                f"Available: {list(self._component_registry.keys())}"
+            )
+
+        scss_path = template['scss_path']
+        if scss_path and os.path.exists(scss_path):
+            from .native_bindings import SCSSCompiler
+            scss_compiler = SCSSCompiler()
+            compiled_css = scss_compiler.compile_file(
+                scss_path,
+                namespace=root_container.id,
+                param_overrides={k: str(v) for k, v in params.items()},
+                component_name=template['base_name']
+            )
+            compiled_css = _re.sub(
+                r'^([a-zA-Z_][\w]*)([\s:{])', r'.\1\2', compiled_css, flags=_re.MULTILINE
+            )
+            self._dynamic_css += compiled_css
+
+        base_name = template['base_name']
+        yaml_data = template['yaml_data']
+        ns = root_container.id
+
+        def substitute_params(value):
+            if not isinstance(value, str):
+                return value
+            pattern = r'\{\{(\w+)\s*,\s*["\']([^"\']*?)["\']\}\}'
+            def replace_param(m):
+                return str(params.get(m.group(1), m.group(2)))
+            return _re.sub(pattern, replace_param, value)
+
+        def namespace_cls(value):
+            if value == base_name:
+                return ns
+            if value.startswith(base_name + '_'):
+                return value.replace(base_name, ns, 1)
+            return value
+
+        def load_comp(comp_data, parent):
+            from .components.container import Container as _Container
+            for attr_name, attr_value in comp_data.items():
+                if isinstance(attr_value, dict):
+                    child = _Container()
+                    child.id = f"{parent.id}_{attr_name}"
+                    child.parent = parent
+                    parent.children.append(child)
+                    for k, v in attr_value.items():
+                        if not isinstance(v, dict):
+                            sub = substitute_params(v)
+                            if k in ('class', 'style') and isinstance(sub, str):
+                                child.classes = [namespace_cls(sub)]
+                            elif hasattr(child, k):
+                                setattr(child, k.replace('-', '_'), sub)
+                    load_comp(attr_value, child)
+                else:
+                    sub = substitute_params(attr_value)
+                    if attr_name in ('class', 'style') and isinstance(sub, str):
+                        parent.classes = [namespace_cls(sub)]
+                    elif hasattr(parent, attr_name):
+                        setattr(parent, attr_name.replace('-', '_'), sub)
+
+        load_comp(yaml_data, root_container)
+
+    def _rebuild_after_structural_change(self):
+        """Called after add/remove child. Reapplies CSS and rebuilds the full layout tree."""
+        # Re-apply CSS to all containers (picks up newly added containers)
+        self._apply_css_from_cache()
+        # Rebuild entire Stretchable layout tree from the Container tree
+        self.create_node_tree(self.canvas_size)
+        # Rebuild flat data list
+        self.abs_json_data = []
+        self.flatten_node_tree()
+        # Update parser_op shared state
+        from . import parser_op
+        parser_op._container_json_data = self.abs_json_data
+        # Re-extract text, images, inputs
+        from .extract_text import TextExtractor
+        from .extract_text_input import TextInputExtractor
+        from .extract_images import ImageExtractor
+        text_ex  = TextExtractor(self, self.abs_json_data)
+        ti_ex    = TextInputExtractor(self, self.abs_json_data)
+        img_ex   = ImageExtractor(self, self.abs_json_data)
+        parser_op.text_blocks           = text_ex.text_blocks
+        parser_op.text_input_blocks     = ti_ex.text_input_blocks
+        parser_op.image_blocks          = img_ex.image_blocks
+        parser_op.image_blocks_relative = img_ex.image_blocks_relative
+
+
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)

@@ -214,6 +214,30 @@ class Container():
     def mark_dirty(self):
         self._dirty = True
 
+    # -------------------------------------------------------------------------
+    # Dynamic container creation / destruction (Feature 2)
+    # -------------------------------------------------------------------------
+
+    def add_child(self, template: str, id: str = None, params: dict = None) -> 'Container':
+        """Create a new child container from a component template and append it."""
+        from ..dynamic import dynamic_manager
+        return dynamic_manager.add_child(self, template, child_id=id, params=params)
+
+    def insert_child(self, index: int, template: str, id: str = None, params: dict = None) -> 'Container':
+        """Create a new child container from a component template and insert it at *index*."""
+        from ..dynamic import dynamic_manager
+        return dynamic_manager.insert_child(self, index, template, child_id=id, params=params)
+
+    def remove_child(self, id_or_container) -> bool:
+        """Remove a child container by ID string or Container reference."""
+        from ..dynamic import dynamic_manager
+        return dynamic_manager.remove_child(self, id_or_container)
+
+    def clear_children(self) -> None:
+        """Remove all children from this container."""
+        from ..dynamic import dynamic_manager
+        dynamic_manager.clear_children(self)
+
     def focus(self) -> None:
         from ..focus import focus_manager
         focus_manager.focus(self.id, self.on_focus, self.on_blur, container_ref=self)

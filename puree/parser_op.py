@@ -126,6 +126,9 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         image_blocks_relative = self.image_extractor.image_blocks_relative
 
         XWZ_UI = self.ui  # Store UI instance globally for layout recomputation
+        # Wire dynamic container manager to the freshly compiled UI
+        from .dynamic import dynamic_manager
+        dynamic_manager.set_ui(self.ui)
         self.dump_ui_struct()
         return {'FINISHED'}
 
