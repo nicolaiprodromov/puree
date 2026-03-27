@@ -321,6 +321,20 @@ def unregister():
     except Exception as e:
         logger.warning(f"Timer cleanup warning: {e}")
 
+    # Clean up focus state (prevents stale focus across hot reloads)
+    try:
+        from .focus import focus_manager
+        focus_manager.clear()
+    except Exception as e:
+        logger.warning(f"Focus cleanup warning: {e}")
+
+    # Clean up keyboard bindings (prevents duplicate handlers across hot reloads)
+    try:
+        from .keyboard import keys
+        keys.clear()
+    except Exception as e:
+        logger.warning(f"Keyboard cleanup warning: {e}")
+
     del bpy.types.WindowManager.xwz_ui_conf_path
     del bpy.types.WindowManager.xwz_debug_panel
     del bpy.types.WindowManager.xwz_auto_start

@@ -383,7 +383,7 @@ def _do_request(
             pass
         raise HttpError(exc.code, exc.reason, body) from exc
     except urllib.error.URLError as exc:
-        raise exc
+        raise HttpError(0, str(exc.reason), b"") from exc
 
 
 # ── Callback drainer ──────────────────────────────────────────────────────────

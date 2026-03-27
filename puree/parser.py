@@ -843,6 +843,10 @@ class UI():
         parser_op.image_blocks          = img_ex.image_blocks
         parser_op.image_blocks_relative = img_ex.image_blocks_relative
 
+    def create_node_tree(self, canvas_size):
+        global node_flat, node_flat_abs
+        node_flat.clear()
+        node_flat_abs.clear()
 
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)

@@ -7,6 +7,8 @@ from .log import get_logger
 
 logger = get_logger(__name__)
 
+_id_counter = 0
+
 if TYPE_CHECKING:
     from .parser import UI
     from .components.container import Container
@@ -50,8 +52,9 @@ class DynamicContainerManager:
         template_name = template.strip('[]')
 
         if child_id is None:
-            import time
-            child_id = f"{parent.id}_{template_name}_{int(time.time() * 1000) % 100000}"
+            global _id_counter
+            child_id = f"{parent.id}_{template_name}_{_id_counter}"
+            _id_counter += 1
 
         from .components.container import Container
         child = Container()
@@ -67,6 +70,7 @@ class DynamicContainerManager:
             logger.warning(f"add_child: component '{template_name}' not in registry — creating empty container")
 
         parent.children.append(child)
+        parent.mark_dirty()
 
         try:
             ui._rebuild_after_structural_change()
@@ -95,8 +99,9 @@ class DynamicContainerManager:
         template_name = template.strip('[]')
 
         if child_id is None:
-            import time
-            child_id = f"{parent.id}_{template_name}_{int(time.time() * 1000) % 100000}"
+            global _id_counter
+            child_id = f"{parent.id}_{template_name}_{_id_counter}"
+            _id_counter += 1
 
         from .components.container import Container
         child = Container()
@@ -113,6 +118,7 @@ class DynamicContainerManager:
 
         idx = max(0, min(index, len(parent.children)))
         parent.children.insert(idx, child)
+        parent.mark_dirty()
 
         try:
             ui._rebuild_after_structural_change()
@@ -142,6 +148,7 @@ class DynamicContainerManager:
 
         parent.children.remove(target)
         target.parent = None
+        parent.mark_dirty()
 
         try:
             ui._rebuild_after_structural_change()
@@ -158,6 +165,7 @@ class DynamicContainerManager:
         for child in parent.children:
             child.parent = None
         parent.children.clear()
+        parent.mark_dirty()
 
         try:
             ui._rebuild_after_structural_change()

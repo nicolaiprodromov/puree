@@ -178,6 +178,10 @@ class VirtualScroll:
 
             slot._vs_y_offset = y_off
             slot.style.display = 'FLEX'
+
+            # Update measured height for variable-height mode
+            self._update_measured_height(item_idx, slot)
+
             slot_idx += 1
 
         # Hide unused slots and clear their children

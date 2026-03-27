@@ -290,7 +290,12 @@ class Container():
             self._virtual_scroll.update()
         self.mark_dirty()
 
+    # -------------------------------------------------------------------------
+    # Focus management (Feature 9)
+    # -------------------------------------------------------------------------
 
+    def focus(self) -> None:
+        """Give this container keyboard/input focus."""
         from ..focus import focus_manager
         focus_manager.focus(self.id, self.on_focus, self.on_blur, container_ref=self)
 
