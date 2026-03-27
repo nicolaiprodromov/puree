@@ -17,7 +17,18 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import threading
+import time
 from pathlib import Path
+
+# Lazy import — terminal_ui may not be available in all contexts
+try:
+    from . import terminal_ui as tui
+except ImportError:
+    try:
+        import terminal_ui as tui
+    except ImportError:
+        tui = None
 
 
 def _get_version():
@@ -314,6 +325,45 @@ def _manifest_template(py_version):
     """)
 
 
+# ── Helpers ──────────────────────────────────────────────────────────
+
+def _run_with_progress(tracker, fn, steps, interval=0.8):
+    """Run *fn* in a background thread while ticking the progress bar.
+
+    Advances the tracker by up to *steps* increments (one every *interval*
+    seconds).  When *fn* finishes, any remaining steps are flushed at once
+    so the bar always lands at the expected position.
+    """
+    result = [None]
+    error = [None]
+
+    def _worker():
+        try:
+            result[0] = fn()
+        except Exception as exc:
+            error[0] = exc
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+    advanced = 0
+    while t.is_alive() and advanced < steps - 1:
+        time.sleep(interval)
+        if t.is_alive() and advanced < steps - 1:
+            tracker.advance()
+            advanced += 1
+
+    t.join()
+
+    remaining = steps - advanced
+    if remaining > 0:
+        tracker.advance(remaining)
+
+    if error[0] is not None:
+        raise error[0]
+    return result[0]
+
+
 # ── Commands ─────────────────────────────────────────────────────────
 
 def cmd_init(args):
@@ -322,32 +372,59 @@ def cmd_init(args):
 
     # Safety check — don't overwrite existing project
     if (cwd / "static" / "index.yaml").exists():
-        print("Error: A Puree project already exists in this directory.")
-        print("       (static/index.yaml found)")
+        if tui:
+            tui.step_fail("A Puree project already exists in this directory")
+            tui.step_info("static/index.yaml found")
+        else:
+            print("Error: A Puree project already exists in this directory.")
+            print("       (static/index.yaml found)")
         sys.exit(1)
 
-    print("Initializing Puree project...")
+    if tui:
+        tui.print_logo(animate=True)
+        # total=16: detect(8) + structure(1) + scaffold(1) + wheels(5) + manifest(1)
+        tracker = tui.ProgressTracker(total=16)
+        tracker.header("Initializing new Puree project")
+        tracker.divider()
+        tracker.step_info("Detecting Blender...")
+    else:
+        print("Initializing Puree project...")
 
-    # Find blender to determine Python version for wheels
+    # Step 1: Detect Blender + Python version (launches blender --background, takes seconds)
     blender_exe = _find_blender()
-    py_version = _get_blender_python_version(blender_exe)
-    print(f"  Blender: {blender_exe}")
-    print(f"  Python:  {py_version}")
 
-    # Create directory structure
+    if tui:
+        # Blender startup is the main bottleneck (~5-10s) — tick the bar while waiting
+        py_version = _run_with_progress(
+            tracker, lambda: _get_blender_python_version(blender_exe), steps=8,
+        )
+        tracker.step("Detected Blender")
+        tracker.step_info(f"Blender: {blender_exe}")
+        tracker.step_info(f"Python:  {py_version}")
+    else:
+        py_version = _get_blender_python_version(blender_exe)
+        print(f"  Blender: {blender_exe}")
+        print(f"  Python:  {py_version}")
+
+    # Step 2: Create directory structure + write templates
     (cwd / "static" / "components").mkdir(parents=True, exist_ok=True)
     (cwd / "wheels").mkdir(exist_ok=True)
     (cwd / "assets").mkdir(exist_ok=True)
     (cwd / "fonts").mkdir(exist_ok=True)
 
-    # Write template files
     (cwd / "static" / "index.yaml").write_text(INIT_YAML)
     (cwd / "static" / "style.scss").write_text(INIT_SCSS)
     (cwd / "static" / "script.py").write_text(INIT_SCRIPT)
     (cwd / "__init__.py").write_text(INIT_ENTRY)
     (cwd / "blender_manifest.toml").write_text(_manifest_template(py_version))
 
-    # Copy AI configuration scaffold (.agents/, .github/)
+    if tui:
+        tracker.advance()
+        tracker.step("Created project structure")
+    else:
+        print("  Created project structure")
+
+    # Step 3: Copy AI configuration scaffold
     scaffold_dir = Path(__file__).parent / "scaffold"
     if scaffold_dir.is_dir():
         for sub in (".agents", ".github"):
@@ -355,23 +432,43 @@ def cmd_init(args):
             dst = cwd / sub
             if src.is_dir() and not dst.exists():
                 shutil.copytree(src, dst)
-        print("  Created AI configuration (.agents/, .github/)")
+        if tui:
+            tracker.advance()
+            tracker.step("Created AI configuration (.agents/, .github/)")
+        else:
+            print("  Created AI configuration (.agents/, .github/)")
+    else:
+        if tui:
+            tracker.advance()
 
-    print("  Created project structure")
-
-    # Populate wheels directory
-    print("  Collecting wheels...")
+    # Step 4: Collect wheels
     wheels_dir = cwd / "wheels"
     local_wheels_dir = _find_local_wheels_dir()
     if local_wheels_dir:
-        # Running from a local/editable install — copy all pre-built wheels
-        # directly, no network needed.
-        for whl in sorted(local_wheels_dir.glob("*.whl")):
-            shutil.copy2(whl, wheels_dir / whl.name)
-            print(f"    ✓ {whl.name}")
+        if tui:
+            tracker.step_info("Collecting wheels...")
+
+        def _copy_local_wheels():
+            whl_list = sorted(local_wheels_dir.glob("*.whl"))
+            for whl in whl_list:
+                shutil.copy2(whl, wheels_dir / whl.name)
+            return whl_list
+
+        if tui:
+            wheels_list = _run_with_progress(tracker, _copy_local_wheels, steps=5)
+            tracker.step(f"Collected {len(wheels_list)} wheels")
+        else:
+            wheels_list = _copy_local_wheels()
+            for whl in wheels_list:
+                print(f"    ✓ {whl.name}")
     else:
         # Installed from PyPI — download wheels from the network.
-        try:
+        if tui:
+            tracker.step_info("Downloading wheels from PyPI...")
+        else:
+            print("  Collecting wheels...")
+
+        def _download_wheels():
             subprocess.run(
                 [
                     sys.executable, "-m", "pip", "download",
@@ -384,22 +481,43 @@ def cmd_init(args):
                 capture_output=True,
                 text=True,
             )
+
+        try:
+            if tui:
+                _run_with_progress(tracker, _download_wheels, steps=5)
+                tracker.step("Downloaded wheels")
+            else:
+                _download_wheels()
         except subprocess.CalledProcessError as e:
-            print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
-            print("  You can download them manually: pip download --only-binary=:all: "
-                  f"--python-version {py_version} --dest wheels puree-ui")
+            if tui:
+                tracker.advance(5)
+                tracker.step_warn("Failed to download wheels")
+                tracker.step_info(f"pip download --only-binary=:all: "
+                                  f"--python-version {py_version} --dest wheels puree-ui")
+            else:
+                print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
+                print("  You can download them manually: pip download --only-binary=:all: "
+                      f"--python-version {py_version} --dest wheels puree-ui")
 
-    # Update manifest with actual wheel filenames
+    # Step 5: Update manifest with actual wheel filenames
     _update_manifest_wheels(cwd)
-
-    print()
-    print("Done! Your Puree project is ready.")
-    print()
-    print("Next steps:")
-    print(f"  1. puree build     — Build the extension zip")
-    print(f"  2. puree install   — Install into Blender")
-    print(f"  3. Open Blender and look for the Puree tab in the N-panel")
-    print()
+    if tui:
+        tracker.advance()
+        tracker.finish()
+        tui.outro_success("Your Puree project is ready!")
+        tui.step_info("puree build     — Build the extension zip")
+        tui.step_info("puree install   — Install into Blender")
+        tui.step_info("Open Blender and look for the Puree tab in the N-panel")
+        print()
+    else:
+        print()
+        print("Done! Your Puree project is ready.")
+        print()
+        print("Next steps:")
+        print(f"  1. puree build     — Build the extension zip")
+        print(f"  2. puree install   — Install into Blender")
+        print(f"  3. Open Blender and look for the Puree tab in the N-panel")
+        print()
 
 
 def _update_manifest_wheels(project_dir):
@@ -438,8 +556,12 @@ def cmd_build(args):
 
     manifest = cwd / "blender_manifest.toml"
     if not manifest.exists():
-        print("Error: blender_manifest.toml not found in current directory.")
-        print("Run 'puree init' first, or cd into your project directory.")
+        if tui:
+            tui.step_fail("blender_manifest.toml not found in current directory")
+            tui.step_info("Run 'puree init' first, or cd into your project directory.")
+        else:
+            print("Error: blender_manifest.toml not found in current directory.")
+            print("Run 'puree init' first, or cd into your project directory.")
         sys.exit(1)
 
     blender_exe = _find_blender()
@@ -452,6 +574,14 @@ def cmd_build(args):
     addon_name = name_match.group(1).replace(" ", "_") if name_match else "addon"
     version = version_match.group(1) if version_match else "0.0.0"
 
+    if tui:
+        tui.banner_build()
+        tui.step_info(f"Blender: {blender_exe}")
+        tui.step_info(f"{addon_name} v{version}")
+    else:
+        print(f"Building {addon_name} v{version}...")
+        print(f"  Blender: {blender_exe}")
+
     # Create dist directory
     dist_dir = cwd / "dist"
     dist_dir.mkdir(exist_ok=True)
@@ -462,8 +592,9 @@ def cmd_build(args):
 
     output_file = dist_dir / f"{addon_name}_{version}.zip"
 
-    print(f"Building {addon_name} v{version}...")
-    print(f"  Blender: {blender_exe}")
+    if tui:
+        sp = tui.Spinner("Building extension zip", frames=tui.SPINNER_BLOCKS, color=tui.MAGENTA)
+        sp.start()
 
     result = subprocess.run(
         [blender_exe, "--background", "--command", "extension", "build",
@@ -472,14 +603,26 @@ def cmd_build(args):
     )
 
     if output_file.exists():
-        print(f"  Output:  {output_file}")
-        print("Build successful!")
+        if tui:
+            sp.stop(f"Built {output_file.name}")
+            tui.outro_success("Build successful!")
+        else:
+            print(f"  Output:  {output_file}")
+            print("Build successful!")
     else:
-        print("Build failed!")
-        if result.stdout:
-            print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
+        if tui:
+            sp.fail("Build failed")
+            if result.stdout:
+                print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
+            tui.outro_fail("Build failed")
+        else:
+            print("Build failed!")
+            if result.stdout:
+                print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
         sys.exit(1)
 
 
@@ -489,8 +632,12 @@ def cmd_install(args):
 
     manifest = cwd / "blender_manifest.toml"
     if not manifest.exists():
-        print("Error: blender_manifest.toml not found in current directory.")
-        print("Run 'puree init' first.")
+        if tui:
+            tui.step_fail("blender_manifest.toml not found in current directory")
+            tui.step_info("Run 'puree init' first.")
+        else:
+            print("Error: blender_manifest.toml not found in current directory.")
+            print("Run 'puree init' first.")
         sys.exit(1)
 
     blender_exe = _find_blender()
@@ -499,13 +646,22 @@ def cmd_install(args):
     dist_dir = cwd / "dist"
     zips = sorted(dist_dir.glob("*.zip"))
     if not zips:
-        print("Error: No built zip found in dist/. Run 'puree build' first.")
+        if tui:
+            tui.step_fail("No built zip found in dist/")
+            tui.step_info("Run 'puree build' first.")
+        else:
+            print("Error: No built zip found in dist/. Run 'puree build' first.")
         sys.exit(1)
 
     package_file = zips[-1]  # Latest
 
-    print(f"Installing {package_file.name}...")
-    print(f"  Blender: {blender_exe}")
+    if tui:
+        tui.banner_install()
+        tui.step_info(f"Blender: {blender_exe}")
+        tui.step_info(f"Package: {package_file.name}")
+    else:
+        print(f"Installing {package_file.name}...")
+        print(f"  Blender: {blender_exe}")
 
     install_script = textwrap.dedent(f"""\
         import bpy
@@ -521,23 +677,39 @@ def cmd_install(args):
             raise SystemExit(1)
     """)
 
+    if tui:
+        sp = tui.Spinner("Installing into Blender", color=tui.BLUE)
+        sp.start()
+
     result = subprocess.run(
         [blender_exe, "--background", "--python-expr", install_script],
         capture_output=True, text=True,
     )
 
     if "installed and enabled successfully" in result.stdout:
-        print("Install successful!")
+        if tui:
+            sp.stop("Extension installed and enabled")
+            tui.outro_success("Install successful!")
+        else:
+            print("Install successful!")
     else:
-        print("Install may have failed. Blender output:")
-        if result.stdout:
-            for line in result.stdout.splitlines():
-                if line.strip():
-                    print(f"  {line}")
-        if result.stderr:
-            for line in result.stderr.splitlines():
-                if line.strip():
-                    print(f"  {line}")
+        if tui:
+            sp.fail("Installation may have failed")
+            if result.stdout:
+                for line in result.stdout.splitlines():
+                    if line.strip():
+                        tui.step_info(line.strip())
+            tui.outro_fail("Install failed")
+        else:
+            print("Install may have failed. Blender output:")
+            if result.stdout:
+                for line in result.stdout.splitlines():
+                    if line.strip():
+                        print(f"  {line}")
+            if result.stderr:
+                for line in result.stderr.splitlines():
+                    if line.strip():
+                        print(f"  {line}")
         sys.exit(1)
 
 
@@ -547,15 +719,24 @@ def cmd_link(args):
 
     manifest = cwd / "blender_manifest.toml"
     if not manifest.exists():
-        print("Error: blender_manifest.toml not found in current directory.")
-        print("Run 'puree init' first.")
+        if tui:
+            tui.step_fail("blender_manifest.toml not found in current directory")
+            tui.step_info("Run 'puree init' first.")
+        else:
+            print("Error: blender_manifest.toml not found in current directory.")
+            print("Run 'puree init' first.")
         sys.exit(1)
 
     addon_id = _get_addon_id(cwd)
     blender_exe = _find_blender()
 
-    print(f"Linking {addon_id} for development...")
-    print(f"  Blender: {blender_exe}")
+    if tui:
+        tui.banner_link()
+        tui.step_info(f"Addon:   {addon_id}")
+        tui.step_info(f"Blender: {blender_exe}")
+    else:
+        print(f"Linking {addon_id} for development...")
+        print(f"  Blender: {blender_exe}")
 
     ext_dir, site_packages = _get_blender_paths(blender_exe)
     ext_dir = Path(ext_dir)
@@ -567,34 +748,61 @@ def cmd_link(args):
 
     # Remove existing addon (symlink or installed copy)
     if addon_link.is_symlink():
-        print("  Symlink already exists, updating...")
+        if tui:
+            tui.step_info("Symlink already exists, updating...")
+        else:
+            print("  Symlink already exists, updating...")
         addon_link.unlink()
     elif addon_link.is_dir():
-        print("  Removing installed extension copy...")
+        if tui:
+            tui.step_info("Removing installed extension copy...")
+        else:
+            print("  Removing installed extension copy...")
         shutil.rmtree(addon_link)
 
     # Create symlink
     addon_link.symlink_to(cwd)
-    print(f"  \u2713 Linked: {addon_link} \u2192 {cwd}")
+    if tui:
+        tui.step(f"Linked: {addon_link} \u2192 {cwd}")
+    else:
+        print(f"  \u2713 Linked: {addon_link} \u2192 {cwd}")
 
     # Install wheel dependencies into Blender's extension site-packages
     # Extract wheels directly (zip files) to avoid pip rejecting cross-version wheels
     import zipfile
     wheels_dir = cwd / "wheels"
     if wheels_dir.exists() and list(wheels_dir.glob("*.whl")):
-        print("  Installing wheel dependencies...")
+        if tui:
+            sp = tui.Spinner("Installing wheel dependencies", frames=tui.SPINNER_COOK, color=tui.CORAL)
+            sp.start()
+        else:
+            print("  Installing wheel dependencies...")
         site_packages.mkdir(parents=True, exist_ok=True)
+        whl_count = 0
         for whl in sorted(wheels_dir.glob("*.whl")):
             try:
                 with zipfile.ZipFile(whl, 'r') as zf:
                     zf.extractall(site_packages)
-                print(f"    \u2713 {whl.name}")
+                whl_count += 1
+                if not tui:
+                    print(f"    \u2713 {whl.name}")
             except Exception as e:
-                print(f"    \u2717 {whl.name}: {e}")
+                if tui:
+                    pass  # will report summary
+                else:
+                    print(f"    \u2717 {whl.name}: {e}")
+        if tui:
+            sp.stop(f"Installed {whl_count} wheel dependencies")
 
-    print()
-    print("Dev mode active. Open Blender to load the addon.")
-    print("Use 'puree reload' after code changes.")
+    if tui:
+        tui.outro_success("Dev mode active")
+        tui.step_info("Open Blender to load the addon")
+        tui.step_info("Use 'puree reload' after code changes")
+        print()
+    else:
+        print()
+        print("Dev mode active. Open Blender to load the addon.")
+        print("Use 'puree reload' after code changes.")
 
 
 def cmd_unlink(args):
@@ -603,28 +811,46 @@ def cmd_unlink(args):
 
     manifest = cwd / "blender_manifest.toml"
     if not manifest.exists():
-        print("Error: blender_manifest.toml not found in current directory.")
+        if tui:
+            tui.step_fail("blender_manifest.toml not found in current directory")
+        else:
+            print("Error: blender_manifest.toml not found in current directory.")
         sys.exit(1)
 
     addon_id = _get_addon_id(cwd)
     blender_exe = _find_blender()
     ext_dir, _ = _get_blender_paths(blender_exe)
 
+    if tui:
+        tui.banner_unlink()
+
     addon_link = Path(ext_dir) / addon_id
 
     if addon_link.is_symlink():
         addon_link.unlink()
-        print(f"\u2713 Removed symlink: {addon_link}")
+        if tui:
+            tui.step(f"Removed symlink: {addon_link}")
+        else:
+            print(f"\u2713 Removed symlink: {addon_link}")
     else:
-        print(f"No symlink found at {addon_link}")
+        if tui:
+            tui.step_warn(f"No symlink found at {addon_link}")
+        else:
+            print(f"No symlink found at {addon_link}")
 
-    print("Dev mode deactivated.")
+    if tui:
+        tui.step("Dev mode deactivated")
+    else:
+        print("Dev mode deactivated.")
 
 
 def cmd_reload(args):
     """Reload addon in a running Blender instance."""
     import socket
     import time
+
+    if tui:
+        tui.banner_reload()
 
     # Primary: TCP reload via Puree's built-in reload server
     try:
@@ -635,16 +861,25 @@ def cmd_reload(args):
         resp = s.recv(64).decode("utf-8", errors="ignore").strip()
         s.close()
         if resp == "ok":
-            print("[Puree] \u2713 Reload triggered (via reload server)")
+            if tui:
+                tui.step("Reload triggered (via reload server)")
+            else:
+                print("[Puree] \u2713 Reload triggered (via reload server)")
             return
     except (ConnectionRefusedError, OSError, socket.timeout):
         pass
 
     # Fallback: sentinel file
-    print("[Puree] Reload server not reachable, using sentinel fallback...")
+    if tui:
+        tui.step_warn("Reload server not reachable, using sentinel fallback")
+    else:
+        print("[Puree] Reload server not reachable, using sentinel fallback...")
     sentinel = Path.cwd() / ".puree_reload"
     sentinel.write_text(str(time.time()))
-    print("[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s")
+    if tui:
+        tui.step("Sentinel written \u2014 Blender will pick this up within ~2s")
+    else:
+        print("[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s")
 
 
 # ── Entry Point ──────────────────────────────────────────────────────
