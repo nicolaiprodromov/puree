@@ -246,6 +246,10 @@ def register():
     if not bpy.app.timers.is_registered(_check_reload_sentinel):
         bpy.app.timers.register(_check_reload_sentinel, persistent=True)
 
+    # Start HTTP callback drain timer
+    from .net import register as net_register
+    net_register()
+
 def unregister():
     import bpy
     from .render  import unregister as render_unregister
@@ -290,6 +294,13 @@ def unregister():
 
     # Clean up any stale sentinel
     _get_sentinel_path().unlink(missing_ok=True)
+
+    # Stop HTTP callback drain timer
+    try:
+        from .net import unregister as net_unregister
+        net_unregister()
+    except Exception as e:
+        logger.warning(f"Net unregister warning: {e}")
 
     # Clean up all Puree-managed timers
     try:
