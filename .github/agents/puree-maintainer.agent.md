@@ -199,6 +199,7 @@ just reload           # Reload addon in running Blender (via TCP reload server)
 just tail             # Live-follow the Puree log file
 just logs             # Print last 50 lines of the log (just logs 100 for more)
 just clear-logs       # Delete all log files
+just refresh <folder> # Refresh puree_ui wheel in a target project (fixes stale wheels)
 just deploy           # Link + reload (quick dev cycle)
 just install          # Install puree CLI locally for testing (creates .venv)
 just venv             # Create venv and install CLI in editable mode

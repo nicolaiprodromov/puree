@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/Asset%204.png?raw=true" alt="purée UI Logo" width="100%"/>
+<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/puree_ui_kit.png?raw=true" alt="purée UI Logo" width="100%"/>
 
 <br>
 

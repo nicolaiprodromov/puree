@@ -206,6 +206,8 @@ puree unlink          # Remove the development symlink
 For engine work (requires rebuild):
 ```bash
 just build_core       # After Rust changes
+just build_package    # Rebuild the puree_ui wheel
+just refresh <folder> # Push fresh wheel into a target addon project
 just reload           # Reload in running Blender
 ```
 
