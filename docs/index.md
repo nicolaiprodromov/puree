@@ -101,13 +101,13 @@ Here's how to get started with Puree:
 
 ## How it works
 
-Puree follows a render pipeline inspired by modern web browsers:
+Puree follows a render pipeline inspired by modern web browsers (simplified view — see [Knowledge Base](KNOWLEDGE_BASE.md) for full details):
 
 1. **Parse** – YAML/CSS files are loaded and parsed into container tree with styles
-2. **Layout** – Stretchable computes flexbox layouts with viewport-aware sizing
-3. **Compile** – Optional Python scripts transform the UI tree
+2. **Compile** – Python scripts transform the UI tree (event handlers, dynamic content)
+3. **Layout** – Stretchable computes flexbox/grid layouts with viewport-aware sizing
 4. **Render** – ModernGL compute shader generates GPU texture with all visual effects
-5. **Event** – Mouse/scroll events update container states and trigger re-renders
+5. **Event** – Mouse/scroll/keyboard events update container states and trigger re-renders
 
 This architecture enables:
 

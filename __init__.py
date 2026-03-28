@@ -34,7 +34,7 @@ def register():
     set_addon_root(os.path.dirname(os.path.abspath(__file__)))
     xwz_ui_register()
     wm = bpy.context.window_manager
-    wm.xwz_ui_conf_path = "static/index.yaml"
+    wm.xwz_ui_conf_path = "tests/example0/index.yaml"
     wm.xwz_debug_panel  = True
     wm.xwz_auto_start   = True
 

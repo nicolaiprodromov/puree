@@ -102,9 +102,11 @@ Only these inherit from parent: `color`, `font-size`, `text-align`, `font-family
 
 ## Units & Functions
 
-- **Supported**: `px`, `%`, `auto`
-- **NOT supported**: `em`, `rem`, `vw`, `vh`, `fr`
-- **NOT supported**: `calc()`, `clamp()`, `min()`, `max()`
+- **Supported**: `px`, `%`, `auto`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()`
+- **NOT supported**: `fr`, `clamp()`, `min()`, `max()`
+- `rem` resolves against root font-size (default 16px), `em` against parent font-size
+- `vw`/`vh` = 1% of viewport width/height; `vmin`/`vmax` = 1% of smaller/larger dimension
+- `calc()` supports `+` and `-` operators with mixed units (e.g. `calc(100% - 20px)`)
 
 ## Display Values
 
@@ -120,6 +122,19 @@ Media queries: `@media (min-width: Npx)`, `@media (max-width: Npx)`, `@media (mi
 ## SCSS Features
 
 Variables (`$var`), nesting, mixins, `!default`, `var(--name)` with fallback, `@media` queries — all work.
+
+## Scrollbar Customization
+
+| Property | Values | Description |
+|----------|--------|-------------|
+| `scrollbar-width` | `none`, `thin` (6px), `auto` (8px), or px value | Track width |
+| `scrollbar-color` | color | Shorthand for thumb + track colors |
+| `scrollbar-thumb-color` | color | Thumb (draggable part) color |
+| `scrollbar-track-color` | color | Track (background) color |
+
+## Pointer Events
+
+`pointer-events: none` prevents hover/click detection on the element and all its children. Use for overlay containers that shouldn't block interaction.
 
 ## NOT Supported
 

@@ -204,6 +204,9 @@ background-image: linear-gradient(90deg, red, blue);  /* CSS alias */
 | `overflow-wrap`     | enum   | `normal`   | `normal`, `break-word` — whether to break words to prevent overflow |
 | `word-break`        | enum   | `normal`   | `normal`, `break-all` — word breaking rules                   |
 | `scrollbar-width`   | length/enum | `auto` | Scrollbar track width (`px`, or `none` / `thin` / `auto`)     |
+| `scrollbar-color`   | color pair  | —      | `<thumb-color> <track-color>` shorthand                       |
+| `scrollbar-thumb-color` | color   | —      | Scrollbar thumb/handle color                                  |
+| `scrollbar-track-color` | color   | —      | Scrollbar track background color                              |
 
 Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`), not CSS `font-family`. `font-weight` and `font-style` select the closest loaded variant.
 
@@ -227,7 +230,7 @@ Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`
 | `border-bottom-width`     | length | `0`           | Bottom border width                               |
 | `border-left-width`       | length | `0`           | Left border width                                 |
 | `border-color`            | color  | `transparent` | Border color (uniform)                            |
-| `border`                  | short  | none          | `border: 1px solid red` shorthand                 |
+| `border`                  | short  | none          | `border: 1px solid red` shorthand. **Note**: the `border` shorthand reliably sets width; use `border-color` separately for reliable color setting. |
 | `border-top`              | short  | none          | `border-top: 2px solid red`                       |
 | `border-right`            | short  | none          | Per-side border shorthand                         |
 | `border-bottom`           | short  | none          | Per-side border shorthand                         |
@@ -237,7 +240,7 @@ Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`
 | `overflow-x`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
 | `overflow-y`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
 | `box-sizing`              | enum   | `content-box` | `content-box`, `border-box`                       |
-| `pointer-events`          | enum   | `auto`        | `auto`, `none`                                    |
+| `pointer-events`          | enum   | `auto`        | `auto`, `none`. `none` prevents hover/click detection on the element and all children — use for overlay containers that shouldn't block interaction. |
 
 **Border gradient** (CSS standard):
 ```scss
@@ -289,7 +292,7 @@ Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
 
 | CSS Property      | Type  | Default    | Values                                                         |
 |-------------------|-------|------------|----------------------------------------------------------------|
-| `display`         | enum  | `flex`     | `flex`, `grid`, `block`, `none`                                |
+| `display`         | enum  | `flex`     | `flex`, `grid`, `block`, `none`. `block`: children stack vertically and fill parent width (no flex properties like `flex-grow` apply). `flex`: standard flexbox. `grid`: CSS grid. `none`: hidden + removed from layout. |
 | `flex-direction`  | enum  | `row`      | `row`, `column`, `row-reverse`, `column-reverse`               |
 | `justify-content` | enum  | `start`    | `start`, `end`, `center`, `space-between`, `space-around`, `space-evenly` |
 | `align-items`     | enum  | `start`    | `start`, `end`, `center`, `baseline`, `stretch`                |
@@ -926,8 +929,12 @@ grid_container:
 9. **`passive: true`** makes an element completely non-interactive (no hover/click)
 10. **`display: none`** hides an element and removes it from layout
 11. **Runtime display values are UPPERCASE**: `'FLEX'`, `'NONE'`, `'GRID'` (CSS uses lowercase)
+
+    > ⚠️ **Common debugging issue**: SCSS uses lowercase (`display: none`, `display: flex`) but Python runtime requires UPPERCASE (`style.display = 'NONE'`, `style.display = 'FLEX'`). Mismatched case will silently fail.
+
 12. **Only 3 animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
 13. **Draw order**: Containers are drawn in tree order (depth-first). Use the YAML `layer:` attribute (integer) for z-ordering — higher values draw later/on top. The CSS `z-index` property exists on the Style class but is **not** used by the GPU renderer.
+14. **Container `.keys` property**: Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped keyboard shortcuts. See the [Keyboard section in API Reference](API.md#keyboard--pureekeyboard).
 
 ---
 
@@ -957,14 +964,20 @@ parent.clear_children()
 ```python
 from puree.markdown import render_markdown
 
-# Render markdown into a container (clears children first)
-container.set_markdown("# Title\n\nSome **bold** text and `code`.")
+# Preferred: Container method with full options
+container.set_markdown(
+    "# Title\n\nSome **bold** text and `code`.",
+    app=app,                                    # enables dynamic features
+    fonts={"code": "JetBrainsMono"},            # optional: custom fonts per element
+    classes={"h1": "custom_heading"}            # optional: custom CSS classes per element
+)
 
 # Or use the function directly
 render_markdown(container, markdown_text)
 ```
 
-Supports: headings, bold, inline code, code blocks, list items, blockquotes, horizontal rules.
+Supports: headings (h1-h6), bold, inline code, code blocks, list items, blockquotes, horizontal rules.
+Default CSS classes (`.md_paragraph`, `.md_h1`, `.md_code_block`, etc.) are injected automatically and can be overridden in your SCSS.
 
 ### Virtual Scrolling
 
@@ -976,10 +989,23 @@ messages:
 ```
 
 ```python
-scroll = app.theme.root.messages
-scroll.set_virtual_data(items_list)
-scroll.set_item_renderer(lambda c, item: setattr(c, 'text', item['text']) or c.mark_dirty())
+def main(self, app):
+    scroll = app.theme.root.messages
+    
+    # Provide data list
+    items = [{"text": f"Message {i}", "sender": "user"} for i in range(1000)]
+    scroll.set_virtual_data(items)
+    
+    # Define how each item renders
+    def render_item(container, item):
+        container.text = item['text']
+        container.mark_dirty()
+    
+    scroll.set_item_renderer(render_item)
+    return app
 ```
+
+Only visible items are rendered; off-screen items are recycled automatically. Use `item_height: 'auto'` for variable-height items.
 
 ### Collapse / Expand
 
@@ -993,14 +1019,54 @@ details:
 ```
 
 ```python
-details = app.theme.root.details
-details.toggle_collapse()
-details.mark_dirty()
+def main(self, app):
+    details = app.theme.root.details
+    header = app.theme.root.details.header
+    
+    def toggle(container):
+        details.toggle_collapse()
+        details.mark_dirty()
+    
+    header.click.append(toggle)
+    
+    # You can also check state:
+    # details.is_collapsed  → True/False
+    # details.collapse()    → animate to collapsed
+    # details.expand()      → animate to expanded
+    return app
 ```
 
-### Storage, Timers, HTTP, Focus, Keyboard
+The first child of a collapsible container is the **header** (always visible); remaining children form the collapsible **body**.
 
-See the [API Reference](API.md) for full module documentation.
+### Keyboard Shortcuts
+
+```python
+from puree.keyboard import keys
+
+def main(self, app):
+    input_field = app.theme.root.input_field
+    
+    # Global shortcuts (always active)
+    keys.bind("CTRL+N", lambda c: new_chat())
+    keys.bind("ESCAPE", lambda c: cancel())
+    
+    # Conditional: only when a text input has focus
+    keys.bind("ENTER", lambda c: send_message(), when="input_focused")
+    
+    # Container-scoped: only when this specific container is focused
+    input_field.keys.bind("SHIFT+ENTER", lambda c: insert_newline())
+    
+    # Unbind when no longer needed
+    binding = keys.bind("CTRL+S", lambda c: save())
+    keys.unbind(binding)
+    return app
+```
+
+Key names use Blender conventions but common aliases (`ENTER`, `ESCAPE`, `DELETE`, `BACKSPACE`) are auto-mapped.
+
+### Storage, Timers, HTTP, Focus
+
+See the [API Reference](API.md) for full module documentation on these built-in modules.
 
 ---
 

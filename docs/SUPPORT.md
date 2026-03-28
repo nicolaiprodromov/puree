@@ -53,7 +53,7 @@ A: No. Puree requires the **OpenGL backend** due to its ModernGL dependency. Ble
 A: Simple `bpy` calls work directly in click/hover handlers since they run on the main thread. For background threads, use `bpy.app.timers.register(fn)` to schedule calls on the main thread. See the [Threading & Blender Safety](DOCS.md#threading--blender-safety) section.
 
 **Q: Can I use `calc()`, `clamp()`, or viewport units (`vw`, `vh`)?**
-A: No. Only `px` and `%` units are supported. Use fixed values or restructure your layout with flexbox (`flex-grow`, `flex-shrink`).
+A: `calc()` (with `+` and `-` operators), `rem`, `em`, `vw`, `vh`, `vmin`, and `vmax` are all supported. `clamp()`, `min()`, `max()`, and `fr` units are NOT supported.
 
 **Q: How do I hide a container completely?**
 A: Set `display: 'NONE'` and call `mark_dirty()`. If using `height: 0`, you must also clear `padding` and `border-width` to fully hide the element.

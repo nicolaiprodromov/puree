@@ -117,7 +117,7 @@ The `box-shadow` shorthand is now parsed automatically. Only one shadow per elem
 | `border-bottom-left-radius: 8px` | `border-bottom-left-radius: 8px` ✅ |
 | `border-radius: 8px 16px 4px 12px` | `border-radius: 8px 16px 4px 12px` ✅ |
 
-No `border-style` — all borders are solid. Per-side border **colors** are not yet supported (use a uniform `border-color`). Border gradients use `border-image: linear-gradient()`:
+No `border-style` — all borders are solid. Per-side border **colors** are not yet supported (use a uniform `border-color`). The `border` shorthand (`border: 2px solid red`) reliably sets width but may not propagate color to the GPU — use `border-color` separately for reliable color setting. Border gradients use `border-image: linear-gradient()`:
 
 ```scss
 .card { border-image: linear-gradient(135deg, #3498db, #2ecc71); border-width: 1px; }
@@ -163,14 +163,14 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 - `align-items`, `align-self`, `align-content`
 - `justify-content`, `justify-items`, `justify-self`
 - `position: relative`, `position: absolute`
-- `margin`, `padding` (px and %)
-- `width`, `height` (px and %)
+- `margin`, `padding` (px, %, rem, em, vw, vh, vmin, vmax, calc())
+- `width`, `height` (px, %, rem, em, vw, vh, vmin, vmax, calc())
 - `min-width`, `max-width`, `min-height`, `max-height`
 - `overflow: hidden`
 - `overflow-x`, `overflow-y`
 - `box-sizing: border-box/content-box`
 - `visibility: hidden/visible`
-- `pointer-events: none/auto`
+- `pointer-events: none/auto` — `none` prevents hover/click detection on the element and all children. Use for overlay containers that shouldn't block clicks to elements below.
 - `text-transform: uppercase/lowercase/capitalize`
 - `text-decoration: underline/overline/line-through/none`
 - `white-space: normal/nowrap/pre`
@@ -181,12 +181,13 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 
 ### What does NOT exist
 - `display: inline`, `display: inline-flex` — only `flex`, `grid`, `block`, `none`
+- `display: block` — children stack vertically and fill parent width. Unlike `flex`, flex properties (`flex-grow`, `flex-shrink`, `flex-basis`) do not apply. `block` is closest to standard CSS block flow.
 - `float`, `clear`, `transform`
 - `z-index` — the Style class has a `z_index` attribute but it is not used by the GPU renderer. Draw order is determined by container tree order. Use the YAML `layer:` attribute on containers for z-ordering (integer, higher = drawn later)
 - `position: fixed`, `position: sticky` — only `relative` and `absolute`
 - `@keyframes` animations — use `transition` for simple state changes
-- `calc()`, `clamp()`, `min()`, `max()`
-- `em`, `rem`, `vw`, `vh`, `fr` units
+- `clamp()`, `min()`, `max()` — only `calc()` with `+` and `-` operators
+- `fr` units
 - `cubic-bezier()` custom timing — only named functions (`ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`)
 - Pseudo-elements (`::before`, `::after`)
 - Per-side border colors (uniform `border-color` only)

@@ -34,7 +34,7 @@ Individual skills may require additional context — check the skill's preparati
 Commit to a BOLD aesthetic direction:
 - **Purpose**: What problem does this interface solve? Who uses it in Blender?
 - **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
-- **Constraints**: Puree's supported properties (flexbox/grid layout, transitions on color/opacity only, px/% units only).
+- **Constraints**: Puree's supported properties (flexbox/grid layout, transitions on color/opacity only, px/%/rem/em/vw/vh/vmin/vmax/calc() units).
 - **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
 
 **CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work—the key is intentionality, not intensity.
@@ -156,8 +156,8 @@ Interpret creatively and make unexpected choices that feel genuinely designed fo
 - **Component params** use `"{{param_name, 'default_value'}}"` syntax
 - **Always `return app`** from `script.py`'s `main()` function
 - **Always call `mark_dirty()`** after runtime property changes
-- **Only px and % units** are supported — no `rem`, `em`, `vw`, `vh`, `fr`
+- **Supported units**: `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()` — no `fr`, `clamp()`, `min()`, `max()`
 - **Supported color formats**: hex, `rgb()`, `rgba()`, `hsl()`, named colors
-- **Unsupported**: `oklch()`, `color-mix()`, `light-dark()`, `calc()`, `clamp()`, `@keyframes`, `transform`, `z-index`, pseudo-elements
+- **Unsupported**: `oklch()`, `color-mix()`, `light-dark()`, `clamp()`, `@keyframes`, `transform`, `z-index`, pseudo-elements
 
 Remember: the model is capable of extraordinary creative work. Don't hold back—show what can truly be created when thinking outside the box and committing fully to a distinctive vision.

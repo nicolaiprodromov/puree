@@ -40,7 +40,7 @@ my_addon/
 ### SCSS
 - **Only 3 transition-animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
 - Layout properties in `:hover`/`:active` are **silently ignored** (no width/height/padding/margin changes on hover)
-- Units: only `px` and `%` (no em, rem, vw, vh, fr, calc)
+- Units: `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, and `calc()` (no `fr`, `clamp()`, `min()`, `max()`)
 - Display: only `flex`, `grid`, `block`, `none` (no inline variants)
 - Gradients: only `linear-gradient()` (no radial, conic)
 - Selectors: no `::before`/`::after`, attribute selectors (but `:nth-child`, `:not()`, `:first-child`, `:last-child`, sibling combinators `+`/`~` ARE supported)
@@ -58,7 +58,7 @@ my_addon/
 
 ## What Puree Doesn't Support
 
-`calc()` · `clamp()` · `min()` · `max()` · `em` · `rem` · `vw` · `vh` · `fr` · `::before` · `::after` · `@keyframes` · `animation` · `transform` · `rotate` · `scale` · `translate` · `float` · `clear` · `z-index` (CSS) · `inline` display · `position: fixed` · `position: sticky` · radial/conic gradients · multiple box-shadows · per-side border colors · `font-family` in CSS · `inherit` · `initial` · `unset` · attribute selectors · `:is()` · `:where()`
+`clamp()` · `min()` · `max()` · `fr` · `::before` · `::after` · `@keyframes` · `animation` · `transform` · `rotate` · `scale` · `translate` · `float` · `clear` · `z-index` (CSS) · `inline` display · `position: fixed` · `position: sticky` · radial/conic gradients · multiple box-shadows · per-side border colors · `font-family` in CSS · `inherit` · `initial` · `unset` · attribute selectors · `:is()` · `:where()`
 
 ## Build Commands
 

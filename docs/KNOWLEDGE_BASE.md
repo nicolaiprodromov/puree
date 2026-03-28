@@ -228,7 +228,7 @@ details.mark_dirty()
 | Pattern | Why It Fails |
 |---------|-------------|
 | `element:hover { width: 120px; }` | Layout properties in hover states are silently ignored |
-| `calc(100% - 20px)` | `calc()` not supported — use fixed values or restructure layout |
+| `calc(100% - 20px)` | `calc()` IS supported with `+` and `-` operators. Note: `%` inside `calc()` resolves to pixels based on viewport, not parent. `clamp()`, `min()`, `max()` are NOT supported. |
 | `font-family: "MyFont"` in CSS | Font selection only works via YAML `font:` attribute |
 | `transform: scale(1.1)` | No transform support — only layout + color changes |
 | `my-button:` in YAML | Hyphens break the parser — use `my_button:` |

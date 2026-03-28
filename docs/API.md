@@ -96,7 +96,7 @@ All properties are set via SCSS files. Use `container.set_property('css-property
 | `scrollbar-color` | `<thumb-color> <track-color>` shorthand |
 | `scrollbar-thumb-color` | Scrollbar thumb/handle color |
 | `scrollbar-track-color` | Scrollbar track background color |
-| `pointer-events` | `auto`, `none` |
+| `pointer-events` | `auto`, `none` — `none` prevents hover/click detection on the element and all children. Use for overlay containers that shouldn't block interaction. |
 | `align-items` | `start`, `end`, `center`, `stretch`, `baseline` |
 | `justify-items` | `start`, `end`, `center`, `stretch`, `baseline` |
 | `align-self` | Per-item alignment override |
@@ -153,6 +153,8 @@ button = app.theme.root.sidebar.nav_button
 | `img` | `str` | Image asset name (no extension) |
 | `font` | `str` | Font face name (no extension) |
 | `data` | `str` | Component reference string |
+| `classes` | `list` | CSS class names applied to this container |
+| `layer` | `int` | Z-ordering layer (higher = drawn later/on top). Overrides tree draw order. |
 | `passive` | `bool` | If `True`, element ignores all interaction events |
 | `focusable` | `bool` | If `True`, element can receive keyboard focus |
 | `tab_index` | `int` | Tab order for keyboard navigation (`-1` = not in tab order) |
@@ -167,10 +169,10 @@ button = app.theme.root.sidebar.nav_button
 | `hoverout` | `List` | Hover-out event handler list |
 | `on_focus` | `List` | Focus-in event handler list |
 | `on_blur` | `List` | Focus-out event handler list |
-| `_toggled` | `bool` | Whether currently toggled (read-only) |
+| `_toggled` | `bool` | Whether a toggle event fired THIS frame (transient — resets next frame) |
 | `_clicked` | `bool` | Whether currently clicked (read-only) |
 | `_hovered` | `bool` | Whether currently hovered (read-only) |
-| `_toggle_value` | `bool` | Current toggle state value (read-only) |
+| `_toggle_value` | `bool` | The persistent boolean state of the toggle (True/False — persists across frames) |
 | `_scroll_value` | `float` | Current scroll offset in px (read-only) |
 
 ---
@@ -193,7 +195,8 @@ button = app.theme.root.sidebar.nav_button
 | `expand()` | `() -> None` | Animate expand to full height. |
 | `toggle_collapse()` | `() -> None` | Toggle between collapsed and expanded states. |
 | `is_collapsed` | `-> bool` | Property — returns `True` if this container is currently collapsed. |
-| `set_markdown(text, app, fonts, classes)` | `(str, UI \| None, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. |
+| `set_markdown(text, app, fonts, classes)` | `(str, UI \| None, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. `app` enables dynamic features; `fonts` maps markdown elements to font names; `classes` maps elements to CSS classes. |
+| `keys` | `ContainerKeyProxy` | Property — scoped keyboard shortcut binding. Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped shortcuts. |
 | `set_virtual_data(data_list)` | `(list) -> None` | Assign a data list for virtual scrolling. Requires `virtual: true`. |
 | `set_item_renderer(fn)` | `(Callable[[Container, Any], None]) -> None` | Set the callback to render each virtual scroll item. |
 
@@ -329,14 +332,20 @@ keys.unbind(binding)
 
 Render a subset of Markdown as child containers. Requires dynamic container support.
 
+**Preferred** — use the Container method `set_markdown()`:
+```python
+# Recommended: Container method (full signature)
+container.set_markdown(text, app=None, fonts=None, classes=None)
+
+# app: enables dynamic features (pass the UI app instance)
+# fonts: dict mapping markdown elements to font names (e.g. {"code": "JetBrainsMono"})
+# classes: dict mapping elements to CSS classes (e.g. {"h1": "custom_heading"})
+```
+
+The underlying function `render_markdown()` is also available:
 ```python
 from puree.markdown import render_markdown
-
-# Render into a container (clears existing children)
 render_markdown(container, markdown_text)
-
-# Or via Container method
-container.set_markdown(markdown_text)
 ```
 
 **Supported Markdown:**

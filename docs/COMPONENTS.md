@@ -211,6 +211,16 @@ my_button
 
 This means each component instance has unique IDs throughout the node tree, using underscore (`_`) as a separator.
 
+**Naming Transformation Reference:**
+
+| Component | Root Node | Child | Instance ID | Result Root | Result Child |
+|-----------|-----------|-------|-------------|-------------|--------------|
+| `button.yaml` | `button` | `label` | `my_btn` | `my_btn` | `my_btn_label` |
+| `card.yaml` | `card` | `header` | `info_card` | `info_card` | `info_card_header` |
+| `card.yaml` | `card` | `header` → `title` | `info_card` | `info_card` | `info_card_header_title` |
+
+The pattern is: `{instance_id}_{child_id}` (skipping the component root name). Access in Python via `app.theme.root.my_btn_label`.
+
 ## Accessing Component Instances in Scripts
 
 Puree provides an intuitive property-based access system for navigating the container hierarchy. Instead of traversing arrays of children, you can access containers by their ID using dot notation.

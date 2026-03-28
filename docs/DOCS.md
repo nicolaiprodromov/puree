@@ -197,6 +197,8 @@ Each node can have its own properties, styles, and child nodes. In the example a
 
 You can also draw images and text by changing the `img` and `text` properties. The images must be stored in a `assets/` folder in the root of your project. Fonts must be stored in a `fonts/` folder in the root of your project.
 
+**Font Loading**: Puree loads fonts from the `fonts/` directory in your addon root. Only `.ttf` and `.otf` files in this directory are available — system fonts are NOT loaded. Specify fonts in YAML using the `font:` attribute (e.g., `font: NeueMontreal-Bold`) without the file extension. The `font-weight` and `font-style` CSS properties select the closest matching variant from loaded fonts. CSS `font-family` is ignored.
+
 You can also add custom scripts to your theme. The scripts must be stored in the `static/` folder in the root of your project and then linked in the `scripts` array of your theme.
 
 A more complete file structure would look like this: 
@@ -411,6 +413,8 @@ def main(self, app):
 ```
 
 **Showing/Hiding Elements:**
+
+> ⚠️ **Important**: SCSS uses lowercase display values (`display: none`, `display: flex`) but Python runtime requires **UPPERCASE** strings (`'NONE'`, `'FLEX'`, `'BLOCK'`, `'GRID'`). Case mismatch will silently fail.
 
 ```python
 def main(self, app):

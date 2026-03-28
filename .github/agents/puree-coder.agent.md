@@ -158,9 +158,8 @@ Only these inherit: `color`, `font-size`, `text-align`, `font-family`, `font-wei
 
 ### Units
 
-- **Supported**: `px`, `%`, `auto`
-- **NOT supported**: `em`, `rem`, `vw`, `vh`, `fr`
-- **NOT supported**: `calc()`, `clamp()`, `min()`, `max()`
+- **Supported**: `px`, `%`, `auto`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()`
+- **NOT supported**: `fr`, `clamp()`, `min()`, `max()`
 
 ### Display Values
 
@@ -296,7 +295,7 @@ Before outputting any code, mentally verify:
 6. ✅ Transitions only target those 3 animatable properties
 7. ✅ Font names match files in `fonts/` directory (no extension)
 8. ✅ `--` extension properties use `#{$var}` interpolation
-9. ✅ No `calc()`, `em`/`rem`, `transform`, `@keyframes`, pseudo-elements
+9. ✅ No `fr`, `clamp()`, `min()`, `max()`, `transform`, `@keyframes`, pseudo-elements (`rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()` ARE supported)
 10. ✅ Gradients are `linear-gradient()` only
 
 ---
