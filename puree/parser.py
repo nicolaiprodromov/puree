@@ -848,6 +848,14 @@ class UI():
         node_flat.clear()
         node_flat_abs.clear()
 
+        def _zero_subtree(container):
+            """Assign zero-size layout to a container and all descendants."""
+            zero = {'x': 0.0, 'y': 0.0, 'width': 0.0, 'height': 0.0}
+            node_flat[container.id] = zero
+            node_flat_abs[container.id] = zero.copy()
+            for child in container.children:
+                _zero_subtree(child)
+
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
@@ -874,6 +882,12 @@ class UI():
             }
             
             container._layout_node = node
+
+            # Taffy/Stretchable skips layout for children of display:none nodes
+            if container.style and container.style.display.upper() == 'NONE':
+                for child in container.children:
+                    _zero_subtree(child)
+                return
             
             for i, _container in enumerate(container.children):
                 get_all_nodes(_container, node[i])
@@ -1373,6 +1387,14 @@ class UI():
         self.root_node.compute_layout(canvas_size)
         self.canvas_size = canvas_size
         
+        def _zero_subtree(container):
+            """Assign zero-size layout to a container and all descendants."""
+            zero = {'x': 0.0, 'y': 0.0, 'width': 0.0, 'height': 0.0}
+            node_flat[container.id] = zero
+            node_flat_abs[container.id] = zero.copy()
+            for child in container.children:
+                _zero_subtree(child)
+
         def get_all_nodes(container, node):
             border_box     = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
@@ -1392,6 +1414,12 @@ class UI():
                 'width'  : edge_used_abs.width,
                 'height' : edge_used_abs.height
             }
+
+            # Taffy/Stretchable skips layout for children of display:none nodes
+            if container.style and container.style.display.upper() == 'NONE':
+                for child in container.children:
+                    _zero_subtree(child)
+                return
             
             for i, _container in enumerate(container.children):
                 get_all_nodes(_container, node[i])

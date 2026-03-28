@@ -16,6 +16,7 @@ Implement a feature requested by the user from the [CHANGES.md](../../CHANGES.md
   - in this step you can also ask questions to clarify anything with the user;
   - features in CHANGES.md files are not very detailed and require a few research steps before actually implementing anything or proposing a plan to the user, assume that the CHANGES.md are useful, but are a first take and might not be perfect or fully factual;
   - every single time a repository is mentioned, or framework or library or anything external needed to implement a feature, research it briefly before making the plan to make sure it passes basic sanity checks to fit the architecture;
+  - the plan must be made in a PLAN-FEATURE.md in the root of the workspace
 
 2. After the user approves the implementation plan you must go ahead and implement according to plan
   - this step might require new research;
