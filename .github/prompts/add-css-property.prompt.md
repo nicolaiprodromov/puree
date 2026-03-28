@@ -31,7 +31,7 @@ Add a new CSS property to the Puree rendering pipeline. This requires coordinate
 
 ### 5. Optional: Transitions (`puree/transition_manager.py`)
 - [ ] If animatable: add interpolation support
-- [ ] Update the "4 animatable properties" documentation
+- [ ] Update the "3 animatable properties" documentation
 
 ### 6. Documentation
 - [ ] `docs/PUREE_SPEC.md` — property reference table

@@ -71,7 +71,7 @@ class FocusManager:
             containers = parser_op._container_json_data
             focusable = sorted(
                 [
-                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0), c.get('container_ref'))
                     for c in containers
                     if c.get('focusable', False) and c.get('tab_index', -1) >= 0
                 ],
@@ -83,14 +83,14 @@ class FocusManager:
         if not focusable:
             return
         if self._focused_id is None:
-            self.focus(focusable[0][0], focusable[0][1], focusable[0][2])
+            self.focus(focusable[0][0], focusable[0][1], focusable[0][2], container_ref=focusable[0][4])
         else:
             ids = [f[0] for f in focusable]
             if self._focused_id in ids:
                 idx = (ids.index(self._focused_id) + 1) % len(ids)
             else:
                 idx = 0
-            self.focus(focusable[idx][0], focusable[idx][1], focusable[idx][2])
+            self.focus(focusable[idx][0], focusable[idx][1], focusable[idx][2], container_ref=focusable[idx][4])
 
     def tab_prev(self) -> None:
         """Shift+Tab to previous focusable container (sorted by tab_index ascending)."""
@@ -99,7 +99,7 @@ class FocusManager:
             containers = parser_op._container_json_data
             focusable = sorted(
                 [
-                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0), c.get('container_ref'))
                     for c in containers
                     if c.get('focusable', False) and c.get('tab_index', -1) >= 0
                 ],
@@ -111,14 +111,14 @@ class FocusManager:
         if not focusable:
             return
         if self._focused_id is None:
-            self.focus(focusable[-1][0], focusable[-1][1], focusable[-1][2])
+            self.focus(focusable[-1][0], focusable[-1][1], focusable[-1][2], container_ref=focusable[-1][4])
         else:
             ids = [f[0] for f in focusable]
             if self._focused_id in ids:
                 idx = (ids.index(self._focused_id) - 1) % len(ids)
             else:
                 idx = len(ids) - 1
-            self.focus(focusable[idx][0], focusable[idx][1], focusable[idx][2])
+            self.focus(focusable[idx][0], focusable[idx][1], focusable[idx][2], container_ref=focusable[idx][4])
 
     def clear(self) -> None:
         """Clear all focus state (on hot reload)."""

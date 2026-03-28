@@ -228,10 +228,19 @@ class TextInputInstance:
         _active_input_id = self.id
         self.cursor_blink_time = time.time()
         self.show_cursor = True
-        # Notify FocusManager
+        # Notify FocusManager with the actual Container's callbacks
         try:
             from .focus import focus_manager
-            focus_manager.focus(self.container_id, [], [])
+            from . import parser_op
+            container_ref = None
+            on_focus = []
+            on_blur = []
+            if parser_op.XWZ_UI:
+                container_ref = parser_op.XWZ_UI.get_by_id(self.container_id)
+                if container_ref:
+                    on_focus = container_ref.on_focus
+                    on_blur = container_ref.on_blur
+            focus_manager.focus(self.container_id, on_focus, on_blur, container_ref=container_ref)
         except Exception:
             pass
 

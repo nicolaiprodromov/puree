@@ -37,7 +37,7 @@ The *XWZ Puree* framework for Blender is a declarative framework that provides a
 
 4. [API Reference](API.md)
 
-5. [Troubleshooting](Troubleshooting.md)
+5. [Troubleshooting](TROUBLESHOOTING.md)
 
 ---
 
@@ -199,14 +199,16 @@ A more complete file structure would look like this:
 ```
 puree_project/
     ├── assets/
-    │   ├── your images
+    │   └── your images (PNG, SVG)
     ├── fonts/
-    │   ├── your fonts
+    │   └── your fonts (.ttf, .otf)
     ├── static/
-    │   ├── index.toml
-    │   └── style.scss
-    │   └── script.py
-    ├── __init__.py <-- your addon entry point
+    │   ├── index.yaml
+    │   ├── style.scss
+    │   ├── script.py
+    │   └── components/        <-- reusable components
+    ├── blender_manifest.toml
+    └── __init__.py              <-- your addon entry point
 ```
 
 ---
@@ -536,6 +538,68 @@ def main(self, app):
     return app
 ```
 
+### Dynamic Container Creation
+
+Create and remove containers at runtime using component templates:
+
+```python
+def main(self, app):
+    parent = app.theme.root.bg.messages
+    
+    def add_message(container):
+        msg = parent.add_child("[message_slot]", id="msg_1", params={
+            "text": "New message",
+            "role": "user"
+        })
+        msg.mark_dirty()
+    
+    def clear_messages(container):
+        parent.clear_children()
+        parent.mark_dirty()
+    
+    app.theme.root.bg.add_btn.click.append(add_message)
+    app.theme.root.bg.clear_btn.click.append(clear_messages)
+    return app
+```
+
+### Using Built-in Modules
+
+Puree provides built-in modules for common tasks:
+
+```python
+from puree.storage import Storage
+from puree.timers import set_interval, set_timeout, clear
+from puree.net import http, sse
+from puree.keyboard import keys
+from puree.markdown import render_markdown
+
+def main(self, app):
+    # Persistence
+    store = Storage("my_addon")
+    store.set("count", 0)
+    store.auto_save = True
+    
+    # Timers
+    handle = set_interval(lambda: poll_status(), 5000)
+    
+    # HTTP requests (callbacks run on main thread)
+    http.get("https://api.example.com/data",
+        on_success=lambda resp: update_ui(resp.json()),
+        on_error=lambda err: show_error(str(err)))
+    
+    # Keyboard shortcuts
+    keys.bind("CTRL+N", lambda: new_item())
+    keys.bind("ESCAPE", lambda: cancel())
+    
+    # Markdown rendering into a container
+    preview = app.theme.root.bg.preview
+    preview.set_markdown("# Hello\n\nThis is **bold** text.")
+    
+    return app
+```
+
+See the [API Reference](API.md) for full module documentation.
+
 ### Best Practices
 
 1. **Always return the app object** at the end of `main()`
@@ -544,6 +608,9 @@ def main(self, app):
 4. **Keep handlers focused** - each handler should do one thing well
 5. **Handle errors gracefully** - wrap Blender operations in try-except blocks
 6. **Use property-based access** - `app.theme.root.bg.button` instead of array indexing
+7. **Use `puree.storage`** for persistence instead of rolling your own JSON handling
+8. **Use `puree.net`** for HTTP requests — callbacks are main-thread safe
+9. **Use `puree.timers`** instead of raw `bpy.app.timers` — auto-cleanup on hot reload
 
 ---
 

@@ -77,14 +77,14 @@ Fixing bugs or extending the framework itself. Files in `puree/`, `puree/puree_c
 - Font/image names omit extensions
 
 ### SCSS
-- **Only 4 animatable properties**: `background-color`, `color`, `border-color`, `opacity`
+- **Only 3 transition-animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
 - Layout properties in `:hover`/`:active` are **silently ignored** (no width/height/padding/margin changes on hover)
 - Units: only `px` and `%` (no em, rem, vw, vh, fr, calc)
 - Display: only `flex`, `grid`, `block`, `none` (no inline variants)
 - Gradients: only `linear-gradient()` (no radial, conic)
-- Selectors: no `::before`/`::after`, `nth-child`, `:not()`, attribute selectors
+- Selectors: no `::before`/`::after`, attribute selectors (but `:nth-child`, `:not()`, `:first-child`, `:last-child`, sibling combinators `+`/`~` ARE supported)
 - `--` extension properties need `#{$var}` interpolation for SCSS variables
-- Only `color`, `font-size`, `text-align` inherit from parents
+- Inherited properties: `color`, `font-size`, `text-align`, `font-family`, `font-weight`, `font-style`, `pointer-events`, `visibility`, `text-transform`, `line-height`, `letter-spacing`, `white-space`
 - Font selection uses YAML `font:` attribute, not CSS `font-family`
 
 ### Python (script.py)
@@ -104,7 +104,7 @@ Fixing bugs or extending the framework itself. Files in `puree/`, `puree/puree_c
 
 ## What Puree Doesn't Support
 
-`calc()` · `clamp()` · `min()` · `max()` · `em` · `rem` · `vw` · `vh` · `fr` · `::before` · `::after` · `@keyframes` · `animation` · `transform` · `rotate` · `scale` · `translate` · `float` · `clear` · `z-index` (CSS) · `inline` display · `position: fixed` · `position: sticky` · radial/conic gradients · multiple box-shadows · per-side border colors · `font-family` in CSS · `inherit` · `initial` · `unset` · `:nth-child` · `:not()` · attribute selectors · sibling combinators
+`calc()` · `clamp()` · `min()` · `max()` · `em` · `rem` · `vw` · `vh` · `fr` · `::before` · `::after` · `@keyframes` · `animation` · `transform` · `rotate` · `scale` · `translate` · `float` · `clear` · `z-index` (CSS) · `inline` display · `position: fixed` · `position: sticky` · radial/conic gradients · multiple box-shadows · per-side border colors · `font-family` in CSS · `inherit` · `initial` · `unset` · attribute selectors · `:is()` · `:where()`
 
 ## Build Commands
 

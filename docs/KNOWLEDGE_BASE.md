@@ -101,13 +101,30 @@ For Python code changes (which need a full module purge + re-register), Puree ha
 
 ## Transitions — What Animates and What Doesn't
 
-Only 4 properties can be animated via CSS transitions:
+Only 3 properties can be animated via CSS transitions:
 - `background-color`
-- `color`
 - `border-color`
 - `opacity`
 
-This is a deliberate limitation — layout properties (width, height, padding, margin) are computed by Taffy, and re-running Taffy every frame would be too expensive. The transition manager interpolates these 4 properties between states using easing functions (ease, linear, ease-in, ease-out, ease-in-out).
+`color` (text color) is supported in `:hover`/`:active` rules but changes **instantly** — it is not transition-interpolated.
+
+This is a deliberate limitation — layout properties (width, height, padding, margin) are computed by Taffy, and re-running Taffy every frame would be too expensive. The transition manager interpolates these 3 properties between states using named easing functions (ease, linear, ease-in, ease-out, ease-in-out). Custom `cubic-bezier()` curves are NOT supported.
+
+## Built-in Modules
+
+Puree ships 9 built-in modules (all implemented, see API.md for full reference):
+
+| Module | Purpose |
+|--------|--------|
+| `puree.storage` | JSON persistence (`Storage` class, global/project scope, auto-save) |
+| `puree.timers` | `set_interval()`, `set_timeout()`, `clear()` with auto-cleanup |
+| `puree.net` | HTTP client (`http.get/post`) + SSE streaming (`sse.connect`) |
+| `puree.focus` | Focus management, `focus()`, `blur()`, Tab/Shift+Tab navigation |
+| `puree.keyboard` | Keyboard shortcuts (`keys.bind("CTRL+N", fn)`), global & container-scoped |
+| `puree.dynamic` | Dynamic container creation/removal (exposed via Container methods) |
+| `puree.markdown` | Markdown rendering into child containers |
+| `puree.virtual_scroll` | Virtual scrolling for large lists |
+| `puree.collapse` | Animated collapse/expand for disclosure sections |
 
 ## Patterns That Work
 
@@ -149,6 +166,63 @@ def deferred():
 bpy.app.timers.register(deferred)
 ```
 
+### Dynamic Container Creation
+```python
+# Add child from component template
+new_msg = parent.add_child("[msg_slot]", id="msg_42", params={"text": "Hello"})
+new_msg.mark_dirty()
+
+# Remove a child
+parent.remove_child("msg_42")
+parent.mark_dirty()
+
+# Clear all children
+parent.clear_children()
+parent.mark_dirty()
+```
+
+### HTTP Requests (Main-Thread Safe)
+```python
+from puree.net import http, sse
+
+http.get("https://api.example.com/data",
+    on_success=lambda resp: update_ui(resp.json()),
+    on_error=lambda err: show_error(str(err)))
+
+# SSE streaming
+stream = sse.connect(url, method="POST", json=payload,
+    on_chunk=lambda event: append_text(event.data),
+    on_done=lambda: finalize())
+stream.cancel()  # cancel in-flight stream
+```
+
+### Managed Timers
+```python
+from puree.timers import set_interval, set_timeout, clear
+
+handle = set_interval(poll_fn, 5000)   # every 5 seconds
+clear(handle)                          # cancel
+```
+
+### Keyboard Shortcuts
+```python
+from puree.keyboard import keys
+keys.bind("ENTER", on_send, when="input_focused")
+keys.bind("CTRL+N", new_item)
+input_field.keys.bind("SHIFT+ENTER", insert_newline)
+```
+
+### Markdown Rendering
+```python
+container.set_markdown("# Title\n\nSome **bold** text and `code`.")
+```
+
+### Collapse / Expand
+```python
+details.toggle_collapse()
+details.mark_dirty()
+```
+
 ## Patterns That Don't Work
 
 | Pattern | Why It Fails |
@@ -161,6 +235,9 @@ bpy.app.timers.register(deferred)
 | `modal.style.display = 'flex'` | Runtime display values must be UPPERCASE: `'FLEX'` |
 | Nested scroll containers | Only one scroll container per viewport |
 | `border-left-color: red` | Per-side border colors not supported — use uniform `border-color` |
+| `transition-timing-function: cubic-bezier(...)` | Custom cubic-bezier not implemented — only named functions |
+| `text-align: justify` | Only `left`, `center`, `right` supported |
+| `visibility: collapse` | Only `visible` and `hidden` supported |
 
 ## Debugging Cheat Sheet
 
@@ -176,6 +253,13 @@ bpy.app.timers.register(deferred)
 | Transition jerky | Wrong start value in transition manager. |
 | Component children inaccessible | Use namespaced path: `instance_child_name` |
 | `mark_dirty()` not updating | Is the container actually in the active tree? |
+| Dynamic child not appearing | Did you call `mark_dirty()` on the parent after `add_child()`? |
+| Markdown not rendering | Container needs to support dynamic children; ensure `clear_children()` works |
+| Keyboard shortcut not firing | Is the container focused? Check `when` parameter |
+| Timer leaking on reload | Use `puree.timers` instead of raw `bpy.app.timers` — auto-cleanup |
+| HTTP callback not running | Is the HTTP drain timer registered? Check `just logs` |
+| Virtual scroll empty | Did you call both `set_virtual_data()` and `set_item_renderer()`? |
+| Collapse not animating | Ensure first child acts as header; call `mark_dirty()` after toggle |
 
 ## Version History Context
 

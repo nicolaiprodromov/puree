@@ -32,7 +32,7 @@ It's meant for all Blender users that want to enhance their ability to present t
 
 ## What is puree good for?
 
-From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown-type (and soon true markdown rendering!) rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
+From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu. Check the [examples](/examples) folder for detailed examples of what can be accomplished with **puree**.
 
 <p align="center">
   <img src="images/example1.gif" alt="Example 1 UI GIF" width="100%"/>
@@ -45,7 +45,8 @@ From addon user interfaces to complex object-based tracking in screen space, to 
 | **Declarative UI Design** | Define your interface structure using YAML configuration files with HTML-like nesting |
 | **GPU-Accelerated Rendering** | Leverages ModernGL compute shaders for real-time, high-performance UI rendering |
 | **Responsive Layouts** | Automatic layout computation using the Stretchable flexbox engine |
-| **Interactive Components** | Built-in support for hover states, click events, scrolling, and toggle interactions |
+| **Interactive Components** | Built-in support for hover states, click events, scrolling, keyboard shortcuts, focus management, and collapse/expand |
+| **Built-in Modules** | Storage persistence, HTTP/SSE networking, timers, markdown rendering, virtual scrolling, and more |
 | **Web-Inspired Architecture** | Familiar paradigm for developers coming from web development |
 
 ---

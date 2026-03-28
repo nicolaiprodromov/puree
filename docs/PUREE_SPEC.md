@@ -75,15 +75,20 @@ app:
 
 Each YAML node can have these properties:
 
-| Property   | Type   | Description                                        |
-|------------|--------|----------------------------------------------------|
-| `style`    | string | CSS class name for styling (matched as `.classname` in SCSS) |
-| `class`    | string | Space-separated CSS class names (alternative to `style`)     |
-| `text`     | string | Text content to display                            |
-| `font`     | string | Font name (without extension): `NeueMontreal-Bold` |
-| `img`      | string | Image name from `assets/` (without extension)      |
-| `data`     | string | Component reference: `'[component_name]'`          |
-| `passive`  | bool   | If true, element is non-interactive                |
+| Property     | Type   | Description                                        |
+|--------------|--------|----------------------------------------------------||
+| `style`      | string | CSS class name for styling (matched as `.classname` in SCSS) |
+| `class`      | string | Space-separated CSS class names (alternative to `style`)     |
+| `text`       | string | Text content to display                            |
+| `font`       | string | Font name (without extension): `NeueMontreal-Bold` |
+| `img`        | string | Image name from `assets/` (without extension)      |
+| `data`       | string | Component reference: `'[component_name]'`          |
+| `passive`    | bool   | If true, element is non-interactive                |
+| `focusable`  | bool   | If true, element can receive keyboard focus        |
+| `tab_index`  | int    | Tab order for keyboard navigation (`-1` = not in tab order) |
+| `collapsed`  | bool   | If true, container starts in collapsed state       |
+| `virtual`    | bool   | If true, enables virtual scrolling for this container |
+| `item_height` | int\|string | Virtual scroll item height in px, or `'auto'` for variable height |
 
 ### Rules
 - Node names become the element's tag/ID in the tree
@@ -136,6 +141,15 @@ These properties **inherit** from parent (same as standard CSS):
 - `color` (text color)
 - `font-size`
 - `text-align`
+- `font-family`
+- `font-weight`
+- `font-style`
+- `pointer-events`
+- `visibility`
+- `text-transform`
+- `line-height`
+- `letter-spacing`
+- `white-space`
 
 These do **NOT** inherit:
 - `background-color`, `border`, `padding`, `margin`, `width`, `height`, `display`
@@ -176,11 +190,11 @@ background-image: linear-gradient(90deg, red, blue);  /* CSS alias */
 | `--text-y`          | length | `0`        | Text vertical offset                                          |
 | `font-weight`       | enum   | `normal`   | `normal`, `bold`                                              |
 | `font-style`        | enum   | `normal`   | `normal`, `italic`                                            |
-| `text-decoration`   | enum   | `none`     | `none`, `underline`                                           |
+| `text-decoration`   | enum   | `none`     | `none`, `underline`, `overline`, `line-through`               |
 | `text-transform`    | enum   | `none`     | `none`, `uppercase`, `lowercase`, `capitalize`                |
 | `letter-spacing`    | length | `0`        | Character spacing in px                                       |
 | `line-height`       | float  | `1.2`      | Line height multiplier (unitless)                             |
-| `white-space`       | enum   | `normal`   | `normal` (wrap), `nowrap`                                     |
+| `white-space`       | enum   | `normal`   | `normal` (wrap), `nowrap`, `pre`                              |
 | `text-overflow`     | enum   | `clip`     | `clip`, `ellipsis` (requires `white-space: nowrap`)           |
 | `text-shadow`       | short  | none       | `offset-x offset-y blur color` — single shadow only          |
 
@@ -235,7 +249,9 @@ Per-side border **colors** are not currently supported — use a uniform `border
 | `transition-timing-function`| enum     | `ease`   | `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out` |
 | `transition-delay`          | time     | `0s`     | Delay before starting                    |
 
-**Animatable properties:** `background-color`, `color`, `border-color`, `opacity`
+**Animatable properties:** `background-color`, `border-color`, `opacity`
+
+> Note: `color` (text color) changes are applied instantly on hover/active — they are **not** transition-interpolated.
 
 ```scss
 // Single property
@@ -283,7 +299,7 @@ Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
 |--------------------------|--------|----------|--------------------------------|
 | `grid-template-rows`     | list   | none     | Row track sizes                |
 | `grid-template-columns`  | list   | none     | Column track sizes             |
-| `grid-auto-flow`         | enum   | `row`    | `row`, `column`                |
+| `grid-auto-flow`         | enum   | `row`    | `row`, `column`, `row dense`, `column dense` |
 | `grid-row`               | string | `auto`   | Row placement                  |
 | `grid-column`            | string | `auto`   | Column placement               |
 
@@ -335,7 +351,7 @@ All standard SCSS is supported (compiled via `grass`):
 - Partials & imports
 - `!default` for overridable component variables
 - `var(--name)` CSS custom properties (with optional fallback: `var(--name, default)`)
-- `@media (min-width: Npx)` / `@media (max-width: Npx)` queries
+- `@media (min-width: Npx)` / `@media (max-width: Npx)` / `@media (min-height: Npx)` / `@media (max-height: Npx)` queries
 
 ### Color Formats
 
@@ -484,6 +500,8 @@ def main(self, app):
 | `hoverout`  | `el.hoverout.append(fn)`         | `fn(container)`            |
 | `toggle`    | `el.toggle.append(fn)`           | `fn(container)`            |
 | `scroll`    | `el.scroll.append(fn)`           | `fn(container)`            |
+| `on_focus`  | `el.on_focus.append(fn)`         | `fn(container)`            |
+| `on_blur`   | `el.on_blur.append(fn)`          | `fn(container)`            |
 
 ### Modifying Properties at Runtime
 
@@ -808,6 +826,8 @@ For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 }
 ```
 
+> Note: `min-width`, `max-width`, `min-height`, and `max-height` media queries are supported. Width values are matched against the panel width; height values against the panel height.
+
 ### Per-Side Border
 ```scss
 .underlined {
@@ -835,6 +855,81 @@ For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 8. **Colors auto-convert**: sRGB in CSS → linear in Blender (automatic)
 9. **`passive: true`** makes an element completely non-interactive (no hover/click)
 10. **`display: none`** hides an element and removes it from layout
+11. **Runtime display values are UPPERCASE**: `'FLEX'`, `'NONE'`, `'GRID'` (CSS uses lowercase)
+12. **Only 3 animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
+
+---
+
+## 9. Built-in Modules
+
+Puree provides built-in modules for common addon tasks. Import them in `script.py`.
+
+### Dynamic Container Creation
+
+```python
+# Create child from component template
+new_item = parent.add_child("[card]", id="card_1", params={"title": "Hello"})
+new_item.mark_dirty()
+
+# Insert at specific position
+parent.insert_child(0, "[card]", id="card_top")
+
+# Remove by ID or reference
+parent.remove_child("card_1")
+
+# Clear all children
+parent.clear_children()
+```
+
+### Markdown Rendering
+
+```python
+from puree.markdown import render_markdown
+
+# Render markdown into a container (clears children first)
+container.set_markdown("# Title\n\nSome **bold** text and `code`.")
+
+# Or use the function directly
+render_markdown(container, markdown_text)
+```
+
+Supports: headings, bold, inline code, code blocks, list items, blockquotes, horizontal rules.
+
+### Virtual Scrolling
+
+```yaml
+messages:
+  style: scroll_area
+  virtual: true
+  item_height: 60
+```
+
+```python
+scroll = app.theme.root.messages
+scroll.set_virtual_data(items_list)
+scroll.set_item_renderer(lambda c, item: setattr(c, 'text', item['text']) or c.mark_dirty())
+```
+
+### Collapse / Expand
+
+```yaml
+details:
+  collapsed: true
+  header:
+    text: "Click to expand"
+  body:
+    text: "Hidden content"
+```
+
+```python
+details = app.theme.root.details
+details.toggle_collapse()
+details.mark_dirty()
+```
+
+### Storage, Timers, HTTP, Focus, Keyboard
+
+See the [API Reference](API.md) for full module documentation.
 
 ---
 

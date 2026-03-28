@@ -256,6 +256,7 @@ def _build_children(parent, blocks: List[Block], fonts: dict, cls: dict) -> None
 def render_markdown(
     container,
     text: str,
+    app=None,
     fonts: dict = None,
     classes: dict = None,
 ) -> None:
@@ -264,6 +265,8 @@ def render_markdown(
     Args:
         container: The Container to render into (children will be replaced).
         text:      Markdown source string.
+        app:       Optional UI/app reference (accepted for API compatibility;
+                   the rebuild uses dynamic_manager internally).
         fonts:     Optional font overrides. Keys: 'regular', 'bold', 'mono'.
         classes:   Optional CSS class overrides. Keys match DEFAULT_CLASSES.
     """

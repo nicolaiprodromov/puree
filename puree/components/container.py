@@ -250,10 +250,10 @@ class Container():
     # Markdown rendering (Feature 5)
     # -------------------------------------------------------------------------
 
-    def set_markdown(self, text: str, fonts: dict = None, classes: dict = None) -> None:
+    def set_markdown(self, text: str, app=None, fonts: dict = None, classes: dict = None) -> None:
         """Clear children and render *text* as markdown into this container."""
         from ..markdown import render_markdown
-        render_markdown(self, text, fonts=fonts, classes=classes)
+        render_markdown(self, text, app=app, fonts=fonts, classes=classes)
         self.mark_dirty()
 
     # -------------------------------------------------------------------------
@@ -265,11 +265,12 @@ class Container():
 
         Creates a :class:`~puree.virtual_scroll.VirtualScroll` instance on
         first call.  If an item renderer has already been set, the view is
-        updated immediately.
+        updated immediately.  Automatically attaches the scroll callback.
         """
         from ..virtual_scroll import VirtualScroll
         if self._virtual_scroll is None:
             self._virtual_scroll = VirtualScroll(self, item_height=self.item_height)
+            self._virtual_scroll.attach_scroll()
         self._virtual_scroll.set_data(data_list)
         if self._virtual_scroll._renderer is not None:
             self._virtual_scroll.update()
@@ -278,13 +279,15 @@ class Container():
     def set_item_renderer(self, fn) -> None:
         """Set the item renderer callback for this container's virtual scroll list.
 
-        The callable receives ``(container, item, index)`` and should populate
-        *container* with nodes representing *item*.  If data has already been
-        assigned, the view is updated immediately.
+        The callable receives ``(container, item)`` or ``(container, item, index)``
+        and should populate *container* with nodes representing *item*.  If data
+        has already been assigned, the view is updated immediately.
+        Automatically attaches the scroll callback.
         """
         from ..virtual_scroll import VirtualScroll
         if self._virtual_scroll is None:
             self._virtual_scroll = VirtualScroll(self, item_height=self.item_height)
+            self._virtual_scroll.attach_scroll()
         self._virtual_scroll.set_renderer(fn)
         if self._virtual_scroll._data:
             self._virtual_scroll.update()

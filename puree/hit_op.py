@@ -154,7 +154,8 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                                 focus_manager.focus(
                                     container_id,
                                     container.get('on_focus', []),
-                                    container.get('on_blur', [])
+                                    container.get('on_blur', []),
+                                    container_ref=container.get('container_ref')
                                 )
                             except Exception:
                                 pass

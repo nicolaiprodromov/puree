@@ -26,12 +26,28 @@ Your project structure should look like:
 puree_project/
     ├── static/
     │   ├── components/
-    │   │   ├── header.yaml       # Component definition
-    │   │   ├── test_button.yaml  # Component definition
-    │   │   └── card.yaml         # Component definition
+    │   │   ├── header.yaml       # Component structure
+    │   │   ├── header.scss       # Component styles (optional)
+    │   │   ├── test_button.yaml
+    │   │   ├── test_button.scss
+    │   │   └── card.yaml
     │   ├── index.yaml
     │   └── style.scss
     └── __init__.py
+```
+
+Each component can have a matching `.scss` file alongside its `.yaml` file. Component SCSS files are automatically compiled and included when that component is used. Use `!default` on SCSS variables so they can be overridden by the consuming project:
+
+```scss
+// components/card.scss
+$card_bg: #1e2028 !default;
+$card_radius: 12px !default;
+
+.card {
+  background-color: $card_bg;
+  border-radius: $card_radius;
+  padding: 16px;
+}
 ```
 
 ### 2. Component Definition
@@ -198,6 +214,47 @@ This means each component instance has unique IDs throughout the node tree, usin
 ## Accessing Component Instances in Scripts
 
 Puree provides an intuitive property-based access system for navigating the container hierarchy. Instead of traversing arrays of children, you can access containers by their ID using dot notation.
+
+```python
+def main(self, app):
+    # For a component instantiated as "my_card" using "[card]" template:
+    # Access namespaced children:
+    header = app.theme.root.my_card_card_header
+    body = app.theme.root.my_card_card_body
+    return app
+```
+
+## Dynamic Component Instantiation
+
+Components can be created and destroyed at runtime from `script.py`:
+
+```python
+def main(self, app):
+    parent = app.theme.root.bg.cards
+    
+    def add_card(container):
+        new_card = parent.add_child("[card]", id="card_1", params={
+            "title": "Dynamic Card",
+            "content": "Created at runtime"
+        })
+        new_card.mark_dirty()
+    
+    def remove_card(container):
+        parent.remove_child("card_1")
+        parent.mark_dirty()
+    
+    app.theme.root.bg.add_btn.click.append(add_card)
+    app.theme.root.bg.remove_btn.click.append(remove_card)
+    return app
+```
+
+Available methods: `add_child(template, id, params)`, `insert_child(index, template, id, params)`, `remove_child(id_or_container)`, `clear_children()`. See the [API Reference](API.md) for details.
+
+---
+
+|  | Previous Page | Next Page |
+|----------|----------|------|
+| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Documentation](DOCS.md) | [API Reference](API.md) |
 
 ### Property-Based Access
 

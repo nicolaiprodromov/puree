@@ -156,9 +156,14 @@ class VirtualScroll:
                 child.parent = None
             slot.children.clear()
 
-            # Invoke user renderer
+            # Invoke user renderer (supports both 2-arg and 3-arg signatures)
             try:
-                self._renderer(slot, item, item_idx)
+                import inspect
+                sig = inspect.signature(self._renderer)
+                if len(sig.parameters) >= 3:
+                    self._renderer(slot, item, item_idx)
+                else:
+                    self._renderer(slot, item)
             except Exception as exc:
                 logger.error(
                     "VirtualScroll renderer error at index %d: %s",

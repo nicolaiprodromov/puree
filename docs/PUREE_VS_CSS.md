@@ -130,10 +130,11 @@ No `border-style` — all borders are solid. Per-side border **colors** are not 
 | CSS | Puree SCSS |
 |---|---|
 | `transition: background-color 0.2s ease` | `transition: background-color 0.2s ease` ✅ |
-| `transition: color 0.3s ease-in-out` | `transition: color 0.3s ease-in-out` ✅ |
 | `transition: background-color 0.2s ease, opacity 0.3s linear` | ✅ Multi-property transitions supported |
 
-**Animatable properties:** `background-color`, `color` (text), `border-color`, `opacity`
+**Animatable properties:** `background-color`, `border-color`, `opacity`
+
+> Note: `color` (text color) changes are applied instantly on hover/active — they are **not** transition-interpolated.
 
 **Timing functions:** `ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`
 
@@ -170,20 +171,28 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 - `box-sizing: border-box/content-box`
 - `visibility: hidden/visible`
 - `pointer-events: none/auto`
-- `text-transform: uppercase/lowercase`
+- `text-transform: uppercase/lowercase/capitalize`
+- `text-decoration: underline/overline/line-through/none`
+- `white-space: normal/nowrap/pre`
 - `var(--name)` / `var(--name, fallback)` — CSS custom properties resolved by the cascade
-- `@media (min-width: Npx)`, `@media (max-width: Npx)` queries
-- `grid-template-rows`, `grid-template-columns`, `grid-auto-flow`
+- `@media (min-width: Npx)`, `@media (max-width: Npx)`, `@media (min-height: Npx)`, `@media (max-height: Npx)` queries (matched against panel dimensions)
+- `grid-template-rows`, `grid-template-columns`, `grid-auto-flow` (including `dense` variants)
+- `scrollbar-width`, `scrollbar-color` — custom scrollbar styling
 
 ### What does NOT exist
 - `display: inline`, `display: inline-flex` — only `flex`, `grid`, `block`, `none`
-- `float`, `clear`, `z-index`, `transform`
+- `float`, `clear`, `transform`
+- `z-index` — exists on Style class but not functional in rendering
+- `position: fixed`, `position: sticky` — only `relative` and `absolute`
 - `@keyframes` animations — use `transition` for simple state changes
 - `calc()`, `clamp()`, `min()`, `max()`
 - `em`, `rem`, `vw`, `vh`, `fr` units
+- `cubic-bezier()` custom timing — only named functions (`ease`, `linear`, `ease-in`, `ease-out`, `ease-in-out`)
 - Pseudo-elements (`::before`, `::after`)
 - Per-side border colors (uniform `border-color` only)
 - Radial/conic gradients
+- `text-align: justify` — only `left`, `center`, `right`
+- `visibility: collapse` — only `visible` and `hidden`
 
 ---
 
@@ -196,10 +205,15 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 | `*` universal | ✅ |
 | `.a .b` descendant | ✅ |
 | `.a > .b` child | ✅ |
+| `.a + .b` adjacent sibling | ✅ |
+| `.a ~ .b` general sibling | ✅ |
 | `:hover`, `:active` | ✅ |
 | `.a, .b { }` multiple selectors | ✅ |
-| Attribute selectors, `:nth-child`, sibling combinators | ❌ |
-| `:not()`, `:is()`, `:where()` | ❌ |
+| `:first-child`, `:last-child` | ✅ |
+| `:nth-child(an+b)` | ✅ |
+| `:not()` | ✅ |
+| `:is()`, `:where()` | ❌ |
+| Attribute selectors (`[attr]`) | ❌ |
 
 ---
 
@@ -209,6 +223,15 @@ Inherited properties (same as CSS):
 - `color` (text color)
 - `font-size`
 - `text-align`
+- `font-family`
+- `font-weight`
+- `font-style`
+- `pointer-events`
+- `visibility`
+- `text-transform`
+- `line-height`
+- `letter-spacing`
+- `white-space`
 
 Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 
@@ -235,9 +258,22 @@ Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 | `element.textContent = 'hi'` | `container.text = 'hi'; container.mark_dirty()` |
 | `addEventListener('click', fn)` | `container.click.append(fn)` |
 | `addEventListener('mouseover', fn)` | `container.hover.append(fn)` |
+| `addEventListener('focus', fn)` | `container.on_focus.append(fn)` |
+| `addEventListener('blur', fn)` | `container.on_blur.append(fn)` |
+| `element.focus()` | `container.focus()` (requires `focusable: true`) |
+| `element.blur()` | `container.blur()` |
+| `document.createElement()` + `appendChild()` | `parent.add_child("[template]", id="id")` |
+| `element.remove()` | `parent.remove_child("id")` |
+| `element.innerHTML = ''` | `parent.clear_children()` |
+| `element.innerHTML = markdownHtml` | `container.set_markdown(text)` |
 | DOM reflow on property change | `mark_dirty()` triggers relayout |
-| CSS transitions | ✅ Supported for `background-color`, `color`, `border-color`, `opacity` — multi-property via `transition: a 0.2s, b 0.3s` |
+| CSS transitions | ✅ Supported for `background-color`, `border-color`, `opacity` — multi-property via `transition: a 0.2s, b 0.3s`. `color` changes instantly on hover. |
 | `element.style.background = 'linear-gradient(...)'` | `container.set_property('background', 'linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0,0,0,0))')` |
+| `addEventListener('keydown', fn)` | `from puree.keyboard import keys; keys.bind("CTRL+N", fn)` |
+| `localStorage.setItem(k, v)` | `from puree.storage import Storage; store = Storage("app"); store.set(k, v)` |
+| `fetch(url)` | `from puree.net import http; http.get(url, on_success=fn)` |
+| `setTimeout(fn, ms)` | `from puree.timers import set_timeout; set_timeout(fn, ms)` |
+| `setInterval(fn, ms)` | `from puree.timers import set_interval; set_interval(fn, ms)` |
 
 ---
 

@@ -1621,7 +1621,9 @@ class UI():
             'hoverout': container.hoverout,
             'on_focus': container.on_focus,
             'on_blur': container.on_blur,
+            'tab_index': int(container.tab_index),
             'focusable': bool(container.focusable),
+            'container_ref': container,
             'children': [self._container_to_dict(child) for child in container.children]
         }
         return container_dict

@@ -28,9 +28,11 @@ These use `--` prefix and **require `#{$var}` interpolation** for SCSS variables
 --text-align-v: $alignment;
 ```
 
-## Animatable Properties (ONLY these 4)
+## Animatable Properties (ONLY these 3)
 
-`background-color`, `color`, `border-color`, `opacity`
+`background-color`, `border-color`, `opacity`
+
+`color` (text) changes instantly on hover/active — it is **not** transition-interpolated.
 
 **Layout properties in `:hover`/`:active` are IGNORED** — no reflow on hover. Only visual properties above are respected.
 
@@ -55,9 +57,14 @@ These use `--` prefix and **require `#{$var}` interpolation** for SCSS variables
 | Universal             | `*`                | ✓         |
 | Descendant            | `.a .b`            | ✓         |
 | Child                 | `.a > .b`          | ✓         |
+| Adjacent sibling      | `.a + .b`          | ✓         |
+| General sibling       | `.a ~ .b`          | ✓         |
 | Pseudo-class          | `:hover`, `:active`| ✓         |
 | Multiple              | `.a, .b { }`       | ✓         |
-| Attribute, `:nth-child`, sibling, `:not()`, `::before/after` | | ✗ |
+| `:first-child`, `:last-child` |            | ✓         |
+| `:nth-child(an+b)`   |                    | ✓         |
+| `:not()`              |                    | ✓         |
+| Attribute, `:is()`, `:where()`, `::before/after` | | ✗ |
 
 ## Gradients
 
@@ -91,7 +98,7 @@ border-width: 1px 2px 3px 4px;  // top right bottom left
 
 ## Inheritance
 
-Only these inherit from parent: `color`, `font-size`, `text-align`. Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
+Only these inherit from parent: `color`, `font-size`, `text-align`, `font-family`, `font-weight`, `font-style`, `pointer-events`, `visibility`, `text-transform`, `line-height`, `letter-spacing`, `white-space`. Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 
 ## Units & Functions
 
@@ -106,9 +113,9 @@ Only these inherit from parent: `color`, `font-size`, `text-align`. Everything e
 ## Layout
 
 Full flexbox: `flex-direction`, `flex-wrap`, `flex-grow/shrink/basis`, `align-items/self/content`, `justify-content/items/self`, `gap`
-Grid: `grid-template-rows/columns`, `grid-auto-flow`, `grid-row/column`
+Grid: `grid-template-rows/columns`, `grid-auto-flow` (including `dense` variants), `grid-row/column`
 Positioning: `relative`, `absolute` (no `fixed`, `sticky`)
-Media queries: `@media (min-width: Npx)`, `@media (max-width: Npx)`
+Media queries: `@media (min-width: Npx)`, `@media (max-width: Npx)`, `@media (min-height: Npx)`, `@media (max-height: Npx)`
 
 ## SCSS Features
 
@@ -116,6 +123,6 @@ Variables (`$var`), nesting, mixins, `!default`, `var(--name)` with fallback, `@
 
 ## NOT Supported
 
-`float`, `clear`, `z-index`, `transform`, `@keyframes`, `animation`, pseudo-elements (`::before`/`::after`), attribute selectors, `:nth-child`, sibling combinators, `:not()`/`:is()`/`:where()`, per-side border colors
+`float`, `clear`, `z-index`, `transform`, `@keyframes`, `animation`, pseudo-elements (`::before`/`::after`), attribute selectors, `:is()`/`:where()`, per-side border colors
 
 For full reference: [PUREE_VS_CSS.md](../../docs/PUREE_VS_CSS.md)
