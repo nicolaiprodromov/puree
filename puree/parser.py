@@ -568,7 +568,7 @@ class UI():
         style_str += self._component_css
 
         # Prepend built-in markdown defaults so user styles override them
-        _md_defaults_path = os.path.join(os.path.dirname(__file__), 'markdown_defaults.scss')
+        _md_defaults_path = os.path.join(os.path.dirname(__file__), 'components', 'defaults', 'markdown_defaults.scss')
         if os.path.exists(_md_defaults_path):
             try:
                 _md_scss = SCSSCompiler()

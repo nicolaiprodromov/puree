@@ -219,7 +219,7 @@ if __name__ == '__main__':
         logger.info(f'Installing addon: {addon_name} version {version} (ID: {package_id})')
         
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        package_file = os.path.join(script_dir, f'{addon_name}_{version}.zip')
+        package_file = os.path.join(script_dir, 'out', f'{addon_name}_{version}.zip')
         
         if not os.path.exists(package_file):
             logger.error(f'Error: Package file not found: {package_file}')

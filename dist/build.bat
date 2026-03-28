@@ -42,11 +42,11 @@ set addon_name=%addon_name: =_%
 
 echo building: %addon_name% version %version%
 
-if not exist "%addon_dir%\dist" mkdir "%addon_dir%\dist"
+if not exist "%addon_dir%\dist\out" mkdir "%addon_dir%\dist\out"
 
-del /q "%addon_dir%\dist\*.zip" 2>nul
+del /q "%addon_dir%\dist\out\*.zip" 2>nul
 
-set output_file=%addon_dir%\dist\%addon_name%_%version%.zip
+set output_file=%addon_dir%\dist\out\%addon_name%_%version%.zip
 
 "%blender_exe%" --background --command extension build --source-dir "%addon_dir%" --output-filepath "%output_file%"
 

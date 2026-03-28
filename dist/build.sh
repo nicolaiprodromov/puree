@@ -31,11 +31,11 @@ addon_name=$(echo "$addon_name" | tr ' ' '_')
 
 echo "building: $addon_name version $version"
 
-mkdir -p "$addon_dir/dist"
+mkdir -p "$addon_dir/dist/out"
 
-rm -f "$addon_dir/dist"/*.zip
+rm -f "$addon_dir/dist/out"/*.zip
 
-output_file="$addon_dir/dist/${addon_name}_${version}.zip"
+output_file="$addon_dir/dist/out/${addon_name}_${version}.zip"
 
 "$blender_exe" --background --command extension build --source-dir "$addon_dir" --output-filepath "$output_file"
 

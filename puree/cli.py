@@ -582,9 +582,9 @@ def cmd_build(args):
         print(f"Building {addon_name} v{version}...")
         print(f"  Blender: {blender_exe}")
 
-    # Create dist directory
-    dist_dir = cwd / "dist"
-    dist_dir.mkdir(exist_ok=True)
+    # Create dist/out directory
+    dist_dir = cwd / "dist" / "out"
+    dist_dir.mkdir(parents=True, exist_ok=True)
 
     # Clean old zips
     for old_zip in dist_dir.glob("*.zip"):
@@ -643,14 +643,14 @@ def cmd_install(args):
     blender_exe = _find_blender()
 
     # Find the zip
-    dist_dir = cwd / "dist"
+    dist_dir = cwd / "dist" / "out"
     zips = sorted(dist_dir.glob("*.zip"))
     if not zips:
         if tui:
-            tui.step_fail("No built zip found in dist/")
+            tui.step_fail("No built zip found in dist/out/")
             tui.step_info("Run 'puree build' first.")
         else:
-            print("Error: No built zip found in dist/. Run 'puree build' first.")
+            print("Error: No built zip found in dist/out/. Run 'puree build' first.")
         sys.exit(1)
 
     package_file = zips[-1]  # Latest

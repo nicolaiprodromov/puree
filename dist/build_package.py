@@ -30,15 +30,18 @@ def main():
     
     logger.info("\nBuilding Python package")
     
-    for tarball in glob.glob("dist/*.tar.gz"):
+    out_dir = os.path.join("dist", "out")
+    os.makedirs(out_dir, exist_ok=True)
+    
+    for tarball in glob.glob(os.path.join(out_dir, "*.tar.gz")):
         os.remove(tarball)
         logger.info(f"Removed {tarball}")
-    for old_wheel in glob.glob("dist/puree_ui-*.whl"):
+    for old_wheel in glob.glob(os.path.join(out_dir, "puree_ui-*.whl")):
         os.remove(old_wheel)
         logger.info(f"Removed {old_wheel}")
     
     python_cmd = "python" if sys.platform == "win32" else "python3"
-    run_command(f"{python_cmd} setup.py sdist bdist_wheel")
+    run_command(f"{python_cmd} setup.py sdist --dist-dir {out_dir} bdist_wheel --dist-dir {out_dir}")
     
     wheels_dir = os.path.join(project_root, "wheels")
     os.makedirs(wheels_dir, exist_ok=True)
@@ -47,7 +50,7 @@ def main():
         os.remove(old_wheel)
         logger.info(f"Removed old wheel: {os.path.basename(old_wheel)}")
     
-    for wheel in glob.glob("dist/puree_ui-*.whl"):
+    for wheel in glob.glob(os.path.join(out_dir, "puree_ui-*.whl")):
         dest = os.path.join(wheels_dir, os.path.basename(wheel))
         shutil.copy2(wheel, dest)
         logger.info(f"Copied {os.path.basename(wheel)} to wheels/")

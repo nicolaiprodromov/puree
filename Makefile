@@ -43,9 +43,9 @@ build:
 	if [ -z "$$BLENDER" ]; then echo "Error: 'blender' not found on PATH"; exit 1; fi; \
 	ADDON_NAME=$$(grep '^name' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "' | tr ' ' '_'); \
 	VERSION=$$(grep '^version' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "'); \
-	mkdir -p "$(ADDON_DIR)/dist"; \
-	rm -f "$(ADDON_DIR)/dist"/*.zip; \
-	OUTPUT="$(ADDON_DIR)/dist/$${ADDON_NAME}_$${VERSION}.zip"; \
+	mkdir -p "$(ADDON_DIR)/dist/out"; \
+	rm -f "$(ADDON_DIR)/dist/out"/*.zip; \
+	OUTPUT="$(ADDON_DIR)/dist/out/$${ADDON_NAME}_$${VERSION}.zip"; \
 	echo "Building $$ADDON_NAME v$$VERSION..."; \
 	"$$BLENDER" --background --command extension build --source-dir "$(ADDON_DIR)" --output-filepath "$$OUTPUT"; \
 	if [ -f "$$OUTPUT" ]; then echo "Build successful: $$OUTPUT"; else echo "Build failed!"; exit 1; fi
