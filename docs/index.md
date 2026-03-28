@@ -13,7 +13,7 @@ title: Home
 
 <p align="center">
   <a href="https://github.com/nicolaiprodromov/puree/releases"><img src="https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue" alt="Version"/></a>
-  <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-4.2%2B-orange?style=flat&logo=blender&logoColor=white" alt="Blender"/></a>
+  <a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white" alt="Blender"/></a>
   <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat" alt="ModernGL"/></a>
 </p>
 
@@ -117,6 +117,25 @@ This architecture enables:
 - **Event propagation** – Interactions flow through container hierarchy
 
 > Read the full [documentation](DOCS.md) for detailed guides, API references, and examples.
+
+---
+
+## Documentation Guide
+
+New to Puree? Follow this recommended reading order:
+
+| # | Document | Level | What You'll Learn |
+|---|----------|-------|-------------------|
+| 1 | [Documentation](DOCS.md) | Beginner | File structure, YAML/SCSS/Python walkthrough, installation |
+| 2 | [Components](COMPONENTS.md) | Beginner | Component system, parameters, namespacing |
+| 3 | [API Reference](API.md) | Intermediate | CSS properties, Container methods, built-in modules |
+| 4 | [Puree Spec](PUREE_SPEC.md) | Reference | Authoritative property tables, rules & constraints |
+| 5 | [Puree vs CSS](PUREE_VS_CSS.md) | Reference | CSS compatibility, selectors, Puree extensions |
+| 6 | [Knowledge Base](KNOWLEDGE_BASE.md) | Intermediate | Architecture decisions, debugging cheat sheet, patterns |
+| 7 | [Troubleshooting](TROUBLESHOOTING.md) | All levels | Common problems and solutions |
+| 8 | [Support](SUPPORT.md) | All levels | Getting help, reporting issues |
+
+See the full [Documentation Map](docs-path.md) for details on each page.
 
 ---
 

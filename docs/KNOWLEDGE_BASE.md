@@ -263,7 +263,7 @@ details.mark_dirty()
 
 ## Version History Context
 
-- Puree targets Blender 4.2+ (recent versions test on 5.x)
+- Puree targets Blender 5.1+ (the minimum version enforced in `blender_manifest.toml` and `__init__.py`)
 - The extension format uses `blender_manifest.toml` (Blender's new extension system)
 - Python target: 3.10+ (matching Blender's bundled Python)
 - Rust edition: 2021
@@ -318,3 +318,14 @@ puree reload          # Reload addon in running Blender (via TCP reload server)
 ```
 
 The CLI lives in `puree/cli.py` and is exposed via `[project.scripts]` in `pyproject.toml`.
+
+## Reload Server Security
+
+Puree includes a built-in TCP reload server (`puree/reload_server.py`) for development use:
+
+- **Binds to `127.0.0.1:19746`** — loopback only, not accessible from other machines on the network
+- **No authentication** — any local process can send `reload`, `ping`, `log_path`, or `logs [N]` commands
+- **Development-only** — the server is intended for the dev workflow (`puree reload`, `just reload`). It auto-starts when the addon registers and auto-stops on unregister.
+- **Production addons**: If you are shipping an addon to end users, the reload server still starts automatically. This is harmless on loopback but unnecessary. To disable it, remove the `ReloadServer` start/stop calls from your addon's `register()`/`unregister()` functions.
+- **No remote code execution** — the `reload` command triggers a pre-defined internal reload sequence, not arbitrary code. The server does not accept or evaluate arbitrary Python.
+- **Sentinel fallback** — if TCP is unavailable, the CLI writes a `.puree_reload` sentinel file. A Blender timer picks it up on the main thread.

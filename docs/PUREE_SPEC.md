@@ -197,6 +197,13 @@ background-image: linear-gradient(90deg, red, blue);  /* CSS alias */
 | `white-space`       | enum   | `normal`   | `normal` (wrap), `nowrap`, `pre`                              |
 | `text-overflow`     | enum   | `clip`     | `clip`, `ellipsis` (requires `white-space: nowrap`)           |
 | `text-shadow`       | short  | none       | `offset-x offset-y blur color` — single shadow only          |
+| `text-shadow-color`        | color  | `transparent` | Text shadow color (rgba)                               |
+| `text-shadow-offset-x`    | length | `0`        | Text shadow horizontal offset (px)                            |
+| `text-shadow-offset-y`    | length | `0`        | Text shadow vertical offset (px)                              |
+| `text-shadow-blur`         | length | `0`        | Text shadow blur radius (px)                                  |
+| `overflow-wrap`     | enum   | `normal`   | `normal`, `break-word` — whether to break words to prevent overflow |
+| `word-break`        | enum   | `normal`   | `normal`, `break-all` — word breaking rules                   |
+| `scrollbar-width`   | length/enum | `auto` | Scrollbar track width (`px`, or `none` / `thin` / `auto`)     |
 
 Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`), not CSS `font-family`. `font-weight` and `font-style` select the closest loaded variant.
 
@@ -297,11 +304,15 @@ Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
 
 | CSS Property             | Type   | Default  | Description                    |
 |--------------------------|--------|----------|--------------------------------|
-| `grid-template-rows`     | list   | none     | Row track sizes                |
-| `grid-template-columns`  | list   | none     | Column track sizes             |
+| `grid-template-rows`     | list   | none     | Row track sizes (e.g., `80px auto 1fr`)  |
+| `grid-template-columns`  | list   | none     | Column track sizes (e.g., `1fr 1fr 1fr`) |
+| `grid-auto-rows`         | size   | `auto`   | Size of implicitly created rows          |
+| `grid-auto-columns`      | size   | `auto`   | Size of implicitly created columns       |
 | `grid-auto-flow`         | enum   | `row`    | `row`, `column`, `row dense`, `column dense` |
-| `grid-row`               | string | `auto`   | Row placement                  |
-| `grid-column`            | string | `auto`   | Column placement               |
+| `grid-row`               | string | `auto`   | Row placement (`auto`, `span N`, `N / M`)    |
+| `grid-column`            | string | `auto`   | Column placement (`auto`, `span N`, `N / M`) |
+| `row-gap`                | length | `0`      | Space between grid rows                  |
+| `column-gap`             | length | `0`      | Space between grid columns               |
 
 #### Positioning
 
@@ -828,6 +839,65 @@ For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 
 > Note: `min-width`, `max-width`, `min-height`, and `max-height` media queries are supported. Width values are matched against the panel width; height values against the panel height.
 
+### Grid Layout
+
+Puree supports CSS Grid layout via the Taffy engine:
+
+**YAML:**
+```yaml
+grid_container:
+  class: photo_grid
+  photo1:
+    class: photo_item
+    text: "Photo 1"
+  photo2:
+    class: photo_item
+    text: "Photo 2"
+  photo3:
+    class: photo_item
+    text: "Photo 3"
+  photo4:
+    class: photo_item
+    text: "Photo 4"
+  photo5:
+    class: photo_item
+    text: "Photo 5"
+  photo6:
+    class: photo_item
+    text: "Photo 6"
+```
+
+**SCSS:**
+```scss
+.photo_grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;   // 3 equal columns
+  grid-auto-rows: 80px;                  // each row 80px tall
+  gap: 8px;                              // gap between cells
+  padding: 12px;
+}
+
+.photo_item {
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  // Items auto-place into the grid in row order
+}
+```
+
+**Supported grid properties:**
+
+| Property | Values | Description |
+|----------|--------|-------------|
+| `display: grid` | — | Enable grid layout |
+| `grid-template-columns` | Track list (e.g., `1fr 1fr 1fr`, `100px auto 1fr`) | Define column tracks |
+| `grid-template-rows` | Track list | Define row tracks |
+| `grid-auto-rows` | Size (e.g., `80px`, `auto`) | Size of implicitly created rows |
+| `grid-auto-columns` | Size | Size of implicitly created columns |
+| `grid-auto-flow` | `row` \| `column` \| `row dense` \| `column dense` | How auto-placed items flow |
+| `grid-row` | `auto` \| `span N` \| `N / M` | Item row placement |
+| `grid-column` | `auto` \| `span N` \| `N / M` | Item column placement |
+| `gap` / `row-gap` / `column-gap` | px | Space between grid cells |
+
 ### Per-Side Border
 ```scss
 .underlined {
@@ -857,6 +927,7 @@ For border gradients, use `border-image: linear-gradient(...)` — standard CSS.
 10. **`display: none`** hides an element and removes it from layout
 11. **Runtime display values are UPPERCASE**: `'FLEX'`, `'NONE'`, `'GRID'` (CSS uses lowercase)
 12. **Only 3 animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
+13. **Draw order**: Containers are drawn in tree order (depth-first). Use the YAML `layer:` attribute (integer) for z-ordering — higher values draw later/on top. The CSS `z-index` property exists on the Style class but is **not** used by the GPU renderer.
 
 ---
 

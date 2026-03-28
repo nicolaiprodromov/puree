@@ -16,7 +16,7 @@ title : 6. Troubleshooting
 
 ## Rendering
 
-- **Container not updating after property change** — Call `mark_dirty()` on the container after any style or text change. The GPU won't re-render without it.
+- **Container not updating after property change** — Call `mark_dirty()` on the container after any style or text change. **Root cause:** Puree uses a dirty-flagging optimization — the GPU only re-packs and re-uploads container data when at least one container is marked dirty. Without this flag, the render loop skips the buffer update entirely, so your changes exist in Python but never reach the shader.
 - **Hit detection broken after panel resize** — The hit detection cache can become stale. Trigger a full re-render by resizing the panel slightly.
 - **Text rendering lagging behind containers** — Text renders in a separate pass from GPU containers. This is normal for the first frame after a change.
 
@@ -46,6 +46,34 @@ title : 6. Troubleshooting
 ## Collapse
 
 - **Collapse not animating** — The first child of a collapsible container acts as the header (always visible). The remaining children are collapsed. Call `mark_dirty()` after toggle.
+
+## Debugging Methodology
+
+When your UI isn't behaving as expected, follow this systematic approach:
+
+### Step 1: Check the logs
+```bash
+just logs          # or: just tail (live-follow)
+puree reload       # also prints any errors
+```
+Look for Python exceptions, SCSS compilation errors, or YAML parse failures.
+
+### Step 2: Verify the basics
+- Is `mark_dirty()` called after every property change?
+- Are display values uppercase in Python? (`'FLEX'` not `'flex'`)
+- Are YAML node names using underscores? (`my_button` not `my-button`)
+- Does the component exist in `components/` with matching name?
+
+### Step 3: Isolate the layer
+- **YAML issue?** — Check node IDs, component references (`[name]`), parameter syntax (`"{{name, 'default'}}"`)
+- **SCSS issue?** — Try `touch style.scss` to clear cache. Check selector specificity.
+- **Python issue?** — Add `print()` calls in handlers. Check `just logs` for output.
+- **Rendering issue?** — Enable debug outlines in the panel. Check if container is at the right position.
+
+### Step 4: Minimal reproduction
+Strip your UI down to the simplest case that reproduces the issue. This often reveals the problem immediately.
+
+See the [Knowledge Base](KNOWLEDGE_BASE.md#debugging-cheat-sheet) for a comprehensive 18-item debugging cheat sheet.
 
 ---
 

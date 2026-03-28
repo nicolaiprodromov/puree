@@ -6,9 +6,14 @@ title : 1. Documentation
 <img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
 
-The *XWZ Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+The *Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
 > Puree is built on top of **ModernGL**, **grass** (Rust SCSS compiler), and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+
+> **Note:** You may see `XWZ_` prefixes on Blender operator class names (e.g., `XWZ_OT_ui_parser`). This is an internal namespace prefix used to avoid operator name collisions with other Blender addons. It does not affect user-facing functionality.
+
+> [!CAUTION]
+> **Critical Rule**: After ANY property change on a container (style, text, children), you must call `container.mark_dirty()`. The GPU will not re-render without it. This is the #1 cause of "my changes aren't showing up" bugs.
 
 ## Overview
 
@@ -537,6 +542,94 @@ def main(self, app):
     
     return app
 ```
+
+### Threading & Blender Safety
+
+Blender is **not thread-safe** — you cannot call `bpy` APIs from background threads. When performing async work (HTTP requests, heavy computations), use this pattern:
+
+```python
+import bpy
+import threading
+
+def main(self, app):
+    status = app.theme.root.bg.status
+    
+    def on_click(container):
+        def _background_work():
+            # OK: pure Python computation in a thread
+            result = expensive_calculation()
+            
+            # NOT OK: bpy calls in a thread — will crash
+            # bpy.ops.mesh.primitive_cube_add()  # DON'T DO THIS
+            
+            # OK: update Puree containers from a thread  
+            status.text = f"Result: {result}"
+            status.mark_dirty()
+            
+            # OK: schedule bpy calls on the main thread
+            def _deferred():
+                bpy.ops.mesh.primitive_cube_add()
+                return None  # None = don't repeat
+            bpy.app.timers.register(_deferred)
+        
+        threading.Thread(target=_background_work, daemon=True).start()
+    
+    app.theme.root.bg.run_btn.click.append(on_click)
+    return app
+```
+
+**Rules:**
+- Puree container updates (`text`, `style`, `mark_dirty()`) are safe from threads
+- `bpy.ops.*`, `bpy.data.*`, `bpy.context.*` are **NOT** safe from threads
+- Use `bpy.app.timers.register(fn)` to schedule deferred bpy calls on the main thread
+- The `puree.net` HTTP module handles this automatically — callbacks run on the main thread
+
+### Target Space Configuration
+
+By default, Puree renders in the **3D Viewport** sidebar (N-panel). You can target other Blender spaces by setting the `space` field in your theme config:
+
+```yaml
+app:
+  version: 1.0.0
+  space: VIEW_3D    # Default — 3D Viewport
+  themes:
+    - name: my_theme
+      style: style.scss
+      script: script.py
+      config: index.yaml
+```
+
+**Supported spaces:**
+
+| Space Value | Blender Area |
+|-------------|-------------|
+| `VIEW_3D` | 3D Viewport (default) |
+| `IMAGE_EDITOR` | UV/Image Editor |
+| `NODE_EDITOR` | Shader/Geometry Node Editor |
+| `PROPERTIES` | Properties panel |
+| `OUTLINER` | Outliner |
+
+The space configuration is handled by `puree/space_config.py` and determines which Blender area type the draw handler attaches to.
+
+### Multi-Theme Support
+
+Puree supports multiple themes within a single addon. Each theme can have its own YAML, SCSS, and Python script:
+
+```yaml
+app:
+  version: 1.0.0
+  themes:
+    - name: main_panel
+      style: style.scss
+      script: script.py
+      config: index.yaml
+    - name: settings_panel
+      style: settings_style.scss
+      script: settings_script.py
+      config: settings.yaml
+```
+
+Each theme's scripts execute in order, and each `script.py` receives the UI instance with access to all themes via `app.theme` (for the current theme) or the theme registry. Components defined in `components/` are shared across all themes.
 
 ### Dynamic Container Creation
 

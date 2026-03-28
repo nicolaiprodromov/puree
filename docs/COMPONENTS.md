@@ -250,6 +250,78 @@ def main(self, app):
 
 Available methods: `add_child(template, id, params)`, `insert_child(index, template, id, params)`, `remove_child(id_or_container)`, `clear_children()`. See the [API Reference](API.md) for details.
 
+### Nested Components
+
+Components can use other components. For example, a `card` component might use a `badge` component internally:
+
+**components/badge.yaml:**
+
+{% raw %}
+```yaml
+badge:
+  class: badge
+  text: "{{badge_text, 'Default'}}"
+```
+{% endraw %}
+
+**components/card.yaml:**
+
+{% raw %}
+```yaml
+card:
+  class: card
+  card_header:
+    class: card_header
+    text: "{{title, 'Card Title'}}"
+  card_badge:
+    data: '[badge]'
+    badge_text: "{{status, 'Active'}}"
+  card_body:
+    class: card_body
+    text: "{{body, 'Card content'}}"
+```
+{% endraw %}
+
+**Usage in index.yaml:**
+
+```yaml
+my_card:
+  data: '[card]'
+  title: "Settings"
+  status: "Beta"
+  body: "Configure your preferences"
+```
+
+**Accessing nested component children in Python:**
+
+```python
+# Access the badge inside the card
+# Naming: instance_id + component_child_id
+badge = app.theme.root.my_card.card_badge
+badge_inner = badge.badge  # The inner badge container
+badge_inner.text = "v2.0"
+badge_inner.mark_dirty()
+```
+
+**Important:** Component SCSS is scoped by component name. If the `badge` component defines `.badge { ... }` styles and the `card` component also defines `.badge { ... }`, the badge's own SCSS takes precedence for containers instantiated from the badge component. Keep class names unique across components to avoid confusion.
+
+### SCSS Variable Precedence
+
+When a component is instantiated, its SCSS is compiled with the component's own variables as defaults. Parameters passed from the parent use SCSS variable overrides:
+
+```scss
+// components/button.scss
+$btn-bg: #333 !default;    // !default means "use this unless overridden"
+$btn-color: #fff !default;
+
+.button {
+  background-color: $btn-bg;
+  color: $btn-color;
+}
+```
+
+The `!default` flag is key — it allows parent contexts to override these values via component parameters, while providing sensible defaults when no override is given.
+
 ---
 
 |  | Previous Page | Next Page |

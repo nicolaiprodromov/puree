@@ -182,7 +182,7 @@ Puree uses [Taffy](https://github.com/DioxusLabs/taffy) (via `stretchable`), a R
 ### What does NOT exist
 - `display: inline`, `display: inline-flex` — only `flex`, `grid`, `block`, `none`
 - `float`, `clear`, `transform`
-- `z-index` — exists on Style class but not functional in rendering
+- `z-index` — the Style class has a `z_index` attribute but it is not used by the GPU renderer. Draw order is determined by container tree order. Use the YAML `layer:` attribute on containers for z-ordering (integer, higher = drawn later)
 - `position: fixed`, `position: sticky` — only `relative` and `absolute`
 - `@keyframes` animations — use `transition` for simple state changes
 - `calc()`, `clamp()`, `min()`, `max()`

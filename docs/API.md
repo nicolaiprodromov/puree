@@ -7,6 +7,9 @@ title : 3. API Reference
 
 All properties are set via SCSS files. Use `container.set_property('css-property', value)` for runtime changes. Both kebab-case (`background-color`) and underscore (`background_color`) are accepted.
 
+> [!CAUTION]
+> **Critical Rule**: After ANY property change, call `container.mark_dirty()`. The GPU will not re-render without it.
+
 **Reading style at runtime:** Access via `container.style.field_name`. Enum values are UPPERCASE at runtime — e.g. `container.style.display` returns `'FLEX'` or `'NONE'`.
 
 ### Colors & Backgrounds
@@ -45,6 +48,12 @@ All properties are set via SCSS files. Use `container.set_property('css-property
 | `white-space` | `normal` (wrap), `nowrap`, `pre` |
 | `text-overflow` | `clip`, `ellipsis` — requires `white-space: nowrap` |
 | `text-shadow` | `offset-x offset-y blur color` — single shadow only |
+| `text-shadow-color` | Text shadow color (rgba) |
+| `text-shadow-offset-x` | Text shadow horizontal offset (px) |
+| `text-shadow-offset-y` | Text shadow vertical offset (px) |
+| `text-shadow-blur` | Text shadow blur radius (px) |
+| `overflow-wrap` | `normal`, `break-word` — whether to break words to prevent overflow |
+| `word-break` | `normal`, `break-all` — word breaking rules |
 
 > Font face is selected via YAML `font:` attribute, not CSS `font-family`.
 
@@ -168,25 +177,25 @@ button = app.theme.root.sidebar.nav_button
 
 ## Container Methods
 
-| Method | Description |
-|---|---|
-| `mark_dirty()` | Flags the container for GPU re-sync on the next frame. **Required** after any runtime property change. |
-| `set_property(name, value)` | Set a CSS property at runtime. Accepts CSS names (`background-color`) or underscore equivalents. Handles color parsing, gradient parsing, and layout recalculation automatically. |
-| `get_by_id(target_id)` | Search this subtree for a container by ID. Returns `Container` or `None`. |
-| `add_child(template, id=None, params=None)` | Create and append a child from a component template (e.g. `"[card]"`). Returns the new `Container`. |
-| `insert_child(index, template, id=None, params=None)` | Insert a child at a specific position from a component template. Returns the new `Container`. |
-| `remove_child(id_or_container)` | Remove a child by ID string or `Container` reference. Returns `bool`. |
-| `clear_children()` | Remove all children from this container. |
-| `focus()` | Give this container keyboard focus. Requires `focusable: true`. |
-| `blur()` | Remove keyboard focus from this container. |
-| `is_focused` | Property — returns `True` if this container currently has keyboard focus. |
-| `collapse()` | Collapse this container (animate to header-only height). |
-| `expand()` | Expand this container (animate to full height). |
-| `toggle_collapse()` | Toggle between collapsed and expanded state. |
-| `is_collapsed` | Property — returns `True` if this container is currently collapsed. |
-| `set_markdown(text, app=None, fonts=None, classes=None)` | Render markdown text as child containers. Clears existing children first. |
-| `set_virtual_data(data_list)` | Assign a data list for virtual scrolling. Requires `virtual: true`. |
-| `set_item_renderer(fn)` | Set the callback `fn(container, item)` to render each virtual scroll item. |
+| Method | Signature | Description |
+|---|---|---|
+| `mark_dirty()` | `() -> None` | Flag container for GPU re-render. **Must be called after any property change.** |
+| `get_by_id(target_id)` | `(str) -> Container \| None` | Find a descendant container by ID |
+| `set_property(name, value)` | `(str, Any) -> None` | Set a CSS property at runtime. Accepts CSS names (`background-color`) or underscore equivalents. Handles color parsing, gradient parsing, and layout recalculation automatically. |
+| `add_child(template, id, params)` | `(str, str \| None, dict \| None) -> Container` | Create and append a child from a component template (e.g. `"[card]"`). |
+| `insert_child(index, template, id, params)` | `(int, str, str \| None, dict \| None) -> Container` | Insert a child at a specific position from a component template. |
+| `remove_child(id_or_container)` | `(str \| Container) -> bool` | Remove a child by ID string or Container reference. |
+| `clear_children()` | `() -> None` | Remove all children from this container. |
+| `focus()` | `() -> None` | Give this container keyboard focus. Requires `focusable: true` and `tab_index` in YAML. |
+| `blur()` | `() -> None` | Remove keyboard focus from this container. |
+| `is_focused` | `-> bool` | Property — returns `True` if this container currently has keyboard focus. |
+| `collapse()` | `() -> None` | Animate collapse to header-only height. |
+| `expand()` | `() -> None` | Animate expand to full height. |
+| `toggle_collapse()` | `() -> None` | Toggle between collapsed and expanded states. |
+| `is_collapsed` | `-> bool` | Property — returns `True` if this container is currently collapsed. |
+| `set_markdown(text, app, fonts, classes)` | `(str, UI \| None, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. |
+| `set_virtual_data(data_list)` | `(list) -> None` | Assign a data list for virtual scrolling. Requires `virtual: true`. |
+| `set_item_renderer(fn)` | `(Callable[[Container, Any], None]) -> None` | Set the callback to render each virtual scroll item. |
 
 ---
 
