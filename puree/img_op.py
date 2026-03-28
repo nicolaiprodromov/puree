@@ -34,8 +34,25 @@ class ImageManager:
         if not self._initialized:
             self.images = {}
             self.textures = {}
-            self._load_images()
+            self._try_load_images()
             self._initialized = True
+
+    def _try_load_images(self):
+        """Load images only when bpy.data is available (not during restricted context)."""
+        try:
+            _ = bpy.data.images
+            self._load_images()
+        except AttributeError:
+            logger.debug("bpy.data not yet available — deferring image load")
+            bpy.app.timers.register(self._deferred_load, first_interval=0.1)
+
+    def _deferred_load(self):
+        try:
+            _ = bpy.data.images
+            self._load_images()
+        except AttributeError:
+            return 0.2  # retry
+        return None  # done
     
     def _load_images(self):
         from . import get_addon_root

@@ -296,6 +296,32 @@ class UI():
         self.theme.root.id = "root"
         load_container(root, self.theme.root)
 
+        # Auto-register all component templates so dynamic add_child() works
+        # even for components not referenced in the YAML tree.
+        if base_dir and self.theme.components:
+            comp_dir = os.path.join(base_dir, self.theme.components)
+            if os.path.isdir(comp_dir):
+                for dirpath, _dirs, filenames in os.walk(comp_dir):
+                    for fname in filenames:
+                        if not fname.endswith('.yaml'):
+                            continue
+                        comp_key = fname[:-5]  # strip .yaml
+                        if comp_key in self._component_registry:
+                            continue
+                        fpath = os.path.join(dirpath, fname)
+                        scss_path = os.path.join(dirpath, f"{comp_key}.scss")
+                        try:
+                            with open(fpath, 'r') as f:
+                                comp_data = yaml.safe_load(f)
+                            self._component_registry[comp_key] = {
+                                'yaml_data': comp_data,
+                                'scss_path': scss_path if os.path.exists(scss_path) else None,
+                                'base_name': comp_key,
+                                'base_dir': dirpath,
+                            }
+                        except Exception as e:
+                            logger.warning(f"Failed to pre-register component '{comp_key}': {e}")
+
     def parse_container_props_from_style(self, attr_name, attr_value):
         attr_name = attr_name.replace('-', '_')
 

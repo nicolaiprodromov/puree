@@ -114,6 +114,17 @@ class RenderPipeline:
                 logger.debug("Failed to release ModernGL resource", exc_info=True)
                 return False
         return False
+
+    def _write_container_buffer(self, data_bytes):
+        """Write data to container_buffer, reallocating if the size changed."""
+        if not self.container_buffer:
+            return
+        need = len(data_bytes)
+        if need != self.container_buffer.size:
+            self._safe_release_moderngl_object(self.container_buffer)
+            self.container_buffer = self.mgl_context.buffer(data_bytes)
+        else:
+            self.container_buffer.write(data_bytes)
     def load_shader_file(self, filename):
         package_dir = os.path.dirname(os.path.abspath(__file__))
         shader_path = os.path.join(package_dir, "shaders", filename)
@@ -373,7 +384,7 @@ class RenderPipeline:
                     for i, container in enumerate(self.container_data):
                         container_array.extend(self._build_container_struct(container))
                     container_data_np = np.array(container_array, dtype=np.float32)
-                    self.container_buffer.write(container_data_np.tobytes())
+                    self._write_container_buffer(container_data_np.tobytes())
         
         if self.viewport_buffer:
             viewport_data = np.array([w, h, len(self.container_data), float(self._current_hover_index), float(self._current_click_index)], dtype=np.float32)
@@ -1471,7 +1482,7 @@ class RenderPipeline:
                     container_array.extend(struct)
                 
                 container_data_np = np.array(container_array, dtype=np.float32)
-                self.container_buffer.write(container_data_np.tobytes())
+                self._write_container_buffer(container_data_np.tobytes())
             
             if self.viewport_buffer:
                 vp_data = np.array([
@@ -1485,7 +1496,7 @@ class RenderPipeline:
             
             return True
         except Exception:
-            logger.error("Failed to write mouse buffer", exc_info=True)
+            logger.error("Failed to write container buffer", exc_info=True)
             return False
 
 class XWZ_OT_start_ui(Operator):

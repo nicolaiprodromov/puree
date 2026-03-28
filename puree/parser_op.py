@@ -113,6 +113,9 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         addon_dir  = get_addon_root()
 
         self.ui              = UI(os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size)
+        # Wire dynamic container manager before compile so user scripts can use add/remove/clear_children
+        from .dynamic import dynamic_manager
+        dynamic_manager.set_ui(self.ui)
         self.compiler        = Compiler(self.ui)
         self.ui              = self.compiler.compile()
         
@@ -126,8 +129,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         image_blocks_relative = self.image_extractor.image_blocks_relative
 
         XWZ_UI = self.ui  # Store UI instance globally for layout recomputation
-        # Wire dynamic container manager to the freshly compiled UI
-        from .dynamic import dynamic_manager
+        # Re-wire in case compile() returned a different UI instance
         dynamic_manager.set_ui(self.ui)
         self.dump_ui_struct()
         return {'FINISHED'}
@@ -182,6 +184,17 @@ def sync_dirty_containers():
                 'width': border_box_abs.width,
                 'height': border_box_abs.height
             }
+
+            # Taffy/Stretchable skips layout for children of display:none nodes
+            if container.style and container.style.display.upper() == 'NONE':
+                def _zero_subtree(c):
+                    zero = {'x': 0.0, 'y': 0.0, 'width': 0.0, 'height': 0.0}
+                    node_flat_abs[c.id] = zero
+                    for child in c.children:
+                        _zero_subtree(child)
+                for child in container.children:
+                    _zero_subtree(child)
+                return
             
             for i, child_container in enumerate(container.children):
                 update_layout_data(child_container, node[i])
