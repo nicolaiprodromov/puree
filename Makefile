@@ -8,7 +8,7 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
-.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy install install-deps venv bump release
+.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy format install install-deps venv bump release
 
 BLENDER_VERSION := 5.1
 ADDON_DIR       := $(CURDIR)
@@ -176,6 +176,21 @@ print(f'  ✓ Extracted {whl.name} into site-packages')"; \
 	echo "Done!"
 
 deploy: link reload
+
+# ── Code formatting ──────────────────────────────────────────────────
+
+format:
+	@if [ ! -d .venv ]; then echo "Error: .venv not found. Run 'make venv' first."; exit 1; fi
+	@if [ ! -f .venv/bin/ruff ]; then echo "Installing ruff into .venv..."; .venv/bin/pip install ruff --quiet; fi
+	@echo "── Stripping Python comments ──"
+	@$(PYTHON) dist/format_python.py puree/ __init__.py tests/ dist/ setup.py
+	@echo "── Formatting Python (ruff) ──"
+	@.venv/bin/ruff format puree/ __init__.py tests/ dist/ setup.py 2>/dev/null || true
+	@echo "── Stripping Rust comments ──"
+	@$(PYTHON) dist/format_rust.py puree/puree_core/src/
+	@echo "── Formatting Rust (rustfmt) ──"
+	@find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
+	@echo "✓ Format complete"
 
 # ── Venv (for testing CLI locally) ───────────────────────────────────
 

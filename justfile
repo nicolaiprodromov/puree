@@ -252,6 +252,32 @@ deploy:
     just link
     just reload
 
+# ── Code formatting ──────────────────────────────────────────────────
+
+# Strip comments and format all Python + Rust code (requires .venv with ruff)
+format:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    VENV=".venv"
+    if [ ! -d "$VENV" ]; then
+        echo "Error: .venv not found. Run 'just venv' first."
+        exit 1
+    fi
+    RUFF="$VENV/bin/ruff"
+    if [ ! -f "$RUFF" ]; then
+        echo "Installing ruff into .venv..."
+        "$VENV/bin/pip" install ruff --quiet
+    fi
+    echo "── Stripping Python comments ──"
+    {{python}} dist/format_python.py puree/ __init__.py tests/ dist/ setup.py
+    echo "── Formatting Python (ruff) ──"
+    "$RUFF" format puree/ __init__.py tests/ dist/ setup.py 2>/dev/null || true
+    echo "── Stripping Rust comments ──"
+    {{python}} dist/format_rust.py puree/puree_core/src/
+    echo "── Formatting Rust (rustfmt) ──"
+    find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
+    echo "✓ Format complete"
+
 # ── Venv (for testing CLI locally) ───────────────────────────────────
 
 # Create venv and install puree CLI in editable mode

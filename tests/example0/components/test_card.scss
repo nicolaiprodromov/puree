@@ -1,0 +1,63 @@
+$tc_bg: #1a1d24 !default;
+$tc_border: rgba(255,255,255,0.06) !default;
+$tc_radius: 8px !default;
+
+.tc_card {
+  background-color: $tc_bg;
+  border: 1px solid $tc_border;
+  border-radius: $tc_radius;
+  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tc_header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tc_title {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.tc_badge {
+  background-color: rgba(52,152,219,0.2);
+  color: rgba(52,152,219,1);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.tc_badge_pass {
+  background-color: rgba(46,204,113,0.2);
+  color: rgba(46,204,113,1);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.tc_badge_fail {
+  background-color: rgba(231,76,60,0.2);
+  color: rgba(231,76,60,1);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.tc_body {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tc_content {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.4;
+}

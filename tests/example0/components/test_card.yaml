@@ -1,0 +1,20 @@
+test_card:
+  style: "{{card_style, 'tc_card'}}"
+  tc_header:
+    style: tc_header
+    tc_title:
+      style: tc_title
+      text: "{{card_title, 'Card Title'}}"
+      font: NeueMontreal-Bold
+      passive: true
+    tc_badge:
+      style: "{{badge_style, 'tc_badge'}}"
+      text: "{{badge_text, 'TEST'}}"
+      font: NeueMontreal-Bold
+      passive: true
+  tc_body:
+    style: tc_body
+    tc_content:
+      style: tc_content
+      text: "{{card_content, 'Card content goes here'}}"
+      passive: true
