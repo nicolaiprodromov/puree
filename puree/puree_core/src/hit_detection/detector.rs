@@ -1,17 +1,7 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
+use crate::types::{Container, HitTestResult, MouseState};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use rayon::prelude::*;
-use crate::types::{Container, MouseState, HitTestResult};
 
 #[pyclass]
 pub struct HitDetector {
@@ -33,20 +23,20 @@ impl HitDetector {
             },
         }
     }
-    
+
     /// Load container data from Python
     pub fn load_containers(&mut self, _py: Python, container_list: &PyList) -> PyResult<()> {
         self.containers.clear();
-        
+
         for item in container_list.iter() {
             let container_dict: &PyDict = item.downcast()?;
             let container = self.parse_container(container_dict)?;
             self.containers.push(container);
         }
-        
+
         Ok(())
     }
-    
+
     /// Update mouse state
     pub fn update_mouse(&mut self, x: f32, y: f32, clicked: bool, scroll_delta: f32) {
         self.mouse_state.x = x;
@@ -54,12 +44,11 @@ impl HitDetector {
         self.mouse_state.clicked = clicked;
         self.mouse_state.scroll_delta = scroll_delta;
     }
-    
+
     /// Perform hit detection for all containers
     pub fn detect_hits(&mut self, py: Python) -> PyResult<PyObject> {
         let results = self.process_hit_detection();
-        
-        // Convert results to Python list
+
         let py_results = PyList::empty(py);
         for result in results {
             let result_dict = PyDict::new(py);
@@ -71,32 +60,32 @@ impl HitDetector {
             result_dict.set_item("has_children_hit", result.has_children_hit)?;
             py_results.append(result_dict)?;
         }
-        
+
         Ok(py_results.into())
     }
-    
+
     /// Detect hover for specific container
     pub fn detect_hover(&self, container_index: usize) -> bool {
         if container_index >= self.containers.len() {
             return false;
         }
-        
+
         let container = &self.containers[container_index];
         if container.passive {
             return false;
         }
-        
+
         container.contains_point(self.mouse_state.x, self.mouse_state.y)
     }
-    
+
     /// Detect if any children are hovered
     pub fn any_children_hovered(&self, container_index: usize) -> bool {
         if container_index >= self.containers.len() {
             return false;
         }
-        
+
         let container = &self.containers[container_index];
-        
+
         for &child_index in &container.children {
             if child_index < self.containers.len() {
                 let child = &self.containers[child_index];
@@ -105,7 +94,7 @@ impl HitDetector {
                 }
             }
         }
-        
+
         false
     }
 }
@@ -113,49 +102,53 @@ impl HitDetector {
 impl HitDetector {
     fn parse_container(&self, dict: &PyDict) -> PyResult<Container> {
         let id = dict.get_item("id")?.unwrap().extract::<String>()?;
-        
+
         let pos = dict.get_item("position")?.unwrap().downcast::<PyList>()?;
         let position = [
             pos.get_item(0)?.extract::<f32>()?,
             pos.get_item(1)?.extract::<f32>()?,
         ];
-        
+
         let sz = dict.get_item("size")?.unwrap().downcast::<PyList>()?;
         let size = [
             sz.get_item(0)?.extract::<f32>()?,
             sz.get_item(1)?.extract::<f32>()?,
         ];
-        
+
         let parent = dict.get_item("parent")?.unwrap().extract::<i32>()?;
         let passive = dict.get_item("passive")?.unwrap().extract::<bool>()?;
         let display = dict.get_item("display")?.unwrap().extract::<bool>()?;
         let overflow = dict.get_item("overflow")?.unwrap().extract::<bool>()?;
-        
+
         let children_list = dict.get_item("children")?.unwrap().downcast::<PyList>()?;
         let mut children = Vec::new();
         for child_item in children_list.iter() {
             children.push(child_item.extract::<usize>()?);
         }
-        
-        // Extract color arrays
+
         let background_color = self.extract_color_array(dict, "background_color")?;
         let background_color_2 = self.extract_color_array(dict, "background_color_2")?;
         let hover_background_color = self.extract_color_array(dict, "hover_background_color")?;
-        let hover_background_color_2 = self.extract_color_array(dict, "hover_background_color_2")?;
+        let hover_background_color_2 =
+            self.extract_color_array(dict, "hover_background_color_2")?;
         let click_background_color = self.extract_color_array(dict, "click_background_color")?;
-        let click_background_color_2 = self.extract_color_array(dict, "click_background_color_2")?;
+        let click_background_color_2 =
+            self.extract_color_array(dict, "click_background_color_2")?;
         let border_color = self.extract_color_array(dict, "border_color")?;
         let border_color_2 = self.extract_color_array(dict, "border_color_2")?;
         let color = self.extract_color_array(dict, "color")?;
         let box_shadow_color = self.extract_color_array(dict, "box_shadow_color")?;
-        
-        let box_shadow_offset_list = dict.get_item("box_shadow_offset")?.unwrap().downcast::<PyList>()?;
+
+        let box_shadow_offset_list = dict
+            .get_item("box_shadow_offset")?
+            .unwrap()
+            .downcast::<PyList>()?;
         let box_shadow_offset = [
             box_shadow_offset_list.get_item(0)?.extract::<f32>()?,
             box_shadow_offset_list.get_item(1)?.extract::<f32>()?,
             box_shadow_offset_list.get_item(2)?.extract::<f32>()?,
         ];
-        
+
         Ok(Container {
             id,
             style_id: dict.get_item("style")?.unwrap().extract::<String>()?,
@@ -168,27 +161,71 @@ impl HitDetector {
             overflow,
             background_color,
             background_color_2,
-            background_gradient_rot: dict.get_item("background_gradient_rot")?.unwrap().extract::<f32>()?,
+            background_gradient_rot: dict
+                .get_item("background_gradient_rot")?
+                .unwrap()
+                .extract::<f32>()?,
             hover_background_color,
             hover_background_color_2,
-            hover_background_gradient_rot: dict.get_item("hover_background_gradient_rot")?.unwrap().extract::<f32>()?,
+            hover_background_gradient_rot: dict
+                .get_item("hover_background_gradient_rot")?
+                .unwrap()
+                .extract::<f32>()?,
             click_background_color,
             click_background_color_2,
-            click_background_gradient_rot: dict.get_item("click_background_gradient_rot")?.unwrap().extract::<f32>()?,
+            click_background_gradient_rot: dict
+                .get_item("click_background_gradient_rot")?
+                .unwrap()
+                .extract::<f32>()?,
             border_color,
             border_color_2,
-            border_gradient_rot: dict.get_item("border_gradient_rot")?.unwrap().extract::<f32>()?,
+            border_gradient_rot: dict
+                .get_item("border_gradient_rot")?
+                .unwrap()
+                .extract::<f32>()?,
             border_radius: dict.get_item("border_radius")?.unwrap().extract::<f32>()?,
-            border_radius_tl: dict.get_item("border_radius_tl")?.unwrap().extract::<f32>()?,
-            border_radius_tr: dict.get_item("border_radius_tr")?.unwrap().extract::<f32>()?,
-            border_radius_br: dict.get_item("border_radius_br")?.unwrap().extract::<f32>()?,
-            border_radius_bl: dict.get_item("border_radius_bl")?.unwrap().extract::<f32>()?,
+            border_radius_tl: dict
+                .get_item("border_radius_tl")?
+                .unwrap()
+                .extract::<f32>()?,
+            border_radius_tr: dict
+                .get_item("border_radius_tr")?
+                .unwrap()
+                .extract::<f32>()?,
+            border_radius_br: dict
+                .get_item("border_radius_br")?
+                .unwrap()
+                .extract::<f32>()?,
+            border_radius_bl: dict
+                .get_item("border_radius_bl")?
+                .unwrap()
+                .extract::<f32>()?,
             border_width: dict.get_item("border_width")?.unwrap().extract::<f32>()?,
-            border_width_top: dict.get_item("border_width_top").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
-            border_width_right: dict.get_item("border_width_right").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
-            border_width_bottom: dict.get_item("border_width_bottom").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
-            border_width_left: dict.get_item("border_width_left").ok().and_then(|v| v.and_then(|v| v.extract::<f32>().ok())).unwrap_or(0.0),
-            gradient_stops: dict.get_item("gradient_stops").ok().and_then(|v| v.and_then(|v| v.extract::<String>().ok())).unwrap_or_default(),
+            border_width_top: dict
+                .get_item("border_width_top")
+                .ok()
+                .and_then(|v| v.and_then(|v| v.extract::<f32>().ok()))
+                .unwrap_or(0.0),
+            border_width_right: dict
+                .get_item("border_width_right")
+                .ok()
+                .and_then(|v| v.and_then(|v| v.extract::<f32>().ok()))
+                .unwrap_or(0.0),
+            border_width_bottom: dict
+                .get_item("border_width_bottom")
+                .ok()
+                .and_then(|v| v.and_then(|v| v.extract::<f32>().ok()))
+                .unwrap_or(0.0),
+            border_width_left: dict
+                .get_item("border_width_left")
+                .ok()
+                .and_then(|v| v.and_then(|v| v.extract::<f32>().ok()))
+                .unwrap_or(0.0),
+            gradient_stops: dict
+                .get_item("gradient_stops")
+                .ok()
+                .and_then(|v| v.and_then(|v| v.extract::<String>().ok()))
+                .unwrap_or_default(),
             text: dict.get_item("text")?.unwrap().extract::<String>()?,
             font: dict.get_item("font")?.unwrap().extract::<String>()?,
             color,
@@ -197,7 +234,10 @@ impl HitDetector {
             text_y: dict.get_item("text_y")?.unwrap().extract::<f32>()?,
             box_shadow_color,
             box_shadow_offset,
-            box_shadow_blur: dict.get_item("box_shadow_blur")?.unwrap().extract::<f32>()?,
+            box_shadow_blur: dict
+                .get_item("box_shadow_blur")?
+                .unwrap()
+                .extract::<f32>()?,
             img: dict.get_item("img")?.unwrap().extract::<String>()?,
             aspect_ratio: dict.get_item("aspect_ratio")?.unwrap().extract::<bool>()?,
             data: dict.get_item("data")?.unwrap().extract::<String>()?,
@@ -211,7 +251,7 @@ impl HitDetector {
             toggle_value: dict.get_item("_toggle_value")?.unwrap().extract::<bool>()?,
         })
     }
-    
+
     fn extract_color_array(&self, dict: &PyDict, key: &str) -> PyResult<[f32; 4]> {
         let color_list = dict.get_item(key)?.unwrap().downcast::<PyList>()?;
         Ok([
@@ -221,11 +261,10 @@ impl HitDetector {
             color_list.get_item(3)?.extract::<f32>()?,
         ])
     }
-    
+
     fn process_hit_detection(&mut self) -> Vec<HitTestResult> {
         let mut results = Vec::new();
-        
-        // Use parallel processing for large container lists
+
         if self.containers.len() > 100 {
             results = (0..self.containers.len())
                 .into_par_iter()
@@ -236,18 +275,17 @@ impl HitDetector {
                 results.push(self.process_container_hit(i));
             }
         }
-        
-        // Update container states
+
         for (i, result) in results.iter().enumerate() {
             if i < self.containers.len() {
                 self.containers[i].update_hover_state(result.is_hovered);
                 self.containers[i].update_click_state(result.is_clicked);
             }
         }
-        
+
         results
     }
-    
+
     fn process_container_hit(&self, index: usize) -> HitTestResult {
         if index >= self.containers.len() {
             return HitTestResult {
@@ -259,9 +297,9 @@ impl HitDetector {
                 has_children_hit: false,
             };
         }
-        
+
         let container = &self.containers[index];
-        
+
         if container.passive || !container.display {
             return HitTestResult {
                 container_id: container.id.clone(),
@@ -272,20 +310,21 @@ impl HitDetector {
                 has_children_hit: false,
             };
         }
-        
+
         let border_extent = f32::max(
             f32::max(container.border_width_top, container.border_width_right),
             f32::max(container.border_width_bottom, container.border_width_left),
-        ).max(container.border_width);
+        )
+        .max(container.border_width);
         let is_in_bounds = self.mouse_state.x >= container.position[0] - border_extent
             && self.mouse_state.x <= container.position[0] + container.size[0] + border_extent
             && self.mouse_state.y >= container.position[1] - border_extent
             && self.mouse_state.y <= container.position[1] + container.size[1] + border_extent;
         let has_children_hit = self.any_children_hovered(index);
-        
+
         let is_hovered = is_in_bounds && !has_children_hit;
         let is_clicked = is_hovered && self.mouse_state.clicked;
-        
+
         HitTestResult {
             container_id: container.id.clone(),
             is_hovered,

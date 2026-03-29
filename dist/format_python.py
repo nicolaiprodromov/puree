@@ -75,8 +75,17 @@ def collect_py_files(paths: list[str]) -> list[str]:
         elif os.path.isdir(p):
             for root, dirs, filenames in os.walk(p):
                 dirs[:] = [
-                    d for d in dirs
-                    if d not in ("__pycache__", ".venv", "venv", "node_modules", "target", ".git")
+                    d
+                    for d in dirs
+                    if d
+                    not in (
+                        "__pycache__",
+                        ".venv",
+                        "venv",
+                        "node_modules",
+                        "target",
+                        ".git",
+                    )
                 ]
                 for fn in sorted(filenames):
                     if fn.endswith(".py"):

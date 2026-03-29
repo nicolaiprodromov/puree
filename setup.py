@@ -4,14 +4,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name                          = "puree-ui",
-    version                       = "0.1.3",
-    author                        = "Nicolai Prodromov",
-    description                   = "XWZ Puree UI framework for Blender",
-    long_description              = long_description,
-    long_description_content_type = "text/markdown",
-    url                           = "https://github.com/nicolaiprodromov/puree",
-    packages                      = find_packages(),
+    name="puree-ui",
+    version="0.1.3",
+    author="Nicolai Prodromov",
+    description="XWZ Puree UI framework for Blender",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/nicolaiprodromov/puree",
+    packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

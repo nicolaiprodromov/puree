@@ -1,17 +1,7 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
+use csscolorparser::Color as CssColor;
+use palette::{LinSrgba, Srgba};
 use pyo3::prelude::*;
 use std::f32::consts::PI;
-use palette::{Srgba, LinSrgba};
-use csscolorparser::Color as CssColor;
 
 #[pyclass]
 #[derive(Clone)]
@@ -40,12 +30,7 @@ impl ColorProcessor {
         parse_color(color_str)
     }
 
-    pub fn interpolate_color(
-        &self,
-        color1: [f32; 4],
-        color2: [f32; 4],
-        t: f32,
-    ) -> [f32; 4] {
+    pub fn interpolate_color(&self, color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 4] {
         interpolate_color_simd(color1, color2, t)
     }
 
@@ -62,10 +47,7 @@ impl ColorProcessor {
         rotate_gradient_optimized(color1, color2, rotation_deg, x, y, width, height)
     }
 
-    pub fn process_colors_batch(
-        &self,
-        colors: Vec<(f32, f32, f32, f32)>,
-    ) -> Vec<[f32; 4]> {
+    pub fn process_colors_batch(&self, colors: Vec<(f32, f32, f32, f32)>) -> Vec<[f32; 4]> {
         process_colors_batch_simd(colors)
     }
 
@@ -87,12 +69,7 @@ pub fn gamma_correct_single(value: f32) -> f32 {
 #[target_feature(enable = "avx2")]
 unsafe fn apply_gamma_correction_avx(r: f32, g: f32, b: f32, a: f32) -> [f32; 4] {
     let gamma = 2.2f32;
-    [
-        r.powf(gamma),
-        g.powf(gamma),
-        b.powf(gamma),
-        a,
-    ]
+    [r.powf(gamma), g.powf(gamma), b.powf(gamma), a]
 }
 
 pub fn apply_gamma_correction_simd(r: f32, g: f32, b: f32, a: f32) -> [f32; 4] {
@@ -122,32 +99,29 @@ fn apply_gamma_correction_fallback(r: f32, g: f32, b: f32, a: f32) -> [f32; 4] {
 
 pub fn parse_color(color_str: &str) -> PyResult<[f32; 4]> {
     let trimmed = color_str.trim();
-    
-    let css_color = CssColor::from_html(trimmed)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid color '{}': {}", trimmed, e)))?;
-    
+
+    let css_color = CssColor::from_html(trimmed).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid color '{}': {}", trimmed, e))
+    })?;
+
     let [r, g, b, a] = css_color.to_array();
-    
+
     let srgba = Srgba::new(r as f32, g as f32, b as f32, a as f32);
     let linear: LinSrgba = srgba.into_linear();
-    
+
     Ok([linear.red, linear.green, linear.blue, linear.alpha])
 }
 
-pub fn interpolate_color_simd(
-    color1: [f32; 4],
-    color2: [f32; 4],
-    t: f32,
-) -> [f32; 4] {
+pub fn interpolate_color_simd(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 4] {
     use palette::Mix;
-    
+
     let t_clamped = t.clamp(0.0, 1.0);
-    
+
     let c1 = LinSrgba::new(color1[0], color1[1], color1[2], color1[3]);
     let c2 = LinSrgba::new(color2[0], color2[1], color2[2], color2[3]);
-    
+
     let mixed = c1.mix(c2, t_clamped);
-    
+
     [mixed.red, mixed.green, mixed.blue, mixed.alpha]
 }
 
@@ -163,34 +137,30 @@ pub fn rotate_gradient_optimized(
     let rotation_rad = rotation_deg * PI / 180.0;
     let cos_rot = rotation_rad.cos();
     let sin_rot = rotation_rad.sin();
-    
+
     let center_x = width * 0.5;
     let center_y = height * 0.5;
-    
+
     let rel_x = x - center_x;
     let rel_y = y - center_y;
-    
+
     let rotated_x = rel_x * cos_rot - rel_y * sin_rot;
-    
+
     let t = (rotated_x / width + 0.5).max(0.0).min(1.0);
-    
+
     interpolate_color_simd(color1, color2, t)
 }
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
-unsafe fn process_colors_batch_avx(
-    colors: Vec<(f32, f32, f32, f32)>,
-) -> Vec<[f32; 4]> {
+unsafe fn process_colors_batch_avx(colors: Vec<(f32, f32, f32, f32)>) -> Vec<[f32; 4]> {
     colors
         .into_iter()
         .map(|(r, g, b, a)| apply_gamma_correction_avx(r, g, b, a))
         .collect()
 }
 
-pub fn process_colors_batch_simd(
-    colors: Vec<(f32, f32, f32, f32)>,
-) -> Vec<[f32; 4]> {
+pub fn process_colors_batch_simd(colors: Vec<(f32, f32, f32, f32)>) -> Vec<[f32; 4]> {
     #[cfg(target_arch = "x86_64")]
     {
         if is_x86_feature_detected!("avx2") {
@@ -205,9 +175,7 @@ pub fn process_colors_batch_simd(
     }
 }
 
-fn process_colors_batch_fallback(
-    colors: Vec<(f32, f32, f32, f32)>,
-) -> Vec<[f32; 4]> {
+fn process_colors_batch_fallback(colors: Vec<(f32, f32, f32, f32)>) -> Vec<[f32; 4]> {
     colors
         .into_iter()
         .map(|(r, g, b, a)| apply_gamma_correction_fallback(r, g, b, a))
@@ -242,11 +210,7 @@ pub fn parse_color_py(color_str: &str) -> PyResult<[f32; 4]> {
 }
 
 #[pyfunction]
-pub fn interpolate_color_py(
-    color1: [f32; 4],
-    color2: [f32; 4],
-    t: f32,
-) -> [f32; 4] {
+pub fn interpolate_color_py(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 4] {
     interpolate_color_simd(color1, color2, t)
 }
 

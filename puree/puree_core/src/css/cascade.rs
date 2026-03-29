@@ -1,20 +1,8 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
+use crate::color::parse_color;
+use lightningcss::stylesheet::{ParserOptions, PrinterOptions, StyleSheet};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use lightningcss::stylesheet::{ParserOptions, PrinterOptions, StyleSheet};
 use std::collections::HashMap;
-use crate::color::parse_color;
-
-// ── Owned selector representation ──────────────────────────────────
 
 #[derive(Clone, Debug)]
 enum SimpleSelector {
@@ -23,17 +11,17 @@ enum SimpleSelector {
     Universal,
     FirstChild,
     LastChild,
-    NthChild(i32, i32), // an+b: matches when (index - b) is a non-negative multiple of a
+    NthChild(i32, i32),
     Not(Vec<SimpleSelector>),
 }
 
 #[derive(Clone, Debug)]
 enum SelectorPart {
     Simple(SimpleSelector),
-    Descendant,         // space combinator
-    Child,              // > combinator
-    AdjacentSibling,    // + combinator
-    GeneralSibling,     // ~ combinator
+    Descendant,
+    Child,
+    AdjacentSibling,
+    GeneralSibling,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -47,35 +35,43 @@ struct MediaCondition {
 impl MediaCondition {
     fn matches(&self, viewport_w: f32, viewport_h: f32) -> bool {
         if let Some(mw) = self.min_width {
-            if viewport_w < mw { return false; }
+            if viewport_w < mw {
+                return false;
+            }
         }
         if let Some(mw) = self.max_width {
-            if viewport_w > mw { return false; }
+            if viewport_w > mw {
+                return false;
+            }
         }
         if let Some(mh) = self.min_height {
-            if viewport_h < mh { return false; }
+            if viewport_h < mh {
+                return false;
+            }
         }
         if let Some(mh) = self.max_height {
-            if viewport_h > mh { return false; }
+            if viewport_h > mh {
+                return false;
+            }
         }
         true
     }
     fn is_unconditional(&self) -> bool {
-        self.min_width.is_none() && self.max_width.is_none()
-            && self.min_height.is_none() && self.max_height.is_none()
+        self.min_width.is_none()
+            && self.max_width.is_none()
+            && self.min_height.is_none()
+            && self.max_height.is_none()
     }
 }
 
 struct CascadeRule {
-    selector_parts: Vec<SelectorPart>, // right-to-left order
+    selector_parts: Vec<SelectorPart>,
     specificity: u32,
     declarations: HashMap<String, String>,
     important_declarations: HashMap<String, String>,
     source_order: usize,
     media: MediaCondition,
 }
-
-// ── Container tree node ────────────────────────────────────────────
 
 struct ContainerInfo {
     id: String,
@@ -85,11 +81,20 @@ struct ContainerInfo {
     sibling_count: usize,
 }
 
-// ── Inherited properties (CSS-standard names) ─────────────────────
-
-const INHERITED_PROPERTIES: &[&str] = &["color", "font-size", "text-align", "font-family", "font-weight", "font-style", "pointer-events", "visibility", "text-transform", "line-height", "letter-spacing", "white-space"];
-
-// ── Strip `--` prefix from custom properties ──────────────────────
+const INHERITED_PROPERTIES: &[&str] = &[
+    "color",
+    "font-size",
+    "text-align",
+    "font-family",
+    "font-weight",
+    "font-style",
+    "pointer-events",
+    "visibility",
+    "text-transform",
+    "line-height",
+    "letter-spacing",
+    "white-space",
+];
 
 fn strip_custom_prefix(css_name: &str) -> String {
     if css_name.starts_with("--") {
@@ -114,8 +119,12 @@ fn expand_border(value: &str) -> Vec<(String, String)> {
     let mut current = String::new();
     let mut paren_depth = 0;
     for ch in value.chars() {
-        if ch == '(' { paren_depth += 1; }
-        if ch == ')' { paren_depth -= 1; }
+        if ch == '(' {
+            paren_depth += 1;
+        }
+        if ch == ')' {
+            paren_depth -= 1;
+        }
         if ch == ' ' && paren_depth == 0 {
             if !current.is_empty() {
                 parts.push(current.clone());
@@ -133,8 +142,19 @@ fn expand_border(value: &str) -> Vec<(String, String)> {
     let mut color = String::new();
 
     for part in &parts {
-        // Skip border-style keywords
-        if matches!(part.as_str(), "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset" | "none" | "hidden") {
+        if matches!(
+            part.as_str(),
+            "solid"
+                | "dashed"
+                | "dotted"
+                | "double"
+                | "groove"
+                | "ridge"
+                | "inset"
+                | "outset"
+                | "none"
+                | "hidden"
+        ) {
             continue;
         }
         let trimmed = part.trim_end_matches("px");
@@ -161,19 +181,19 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
     if value == "none" || value == "transparent" || value.is_empty() {
         return vec![("background-color".into(), "transparent".into())];
     }
-    // Handle linear-gradient(angle, color1, color2, ...)
     if value.starts_with("linear-gradient(") && value.ends_with(')') {
-        let inner = &value[16..value.len()-1]; // strip "linear-gradient(" and ")"
-        // Tokenize by comma, respecting nested parentheses
+        let inner = &value[16..value.len() - 1];
         let args = split_respecting_parens(inner, ',');
         if args.len() >= 2 {
             let mut result = Vec::new();
             let first = args[0].trim();
             let mut color_start_idx = 0;
             let mut angle_deg: f64 = 180.0;
-            // Check if first arg is an angle or direction keyword
-            if first.ends_with("deg") || first.ends_with("rad") || first.ends_with("turn")
-                || first.starts_with("to ") {
+            if first.ends_with("deg")
+                || first.ends_with("rad")
+                || first.ends_with("turn")
+                || first.starts_with("to ")
+            {
                 angle_deg = parse_gradient_angle(first);
                 color_start_idx = 1;
             }
@@ -181,7 +201,6 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
             let color_stops = &args[color_start_idx..];
 
             if color_stops.len() >= 3 {
-                // Multi-stop gradient: emit --gradient-stops encoding
                 let mut colors = Vec::new();
                 let mut positions: Vec<Option<f32>> = Vec::new();
                 for stop in color_stops {
@@ -195,8 +214,10 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
                 for (i, color_str) in colors.iter().enumerate() {
                     if let Ok(rgba) = parse_color(color_str) {
                         let pos = positions[i].unwrap_or(0.0);
-                        parts_str.push_str(&format!(" {} {} {} {} {}",
-                            rgba[0], rgba[1], rgba[2], rgba[3], pos));
+                        parts_str.push_str(&format!(
+                            " {} {} {} {} {}",
+                            rgba[0], rgba[1], rgba[2], rgba[3], pos
+                        ));
                     }
                 }
 
@@ -205,30 +226,40 @@ fn expand_background(value: &str) -> Vec<(String, String)> {
                 return result;
             }
 
-            // 2-stop gradient (original behavior)
-            result.push(("background-gradient-rot".into(), format!("{}deg", angle_deg)));
+            result.push((
+                "background-gradient-rot".into(),
+                format!("{}deg", angle_deg),
+            ));
             if color_start_idx < args.len() {
-                result.push(("background-color".into(), args[color_start_idx].trim().to_string()));
+                result.push((
+                    "background-color".into(),
+                    args[color_start_idx].trim().to_string(),
+                ));
             }
             if color_start_idx + 1 < args.len() {
-                result.push(("background-color-2".into(), args[color_start_idx + 1].trim().to_string()));
+                result.push((
+                    "background-color-2".into(),
+                    args[color_start_idx + 1].trim().to_string(),
+                ));
             }
             return result;
         }
     }
-    // Solid color fallback
     vec![("background-color".into(), value.to_string())]
 }
 
 /// Parse a single color stop into (color_string, optional_position_0_to_1).
 fn parse_color_stop(stop_str: &str) -> (String, Option<f32>) {
     let s = stop_str.trim();
-    // Find the last space outside parentheses
     let mut last_space = None;
     let mut depth = 0i32;
     for (i, ch) in s.char_indices() {
-        if ch == '(' { depth += 1; }
-        if ch == ')' { depth -= 1; }
+        if ch == '(' {
+            depth += 1;
+        }
+        if ch == ')' {
+            depth -= 1;
+        }
         if ch == ' ' && depth == 0 {
             last_space = Some(i);
         }
@@ -248,9 +279,15 @@ fn parse_color_stop(stop_str: &str) -> (String, Option<f32>) {
 /// first=0%, last=100%, gaps evenly distributed between neighbors.
 fn auto_distribute_positions(positions: &mut [Option<f32>]) {
     let n = positions.len();
-    if n == 0 { return; }
-    if positions[0].is_none() { positions[0] = Some(0.0); }
-    if positions[n - 1].is_none() { positions[n - 1] = Some(1.0); }
+    if n == 0 {
+        return;
+    }
+    if positions[0].is_none() {
+        positions[0] = Some(0.0);
+    }
+    if positions[n - 1].is_none() {
+        positions[n - 1] = Some(1.0);
+    }
 
     let mut i = 1;
     while i < n {
@@ -281,7 +318,7 @@ fn expand_border_image(value: &str) -> Vec<(String, String)> {
     if !value.starts_with("linear-gradient(") || !value.ends_with(')') {
         return vec![];
     }
-    let inner = &value[16..value.len()-1];
+    let inner = &value[16..value.len() - 1];
     let args = split_respecting_parens(inner, ',');
     if args.len() < 2 {
         return vec![];
@@ -289,8 +326,11 @@ fn expand_border_image(value: &str) -> Vec<(String, String)> {
     let first = args[0].trim();
     let mut color_start_idx = 0;
     let mut angle_deg: f64 = 180.0;
-    if first.ends_with("deg") || first.ends_with("rad") || first.ends_with("turn")
-        || first.starts_with("to ") {
+    if first.ends_with("deg")
+        || first.ends_with("rad")
+        || first.ends_with("turn")
+        || first.starts_with("to ")
+    {
         angle_deg = parse_gradient_angle(first);
         color_start_idx = 1;
     }
@@ -307,7 +347,6 @@ fn expand_border_image(value: &str) -> Vec<(String, String)> {
     ]
 }
 
-
 /// Parse gradient angle from CSS syntax.
 /// Supports: "135deg", "1.5rad", "0.25turn", "to right", "to bottom left", etc.
 fn parse_gradient_angle(s: &str) -> f64 {
@@ -316,12 +355,12 @@ fn parse_gradient_angle(s: &str) -> f64 {
         return deg.trim().parse::<f64>().unwrap_or(180.0);
     }
     if let Some(rad) = s.strip_suffix("rad") {
-        return rad.trim().parse::<f64>().unwrap_or(std::f64::consts::PI) * 180.0 / std::f64::consts::PI;
+        return rad.trim().parse::<f64>().unwrap_or(std::f64::consts::PI) * 180.0
+            / std::f64::consts::PI;
     }
     if let Some(turn) = s.strip_suffix("turn") {
         return turn.trim().parse::<f64>().unwrap_or(0.5) * 360.0;
     }
-    // Direction keywords: "to right", "to bottom", "to top left", etc.
     if s.starts_with("to ") {
         let dir = &s[3..].trim().to_lowercase();
         return match dir.as_str() {
@@ -336,7 +375,7 @@ fn parse_gradient_angle(s: &str) -> f64 {
             _ => 180.0,
         };
     }
-    180.0 // CSS default: top-to-bottom
+    180.0
 }
 
 /// Split a string by a delimiter, respecting parentheses nesting.
@@ -345,8 +384,12 @@ fn split_respecting_parens(s: &str, delim: char) -> Vec<String> {
     let mut current = String::new();
     let mut depth = 0;
     for ch in s.chars() {
-        if ch == '(' { depth += 1; }
-        if ch == ')' { depth -= 1; }
+        if ch == '(' {
+            depth += 1;
+        }
+        if ch == ')' {
+            depth -= 1;
+        }
         if ch == delim && depth == 0 {
             parts.push(current.clone());
             current.clear();
@@ -364,27 +407,32 @@ fn split_respecting_parens(s: &str, delim: char) -> Vec<String> {
 fn expand_flex(value: &str) -> Vec<(String, String)> {
     let value = value.trim();
     match value {
-        "none" => return vec![
-            ("flex-grow".into(), "0".into()),
-            ("flex-shrink".into(), "0".into()),
-            ("flex-basis".into(), "auto".into()),
-        ],
-        "auto" => return vec![
-            ("flex-grow".into(), "1".into()),
-            ("flex-shrink".into(), "1".into()),
-            ("flex-basis".into(), "auto".into()),
-        ],
-        "initial" => return vec![
-            ("flex-grow".into(), "0".into()),
-            ("flex-shrink".into(), "1".into()),
-            ("flex-basis".into(), "auto".into()),
-        ],
+        "none" => {
+            return vec![
+                ("flex-grow".into(), "0".into()),
+                ("flex-shrink".into(), "0".into()),
+                ("flex-basis".into(), "auto".into()),
+            ]
+        }
+        "auto" => {
+            return vec![
+                ("flex-grow".into(), "1".into()),
+                ("flex-shrink".into(), "1".into()),
+                ("flex-basis".into(), "auto".into()),
+            ]
+        }
+        "initial" => {
+            return vec![
+                ("flex-grow".into(), "0".into()),
+                ("flex-shrink".into(), "1".into()),
+                ("flex-basis".into(), "auto".into()),
+            ]
+        }
         _ => {}
     }
     let parts: Vec<&str> = value.split_whitespace().collect();
     match parts.len() {
         1 => {
-            // flex: <number> → flex-grow: <number>; flex-shrink: 1; flex-basis: 0%
             vec![
                 ("flex-grow".into(), parts[0].to_string()),
                 ("flex-shrink".into(), "1".into()),
@@ -392,7 +440,6 @@ fn expand_flex(value: &str) -> Vec<(String, String)> {
             ]
         }
         2 => {
-            // flex: <grow> <shrink> OR flex: <grow> <basis>
             let second = parts[1];
             if second.parse::<f64>().is_ok() {
                 vec![
@@ -409,14 +456,13 @@ fn expand_flex(value: &str) -> Vec<(String, String)> {
             }
         }
         3 => {
-            // flex: <grow> <shrink> <basis>
             vec![
                 ("flex-grow".into(), parts[0].to_string()),
                 ("flex-shrink".into(), parts[1].to_string()),
                 ("flex-basis".into(), parts[2].to_string()),
             ]
         }
-        _ => vec![]
+        _ => vec![],
     }
 }
 
@@ -432,8 +478,10 @@ fn expand_gap(value: &str) -> Vec<(String, String)> {
             ("row-gap".into(), parts[0].to_string()),
             ("column-gap".into(), parts[1].to_string()),
         ],
-        _ => vec![("row-gap".into(), value.trim().to_string()),
-                  ("column-gap".into(), value.trim().to_string())]
+        _ => vec![
+            ("row-gap".into(), value.trim().to_string()),
+            ("column-gap".into(), value.trim().to_string()),
+        ],
     }
 }
 
@@ -441,37 +489,37 @@ fn expand_gap(value: &str) -> Vec<(String, String)> {
 fn expand_font(value: &str) -> Vec<(String, String)> {
     let value = value.trim();
     let parts = split_respecting_parens(value, ' ');
-    if parts.is_empty() { return vec![]; }
+    if parts.is_empty() {
+        return vec![];
+    }
 
     let style_keywords = ["italic", "oblique", "normal"];
-    let weight_keywords = ["bold", "bolder", "lighter", "normal",
-        "100", "200", "300", "400", "500", "600", "700", "800", "900"];
+    let weight_keywords = [
+        "bold", "bolder", "lighter", "normal", "100", "200", "300", "400", "500", "600", "700",
+        "800", "900",
+    ];
 
     let mut result = Vec::new();
     let mut i = 0;
 
-    // Optional font-style
     if i < parts.len() && style_keywords.contains(&parts[i].to_lowercase().as_str()) {
         result.push(("font-style".into(), parts[i].to_string()));
         i += 1;
     }
-    // Optional font-weight
     if i < parts.len() && weight_keywords.contains(&parts[i].to_lowercase().as_str()) {
         result.push(("font-weight".into(), parts[i].to_string()));
         i += 1;
     }
-    // Required: font-size (possibly with /line-height)
     if i < parts.len() {
         let size_part = &parts[i];
         if let Some(slash) = size_part.find('/') {
             result.push(("font-size".into(), size_part[..slash].to_string()));
-            result.push(("line-height".into(), size_part[slash+1..].to_string()));
+            result.push(("line-height".into(), size_part[slash + 1..].to_string()));
         } else {
             result.push(("font-size".into(), size_part.to_string()));
         }
         i += 1;
     }
-    // Remaining: font-family (may be multi-word)
     if i < parts.len() {
         let family = parts[i..].join(" ");
         result.push(("font-family".into(), family));
@@ -494,7 +542,7 @@ fn expand_overflow(value: &str) -> Vec<(String, String)> {
         _ => vec![
             ("overflow-x".into(), value.trim().to_string()),
             ("overflow-y".into(), value.trim().to_string()),
-        ]
+        ],
     }
 }
 /// Parse `border-radius` shorthand into per-corner radius properties.
@@ -560,14 +608,17 @@ fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
         ];
     }
 
-    // Tokenize respecting parentheses (for rgba(...) etc)
     let mut parts = Vec::new();
     let mut current = String::new();
     let mut paren_depth = 0;
 
     for ch in value.chars() {
-        if ch == '(' { paren_depth += 1; }
-        if ch == ')' { paren_depth -= 1; }
+        if ch == '(' {
+            paren_depth += 1;
+        }
+        if ch == ')' {
+            paren_depth -= 1;
+        }
         if ch == ' ' && paren_depth == 0 {
             if !current.is_empty() {
                 parts.push(current.clone());
@@ -581,7 +632,6 @@ fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
         parts.push(current);
     }
 
-    // Separate numeric parts (offsets/blur/spread) from color
     let mut numbers = Vec::new();
     let mut color_str = String::new();
 
@@ -597,15 +647,24 @@ fn expand_box_shadow(value: &str) -> Vec<(String, String)> {
         }
     }
 
-    // Standard: offset-x offset-y [blur-radius] [spread-radius] color
     let offset_x = numbers.first().cloned().unwrap_or_else(|| "0px".into());
     let offset_y = numbers.get(1).cloned().unwrap_or_else(|| "0px".into());
     let blur = numbers.get(2).cloned().unwrap_or_else(|| "0px".into());
     let spread = numbers.get(3).cloned().unwrap_or_else(|| "0px".into());
 
     vec![
-        ("box-shadow-color".into(), if color_str.is_empty() { "#000".into() } else { color_str }),
-        ("box-shadow-offset".into(), format!("{} {} {}", offset_x, offset_y, spread)),
+        (
+            "box-shadow-color".into(),
+            if color_str.is_empty() {
+                "#000".into()
+            } else {
+                color_str
+            },
+        ),
+        (
+            "box-shadow-offset".into(),
+            format!("{} {} {}", offset_x, offset_y, spread),
+        ),
         ("box-shadow-blur".into(), blur),
     ]
 }
@@ -622,14 +681,17 @@ fn expand_text_shadow(value: &str) -> Vec<(String, String)> {
         ];
     }
 
-    // Tokenize respecting parentheses (for rgba(...) etc)
     let mut parts = Vec::new();
     let mut current = String::new();
     let mut paren_depth = 0;
 
     for ch in value.chars() {
-        if ch == '(' { paren_depth += 1; }
-        if ch == ')' { paren_depth -= 1; }
+        if ch == '(' {
+            paren_depth += 1;
+        }
+        if ch == ')' {
+            paren_depth -= 1;
+        }
         if ch == ' ' && paren_depth == 0 {
             if !current.is_empty() {
                 parts.push(current.clone());
@@ -660,7 +722,14 @@ fn expand_text_shadow(value: &str) -> Vec<(String, String)> {
     let blur = numbers.get(2).cloned().unwrap_or_else(|| "0".into());
 
     vec![
-        ("text-shadow-color".into(), if color_str.is_empty() { "#000".into() } else { color_str }),
+        (
+            "text-shadow-color".into(),
+            if color_str.is_empty() {
+                "#000".into()
+            } else {
+                color_str
+            },
+        ),
         ("text-shadow-offset-x".into(), offset_x),
         ("text-shadow-offset-y".into(), offset_y),
         ("text-shadow-blur".into(), blur),
@@ -753,8 +822,12 @@ fn expand_border_side(value: &str) -> Vec<(String, String)> {
     let mut current = String::new();
     let mut paren_depth = 0;
     for ch in value.chars() {
-        if ch == '(' { paren_depth += 1; }
-        if ch == ')' { paren_depth -= 1; }
+        if ch == '(' {
+            paren_depth += 1;
+        }
+        if ch == ')' {
+            paren_depth -= 1;
+        }
         if ch == ' ' && paren_depth == 0 {
             if !current.is_empty() {
                 parts.push(current.clone());
@@ -772,7 +845,19 @@ fn expand_border_side(value: &str) -> Vec<(String, String)> {
     let mut color = String::new();
 
     for part in &parts {
-        if matches!(part.as_str(), "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset" | "none" | "hidden") {
+        if matches!(
+            part.as_str(),
+            "solid"
+                | "dashed"
+                | "dotted"
+                | "double"
+                | "groove"
+                | "ridge"
+                | "inset"
+                | "outset"
+                | "none"
+                | "hidden"
+        ) {
             continue;
         }
         let trimmed = part.trim_end_matches("px");
@@ -793,8 +878,6 @@ fn expand_border_side(value: &str) -> Vec<(String, String)> {
     result
 }
 
-// ── Pseudo-class category ──────────────────────────────────────────
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum PseudoState {
     Normal,
@@ -802,15 +885,12 @@ enum PseudoState {
     Active,
 }
 
-// ── Text-based selector parsing ────────────────────────────────────
-
 /// Parse a single CSS selector string into our owned representation.
 /// Returns (parts in right-to-left matching order, pseudo state).
 fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
     let sel = sel.trim();
     let mut pseudo = PseudoState::Normal;
 
-    // Strip pseudo-classes and detect state
     let base_sel = if let Some(idx) = sel.find(":active") {
         pseudo = PseudoState::Active;
         format!("{}{}", &sel[..idx], &sel[idx + 7..])
@@ -822,7 +902,6 @@ fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
     };
     let base_sel = base_sel.trim();
 
-    // Tokenize: split on whitespace and `>`
     let mut tokens: Vec<String> = Vec::new();
     let mut current = String::new();
 
@@ -869,8 +948,6 @@ fn parse_selector_string(sel: &str) -> (Vec<SelectorPart>, PseudoState) {
         tokens.push(t);
     }
 
-    // Build parts in right-to-left order (reverse the tokens).
-    // Insert Descendant combinators between adjacent compound selectors.
     let mut parts = Vec::new();
     let mut last_was_compound = false;
 
@@ -940,7 +1017,6 @@ fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
             }
             Some(':') => {
                 chars.next();
-                // Read pseudo-class name
                 let mut pseudo_name = String::new();
                 while let Some(&c) = chars.peek() {
                     if c == '(' || c == '.' || c == '#' || c == ':' || c == '[' || c == ' ' {
@@ -949,17 +1025,20 @@ fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
                     pseudo_name.push(c);
                     chars.next();
                 }
-                // Read optional arguments in parentheses
                 let mut args = String::new();
                 if chars.peek() == Some(&'(') {
-                    chars.next(); // consume '('
+                    chars.next();
                     let mut depth = 1;
                     while let Some(&c) = chars.peek() {
                         chars.next();
-                        if c == '(' { depth += 1; }
+                        if c == '(' {
+                            depth += 1;
+                        }
                         if c == ')' {
                             depth -= 1;
-                            if depth == 0 { break; }
+                            if depth == 0 {
+                                break;
+                            }
                         }
                         args.push(c);
                     }
@@ -977,18 +1056,24 @@ fn parse_compound_selector(s: &str) -> Vec<SelectorPart> {
                     }
                     "not" => {
                         let inner = parse_compound_selector(&args);
-                        let simple_sels: Vec<SimpleSelector> = inner.into_iter().filter_map(|p| {
-                            if let SelectorPart::Simple(s) = p { Some(s) } else { None }
-                        }).collect();
+                        let simple_sels: Vec<SimpleSelector> = inner
+                            .into_iter()
+                            .filter_map(|p| {
+                                if let SelectorPart::Simple(s) = p {
+                                    Some(s)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
                         if !simple_sels.is_empty() {
                             parts.push(SelectorPart::Simple(SimpleSelector::Not(simple_sels)));
                         }
                     }
-                    _ => {} // skip hover/active (handled separately)
+                    _ => {}
                 }
             }
             _ => {
-                // Skip unknown characters (element names, etc.)
                 chars.next();
             }
         }
@@ -1006,7 +1091,6 @@ fn parse_nth_args(s: &str) -> (i32, i32) {
     if s == "even" {
         return (2, 0);
     }
-    // Try "an+b", "an-b", "an", "b", "-n+b", "n+b"
     if let Some(n_pos) = s.find('n') {
         let a_part = &s[..n_pos].trim();
         let a: i32 = if a_part.is_empty() || *a_part == "+" {
@@ -1024,7 +1108,6 @@ fn parse_nth_args(s: &str) -> (i32, i32) {
         };
         (a, b)
     } else {
-        // Just a number
         let b: i32 = s.parse().unwrap_or(0);
         (0, b)
     }
@@ -1042,9 +1125,10 @@ fn calculate_specificity(parts: &[SelectorPart]) -> u32 {
                 SimpleSelector::Id(_) => ids += 1,
                 SimpleSelector::Class(_) => classes += 1,
                 SimpleSelector::Universal => {}
-                SimpleSelector::FirstChild | SimpleSelector::LastChild | SimpleSelector::NthChild(_, _) => classes += 1,
+                SimpleSelector::FirstChild
+                | SimpleSelector::LastChild
+                | SimpleSelector::NthChild(_, _) => classes += 1,
                 SimpleSelector::Not(inner) => {
-                    // :not() specificity = highest specificity of its argument
                     for s in inner {
                         match s {
                             SimpleSelector::Id(_) => ids += 1,
@@ -1064,15 +1148,15 @@ fn calculate_specificity(parts: &[SelectorPart]) -> u32 {
 /// Parse @media condition string, e.g. "@media (min-width: 800px) and (max-height: 600px)"
 fn parse_media_condition(text: &str) -> MediaCondition {
     let mut cond = MediaCondition::default();
-    // Extract everything after "@media"
     let rest = text.strip_prefix("@media").unwrap_or("").trim();
-    // Parse (property: value) pairs
     let re_like = |s: &str, prop: &str| -> Option<f32> {
         if let Some(pos) = s.find(prop) {
             let after = &s[pos + prop.len()..];
             let after = after.trim().trim_start_matches(':').trim();
-            // Read number+px
-            let num_str: String = after.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+            let num_str: String = after
+                .chars()
+                .take_while(|c| c.is_ascii_digit() || *c == '.')
+                .collect();
             num_str.parse().ok()
         } else {
             None
@@ -1098,7 +1182,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
             let selector_text = current_text.trim().to_string();
             current_text.clear();
 
-            // Read declaration block (handling nested braces)
             let mut depth = 1;
             let mut block = String::new();
             for c in chars.by_ref() {
@@ -1117,7 +1200,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
             }
 
             if selector_text.is_empty() || selector_text.starts_with('@') {
-                // Parse @media conditions
                 let media_cond = if selector_text.starts_with("@media") {
                     parse_media_condition(&selector_text)
                 } else {
@@ -1125,7 +1207,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                 };
                 if !block.is_empty() {
                     for (mut rule, pseudo, inner_media) in parse_css_text_to_rules(&block) {
-                        // Merge media conditions (inner overrides if set)
                         if inner_media.is_unconditional() {
                             rule.media = media_cond.clone();
                         } else {
@@ -1139,7 +1220,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                 continue;
             }
 
-            // Parse declarations
             let mut decls = HashMap::new();
             let mut important_decls = HashMap::new();
 
@@ -1156,7 +1236,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         value = value.replace("!important", "").trim().to_string();
                     }
 
-                    // Expand box-shadow shorthand into multiple properties
                     if prop_name == "box-shadow" {
                         for (expanded_prop, expanded_val) in expand_box_shadow(&value) {
                             if is_important {
@@ -1168,7 +1247,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand border shorthand into border-width + border-color
                     if prop_name == "border" {
                         for (expanded_prop, expanded_val) in expand_border(&value) {
                             if is_important {
@@ -1180,7 +1258,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand border-radius shorthand into per-corner radii
                     if prop_name == "border-radius" && value.contains(' ') {
                         for (expanded_prop, expanded_val) in expand_border_radius(&value) {
                             if is_important {
@@ -1192,7 +1269,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand background shorthand into background-color (+ gradient props)
                     if prop_name == "background" || prop_name == "background-image" {
                         for (expanded_prop, expanded_val) in expand_background(&value) {
                             if is_important {
@@ -1204,7 +1280,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand border-image: linear-gradient() into border gradient slots
                     if prop_name == "border-image" {
                         for (expanded_prop, expanded_val) in expand_border_image(&value) {
                             if is_important {
@@ -1216,7 +1291,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand flex shorthand into flex-grow + flex-shrink + flex-basis
                     if prop_name == "flex" {
                         for (expanded_prop, expanded_val) in expand_flex(&value) {
                             if is_important {
@@ -1228,7 +1302,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand gap shorthand into row-gap + column-gap
                     if prop_name == "gap" {
                         for (expanded_prop, expanded_val) in expand_gap(&value) {
                             if is_important {
@@ -1240,7 +1313,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand font shorthand into individual properties
                     if prop_name == "font" {
                         for (expanded_prop, expanded_val) in expand_font(&value) {
                             if is_important {
@@ -1252,7 +1324,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand overflow shorthand into overflow-x + overflow-y
                     if prop_name == "overflow" && value.contains(' ') {
                         for (expanded_prop, expanded_val) in expand_overflow(&value) {
                             if is_important {
@@ -1264,7 +1335,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand text-shadow shorthand
                     if prop_name == "text-shadow" {
                         for (expanded_prop, expanded_val) in expand_text_shadow(&value) {
                             if is_important {
@@ -1276,7 +1346,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand inset shorthand into top/right/bottom/left
                     if prop_name == "inset" {
                         for (expanded_prop, expanded_val) in expand_inset(&value) {
                             if is_important {
@@ -1288,7 +1357,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand place-items shorthand
                     if prop_name == "place-items" {
                         for (expanded_prop, expanded_val) in expand_place_items(&value) {
                             if is_important {
@@ -1300,7 +1368,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand place-content shorthand
                     if prop_name == "place-content" {
                         for (expanded_prop, expanded_val) in expand_place_content(&value) {
                             if is_important {
@@ -1312,7 +1379,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand place-self shorthand
                     if prop_name == "place-self" {
                         for (expanded_prop, expanded_val) in expand_place_self(&value) {
                             if is_important {
@@ -1324,8 +1390,10 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand border-top/right/bottom/left shorthands
-                    if matches!(prop_name, "border-top" | "border-right" | "border-bottom" | "border-left") {
+                    if matches!(
+                        prop_name,
+                        "border-top" | "border-right" | "border-bottom" | "border-left"
+                    ) {
                         for (expanded_prop, expanded_val) in expand_border_side(&value) {
                             if is_important {
                                 important_decls.insert(expanded_prop, expanded_val);
@@ -1336,7 +1404,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Expand border-width shorthand into per-side widths
                     if prop_name == "border-width" && value.contains(' ') {
                         for (expanded_prop, expanded_val) in expand_border_width(&value) {
                             if is_important {
@@ -1348,7 +1415,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                         continue;
                     }
 
-                    // Map CSS longhand border-radius property names to internal short names
                     let mapped_name = match prop_name {
                         "border-top-left-radius" => "border-radius-tl".to_string(),
                         "border-top-right-radius" => "border-radius-tr".to_string(),
@@ -1364,7 +1430,6 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
                 }
             }
 
-            // Handle comma-separated selectors
             for sel_str in selector_text.split(',') {
                 let sel_str = sel_str.trim();
                 if sel_str.is_empty() {
@@ -1393,13 +1458,7 @@ fn parse_css_text_to_rules(css: &str) -> Vec<(CascadeRule, PseudoState, MediaCon
     results
 }
 
-// ── Selector matching ──────────────────────────────────────────────
-
-fn selector_matches(
-    parts: &[SelectorPart],
-    idx: usize,
-    containers: &[ContainerInfo],
-) -> bool {
+fn selector_matches(parts: &[SelectorPart], idx: usize, containers: &[ContainerInfo]) -> bool {
     if parts.is_empty() {
         return false;
     }
@@ -1453,7 +1512,6 @@ fn selector_matches(
             }
             SelectorPart::AdjacentSibling => {
                 part_cursor += 1;
-                // Find immediate previous sibling
                 let ci = containers[current_idx].child_index;
                 if ci == 0 {
                     return false;
@@ -1498,18 +1556,20 @@ fn selector_matches(
 }
 
 /// Find a sibling container given parent index and child_index.
-fn find_sibling(containers: &[ContainerInfo], parent_idx: i64, child_index: usize) -> Option<usize> {
+fn find_sibling(
+    containers: &[ContainerInfo],
+    parent_idx: i64,
+    child_index: usize,
+) -> Option<usize> {
     if parent_idx < 0 {
         return None;
     }
-    containers.iter().position(|c| c.parent_idx == parent_idx && c.child_index == child_index)
+    containers
+        .iter()
+        .position(|c| c.parent_idx == parent_idx && c.child_index == child_index)
 }
 
-fn match_compound(
-    parts: &[SelectorPart],
-    cursor: &mut usize,
-    container: &ContainerInfo,
-) -> bool {
+fn match_compound(parts: &[SelectorPart], cursor: &mut usize, container: &ContainerInfo) -> bool {
     let start = *cursor;
     while *cursor < parts.len() {
         match &parts[*cursor] {
@@ -1532,9 +1592,11 @@ fn match_simple(sel: &SimpleSelector, container: &ContainerInfo) -> bool {
         SimpleSelector::Id(name) => container.id == *name,
         SimpleSelector::Universal => true,
         SimpleSelector::FirstChild => container.child_index == 0,
-        SimpleSelector::LastChild => container.child_index == container.sibling_count.saturating_sub(1),
+        SimpleSelector::LastChild => {
+            container.child_index == container.sibling_count.saturating_sub(1)
+        }
         SimpleSelector::NthChild(a, b) => {
-            let index = (container.child_index + 1) as i32; // 1-based
+            let index = (container.child_index + 1) as i32;
             if *a == 0 {
                 index == *b
             } else {
@@ -1542,13 +1604,9 @@ fn match_simple(sel: &SimpleSelector, container: &ContainerInfo) -> bool {
                 diff % a == 0 && diff / a >= 0
             }
         }
-        SimpleSelector::Not(inner_sels) => {
-            !inner_sels.iter().all(|s| match_simple(s, container))
-        }
+        SimpleSelector::Not(inner_sels) => !inner_sels.iter().all(|s| match_simple(s, container)),
     }
 }
-
-// ── PyO3 class ─────────────────────────────────────────────────────
 
 #[pyclass]
 pub struct CSSCascade {
@@ -1574,7 +1632,6 @@ impl CSSCascade {
         self.hover_rules.clear();
         self.active_rules.clear();
 
-        // Use lightningcss to normalize CSS (resolve nesting, clean up).
         let normalized = {
             let stylesheet =
                 StyleSheet::parse(&css_string, ParserOptions::default()).map_err(|e| {
@@ -1641,7 +1698,6 @@ impl CSSCascade {
 
             for rule_set in &rule_sets {
                 for rule in *rule_set {
-                    // Skip rules whose @media condition doesn't match
                     if !rule.media.is_unconditional() && !rule.media.matches(vp_w, vp_h) {
                         continue;
                     }
@@ -1668,12 +1724,7 @@ impl CSSCascade {
                 }
             }
 
-            // Sort: !important first, then specificity desc, then source order desc
-            matching.sort_by(|a, b| {
-                b.0.cmp(&a.0)
-                    .then(b.1.cmp(&a.1))
-                    .then(b.2.cmp(&a.2))
-            });
+            matching.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)).then(b.2.cmp(&a.2)));
 
             let mut props: HashMap<String, String> = HashMap::new();
             for (_imp, _spec, _order, prop, value) in &matching {
@@ -1685,8 +1736,6 @@ impl CSSCascade {
             resolved.push(props);
         }
 
-        // Keyword resolution + inheritance pass
-        // Parents are always before children so we can resolve in order.
         let inherited_set: std::collections::HashSet<&str> =
             INHERITED_PROPERTIES.iter().copied().collect();
 
@@ -1698,7 +1747,6 @@ impl CSSCascade {
                 None
             };
 
-            // Resolve inherit / initial / unset keywords
             let keywords: Vec<(String, String)> = resolved[idx]
                 .iter()
                 .filter(|(_, v)| {
@@ -1735,7 +1783,6 @@ impl CSSCascade {
                 }
             }
 
-            // Normal CSS inheritance for inherited properties
             if let Some(pi) = pidx {
                 for &prop_name in INHERITED_PROPERTIES {
                     if resolved[idx].contains_key(prop_name) {
@@ -1745,7 +1792,6 @@ impl CSSCascade {
                         resolved[idx].insert(prop_name.to_string(), parent_val);
                     }
                 }
-                // Custom properties (--*) are inherited by default in CSS
                 let parent_customs: Vec<(String, String)> = resolved[pi]
                     .iter()
                     .filter(|(k, _)| k.starts_with("--"))
@@ -1757,7 +1803,6 @@ impl CSSCascade {
             }
         }
 
-        // var() resolution pass
         for idx in 0..resolved.len() {
             let props_snapshot: Vec<(String, String)> = resolved[idx]
                 .iter()
@@ -1786,11 +1831,8 @@ impl CSSCascade {
     }
 }
 
-// ── var() resolution ───────────────────────────────────────────────
-
 fn resolve_var(value: &str, props: &HashMap<String, String>) -> String {
     let mut result = value.to_string();
-    // Iteratively resolve var() references (max 10 depth to prevent cycles)
     for _ in 0..10 {
         if !result.contains("var(") {
             break;
@@ -1803,20 +1845,23 @@ fn resolve_var(value: &str, props: &HashMap<String, String>) -> String {
             if ch == 'v' {
                 let rest: String = std::iter::once(ch).chain(chars.clone()).take(4).collect();
                 if rest.starts_with("var(") {
-                    // consume "ar("
-                    chars.next(); chars.next(); chars.next();
-                    // read until matching )
+                    chars.next();
+                    chars.next();
+                    chars.next();
                     let mut depth = 1;
                     let mut inner = String::new();
                     while let Some(c) = chars.next() {
-                        if c == '(' { depth += 1; }
+                        if c == '(' {
+                            depth += 1;
+                        }
                         if c == ')' {
                             depth -= 1;
-                            if depth == 0 { break; }
+                            if depth == 0 {
+                                break;
+                            }
                         }
                         inner.push(c);
                     }
-                    // inner = "--name" or "--name, fallback"
                     let (var_name, fallback) = if let Some(comma_pos) = inner.find(',') {
                         let name = inner[..comma_pos].trim().to_string();
                         let fb = inner[comma_pos + 1..].trim().to_string();
@@ -1835,13 +1880,13 @@ fn resolve_var(value: &str, props: &HashMap<String, String>) -> String {
             }
             new_result.push(ch);
         }
-        if !changed { break; }
+        if !changed {
+            break;
+        }
         result = new_result;
     }
     result
 }
-
-// ── Helper: parse Python container list ────────────────────────────
 
 fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
     let mut infos = Vec::with_capacity(containers.len());
@@ -1858,9 +1903,7 @@ fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
         let classes: Vec<String> = dict
             .get_item("classes")?
             .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyKeyError, _>(
-                    "missing 'classes' in container dict",
-                )
+                PyErr::new::<pyo3::exceptions::PyKeyError, _>("missing 'classes' in container dict")
             })?
             .extract()?;
 
@@ -1881,9 +1924,7 @@ fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
             sibling_count: 0,
         });
     }
-    
-    // Compute child_index and sibling_count
-    // Group children by parent
+
     let mut parent_children: HashMap<i64, Vec<usize>> = HashMap::new();
     for (i, info) in infos.iter().enumerate() {
         parent_children.entry(info.parent_idx).or_default().push(i);
@@ -1895,6 +1936,6 @@ fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
             infos[child_idx].sibling_count = count;
         }
     }
-    
+
     Ok(infos)
 }

@@ -1,21 +1,11 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
-use notify::{Watcher, RecursiveMode, Result as NotifyResult, Event, EventKind};
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use std::collections::{HashMap, HashSet};
-use std::time::{SystemTime, Duration, Instant};
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use notify::{Event, EventKind, RecursiveMode, Result as NotifyResult, Watcher};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime};
 
 /// Represents the type of file change detected
 #[derive(Debug, Clone, PartialEq)]
@@ -72,7 +62,7 @@ pub struct FileWatcher {
 impl FileWatcher {
     pub fn new(config: WatcherConfig) -> Self {
         let (tx, rx) = unbounded();
-        
+
         Self {
             watcher: None,
             config,
@@ -82,60 +72,60 @@ impl FileWatcher {
             last_events: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-    
+
     /// Start watching a directory path
     pub fn watch_path(&mut self, path: impl AsRef<Path>) -> NotifyResult<()> {
         let path = path.as_ref().to_path_buf();
-        
+
         if self.watched_paths.contains(&path) {
             return Ok(());
         }
-        
+
         if self.watcher.is_none() {
             let tx = self.event_sender.clone();
             let last_events = Arc::clone(&self.last_events);
             let debounce_duration = Duration::from_millis(self.config.debounce_ms);
             let config = self.config.clone();
-            
+
             let watcher = notify::recommended_watcher(move |res: NotifyResult<Event>| {
                 if let Ok(event) = res {
                     Self::handle_event(event, &tx, &last_events, debounce_duration, &config);
                 }
             })?;
-            
+
             self.watcher = Some(Box::new(watcher));
         }
-        
+
         if let Some(watcher) = &mut self.watcher {
             watcher.watch(&path, RecursiveMode::Recursive)?;
             self.watched_paths.insert(path);
         }
-        
+
         Ok(())
     }
-    
+
     /// Stop watching a directory path
     pub fn unwatch_path(&mut self, path: impl AsRef<Path>) -> NotifyResult<()> {
         let path = path.as_ref().to_path_buf();
-        
+
         if let Some(watcher) = &mut self.watcher {
             watcher.unwatch(&path)?;
             self.watched_paths.remove(&path);
         }
-        
+
         Ok(())
     }
-    
+
     pub fn process_events(&self) -> Vec<FileChange> {
         let mut processed_changes = Vec::new();
-        
+
         while let Ok(change) = self.event_receiver.try_recv() {
             processed_changes.push(change);
         }
-        
+
         processed_changes
     }
-    
+
     /// Internal event handler with debouncing
     fn handle_event(
         event: Event,
@@ -145,12 +135,12 @@ impl FileWatcher {
         config: &WatcherConfig,
     ) {
         let now = Instant::now();
-        
+
         for path in event.paths {
             if !path.is_file() {
                 continue;
             }
-            
+
             {
                 let mut last_events_map = last_events.lock().unwrap();
                 if let Some(last_time) = last_events_map.get(&path) {
@@ -160,41 +150,45 @@ impl FileWatcher {
                 }
                 last_events_map.insert(path.clone(), now);
             }
-            
+
             let change_type = Self::classify_change(&path, &event.kind, config);
-            
+
             if let Some(change_type) = change_type {
                 let change = FileChange {
                     path: path.clone(),
                     change_type,
                     timestamp: SystemTime::now(),
                 };
-                
+
                 let _ = sender.send(change);
             }
         }
     }
-    
+
     /// Classify a file change based on path and event kind
-    fn classify_change(path: &Path, kind: &EventKind, config: &WatcherConfig) -> Option<ChangeType> {
+    fn classify_change(
+        path: &Path,
+        kind: &EventKind,
+        config: &WatcherConfig,
+    ) -> Option<ChangeType> {
         let extension = path.extension()?.to_str()?;
-        
+
         match kind {
-            EventKind::Modify(_) | EventKind::Create(_) => {
-                match extension {
-                    "yaml" | "yml" if config.watch_yaml => {
-                        if Self::is_component_path(path) && matches!(kind, EventKind::Create(_)) {
-                            Some(ChangeType::ComponentAdded)
-                        } else {
-                            Some(ChangeType::YamlModified)
-                        }
+            EventKind::Modify(_) | EventKind::Create(_) => match extension {
+                "yaml" | "yml" if config.watch_yaml => {
+                    if Self::is_component_path(path) && matches!(kind, EventKind::Create(_)) {
+                        Some(ChangeType::ComponentAdded)
+                    } else {
+                        Some(ChangeType::YamlModified)
                     }
-                    "css" | "scss" if config.watch_styles => Some(ChangeType::StyleModified),
-                    "py" if config.watch_scripts => Some(ChangeType::ScriptModified),
-                    "png" | "jpg" | "jpeg" | "svg" if config.watch_assets => Some(ChangeType::AssetModified),
-                    _ => None,
                 }
-            }
+                "css" | "scss" if config.watch_styles => Some(ChangeType::StyleModified),
+                "py" if config.watch_scripts => Some(ChangeType::ScriptModified),
+                "png" | "jpg" | "jpeg" | "svg" if config.watch_assets => {
+                    Some(ChangeType::AssetModified)
+                }
+                _ => None,
+            },
             EventKind::Remove(_) => {
                 if config.watch_components && Self::is_component_path(path) {
                     Some(ChangeType::ComponentRemoved)
@@ -205,12 +199,11 @@ impl FileWatcher {
             _ => None,
         }
     }
-    
+
     /// Check if a path belongs to a component directory
     fn is_component_path(path: &Path) -> bool {
-        path.components().any(|c| {
-            c.as_os_str().to_str().map_or(false, |s| s == "components")
-        })
+        path.components()
+            .any(|c| c.as_os_str().to_str().map_or(false, |s| s == "components"))
     }
 }
 
@@ -238,13 +231,13 @@ impl PyFileWatcher {
             watch_components: true,
             watch_assets: true,
         };
-        
+
         Ok(Self {
             watcher: Arc::new(Mutex::new(FileWatcher::new(config))),
             pending_changes: Arc::new(Mutex::new(Vec::new())),
         })
     }
-    
+
     /// Watch a directory path
     pub fn watch_path(&self, path: String) -> PyResult<bool> {
         let mut watcher = self.watcher.lock().unwrap();
@@ -256,7 +249,7 @@ impl PyFileWatcher {
             }
         }
     }
-    
+
     /// Stop watching a directory path
     pub fn unwatch_path(&self, path: String) -> PyResult<bool> {
         let mut watcher = self.watcher.lock().unwrap();
@@ -268,12 +261,12 @@ impl PyFileWatcher {
             }
         }
     }
-    
+
     /// Check if there are pending file changes
     pub fn has_changes(&self) -> PyResult<bool> {
         let watcher = self.watcher.lock().unwrap();
         let changes = watcher.process_events();
-        
+
         if !changes.is_empty() {
             let mut pending = self.pending_changes.lock().unwrap();
             pending.extend(changes);
@@ -282,29 +275,30 @@ impl PyFileWatcher {
             Ok(false)
         }
     }
-    
+
     /// Get all pending changes as Python dictionary list
     pub fn get_changes(&self, py: Python) -> PyResult<PyObject> {
         let mut pending = self.pending_changes.lock().unwrap();
         let changes = std::mem::take(&mut *pending);
-        
+
         let result = PyList::empty(py);
         for change in changes {
             let dict = PyDict::new(py);
             dict.set_item("path", change.path.to_string_lossy().to_string())?;
             dict.set_item("type", format!("{:?}", change.change_type))?;
             dict.set_item("timestamp", {
-                let duration = change.timestamp
+                let duration = change
+                    .timestamp
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap_or_default();
                 duration.as_secs_f64()
             })?;
             result.append(dict)?;
         }
-        
+
         Ok(result.into())
     }
-    
+
     /// Clear all pending changes without processing
     pub fn clear_changes(&self) -> PyResult<()> {
         let mut pending = self.pending_changes.lock().unwrap();

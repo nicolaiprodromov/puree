@@ -1,6 +1,3 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 from .log import get_logger
@@ -21,12 +18,12 @@ class DynamicContainerManager:
     """
 
     def __init__(self):
-        self._ui: Optional['UI'] = None
+        self._ui: Optional["UI"] = None
 
-    def set_ui(self, ui: 'UI') -> None:
+    def set_ui(self, ui: "UI") -> None:
         self._ui = ui
 
-    def _require_ui(self) -> 'UI':
+    def _require_ui(self) -> "UI":
         if self._ui is None:
             raise RuntimeError(
                 "DynamicContainerManager has no UI. "
@@ -34,8 +31,13 @@ class DynamicContainerManager:
             )
         return self._ui
 
-    def add_child(self, parent: 'Container', template: str,
-                  child_id: Optional[str] = None, params: Optional[dict] = None) -> 'Container':
+    def add_child(
+        self,
+        parent: "Container",
+        template: str,
+        child_id: Optional[str] = None,
+        params: Optional[dict] = None,
+    ) -> "Container":
         """
         Add a new child container from a component template and append it to parent.
 
@@ -49,7 +51,7 @@ class DynamicContainerManager:
             The newly created Container.
         """
         ui = self._require_ui()
-        template_name = template.strip('[]')
+        template_name = template.strip("[]")
 
         if child_id is None:
             global _id_counter
@@ -57,6 +59,7 @@ class DynamicContainerManager:
             _id_counter += 1
 
         from .components.container import Container
+
         child = Container()
         child.id = child_id
         child.parent = parent
@@ -67,7 +70,9 @@ class DynamicContainerManager:
         if template_name in ui._component_registry:
             ui._instantiate_component_into(template_name, child, params)
         else:
-            logger.warning(f"add_child: component '{template_name}' not in registry — creating empty container")
+            logger.warning(
+                f"add_child: component '{template_name}' not in registry — creating empty container"
+            )
 
         parent.children.append(child)
         parent.mark_dirty()
@@ -80,8 +85,14 @@ class DynamicContainerManager:
         logger.debug(f"add_child: created '{child_id}' under '{parent.id}'")
         return child
 
-    def insert_child(self, parent: 'Container', index: int, template: str,
-                     child_id: Optional[str] = None, params: Optional[dict] = None) -> 'Container':
+    def insert_child(
+        self,
+        parent: "Container",
+        index: int,
+        template: str,
+        child_id: Optional[str] = None,
+        params: Optional[dict] = None,
+    ) -> "Container":
         """
         Insert a new child container from a component template at a specific index.
 
@@ -96,7 +107,7 @@ class DynamicContainerManager:
             The newly created Container.
         """
         ui = self._require_ui()
-        template_name = template.strip('[]')
+        template_name = template.strip("[]")
 
         if child_id is None:
             global _id_counter
@@ -104,6 +115,7 @@ class DynamicContainerManager:
             _id_counter += 1
 
         from .components.container import Container
+
         child = Container()
         child.id = child_id
         child.parent = parent
@@ -114,7 +126,9 @@ class DynamicContainerManager:
         if template_name in ui._component_registry:
             ui._instantiate_component_into(template_name, child, params)
         else:
-            logger.warning(f"insert_child: component '{template_name}' not in registry — creating empty container")
+            logger.warning(
+                f"insert_child: component '{template_name}' not in registry — creating empty container"
+            )
 
         idx = max(0, min(index, len(parent.children)))
         parent.children.insert(idx, child)
@@ -125,10 +139,12 @@ class DynamicContainerManager:
         except Exception as e:
             logger.error(f"Rebuild failed after insert_child: {e}", exc_info=True)
 
-        logger.debug(f"insert_child: created '{child_id}' at index {idx} under '{parent.id}'")
+        logger.debug(
+            f"insert_child: created '{child_id}' at index {idx} under '{parent.id}'"
+        )
         return child
 
-    def remove_child(self, parent: 'Container', id_or_container) -> bool:
+    def remove_child(self, parent: "Container", id_or_container) -> bool:
         """
         Remove a child container by ID string or Container reference.
 
@@ -143,7 +159,9 @@ class DynamicContainerManager:
             target = id_or_container if id_or_container in parent.children else None
 
         if target is None:
-            logger.warning(f"remove_child: '{id_or_container}' not found in '{parent.id}'")
+            logger.warning(
+                f"remove_child: '{id_or_container}' not found in '{parent.id}'"
+            )
             return False
 
         parent.children.remove(target)
@@ -155,10 +173,12 @@ class DynamicContainerManager:
         except Exception as e:
             logger.error(f"Rebuild failed after remove_child: {e}", exc_info=True)
 
-        logger.debug(f"remove_child: removed '{getattr(target, 'id', id_or_container)}' from '{parent.id}'")
+        logger.debug(
+            f"remove_child: removed '{getattr(target, 'id', id_or_container)}' from '{parent.id}'"
+        )
         return True
 
-    def clear_children(self, parent: 'Container') -> None:
+    def clear_children(self, parent: "Container") -> None:
         """Remove all children from a container."""
         ui = self._require_ui()
 
@@ -175,5 +195,4 @@ class DynamicContainerManager:
         logger.debug(f"clear_children: cleared all children from '{parent.id}'")
 
 
-# Module-level singleton used by Container methods and parser_op.
 dynamic_manager = DynamicContainerManager()

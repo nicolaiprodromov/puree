@@ -1,13 +1,3 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 import bpy
 from . import parser_op
 from .scroll_op import scroll_state
@@ -15,6 +5,7 @@ from .mouse_op import mouse_state
 from .native_bindings import HitDetector
 from .input_router import input_router
 from .log import get_logger
+
 logger = get_logger(__name__)
 
 hit_modal_running = False
@@ -22,155 +13,160 @@ _container_data = []
 _native_detector = None
 _cached_viewport_size = None
 
+
 class XWZ_OT_hit_detect(bpy.types.Operator):
-    bl_idname  = "xwz.hit_detect"
-    bl_label   = "Detect interactions in UI (Performance-optimized)"
-    bl_options = {'REGISTER'}
-    
+    bl_idname = "xwz.hit_detect"
+    bl_label = "Detect interactions in UI (Performance-optimized)"
+    bl_options = {"REGISTER"}
+
     def invoke(self, context, event):
         global hit_modal_running, _container_data, _native_detector
-        
+
         if _native_detector is None:
             _native_detector = HitDetector()
-        
+
         hit_modal_running = True
         context.window_manager.modal_handler_add(self)
-        
+
         _container_data = parser_op._container_json_data
-        
+
         if _container_data:
             _native_detector.load_containers(_container_data)
-        
-        return {'RUNNING_MODAL'}
-    
+
+        return {"RUNNING_MODAL"}
+
     def sync_container_data(self):
         global _container_data, _native_detector
         if parser_op._container_json_data:
             _container_data = parser_op._container_json_data
             if _native_detector:
                 _native_detector.load_containers(_container_data)
-    
+
     def modal(self, context, event):
         global hit_modal_running
-        
+
         if not hit_modal_running:
-            return {'FINISHED'}
-        
-        # Only process mouse-related events
-        if event.type not in {'MOUSEMOVE', 'LEFTMOUSE', 'RIGHTMOUSE', 'MIDDLEMOUSE', 
-                              'WHEELUPMOUSE', 'WHEELDOWNMOUSE', 'TRACKPADPAN', 'TIMER'}:
-            return {'PASS_THROUGH'}
-        
+            return {"FINISHED"}
+
+        if event.type not in {
+            "MOUSEMOVE",
+            "LEFTMOUSE",
+            "RIGHTMOUSE",
+            "MIDDLEMOUSE",
+            "WHEELUPMOUSE",
+            "WHEELDOWNMOUSE",
+            "TRACKPADPAN",
+            "TIMER",
+        }:
+            return {"PASS_THROUGH"}
+
         if not self._is_mouse_in_viewport():
-            return {'PASS_THROUGH'}
-        
+            return {"PASS_THROUGH"}
+
         try:
             mouse_x, mouse_y = self._get_mouse_pos()
         except:
             logger.debug("Hit detection error", exc_info=True)
-            return {'PASS_THROUGH'}
-        
+            return {"PASS_THROUGH"}
+
         if not _native_detector:
-            return {'PASS_THROUGH'}
-        
+            return {"PASS_THROUGH"}
+
         _native_detector.update_mouse(
-            mouse_x,
-            mouse_y,
-            mouse_state.is_clicked,
-            float(scroll_state.scroll_delta)
+            mouse_x, mouse_y, mouse_state.is_clicked, float(scroll_state.scroll_delta)
         )
-        
+
         results = _native_detector.detect_hits()
-        
+
         if results is not None:
             self.apply_hit_results(results)
-        
-        # Update input router — check if cursor is over any drawn surface,
-        # walking parent chains for transparent children of drawn containers
+
         any_hit = input_router.is_over_drawn_surface(_container_data)
         input_router.update_hover_state(any_hit)
-        
-        # Track capture for press/release (supports future drag)
-        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+
+        if event.type == "LEFTMOUSE" and event.value == "PRESS":
             input_router.notify_press()
-        elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+        elif event.type == "LEFTMOUSE" and event.value == "RELEASE":
             input_router.notify_release()
-        
+
         for _container in _container_data:
-            _container['_prev_hovered'] = _container['_hovered']
-            _container['_prev_clicked'] = _container['_clicked']
-            _container['_prev_toggled'] = _container['_toggled']
-        
+            _container["_prev_hovered"] = _container["_hovered"]
+            _container["_prev_clicked"] = _container["_clicked"]
+            _container["_prev_toggled"] = _container["_toggled"]
+
         scroll_state._prev_scroll_value = scroll_state.scroll_value
-        
-        # hit_op is registered first = processed last in Blender's modal stack.
-        # All other Puree modals (mouse, scroll, render) have already processed
-        # this event, so consuming here only blocks Blender's native handlers.
+
         if input_router.should_consume_event(event.type):
-            return {'RUNNING_MODAL'}
-        return {'PASS_THROUGH'}
-    
+            return {"RUNNING_MODAL"}
+        return {"PASS_THROUGH"}
+
     def apply_hit_results(self, results):
-        results_by_id = {r['container_id']: r for r in results}
-        
+        results_by_id = {r["container_id"]: r for r in results}
+
         for container in _container_data:
-            container_id = container['id']
-            
+            container_id = container["id"]
+
             if container_id in results_by_id:
                 result = results_by_id[container_id]
-                
-                container['_hovered'] = result['is_hovered']
-                
-                if result['hover_changed']:
-                    if result['is_hovered'] and not container['_prev_hovered']:
-                        for hover_handler in container['hover']:
+
+                container["_hovered"] = result["is_hovered"]
+
+                if result["hover_changed"]:
+                    if result["is_hovered"] and not container["_prev_hovered"]:
+                        for hover_handler in container["hover"]:
                             hover_handler(container)
-                    elif not result['is_hovered'] and container['_prev_hovered']:
-                        for hoverout_handler in container['hoverout']:
+                    elif not result["is_hovered"] and container["_prev_hovered"]:
+                        for hoverout_handler in container["hoverout"]:
                             hoverout_handler(container)
-                
-                container['_clicked'] = result['is_clicked']
-                
-                if result['click_changed'] and result['is_clicked'] and not container['_prev_clicked']:
+
+                container["_clicked"] = result["is_clicked"]
+
+                if (
+                    result["click_changed"]
+                    and result["is_clicked"]
+                    and not container["_prev_clicked"]
+                ):
                     from . import text_input_op
-                    
+
                     text_input_clicked = False
                     for input_instance in text_input_op._text_input_instances:
                         if input_instance.container_id == container_id:
                             bpy.ops.xwz.focus_text_input(instance_id=input_instance.id)
                             text_input_clicked = True
                             break
-                    
+
                     if not text_input_clicked:
                         for input_instance in text_input_op._text_input_instances:
                             if input_instance.is_focused:
-                                bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
-                    
-                    # Focus management: focus on click for focusable containers
+                                bpy.ops.xwz.blur_text_input(
+                                    instance_id=input_instance.id
+                                )
+
                     if not text_input_clicked:
-                        if container.get('focusable', False):
+                        if container.get("focusable", False):
                             try:
                                 from .focus import focus_manager
+
                                 focus_manager.focus(
                                     container_id,
-                                    container.get('on_focus', []),
-                                    container.get('on_blur', []),
-                                    container_ref=container.get('container_ref')
+                                    container.get("on_focus", []),
+                                    container.get("on_blur", []),
+                                    container_ref=container.get("container_ref"),
                                 )
                             except Exception:
                                 pass
 
-                    for click_handler in container['click']:
+                    for click_handler in container["click"]:
                         click_handler(container)
-                    
-                    container['_toggled'] = True
-                    if container['_toggled'] and not container['_prev_toggled']:
-                        container['_toggle_value'] = not container['_toggle_value']
-                        for toggle_handler in container['toggle']:
+
+                    container["_toggled"] = True
+                    if container["_toggled"] and not container["_prev_toggled"]:
+                        container["_toggle_value"] = not container["_toggle_value"]
+                        for toggle_handler in container["toggle"]:
                             toggle_handler(container)
                 else:
-                    container['_toggled'] = False
-    
+                    container["_toggled"] = False
+
     def _is_mouse_in_viewport(self):
         try:
             mouse_x, mouse_y = self._get_mouse_pos()
@@ -179,21 +175,22 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         except:
             logger.debug("Viewport bounds check error", exc_info=True)
             return False
-    
+
     def _get_viewport_size(self):
         global _cached_viewport_size
         if _cached_viewport_size is not None:
             return _cached_viewport_size
         from .space_config import get_target_space
+
         target_space = get_target_space()
         for area in bpy.context.screen.areas:
             if area.type == target_space:
                 for region in area.regions:
-                    if region.type == 'WINDOW':
+                    if region.type == "WINDOW":
                         _cached_viewport_size = (region.width, region.height)
                         return _cached_viewport_size
         return 1920, 1080
-    
+
     def _get_mouse_pos(self):
         width, height = self._get_viewport_size()
         ndc_x = mouse_state.mouse_pos[0]
@@ -201,19 +198,23 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         screen_x = (ndc_x + 1.0) * 0.5 * width
         screen_y = (ndc_y + 1.0) * 0.5 * height
         return screen_x, screen_y
+
+
 class XWZ_OT_hit_stop(bpy.types.Operator):
     bl_idname = "xwz.hit_stop"
     bl_label = "Stop Hit Detection"
-    bl_options = {'REGISTER'}
-    
+    bl_options = {"REGISTER"}
+
     def execute(self, context):
         global hit_modal_running
         hit_modal_running = False
-        return {'FINISHED'}
+        return {"FINISHED"}
+
 
 def register():
     bpy.utils.register_class(XWZ_OT_hit_detect)
     bpy.utils.register_class(XWZ_OT_hit_stop)
+
 
 def unregister():
     bpy.utils.unregister_class(XWZ_OT_hit_stop)

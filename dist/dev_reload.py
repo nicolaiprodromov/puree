@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 """
 Trigger a full addon reload in a running Blender instance.
 
 Primary: connects to Puree's built-in reload server (TCP 127.0.0.1:19746).
 Fallback: writes a sentinel file that the Puree timer picks up.
 """
+
 import socket
 import sys
 import time
@@ -55,6 +46,6 @@ def main():
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)

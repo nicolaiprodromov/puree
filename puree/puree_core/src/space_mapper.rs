@@ -1,13 +1,3 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -58,7 +48,10 @@ impl SpaceMapper {
     }
 
     pub fn get_supported_spaces(&self) -> Vec<&str> {
-        self.area_type_to_handler.keys().map(|s| s.as_str()).collect()
+        self.area_type_to_handler
+            .keys()
+            .map(|s| s.as_str())
+            .collect()
     }
 }
 

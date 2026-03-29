@@ -1,6 +1,3 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
 """
 puree.timers — Built-in timer/interval API with auto-cleanup.
 
@@ -22,12 +19,8 @@ from .log import get_logger
 
 logger = get_logger(__name__)
 
-# ── Registry ────────────────────────────────────────────────────────────────
-
 _registry: Dict[str, "TimerHandle"] = {}
 
-
-# ── TimerHandle ─────────────────────────────────────────────────────────────
 
 class TimerHandle:
     """Opaque handle returned by set_interval / set_timeout."""
@@ -43,11 +36,9 @@ class TimerHandle:
             _registry.pop(self.id, None)
             logger.debug("TimerHandle %s cancelled", self.id)
 
-    def __repr__(self) -> str:  # pragma: no cover
+    def __repr__(self) -> str:
         return f"<TimerHandle id={self.id} cancelled={self.cancelled}>"
 
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _generate_handle_id() -> str:
     return str(uuid.uuid4())[:8]
@@ -57,8 +48,6 @@ def _register_handle(handle: TimerHandle) -> None:
     _registry[handle.id] = handle
 
 
-# ── Public API ───────────────────────────────────────────────────────────────
-
 def set_interval(fn: Callable, interval_ms: float) -> TimerHandle:
     """
     Call *fn* repeatedly every *interval_ms* milliseconds.
@@ -66,7 +55,7 @@ def set_interval(fn: Callable, interval_ms: float) -> TimerHandle:
     Returns a :class:`TimerHandle` that can be passed to :func:`clear` to
     stop the timer before the next scheduled invocation.
     """
-    import bpy  # lazy import — bpy is only available inside Blender
+    import bpy
 
     interval_s = interval_ms / 1000.0
     handle = TimerHandle(_generate_handle_id())
@@ -74,7 +63,7 @@ def set_interval(fn: Callable, interval_ms: float) -> TimerHandle:
 
     def _wrapper() -> Optional[float]:
         if handle.cancelled:
-            return None  # bpy removes the timer
+            return None
         try:
             fn()
         except Exception as exc:
@@ -86,7 +75,7 @@ def set_interval(fn: Callable, interval_ms: float) -> TimerHandle:
             )
         if handle.cancelled:
             return None
-        return interval_s  # reschedule
+        return interval_s
 
     try:
         bpy.app.timers.register(
@@ -115,7 +104,7 @@ def set_timeout(fn: Callable, delay_ms: float) -> TimerHandle:
     Returns a :class:`TimerHandle` that can be passed to :func:`clear` to
     prevent *fn* from being invoked if the timer hasn't fired yet.
     """
-    import bpy  # lazy import
+    import bpy
 
     delay_s = delay_ms / 1000.0
     handle = TimerHandle(_generate_handle_id())
@@ -124,7 +113,7 @@ def set_timeout(fn: Callable, delay_ms: float) -> TimerHandle:
     def _wrapper() -> None:
         _registry.pop(handle.id, None)
         if handle.cancelled:
-            return None  # skip invocation
+            return None
         try:
             fn()
         except Exception as exc:
@@ -134,7 +123,7 @@ def set_timeout(fn: Callable, delay_ms: float) -> TimerHandle:
                 exc,
                 exc_info=True,
             )
-        return None  # one-shot — do not reschedule
+        return None
 
     try:
         bpy.app.timers.register(
@@ -171,8 +160,6 @@ def clear(handle: TimerHandle) -> None:
     handle.cancel()
 
 
-# ── Lifecycle ────────────────────────────────────────────────────────────────
-
 def _cleanup_all() -> None:
     """
     Cancel every active timer managed by this module.
@@ -188,6 +175,8 @@ def _cleanup_all() -> None:
         try:
             handle.cancel()
         except Exception as exc:
-            logger.warning("_cleanup_all: error cancelling handle %s: %s", handle.id, exc)
+            logger.warning(
+                "_cleanup_all: error cancelling handle %s: %s", handle.id, exc
+            )
     _registry.clear()
     logger.info("Timer cleanup complete — %d timer(s) cancelled", len(active))

@@ -1,31 +1,23 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
 #![allow(non_local_definitions)]
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
-mod types;
-mod hit_detection;
-mod css;
 mod color;
-mod file_watcher;
-mod space_mapper;
 mod config_parser;
+mod css;
+mod file_watcher;
+mod hit_detection;
+mod space_mapper;
+mod types;
 
-use hit_detection::{HitDetector, ContainerProcessor};
+use color::{
+    apply_gamma_correction_py, gamma_correct, interpolate_color_py, parse_color_py,
+    rotate_gradient_py, ColorProcessor,
+};
+use config_parser::{ConfigParseResult, ConfigParser, SpaceValidationResult, ThemeConfigData};
 use css::{CSSCascade, CSSParser, SCSSCompiler};
-use color::{ColorProcessor, gamma_correct, apply_gamma_correction_py, parse_color_py, 
-            interpolate_color_py, rotate_gradient_py};
 use file_watcher::PyFileWatcher;
-use config_parser::{ConfigParser, ConfigParseResult, ThemeConfigData, SpaceValidationResult};
+use hit_detection::{ContainerProcessor, HitDetector};
 
 #[pymodule]
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -59,27 +51,30 @@ fn detect_hover_batch(
     mouse_y: f32,
 ) -> PyResult<PyObject> {
     let mut results = Vec::new();
-    
+
     for item in containers.iter() {
         let container: &PyDict = item.downcast()?;
         let id = container.get_item("id")?.unwrap().extract::<String>()?;
-        
-        let pos = container.get_item("position")?.unwrap().downcast::<PyList>()?;
+
+        let pos = container
+            .get_item("position")?
+            .unwrap()
+            .downcast::<PyList>()?;
         let size = container.get_item("size")?.unwrap().downcast::<PyList>()?;
-        
+
         let x = pos.get_item(0)?.extract::<f32>()?;
         let y = pos.get_item(1)?.extract::<f32>()?;
         let width = size.get_item(0)?.extract::<f32>()?;
         let height = size.get_item(1)?.extract::<f32>()?;
-        
-        let is_hovered = mouse_x >= x && mouse_x <= x + width &&
-                         mouse_y >= y && mouse_y <= y + height;
-        
+
+        let is_hovered =
+            mouse_x >= x && mouse_x <= x + width && mouse_y >= y && mouse_y <= y + height;
+
         if is_hovered {
             results.push(id);
         }
     }
-    
+
     Ok(results.to_object(py))
 }
 
@@ -92,45 +87,44 @@ fn detect_clicks_batch(
     is_clicked: bool,
 ) -> PyResult<PyObject> {
     let result_dict = PyDict::new(py);
-    
+
     if !is_clicked {
         return Ok(result_dict.into());
     }
-    
+
     for item in containers.iter() {
         let container: &PyDict = item.downcast()?;
         let id = container.get_item("id")?.unwrap().extract::<String>()?;
-        
+
         let passive = container.get_item("passive")?.unwrap().extract::<bool>()?;
         if passive {
             continue;
         }
-        
-        let pos = container.get_item("position")?.unwrap().downcast::<PyList>()?;
+
+        let pos = container
+            .get_item("position")?
+            .unwrap()
+            .downcast::<PyList>()?;
         let size = container.get_item("size")?.unwrap().downcast::<PyList>()?;
-        
+
         let x = pos.get_item(0)?.extract::<f32>()?;
         let y = pos.get_item(1)?.extract::<f32>()?;
         let width = size.get_item(0)?.extract::<f32>()?;
         let height = size.get_item(1)?.extract::<f32>()?;
-        
-        let is_hit = mouse_x >= x && mouse_x <= x + width &&
-                     mouse_y >= y && mouse_y <= y + height;
-        
+
+        let is_hit = mouse_x >= x && mouse_x <= x + width && mouse_y >= y && mouse_y <= y + height;
+
         if is_hit {
             result_dict.set_item(&id, true)?;
         }
     }
-    
+
     Ok(result_dict.into())
 }
 
 #[pyfunction]
-fn flatten_containers_fast(
-    py: Python,
-    _container_tree: &PyDict,
-) -> PyResult<PyObject> {
+fn flatten_containers_fast(py: Python, _container_tree: &PyDict) -> PyResult<PyObject> {
     let result_list = PyList::empty(py);
-    
+
     Ok(result_list.into())
 }

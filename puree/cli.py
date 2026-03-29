@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 import argparse
 import os
 import platform
@@ -21,7 +11,6 @@ import threading
 import time
 from pathlib import Path
 
-# Lazy import — terminal_ui may not be available in all contexts
 try:
     from . import terminal_ui as tui
 except ImportError:
@@ -35,6 +24,7 @@ def _get_version():
     """Read version from the installed puree package metadata or fallback."""
     try:
         from importlib.metadata import version
+
         return version("puree-ui")
     except Exception:
         return "dev"
@@ -55,7 +45,9 @@ def _get_blender_version(blender_exe):
     try:
         result = subprocess.run(
             [blender_exe, "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         match = re.search(r"Blender\s+(\d+\.\d+)", result.stdout)
         if match:
@@ -69,9 +61,15 @@ def _get_blender_python_version(blender_exe):
     """Get the Python version bundled with Blender (e.g. '3.13')."""
     try:
         result = subprocess.run(
-            [blender_exe, "--background", "--python-expr",
-             "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
-            capture_output=True, text=True, timeout=30,
+            [
+                blender_exe,
+                "--background",
+                "--python-expr",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         for line in result.stdout.strip().splitlines():
             line = line.strip()
@@ -91,11 +89,14 @@ def _find_local_wheels_dir():
     """
     try:
         import puree as _puree_pkg
+
         candidate = Path(_puree_pkg.__file__).parent.parent / "wheels"
         if not candidate.is_dir():
             return None
         if not list(candidate.glob("puree_ui-*.whl")):
-            print("Error: Local wheels/ directory found but contains no puree_ui wheel.")
+            print(
+                "Error: Local wheels/ directory found but contains no puree_ui wheel."
+            )
             print("       Run 'just build_core && just build_package' first.")
             sys.exit(1)
         return candidate
@@ -129,7 +130,12 @@ def _get_blender_paths(blender_exe):
     elif system == "Darwin":
         base = Path.home() / "Library" / "Application Support" / "Blender" / version
     elif system == "Windows":
-        base = Path(os.environ.get("APPDATA", "")) / "Blender Foundation" / "Blender" / version
+        base = (
+            Path(os.environ.get("APPDATA", ""))
+            / "Blender Foundation"
+            / "Blender"
+            / version
+        )
     else:
         print(f"Error: Unsupported platform '{system}'.")
         sys.exit(1)
@@ -138,12 +144,17 @@ def _get_blender_paths(blender_exe):
     if system == "Windows":
         site_packages = base / "extensions" / ".local" / "Lib" / "site-packages"
     else:
-        site_packages = base / "extensions" / ".local" / "lib" / f"python{py_version}" / "site-packages"
+        site_packages = (
+            base
+            / "extensions"
+            / ".local"
+            / "lib"
+            / f"python{py_version}"
+            / "site-packages"
+        )
 
     return str(ext_path), str(site_packages)
 
-
-# ── Templates ────────────────────────────────────────────────────────
 
 INIT_YAML = textwrap.dedent("""\
     app:
@@ -224,7 +235,6 @@ INIT_ENTRY = textwrap.dedent("""\
         "category"   : "Interface"
     }
 
-
     def register():
         set_addon_root(os.path.dirname(os.path.abspath(__file__)))
         xwz_ui_register()
@@ -233,10 +243,8 @@ INIT_ENTRY = textwrap.dedent("""\
         wm.xwz_debug_panel  = True
         wm.xwz_auto_start   = True
 
-
     def unregister():
         xwz_ui_unregister()
-
 
     if __name__ == "__main__":
         register()
@@ -245,7 +253,6 @@ INIT_ENTRY = textwrap.dedent("""\
 
 def _manifest_template(py_version):
     """Generate blender_manifest.toml with correct wheel filenames for the platform."""
-    # Determine platform tag for wheels
     system = platform.system()
     machine = platform.machine()
     if system == "Linux" and machine == "x86_64":
@@ -278,7 +285,6 @@ def _manifest_template(py_version):
         stretch_plat = f"cp38-abi3-{mac_tag}"
         moderngl_plat = cp_plat
     else:
-        # Fallback — user will need to fix
         cp_plat = "FIXME"
         gl_plat = "FIXME"
         yaml_plat = "FIXME"
@@ -325,8 +331,6 @@ def _manifest_template(py_version):
     """)
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
 def _run_with_progress(tracker, fn, steps, interval=0.8):
     """Run *fn* in a background thread while ticking the progress bar.
 
@@ -364,13 +368,10 @@ def _run_with_progress(tracker, fn, steps, interval=0.8):
     return result[0]
 
 
-# ── Commands ─────────────────────────────────────────────────────────
-
 def cmd_init(args):
     """Initialize a new Puree project in the current directory."""
     cwd = Path.cwd()
 
-    # Safety check — don't overwrite existing project
     if (cwd / "static" / "index.yaml").exists():
         if tui:
             tui.step_fail("A Puree project already exists in this directory")
@@ -382,7 +383,6 @@ def cmd_init(args):
 
     if tui:
         tui.print_logo(animate=True)
-        # total=16: detect(8) + structure(1) + scaffold(1) + wheels(5) + manifest(1)
         tracker = tui.ProgressTracker(total=16)
         tracker.header("Initializing new Puree project")
         tracker.divider()
@@ -390,13 +390,13 @@ def cmd_init(args):
     else:
         print("Initializing Puree project...")
 
-    # Step 1: Detect Blender + Python version (launches blender --background, takes seconds)
     blender_exe = _find_blender()
 
     if tui:
-        # Blender startup is the main bottleneck (~5-10s) — tick the bar while waiting
         py_version = _run_with_progress(
-            tracker, lambda: _get_blender_python_version(blender_exe), steps=8,
+            tracker,
+            lambda: _get_blender_python_version(blender_exe),
+            steps=8,
         )
         tracker.step("Detected Blender")
         tracker.step_info(f"Blender: {blender_exe}")
@@ -406,7 +406,6 @@ def cmd_init(args):
         print(f"  Blender: {blender_exe}")
         print(f"  Python:  {py_version}")
 
-    # Step 2: Create directory structure + write templates
     (cwd / "static" / "components").mkdir(parents=True, exist_ok=True)
     (cwd / "wheels").mkdir(exist_ok=True)
     (cwd / "assets").mkdir(exist_ok=True)
@@ -424,7 +423,6 @@ def cmd_init(args):
     else:
         print("  Created project structure")
 
-    # Step 3: Copy AI configuration scaffold
     scaffold_dir = Path(__file__).parent / "scaffold"
     if scaffold_dir.is_dir():
         for sub in (".agents", ".github"):
@@ -441,7 +439,6 @@ def cmd_init(args):
         if tui:
             tracker.advance()
 
-    # Step 4: Collect wheels
     wheels_dir = cwd / "wheels"
     local_wheels_dir = _find_local_wheels_dir()
     if local_wheels_dir:
@@ -462,7 +459,6 @@ def cmd_init(args):
             for whl in wheels_list:
                 print(f"    ✓ {whl.name}")
     else:
-        # Installed from PyPI — download wheels from the network.
         if tui:
             tracker.step_info("Downloading wheels from PyPI...")
         else:
@@ -471,10 +467,15 @@ def cmd_init(args):
         def _download_wheels():
             subprocess.run(
                 [
-                    sys.executable, "-m", "pip", "download",
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "download",
                     "--only-binary=:all:",
-                    "--python-version", py_version,
-                    "--dest", str(wheels_dir),
+                    "--python-version",
+                    py_version,
+                    "--dest",
+                    str(wheels_dir),
                     "puree-ui",
                 ],
                 check=True,
@@ -492,14 +493,17 @@ def cmd_init(args):
             if tui:
                 tracker.advance(5)
                 tracker.step_warn("Failed to download wheels")
-                tracker.step_info(f"pip download --only-binary=:all: "
-                                  f"--python-version {py_version} --dest wheels puree-ui")
+                tracker.step_info(
+                    f"pip download --only-binary=:all: "
+                    f"--python-version {py_version} --dest wheels puree-ui"
+                )
             else:
                 print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
-                print("  You can download them manually: pip download --only-binary=:all: "
-                      f"--python-version {py_version} --dest wheels puree-ui")
+                print(
+                    "  You can download them manually: pip download --only-binary=:all: "
+                    f"--python-version {py_version} --dest wheels puree-ui"
+                )
 
-    # Step 5: Update manifest with actual wheel filenames
     _update_manifest_wheels(cwd)
     if tui:
         tracker.advance()
@@ -532,14 +536,12 @@ def _update_manifest_wheels(project_dir):
 
     content = manifest_path.read_text()
 
-    # Build new wheels block
     if wheel_files:
         wheels_lines = "\n".join(f'  "{whl}",' for whl in wheel_files)
         new_wheels = f"wheels = [\n{wheels_lines}\n]"
     else:
         new_wheels = "wheels = [\n]"
 
-    # Replace the wheels section
     content = re.sub(
         r"wheels\s*=\s*\[.*?\]",
         new_wheels,
@@ -566,7 +568,6 @@ def cmd_build(args):
 
     blender_exe = _find_blender()
 
-    # Parse addon name and version from manifest
     content = manifest.read_text()
     name_match = re.search(r'^name\s*=\s*"([^"]+)"', content, re.MULTILINE)
     version_match = re.search(r'^version\s*=\s*"([^"]+)"', content, re.MULTILINE)
@@ -582,24 +583,34 @@ def cmd_build(args):
         print(f"Building {addon_name} v{version}...")
         print(f"  Blender: {blender_exe}")
 
-    # Create dist/out directory
     dist_dir = cwd / "dist" / "out"
     dist_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clean old zips
     for old_zip in dist_dir.glob("*.zip"):
         old_zip.unlink()
 
     output_file = dist_dir / f"{addon_name}_{version}.zip"
 
     if tui:
-        sp = tui.Spinner("Building extension zip", frames=tui.SPINNER_BLOCKS, color=tui.MAGENTA)
+        sp = tui.Spinner(
+            "Building extension zip", frames=tui.SPINNER_BLOCKS, color=tui.MAGENTA
+        )
         sp.start()
 
     result = subprocess.run(
-        [blender_exe, "--background", "--command", "extension", "build",
-         "--source-dir", str(cwd), "--output-filepath", str(output_file)],
-        capture_output=True, text=True,
+        [
+            blender_exe,
+            "--background",
+            "--command",
+            "extension",
+            "build",
+            "--source-dir",
+            str(cwd),
+            "--output-filepath",
+            str(output_file),
+        ],
+        capture_output=True,
+        text=True,
     )
 
     if output_file.exists():
@@ -642,7 +653,6 @@ def cmd_install(args):
 
     blender_exe = _find_blender()
 
-    # Find the zip
     dist_dir = cwd / "dist" / "out"
     zips = sorted(dist_dir.glob("*.zip"))
     if not zips:
@@ -653,7 +663,7 @@ def cmd_install(args):
             print("Error: No built zip found in dist/out/. Run 'puree build' first.")
         sys.exit(1)
 
-    package_file = zips[-1]  # Latest
+    package_file = zips[-1]
 
     if tui:
         tui.banner_install()
@@ -683,7 +693,8 @@ def cmd_install(args):
 
     result = subprocess.run(
         [blender_exe, "--background", "--python-expr", install_script],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
     if "installed and enabled successfully" in result.stdout:
@@ -743,10 +754,8 @@ def cmd_link(args):
     site_packages = Path(site_packages)
     addon_link = ext_dir / addon_id
 
-    # Ensure extensions directory exists
     ext_dir.mkdir(parents=True, exist_ok=True)
 
-    # Remove existing addon (symlink or installed copy)
     if addon_link.is_symlink():
         if tui:
             tui.step_info("Symlink already exists, updating...")
@@ -760,20 +769,22 @@ def cmd_link(args):
             print("  Removing installed extension copy...")
         shutil.rmtree(addon_link)
 
-    # Create symlink
     addon_link.symlink_to(cwd)
     if tui:
         tui.step(f"Linked: {addon_link} \u2192 {cwd}")
     else:
         print(f"  \u2713 Linked: {addon_link} \u2192 {cwd}")
 
-    # Install wheel dependencies into Blender's extension site-packages
-    # Extract wheels directly (zip files) to avoid pip rejecting cross-version wheels
     import zipfile
+
     wheels_dir = cwd / "wheels"
     if wheels_dir.exists() and list(wheels_dir.glob("*.whl")):
         if tui:
-            sp = tui.Spinner("Installing wheel dependencies", frames=tui.SPINNER_COOK, color=tui.CORAL)
+            sp = tui.Spinner(
+                "Installing wheel dependencies",
+                frames=tui.SPINNER_COOK,
+                color=tui.CORAL,
+            )
             sp.start()
         else:
             print("  Installing wheel dependencies...")
@@ -781,14 +792,14 @@ def cmd_link(args):
         whl_count = 0
         for whl in sorted(wheels_dir.glob("*.whl")):
             try:
-                with zipfile.ZipFile(whl, 'r') as zf:
+                with zipfile.ZipFile(whl, "r") as zf:
                     zf.extractall(site_packages)
                 whl_count += 1
                 if not tui:
                     print(f"    \u2713 {whl.name}")
             except Exception as e:
                 if tui:
-                    pass  # will report summary
+                    pass
                 else:
                     print(f"    \u2717 {whl.name}: {e}")
         if tui:
@@ -852,7 +863,6 @@ def cmd_reload(args):
     if tui:
         tui.banner_reload()
 
-    # Primary: TCP reload via Puree's built-in reload server
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(3.0)
@@ -869,7 +879,6 @@ def cmd_reload(args):
     except (ConnectionRefusedError, OSError, socket.timeout):
         pass
 
-    # Fallback: sentinel file
     if tui:
         tui.step_warn("Reload server not reachable, using sentinel fallback")
     else:
@@ -879,10 +888,10 @@ def cmd_reload(args):
     if tui:
         tui.step("Sentinel written \u2014 Blender will pick this up within ~2s")
     else:
-        print("[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s")
+        print(
+            "[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s"
+        )
 
-
-# ── Entry Point ──────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(
@@ -890,13 +899,16 @@ def main():
         description="Puree UI — Bootstrap, build, and install Blender addons",
     )
     parser.add_argument(
-        "--version", action="version",
+        "--version",
+        action="version",
         version=f"puree {_get_version()}",
     )
 
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("init", help="Initialize a new Puree project in the current directory")
+    subparsers.add_parser(
+        "init", help="Initialize a new Puree project in the current directory"
+    )
     subparsers.add_parser("build", help="Build the extension zip using Blender on PATH")
     subparsers.add_parser("install", help="Install the built extension into Blender")
     subparsers.add_parser("link", help="Symlink project into Blender for development")

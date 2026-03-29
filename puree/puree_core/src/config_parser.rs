@@ -1,16 +1,6 @@
-// Created by XWZ
-// ◕‿◕ Distributed for free at:
-// https://github.com/nicolaiprodromov/puree
-// ╔═════════════════════════════════╗
-// ║  ██   ██  ██      ██  ████████  ║
-// ║   ██ ██   ██  ██  ██       ██   ║
-// ║    ███    ██  ██  ██     ██     ║
-// ║   ██ ██   ██  ██  ██   ██       ║
-// ║  ██   ██   ████████   ████████  ║
-// ╚═════════════════════════════════╝
-use serde_yaml;
 use crate::space_mapper::SpaceMapper;
 use pyo3::prelude::*;
+use serde_yaml;
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -28,71 +18,88 @@ impl ConfigParser {
     }
 
     pub fn parse_yaml(&self, yaml_content: &str) -> PyResult<ConfigParseResult> {
-        let parsed: serde_yaml::Value = serde_yaml::from_str(yaml_content)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("YAML parsing error: {}", e)
-            ))?;
+        let parsed: serde_yaml::Value = serde_yaml::from_str(yaml_content).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("YAML parsing error: {}", e))
+        })?;
 
-        let app_value = parsed.get("app")
+        let app_value = parsed
+            .get("app")
             .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyKeyError, _>("Missing 'app' key"))?;
 
-        let selected_theme = app_value.get("selected_theme")
+        let selected_theme = app_value
+            .get("selected_theme")
             .and_then(|v| v.as_str())
             .unwrap_or("xwz_default")
             .to_string();
 
-        let default_theme = app_value.get("default_theme")
+        let default_theme = app_value
+            .get("default_theme")
             .and_then(|v| v.as_str())
             .unwrap_or("xwz_default")
             .to_string();
 
-        let themes_array = app_value.get("theme")
+        let themes_array = app_value
+            .get("theme")
             .and_then(|v| v.as_sequence())
-            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyKeyError, _>("Missing or invalid 'theme' array"))?;
+            .ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyKeyError, _>("Missing or invalid 'theme' array")
+            })?;
 
         let mut themes = Vec::new();
         for theme_value in themes_array {
-            let name = theme_value.get("name")
+            let name = theme_value
+                .get("name")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unnamed")
                 .to_string();
 
-            let author = theme_value.get("author")
+            let author = theme_value
+                .get("author")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
                 .to_string();
 
-            let version = theme_value.get("version")
+            let version = theme_value
+                .get("version")
                 .and_then(|v| v.as_str())
                 .unwrap_or("1.0.0")
                 .to_string();
 
-            let space = theme_value.get("space")
+            let space = theme_value
+                .get("space")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            let default_font = theme_value.get("default_font")
+            let default_font = theme_value
+                .get("default_font")
                 .and_then(|v| v.as_str())
                 .unwrap_or("default")
                 .to_string();
 
-            let scripts = theme_value.get("scripts")
+            let scripts = theme_value
+                .get("scripts")
                 .and_then(|v| v.as_sequence())
-                .map(|seq| seq.iter()
-                    .filter_map(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .collect())
+                .map(|seq| {
+                    seq.iter()
+                        .filter_map(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .collect()
+                })
                 .unwrap_or_default();
 
-            let styles = theme_value.get("styles")
+            let styles = theme_value
+                .get("styles")
                 .and_then(|v| v.as_sequence())
-                .map(|seq| seq.iter()
-                    .filter_map(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .collect())
+                .map(|seq| {
+                    seq.iter()
+                        .filter_map(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .collect()
+                })
                 .unwrap_or_default();
 
-            let components = theme_value.get("components")
+            let components = theme_value
+                .get("components")
                 .and_then(|v| v.as_str())
                 .unwrap_or("components/")
                 .to_string();
@@ -122,7 +129,9 @@ impl ConfigParser {
         match space_name {
             Some(space) => {
                 if self.space_mapper.is_valid_area_type(space) {
-                    let handler_name = self.space_mapper.get_handler_name(space)
+                    let handler_name = self
+                        .space_mapper
+                        .get_handler_name(space)
                         .unwrap_or("Unknown")
                         .to_string();
                     Ok(SpaceValidationResult {
@@ -145,12 +154,13 @@ impl ConfigParser {
                 area_type: Some("VIEW_3D".to_string()),
                 handler_name: Some("SpaceView3D".to_string()),
                 error_message: None,
-            })
+            }),
         }
     }
 
     pub fn get_supported_spaces(&self) -> Vec<String> {
-        self.space_mapper.get_supported_spaces()
+        self.space_mapper
+            .get_supported_spaces()
             .into_iter()
             .map(|s| s.to_string())
             .collect()

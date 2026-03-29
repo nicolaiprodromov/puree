@@ -1,13 +1,3 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 """
 Puree JSON persistence module.
 
@@ -72,13 +62,12 @@ class Storage:
         self._save_scheduled: bool = False
         self.load()
 
-    # ── Path resolution ────────────────────────────────────────────────
-
     def _get_data_path(self) -> pathlib.Path:
         """Resolve the JSON file path based on scope."""
         if self._scope == "project":
             try:
-                import bpy  # lazy — not available outside Blender
+                import bpy
+
                 blend_path = bpy.data.filepath
                 if blend_path:
                     blend_dir = pathlib.Path(blend_path).parent
@@ -92,13 +81,11 @@ class Storage:
             except Exception as exc:
                 logger.warning(
                     "Storage(scope='project'): could not determine blend path "
-                    "(%s) — falling back to global scope.", exc
+                    "(%s) — falling back to global scope.",
+                    exc,
                 )
 
-        # Global scope (or fallback)
         return _get_global_config_dir() / self._namespace / "data.json"
-
-    # ── auto_save property ────────────────────────────────────────────
 
     @property
     def auto_save(self) -> bool:
@@ -108,24 +95,24 @@ class Storage:
     def auto_save(self, value: bool) -> None:
         self._auto_save = bool(value)
 
-    # ── Internal helpers ──────────────────────────────────────────────
-
     def _schedule_save(self) -> None:
         """Schedule a debounced save via bpy.app.timers (0.5 s)."""
         if self._save_scheduled:
             return
         try:
-            import bpy  # lazy
+            import bpy
 
             def _timer_callback():
                 self._save_scheduled = False
                 self.save()
-                return None  # run once
+                return None
 
             bpy.app.timers.register(_timer_callback, first_interval=0.5)
             self._save_scheduled = True
         except Exception as exc:
-            logger.warning("Storage._schedule_save: could not register timer (%s).", exc)
+            logger.warning(
+                "Storage._schedule_save: could not register timer (%s).", exc
+            )
 
     def _navigate(self, keys: list[str], create: bool = False):
         """Walk nested dicts following *keys*.
@@ -138,10 +125,8 @@ class Storage:
             if create:
                 if key not in node or not isinstance(node[key], dict):
                     node[key] = {}
-            node = node[key]  # may raise KeyError — intentional
+            node = node[key]
         return node, keys[-1]
-
-    # ── Public API ─────────────────────────────────────────────────────
 
     def get(self, key: str, default=None):
         """Return the value at *key* (dot-separated path), or *default*."""
@@ -180,8 +165,6 @@ class Storage:
         if self._auto_save:
             self._schedule_save()
 
-    # ── Persistence ────────────────────────────────────────────────────
-
     def load(self) -> None:
         """Load data from disk.  Missing file → empty store.  Corrupt JSON → warning + empty."""
         path = self._get_data_path()
@@ -191,18 +174,26 @@ class Storage:
         try:
             with path.open("r", encoding="utf-8") as fh:
                 self._data = json.load(fh)
-            logger.debug("Storage('%s'): loaded %d top-level keys from %s.",
-                         self._namespace, len(self._data), path)
+            logger.debug(
+                "Storage('%s'): loaded %d top-level keys from %s.",
+                self._namespace,
+                len(self._data),
+                path,
+            )
         except json.JSONDecodeError as exc:
             logger.warning(
                 "Storage('%s'): JSON decode error in %s (%s) — starting fresh.",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             self._data = {}
         except OSError as exc:
             logger.warning(
                 "Storage('%s'): could not read %s (%s) — starting fresh.",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             self._data = {}
 
@@ -225,6 +216,8 @@ class Storage:
         except OSError as exc:
             logger.error(
                 "Storage('%s'): failed to save to %s: %s",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             return False

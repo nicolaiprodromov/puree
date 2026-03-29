@@ -1,19 +1,8 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 import bpy
 import os
 import sys
 import importlib
 
-# Force-reload puree submodules on Blender script reload
 if "puree" in sys.modules:
     importlib.reload(sys.modules["puree"])
 
@@ -21,25 +10,28 @@ from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
 from puree import set_addon_root
 
 bl_info = {
-    "name"       : "Puree",
-    "author"     : "Nicolai Prodromov",
-    "version"    : (0, 1, 3),
-    "blender"    : (5, 1, 0),
-    "location"   : "3D View > Sidebar > Puree",
+    "name": "Puree",
+    "author": "Nicolai Prodromov",
+    "version": (0, 1, 3),
+    "blender": (5, 1, 0),
+    "location": "3D View > Sidebar > Puree",
     "description": "XWZ Puree UI framework",
-    "category"   : "3D View"
+    "category": "3D View",
 }
+
 
 def register():
     set_addon_root(os.path.dirname(os.path.abspath(__file__)))
     xwz_ui_register()
     wm = bpy.context.window_manager
     wm.xwz_ui_conf_path = "tests/example0/index.yaml"
-    wm.xwz_debug_panel  = True
-    wm.xwz_auto_start   = True
+    wm.xwz_debug_panel = True
+    wm.xwz_auto_start = True
+
 
 def unregister():
     xwz_ui_unregister()
-    
+
+
 if __name__ == "__main__":
     register()

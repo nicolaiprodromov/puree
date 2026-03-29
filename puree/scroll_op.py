@@ -1,40 +1,32 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 import bpy
 import math
 
 from .log import get_logger
+
 logger = get_logger(__name__)
+
 
 class ScrollState:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
-            cls._instance                    = super().__new__(cls)
-            cls._instance.scroll_value       = 0
-            cls._instance.scroll_delta       = 0
+            cls._instance = super().__new__(cls)
+            cls._instance.scroll_value = 0
+            cls._instance.scroll_delta = 0
             cls._instance._prev_scroll_value = 0
-            cls._instance.callbacks          = []
-            cls._instance.running_operator   = None
+            cls._instance.callbacks = []
+            cls._instance.running_operator = None
         return cls._instance
-    
+
     def set_operator(self, operator):
         self.running_operator = operator
-    
+
     def stop_scrolling(self):
-        if self.running_operator: 
+        if self.running_operator:
             self.running_operator.should_stop = True
-            self.running_operator             = None
-    
+            self.running_operator = None
+
     def update(self, delta, absolute_value):
         self.scroll_delta = delta
         self.scroll_value = absolute_value
@@ -43,105 +35,109 @@ class ScrollState:
                 callback(delta, absolute_value)
             except Exception as e:
                 logger.error(f"Scroll callback error: {e}", exc_info=True)
-    
+
     def register_callback(self, callback):
         if callback not in self.callbacks:
             self.callbacks.append(callback)
-    
+
     def unregister_callback(self, callback):
         if callback in self.callbacks:
             self.callbacks.remove(callback)
 
+
 class XWZ_OT_scroll(bpy.types.Operator):
-    bl_idname  = "xwz.scroll_modal"
-    bl_label   = "Scroll Event Template"
-    bl_options = {'REGISTER'}
+    bl_idname = "xwz.scroll_modal"
+    bl_label = "Scroll Event Template"
+    bl_options = {"REGISTER"}
+
     def invoke(self, context, event):
-        self.mouse_x          = 0
-        self.mouse_y          = 0
+        self.mouse_x = 0
+        self.mouse_y = 0
         self.trackpad_x_accum = 0
         self.trackpad_y_accum = 0
-        self.scroll_offset    = 0
-        self.scroll_speed     = 10
-        self.mouse_x          = event.mouse_region_x
-        self.mouse_y          = event.mouse_region_y
+        self.scroll_offset = 0
+        self.scroll_speed = 10
+        self.mouse_x = event.mouse_region_x
+        self.mouse_y = event.mouse_region_y
 
         self.should_stop = False
         scroll_state.set_operator(self)
-        
+
         context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
-    
+        return {"RUNNING_MODAL"}
+
     def modal(self, context, event):
         if self.should_stop:
             scroll_state.set_operator(None)
-            return {'CANCELLED'}
-        
-        self.mouse_x = event.mouse_region_x  
+            return {"CANCELLED"}
+
+        self.mouse_x = event.mouse_region_x
         self.mouse_y = event.mouse_region_y
-        
+
         if not self.is_mouse_in_ui_area(context):
-            return {'PASS_THROUGH'}
-            
+            return {"PASS_THROUGH"}
+
         scroll_delta = 0
-        
-        if event.type == 'WHEELUPMOUSE' and event.value == 'PRESS':
+
+        if event.type == "WHEELUPMOUSE" and event.value == "PRESS":
             scroll_delta = -1
-            
-        elif event.type == 'WHEELDOWNMOUSE' and event.value == 'PRESS':
+
+        elif event.type == "WHEELDOWNMOUSE" and event.value == "PRESS":
             scroll_delta = 1
-            
-        elif event.type == 'TRACKPADPAN':
+
+        elif event.type == "TRACKPADPAN":
             self.trackpad_y_accum += event.mouse_y - event.mouse_prev_y
-            
-            sensitivity = max(1, 100 - self.scroll_speed)  
+
+            sensitivity = max(1, 100 - self.scroll_speed)
             if abs(self.trackpad_y_accum) > sensitivity:
                 scroll_delta = math.floor(self.trackpad_y_accum / sensitivity)
                 self.trackpad_y_accum -= scroll_delta * sensitivity
-            
+
         if scroll_delta != 0:
             self.scroll_offset += scroll_delta
             scroll_state.update(scroll_delta, self.scroll_offset)
-        
-        return {'PASS_THROUGH'}
-    
+
+        return {"PASS_THROUGH"}
+
     def is_mouse_in_ui_area(self, context):
         from .space_config import get_target_space
+
         target_space = get_target_space()
         width, height = 1920, 1080
         for area in context.screen.areas:
             if area.type == target_space:
                 for region in area.regions:
-                    if region.type == 'WINDOW':
+                    if region.type == "WINDOW":
                         width = region.width
                         height = region.height
                         break
                 break
-        in_bounds = (
-            0 <= self.mouse_x <= width and 0 <= self.mouse_y <= height
-        )
+        in_bounds = 0 <= self.mouse_x <= width and 0 <= self.mouse_y <= height
         return in_bounds
-    
+
+
 class XWZ_OT_scroll_launch(bpy.types.Operator):
-    bl_idname  = "xwz.scroll_modal_launch"
-    bl_label   = "Scroll Context Fix"
-    bl_options = {'INTERNAL'}
+    bl_idname = "xwz.scroll_modal_launch"
+    bl_label = "Scroll Context Fix"
+    bl_options = {"INTERNAL"}
+
     def execute(self, context):
         context_dict = {
-            "area"          : context.area,
-            "region"        : context.region,
-            "space_data"    : context.space_data,
-            "screen"        : context.screen,
-            "scene"         : context.scene,
-            "window"        : context.window,
+            "area": context.area,
+            "region": context.region,
+            "space_data": context.space_data,
+            "screen": context.screen,
+            "scene": context.scene,
+            "window": context.window,
             "window_manager": context.window_manager,
         }
-        
+
         try:
             with context.temp_override(**context_dict):
-                bpy.ops.xwz.scroll_modal('INVOKE_DEFAULT')
+                bpy.ops.xwz.scroll_modal("INVOKE_DEFAULT")
         except Exception as e:
             logger.error(f"Error invoking scroll modal: {e}")
-        return {'FINISHED'}
+        return {"FINISHED"}
+
 
 scroll_state = ScrollState()

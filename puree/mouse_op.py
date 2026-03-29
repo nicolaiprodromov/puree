@@ -1,22 +1,14 @@
-# Created by XWZ
-# ◕‿◕ Distributed for free at:
-# https://github.com/nicolaiprodromov/puree
-# ╔═════════════════════════════════╗
-# ║  ██   ██  ██      ██  ████████  ║
-# ║   ██ ██   ██  ██  ██       ██   ║
-# ║    ███    ██  ██  ██     ██     ║
-# ║   ██ ██   ██  ██  ██   ██       ║
-# ║  ██   ██   ████████   ████████  ║
-# ╚═════════════════════════════════╝
 import bpy
 import time
 
 from .log import get_logger
+
 logger = get_logger(__name__)
+
 
 class MouseState:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -25,47 +17,49 @@ class MouseState:
             cls._instance.callbacks = []
             cls._instance.running_operator = None
         return cls._instance
-    
+
     def set_operator(self, operator):
         self.running_operator = operator
-    
+
     def stop_mouse_tracking(self):
         if self.running_operator:
             self.running_operator.should_stop = True
             self.running_operator = None
-    
+
     def update_mouse(self, pos):
         self.mouse_pos[0] = pos[0]
         self.mouse_pos[1] = pos[1]
         for callback in self.callbacks:
             try:
-                callback('mouse', pos)
+                callback("mouse", pos)
             except:
                 logger.warning("Mouse callback error", exc_info=True)
-    
+
     def update_click(self, clicked):
         self.is_clicked = clicked
         for callback in self.callbacks:
             try:
-                callback('click', clicked)
+                callback("click", clicked)
             except:
                 logger.warning("Click callback error", exc_info=True)
-    
+
     def register_callback(self, callback):
         if callback not in self.callbacks:
             self.callbacks.append(callback)
-    
+
     def unregister_callback(self, callback):
         if callback in self.callbacks:
             self.callbacks.remove(callback)
 
+
 class XWZ_OT_mouse(bpy.types.Operator):
     bl_idname = "xwz.mouse_modal"
     bl_label = "Mouse Event Template"
-    bl_options = {'REGISTER'}
-    
+    bl_options = {"REGISTER"}
+
     def invoke(self, context, event):
         from .space_config import get_target_space
+
         self._target_space = get_target_space()
         self.should_stop = False
         self.start_time = time.time()
@@ -73,19 +67,19 @@ class XWZ_OT_mouse(bpy.types.Operator):
         mouse_state.is_clicked = False
         mouse_state.set_operator(self)
         context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
-    
+        return {"RUNNING_MODAL"}
+
     def modal(self, context, event):
         if self.should_stop:
             mouse_state.set_operator(None)
-            return {'CANCELLED'}
-        
+            return {"CANCELLED"}
+
         if not self.click_enabled:
             elapsed = time.time() - self.start_time
             if elapsed >= 1.0:
                 self.click_enabled = True
-        
-        if event.type == 'MOUSEMOVE':
+
+        if event.type == "MOUSEMOVE":
             area = context.area
             if area and area.type == self._target_space:
                 region = context.region
@@ -93,39 +87,41 @@ class XWZ_OT_mouse(bpy.types.Operator):
                 raw_y = event.mouse_region_y / region.height
                 pos = [raw_x * 2.0 - 1.0, (1.0 - raw_y) * 2.0 - 1.0]
                 mouse_state.update_mouse(pos)
-        
-        elif event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+
+        elif event.type == "LEFTMOUSE" and event.value == "PRESS":
             if self.click_enabled:
                 mouse_state.update_click(True)
-        
-        elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+
+        elif event.type == "LEFTMOUSE" and event.value == "RELEASE":
             if self.click_enabled:
                 mouse_state.update_click(False)
-        
-        return {'PASS_THROUGH'}
+
+        return {"PASS_THROUGH"}
+
 
 class XWZ_OT_mouse_launch(bpy.types.Operator):
     bl_idname = "xwz.mouse_modal_launch"
     bl_label = "Mouse Context Fix"
-    bl_options = {'INTERNAL'}
-    
+    bl_options = {"INTERNAL"}
+
     def execute(self, context):
         context_dict = {
-            "area"          : context.area,
-            "region"        : context.region,
-            "space_data"    : context.space_data,
-            "screen"        : context.screen,
-            "scene"         : context.scene,
-            "window"        : context.window,
+            "area": context.area,
+            "region": context.region,
+            "space_data": context.space_data,
+            "screen": context.screen,
+            "scene": context.scene,
+            "window": context.window,
             "window_manager": context.window_manager,
         }
-        
+
         try:
             with context.temp_override(**context_dict):
-                bpy.ops.xwz.mouse_modal('INVOKE_DEFAULT')
+                bpy.ops.xwz.mouse_modal("INVOKE_DEFAULT")
         except Exception as e:
             logger.error(f"Error invoking mouse modal: {e}")
-            
-        return {'FINISHED'}
+
+        return {"FINISHED"}
+
 
 mouse_state = MouseState()
