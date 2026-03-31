@@ -33,13 +33,13 @@ Callbacks are always delivered on the main Blender thread via a queue
 drained every 50 ms by a bpy.app.timers interval.
 """
 
-import json as _json
-import threading
 import collections
 import concurrent.futures
-import urllib.request
+import json as _json
+import threading
 import urllib.error
-from dataclasses import dataclass, field
+import urllib.request
+from dataclasses import dataclass
 from typing import Callable, Optional
 
 from .log import get_logger
@@ -208,9 +208,7 @@ class HttpClient:
         )
         return future
 
-    def _worker(
-        self, method, url, json_data, data, headers, on_success, on_error, timeout
-    ):
+    def _worker(self, method, url, json_data, data, headers, on_success, on_error, timeout):
         try:
             response = _do_request(
                 method,

@@ -175,8 +175,6 @@ def _cleanup_all() -> None:
         try:
             handle.cancel()
         except Exception as exc:
-            logger.warning(
-                "_cleanup_all: error cancelling handle %s: %s", handle.id, exc
-            )
+            logger.warning("_cleanup_all: error cancelling handle %s: %s", handle.id, exc)
     _registry.clear()
     logger.info("Timer cleanup complete — %d timer(s) cancelled", len(active))

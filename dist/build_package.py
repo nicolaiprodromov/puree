@@ -1,8 +1,8 @@
-import os
-import sys
-import shutil
 import glob
+import os
+import shutil
 import subprocess
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from puree.log import setup_cli_logging
@@ -35,9 +35,7 @@ def main():
         logger.info(f"Removed {old_wheel}")
 
     python_cmd = "python" if sys.platform == "win32" else "python3"
-    run_command(
-        f"{python_cmd} setup.py sdist --dist-dir {out_dir} bdist_wheel --dist-dir {out_dir}"
-    )
+    run_command(f"{python_cmd} setup.py sdist --dist-dir {out_dir} bdist_wheel --dist-dir {out_dir}")
 
     wheels_dir = os.path.join(project_root, "wheels")
     os.makedirs(wheels_dir, exist_ok=True)

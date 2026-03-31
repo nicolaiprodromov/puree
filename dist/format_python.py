@@ -1,7 +1,7 @@
-import sys
-import tokenize
 import io
 import os
+import sys
+import tokenize
 
 
 def strip_comments(source: str) -> str:

@@ -1,13 +1,15 @@
-import bpy
+import importlib
 import os
 import sys
-import importlib
+
+import bpy
 
 if "puree" in sys.modules:
     importlib.reload(sys.modules["puree"])
 
-from puree import register as xwz_ui_register, unregister as xwz_ui_unregister
+from puree import register as xwz_ui_register
 from puree import set_addon_root
+from puree import unregister as xwz_ui_unregister
 
 bl_info = {
     "name": "Puree",

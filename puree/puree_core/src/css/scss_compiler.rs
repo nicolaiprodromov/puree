@@ -49,7 +49,7 @@ impl SCSSCompiler {
         let result = if let Some(ns) = namespace {
             let comp_name = component_name.unwrap_or_else(|| {
                 if ns.contains('_') {
-                    ns.split('_').last().unwrap_or(&ns).to_string()
+                    ns.split('_').next_back().unwrap_or(&ns).to_string()
                 } else {
                     ns.clone()
                 }

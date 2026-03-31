@@ -1,11 +1,16 @@
 use crate::space_mapper::SpaceMapper;
 use pyo3::prelude::*;
-use serde_yaml;
 
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct ConfigParser {
     space_mapper: SpaceMapper,
+}
+
+impl Default for ConfigParser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[pymethods]

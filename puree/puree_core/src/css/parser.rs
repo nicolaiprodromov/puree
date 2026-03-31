@@ -13,6 +13,12 @@ pub struct CSSParser {
     variables: HashMap<String, String>,
 }
 
+impl Default for CSSParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl CSSParser {
     #[new]
@@ -116,9 +122,7 @@ impl CSSParser {
                     current_selector = parts[0].trim().to_string();
                     in_rule = true;
 
-                    self.styles
-                        .entry(current_selector.clone())
-                        .or_insert_with(HashMap::new);
+                    self.styles.entry(current_selector.clone()).or_default();
 
                     if parts.len() > 1 && !parts[1].trim().is_empty() {
                         buffer = parts[1].to_string();

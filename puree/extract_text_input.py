@@ -17,17 +17,9 @@ class TextInputExtractor:
             self.text_input_blocks[container.id] = {
                 "container_id": container.id,
                 "placeholder": placeholder,
-                "font": container.font
-                if container.font != ""
-                else self.ui.theme.default_font,
-                "x_pos": int(
-                    self.json_data[self.flat_index]["position"][0]
-                    + container.style.text_x
-                ),
-                "y_pos": int(
-                    self.json_data[self.flat_index]["position"][1]
-                    + container.style.text_y
-                ),
+                "font": container.font if container.font != "" else self.ui.theme.default_font,
+                "x_pos": int(self.json_data[self.flat_index]["position"][0] + container.style.text_x),
+                "y_pos": int(self.json_data[self.flat_index]["position"][1] + container.style.text_y),
                 "font_size": int(container.style.font_size),
                 "color": container.style.color,
                 "mask_x": int(self.json_data[self.flat_index]["position"][0]),

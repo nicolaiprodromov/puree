@@ -19,17 +19,9 @@ class TextExtractor:
             self.text_blocks[container.id] = {
                 "container_id": container.id,
                 "text": text,
-                "font": container.font
-                if container.font != ""
-                else (self.ui.theme.default_font or "default"),
-                "text_x": int(
-                    self.json_data[self.flat_index]["position"][0]
-                    + container.style.text_x
-                ),
-                "text_y": int(
-                    self.json_data[self.flat_index]["position"][1]
-                    + container.style.text_y
-                ),
+                "font": container.font if container.font != "" else (self.ui.theme.default_font or "default"),
+                "text_x": int(self.json_data[self.flat_index]["position"][0] + container.style.text_x),
+                "text_y": int(self.json_data[self.flat_index]["position"][1] + container.style.text_y),
                 "font_size": int(container.style.font_size),
                 "color": container.style.color,
                 "mask_x": int(self.json_data[self.flat_index]["position"][0]),
@@ -48,18 +40,10 @@ class TextExtractor:
                 "text_overflow": getattr(container.style, "text_overflow", "CLIP"),
                 "overflow_wrap": getattr(container.style, "overflow_wrap", "NORMAL"),
                 "word_break": getattr(container.style, "word_break", "NORMAL"),
-                "text_shadow_color": getattr(
-                    container.style, "text_shadow_color", [0, 0, 0, 0]
-                ),
-                "text_shadow_offset_x": float(
-                    getattr(container.style, "text_shadow_offset_x", 0)
-                ),
-                "text_shadow_offset_y": float(
-                    getattr(container.style, "text_shadow_offset_y", 0)
-                ),
-                "text_shadow_blur": float(
-                    getattr(container.style, "text_shadow_blur", 0)
-                ),
+                "text_shadow_color": getattr(container.style, "text_shadow_color", [0, 0, 0, 0]),
+                "text_shadow_offset_x": float(getattr(container.style, "text_shadow_offset_x", 0)),
+                "text_shadow_offset_y": float(getattr(container.style, "text_shadow_offset_y", 0)),
+                "text_shadow_blur": float(getattr(container.style, "text_shadow_blur", 0)),
             }
         self.flat_index += 1
         for child in container.children:

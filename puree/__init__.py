@@ -1,8 +1,8 @@
-import os
-import sys
-import logging
-import pathlib
 import importlib as _importlib
+import logging
+import os
+import pathlib
+import sys
 
 _submodules = [k for k in sys.modules if k.startswith("puree.")]
 if _submodules:
@@ -13,15 +13,17 @@ if _submodules:
         except Exception as _e:
             _boot_logger.warning("reload %s: %s", _mod_name, _e)
 
-from .log import get_logger, get_log_path, reinitialize as _reinitialize_logging
-from .storage import Storage
-from .virtual_scroll import VirtualScroll
-from .markdown import render_markdown
 from .collapse import collapse_manager
 from .focus import focus_manager
 from .keyboard import keys
+from .log import get_log_path, get_logger
+from .log import reinitialize as _reinitialize_logging
+from .markdown import render_markdown
 from .net import http, sse
-from .timers import set_interval, set_timeout, clear as clear_timer
+from .storage import Storage
+from .timers import clear as clear_timer
+from .timers import set_interval, set_timeout
+from .virtual_scroll import VirtualScroll
 
 logger = get_logger(__name__)
 
@@ -136,6 +138,7 @@ def _check_reload_sentinel():
 
 def _try_start_ui():
     import bpy
+
     from .space_config import parse_space_config, validate_current_configuration
 
     wm = bpy.context.window_manager
@@ -210,12 +213,13 @@ def auto_start_ui_handler(dummy):
 def register():
     _reinitialize_logging()
     import bpy
-    from .render import register as render_register
-    from .text_op import register as txt_register
-    from .text_input_op import register as txt_input_register
+
+    from .hit_op import register as hit_register
     from .img_op import register as img_register
     from .panel import register as panel_register
-    from .hit_op import register as hit_register
+    from .render import register as render_register
+    from .text_input_op import register as txt_input_register
+    from .text_op import register as txt_register
 
     hit_register()
 
@@ -245,7 +249,7 @@ def register():
         bpy.app.handlers.load_post.append(auto_start_ui_handler)
     bpy.app.timers.register(_try_start_ui, first_interval=1.0)
 
-    from .reload_server import ReloadServer, PUREE_RELOAD_PORT
+    from .reload_server import PUREE_RELOAD_PORT, ReloadServer
 
     global _reload_server
     _reload_server = ReloadServer(
@@ -264,12 +268,13 @@ def register():
 
 def unregister():
     import bpy
-    from .render import unregister as render_unregister
-    from .text_op import unregister as txt_unregister
-    from .text_input_op import unregister as txt_input_unregister
+
+    from .hit_op import unregister as hit_unregister
     from .img_op import unregister as img_unregister
     from .panel import unregister as panel_unregister
-    from .hit_op import unregister as hit_unregister
+    from .render import unregister as render_unregister
+    from .text_input_op import unregister as txt_input_unregister
+    from .text_op import unregister as txt_unregister
 
     hit_unregister()
 
@@ -279,7 +284,7 @@ def unregister():
         bpy.app.timers.unregister(_try_start_ui)
 
     try:
-        from .render import _render_data, _modal_timer
+        from .render import _modal_timer, _render_data
 
         if _render_data:
             _render_data.cleanup()
@@ -287,7 +292,7 @@ def unregister():
             try:
                 context = bpy.context
                 context.window_manager.event_timer_remove(_modal_timer)
-            except:
+            except Exception:
                 pass
     except Exception as e:
         logger.warning(f"Error during forced cleanup: {e}")

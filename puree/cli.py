@@ -94,9 +94,7 @@ def _find_local_wheels_dir():
         if not candidate.is_dir():
             return None
         if not list(candidate.glob("puree_ui-*.whl")):
-            print(
-                "Error: Local wheels/ directory found but contains no puree_ui wheel."
-            )
+            print("Error: Local wheels/ directory found but contains no puree_ui wheel.")
             print("       Run 'just build_core && just build_package' first.")
             sys.exit(1)
         return candidate
@@ -130,12 +128,7 @@ def _get_blender_paths(blender_exe):
     elif system == "Darwin":
         base = Path.home() / "Library" / "Application Support" / "Blender" / version
     elif system == "Windows":
-        base = (
-            Path(os.environ.get("APPDATA", ""))
-            / "Blender Foundation"
-            / "Blender"
-            / version
-        )
+        base = Path(os.environ.get("APPDATA", "")) / "Blender Foundation" / "Blender" / version
     else:
         print(f"Error: Unsupported platform '{system}'.")
         sys.exit(1)
@@ -144,14 +137,7 @@ def _get_blender_paths(blender_exe):
     if system == "Windows":
         site_packages = base / "extensions" / ".local" / "Lib" / "site-packages"
     else:
-        site_packages = (
-            base
-            / "extensions"
-            / ".local"
-            / "lib"
-            / f"python{py_version}"
-            / "site-packages"
-        )
+        site_packages = base / "extensions" / ".local" / "lib" / f"python{py_version}" / "site-packages"
 
     return str(ext_path), str(site_packages)
 
@@ -257,39 +243,21 @@ def _manifest_template(py_version):
     machine = platform.machine()
     if system == "Linux" and machine == "x86_64":
         plat_tag = "manylinux_2_17_x86_64.manylinux2014_x86_64"
-        cp_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
-        gl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64"
-        yaml_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
-        stretch_plat = f"cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64"
-        moderngl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
+        f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
+        f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64"
+        f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
+        f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
         blender_platforms = '  "linux-x64",'
     elif system == "Windows":
-        cp = f"cp{py_version.replace('.', '')}"
-        cp_plat = f"{cp}-{cp}-win_amd64"
-        gl_plat = cp_plat
-        yaml_plat = cp_plat
-        stretch_plat = "cp38-abi3-win_amd64"
-        moderngl_plat = cp_plat
+        f"cp{py_version.replace('.', '')}"
         blender_platforms = '  "windows-x64",'
     elif system == "Darwin":
-        cp = f"cp{py_version.replace('.', '')}"
+        f"cp{py_version.replace('.', '')}"
         if machine == "arm64":
-            mac_tag = "macosx_11_0_arm64"
             blender_platforms = '  "macos-arm64",'
         else:
-            mac_tag = "macosx_10_9_x86_64"
             blender_platforms = '  "macos-x64",'
-        cp_plat = f"{cp}-{cp}-{mac_tag}"
-        gl_plat = cp_plat
-        yaml_plat = cp_plat
-        stretch_plat = f"cp38-abi3-{mac_tag}"
-        moderngl_plat = cp_plat
     else:
-        cp_plat = "FIXME"
-        gl_plat = "FIXME"
-        yaml_plat = "FIXME"
-        stretch_plat = "FIXME"
-        moderngl_plat = "FIXME"
         blender_platforms = '  "linux-x64",'
 
     return textwrap.dedent(f"""\
@@ -494,8 +462,7 @@ def cmd_init(args):
                 tracker.advance(5)
                 tracker.step_warn("Failed to download wheels")
                 tracker.step_info(
-                    f"pip download --only-binary=:all: "
-                    f"--python-version {py_version} --dest wheels puree-ui"
+                    f"pip download --only-binary=:all: --python-version {py_version} --dest wheels puree-ui"
                 )
             else:
                 print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
@@ -518,9 +485,9 @@ def cmd_init(args):
         print("Done! Your Puree project is ready.")
         print()
         print("Next steps:")
-        print(f"  1. puree build     — Build the extension zip")
-        print(f"  2. puree install   — Install into Blender")
-        print(f"  3. Open Blender and look for the Puree tab in the N-panel")
+        print("  1. puree build     — Build the extension zip")
+        print("  2. puree install   — Install into Blender")
+        print("  3. Open Blender and look for the Puree tab in the N-panel")
         print()
 
 
@@ -592,9 +559,7 @@ def cmd_build(args):
     output_file = dist_dir / f"{addon_name}_{version}.zip"
 
     if tui:
-        sp = tui.Spinner(
-            "Building extension zip", frames=tui.SPINNER_BLOCKS, color=tui.MAGENTA
-        )
+        sp = tui.Spinner("Building extension zip", frames=tui.SPINNER_BLOCKS, color=tui.MAGENTA)
         sp.start()
 
     result = subprocess.run(
@@ -888,9 +853,7 @@ def cmd_reload(args):
     if tui:
         tui.step("Sentinel written \u2014 Blender will pick this up within ~2s")
     else:
-        print(
-            "[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s"
-        )
+        print("[Puree] \u2713 Sentinel written \u2014 Blender will pick this up within ~2s")
 
 
 def main():
@@ -906,9 +869,7 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser(
-        "init", help="Initialize a new Puree project in the current directory"
-    )
+    subparsers.add_parser("init", help="Initialize a new Puree project in the current directory")
     subparsers.add_parser("build", help="Build the extension zip using Blender on PATH")
     subparsers.add_parser("install", help="Install the built extension into Blender")
     subparsers.add_parser("link", help="Symlink project into Blender for development")

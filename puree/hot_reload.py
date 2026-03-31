@@ -1,7 +1,7 @@
-import os
-import yaml
-from typing import Optional, Dict, Any, Callable, List
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional
+
+import yaml
 
 try:
     import bpy
@@ -28,9 +28,7 @@ class HotReloadManager:
             "asset": [],
         }
 
-    def initialize(
-        self, addon_dir: str, config_path: str, debounce_ms: int = 300
-    ) -> bool:
+    def initialize(self, addon_dir: str, config_path: str, debounce_ms: int = 300) -> bool:
         try:
             from .native_bindings import PyFileWatcher
 
@@ -114,7 +112,7 @@ class HotReloadManager:
         for item in list(self.watched_items):
             try:
                 self.watcher.unwatch_path(str(item))
-            except:
+            except Exception:
                 logger.debug("Failed to unwatch path", exc_info=True)
         self.watched_items.clear()
 
@@ -157,9 +155,7 @@ class HotReloadManager:
             logger.error(f"Error unwatching directory: {e}")
             return False
 
-    def register_callback(
-        self, change_type: str, callback: Callable[[Dict[str, Any]], None]
-    ):
+    def register_callback(self, change_type: str, callback: Callable[[Dict[str, Any]], None]):
         if change_type in self.reload_callbacks:
             self.reload_callbacks[change_type].append(callback)
         else:
@@ -263,9 +259,7 @@ def trigger_ui_reload():
         wm = bpy.context.window_manager
         bpy.ops.xwz.parse_app_ui(conf_path=wm.xwz_ui_conf_path)
 
-        from . import render
-        from . import parser_op
-        from . import hit_op
+        from . import hit_op, parser_op, render
 
         if not (render._render_data and render._render_data.running):
             return False
@@ -296,16 +290,12 @@ def trigger_ui_reload():
         if hasattr(parser_op, "image_blocks"):
             render._render_data._cache_original_image_positions(parser_op.image_blocks)
         if hasattr(parser_op, "text_input_blocks"):
-            render._render_data._cache_original_text_input_positions(
-                parser_op.text_input_blocks
-            )
+            render._render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
         render._render_data._apply_initial_scroll_clips(
             new_data,
             parser_op.text_blocks,
             parser_op.image_blocks if hasattr(parser_op, "image_blocks") else None,
-            parser_op.text_input_blocks
-            if hasattr(parser_op, "text_input_blocks")
-            else None,
+            parser_op.text_input_blocks if hasattr(parser_op, "text_input_blocks") else None,
         )
 
         from . import text_op

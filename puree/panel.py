@@ -1,6 +1,7 @@
 import bpy
+from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
 from bpy.types import Panel, PropertyGroup, UIList
-from bpy.props import CollectionProperty, StringProperty, IntProperty, BoolProperty
+
 from . import render
 from .log import get_logger
 
@@ -16,9 +17,7 @@ class ContainerItem(PropertyGroup):
 
 
 class XWZ_UL_container_hierarchy(UIList):
-    def draw_item(
-        self, context, layout, data, item, icon, active_data, active_propname, index
-    ):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
 
@@ -30,9 +29,7 @@ class XWZ_UL_container_hierarchy(UIList):
                     tree_prefix += "│  "
 
             icon = "CHECKBOX_HLT" if item.is_outlined else "CHECKBOX_DEHLT"
-            op = row.operator(
-                "xwz.toggle_debug_outline", text="", icon=icon, emboss=False
-            )
+            op = row.operator("xwz.toggle_debug_outline", text="", icon=icon, emboss=False)
             op.container_id = item.container_id
 
             display_icon = "HIDE_OFF" if item.is_visible else "HIDE_ON"
@@ -76,9 +73,7 @@ def update_container_hierarchy():
 
         is_outlined = False
         if render._render_data:
-            is_outlined = (
-                item.container_id in render._render_data.debug_outlined_containers
-            )
+            is_outlined = item.container_id in render._render_data.debug_outlined_containers
         item.is_outlined = is_outlined
 
         for child_idx in container.get("children", []):
@@ -113,9 +108,7 @@ def register():
 
     register_dynamic_panel()
 
-    bpy.types.WindowManager.xwz_container_hierarchy = CollectionProperty(
-        type=ContainerItem
-    )
+    bpy.types.WindowManager.xwz_container_hierarchy = CollectionProperty(type=ContainerItem)
     bpy.types.WindowManager.xwz_container_hierarchy_index = IntProperty()
 
 
@@ -143,7 +136,7 @@ def register_dynamic_panel():
         space = get_target_space()
         if space:
             target_space = space
-    except:
+    except Exception:
         logger.debug("Failed to get target space", exc_info=True)
 
     unregister_dynamic_panel()
@@ -169,9 +162,7 @@ def register_dynamic_panel():
                 box = layout.box()
                 col = box.column(align=True)
                 col.separator()
-                col.label(
-                    text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}"
-                )
+                col.label(text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
                 col.label(text=f"FPS: {render._render_data.compute_fps:.1f}")
 
                 box = layout.box()
@@ -212,7 +203,7 @@ def unregister_dynamic_panel():
     if _current_panel_class:
         try:
             bpy.utils.unregister_class(_current_panel_class)
-        except:
+        except Exception:
             pass
         _current_panel_class = None
 

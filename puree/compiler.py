@@ -3,7 +3,7 @@ import importlib.util
 import os
 from time import sleep
 
-from .log import get_logger, capture_output
+from .log import capture_output, get_logger
 
 logger = get_logger(__name__)
 

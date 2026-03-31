@@ -1,12 +1,10 @@
-import sys
 import os
 import re
-import json
-import subprocess
-import time
 import shutil
-import zipfile
+import subprocess
+import sys
 import tarfile
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -137,11 +135,9 @@ def create_github_release(version, zip_file, tar_file):
     ]
 
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
         logger.info("Release created successfully!")
-        logger.info(
-            f"URL: https://github.com/nicolaiprodromov/puree/releases/tag/{tag}"
-        )
+        logger.info(f"URL: https://github.com/nicolaiprodromov/puree/releases/tag/{tag}")
 
     except subprocess.CalledProcessError as e:
         if "already exists" in e.stderr.lower():

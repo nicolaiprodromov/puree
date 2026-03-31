@@ -1,6 +1,6 @@
-import sys
 import os
 import re
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from puree.log import setup_cli_logging
@@ -38,9 +38,7 @@ def update_version(version):
         init_content = f.read()
 
     version_tuple = "(" + ", ".join(version.split(".")) + ")"
-    init_content = re.sub(
-        r'"version"\s*:\s*\([^)]*\)', f'"version"    : {version_tuple}', init_content
-    )
+    init_content = re.sub(r'"version"\s*:\s*\([^)]*\)', f'"version"    : {version_tuple}', init_content)
 
     with open(init_path, "w", encoding="utf-8") as f:
         f.write(init_content)

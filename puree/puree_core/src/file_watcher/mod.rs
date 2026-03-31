@@ -203,7 +203,7 @@ impl FileWatcher {
     /// Check if a path belongs to a component directory
     fn is_component_path(path: &Path) -> bool {
         path.components()
-            .any(|c| c.as_os_str().to_str().map_or(false, |s| s == "components"))
+            .any(|c| c.as_os_str().to_str() == Some("components"))
     }
 }
 

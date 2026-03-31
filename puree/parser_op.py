@@ -1,11 +1,13 @@
-import bpy
 import os
-from .parser import UI
+
+import bpy
+
 from .compiler import Compiler
 from .extract_images import ImageExtractor
 from .extract_text import TextExtractor
 from .extract_text_input import TextInputExtractor
 from .log import get_logger
+from .parser import UI
 
 logger = get_logger(__name__)
 
@@ -39,41 +41,23 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
                 logger.debug(f" ├─ Overflow           : {child.overflow}")
                 logger.debug(f" ├─ Style              : {child.style}")
                 logger.debug(" ├────────────────────────────────────────────")
-                logger.debug(
-                    f" ├─ Parent ID          : [ {child.parent.id if child.parent else 'None'} ]"
-                )
+                logger.debug(f" ├─ Parent ID          : [ {child.parent.id if child.parent else 'None'} ]")
                 logger.debug(f" ├─ Number of Children : {len(child.children)}")
                 if len(child.children) > 0:
                     for cc in child.children:
                         logger.debug(f" ├─────── Child ID : [ {cc.id} ]")
                 logger.debug(" ├────────────────────────────────────────────")
                 logger.debug(f" ├─  Position           : ({child.x}, {child.y})")
-                logger.debug(
-                    f" ├─  Size               : ({child.width}, {child.height})"
-                )
+                logger.debug(f" ├─  Size               : ({child.width}, {child.height})")
                 logger.debug(f" ├─  BG Color           : {child.background_color}")
                 logger.debug(f" ├─  BG Color2          : {child.background_color_2}")
-                logger.debug(
-                    f" ├─  BG Gradient Rot    : {child.background_gradient_rot}"
-                )
-                logger.debug(
-                    f" ├─  Hover BG Color     : {child.hover_background_color}"
-                )
-                logger.debug(
-                    f" ├─  Hover BG Color2    : {child.hover_background_color_2}"
-                )
-                logger.debug(
-                    f" ├─  Hover BG G Rot     : {child.hover_background_gradient_rot}"
-                )
-                logger.debug(
-                    f" ├─  Click BG Color     : {child.click_background_color}"
-                )
-                logger.debug(
-                    f" ├─  Click BG Color2    : {child.click_background_color_2}"
-                )
-                logger.debug(
-                    f" ├─  Click BG G Rot     : {child.click_background_gradient_rot}"
-                )
+                logger.debug(f" ├─  BG Gradient Rot    : {child.background_gradient_rot}")
+                logger.debug(f" ├─  Hover BG Color     : {child.hover_background_color}")
+                logger.debug(f" ├─  Hover BG Color2    : {child.hover_background_color_2}")
+                logger.debug(f" ├─  Hover BG G Rot     : {child.hover_background_gradient_rot}")
+                logger.debug(f" ├─  Click BG Color     : {child.click_background_color}")
+                logger.debug(f" ├─  Click BG Color2    : {child.click_background_color_2}")
+                logger.debug(f" ├─  Click BG G Rot     : {child.click_background_gradient_rot}")
                 logger.debug(f" ├─  Border Radius      : {child.border_radius}")
                 logger.debug(f" ├─  Border Width       : {child.border_width}")
                 logger.debug(f" ├─  Border Color       : {child.border_color}")
@@ -118,19 +102,12 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
                         region_size = (region.width, region.height)
                         break
                 break
-        global \
-            XWZ_UI, \
-            text_blocks, \
-            text_input_blocks, \
-            image_blocks, \
-            image_blocks_relative
+        global XWZ_UI, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
         from . import get_addon_root
 
         addon_dir = get_addon_root()
 
-        self.ui = UI(
-            os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size
-        )
+        self.ui = UI(os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size)
         from .dynamic import dynamic_manager
 
         dynamic_manager.set_ui(self.ui)
@@ -153,13 +130,7 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
 
 
 def recompute_layout(canvas_size):
-    global \
-        XWZ_UI, \
-        _container_json_data, \
-        text_blocks, \
-        text_input_blocks, \
-        image_blocks, \
-        image_blocks_relative
+    global XWZ_UI, _container_json_data, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
 
     if XWZ_UI is None:
         return None
@@ -181,13 +152,7 @@ def recompute_layout(canvas_size):
 
 
 def sync_dirty_containers():
-    global \
-        XWZ_UI, \
-        _container_json_data, \
-        text_blocks, \
-        text_input_blocks, \
-        image_blocks, \
-        image_blocks_relative
+    global XWZ_UI, _container_json_data, text_blocks, text_input_blocks, image_blocks, image_blocks_relative
 
     if XWZ_UI is None or not _container_json_data:
         return False
@@ -201,8 +166,9 @@ def sync_dirty_containers():
             container._layout_node.mark_dirty()
 
     if XWZ_UI.root_node and len(dirty_nodes) > 0:
-        from .parser import node_flat_abs
         from stretchable import Edge
+
+        from .parser import node_flat_abs
 
         XWZ_UI.root_node.compute_layout(XWZ_UI.canvas_size)
 

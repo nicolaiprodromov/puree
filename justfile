@@ -251,10 +251,20 @@ refresh TARGET:
 ci:
     #!/usr/bin/env bash
     set -euo pipefail
+    VENV=".venv"
+    if [ ! -d "$VENV" ]; then
+        echo "Error: .venv not found. Run 'just venv' first."
+        exit 1
+    fi
+    RUFF="$VENV/bin/ruff"
+    if [ ! -f "$RUFF" ]; then
+        echo "Installing ruff into .venv..."
+        "$VENV/bin/pip" install ruff --quiet
+    fi
     echo "── Python lint ──"
-    ruff check puree/ __init__.py tests/ dist/ setup.py
+    "$RUFF" check puree/ __init__.py tests/ dist/ setup.py
     echo "── Python format ──"
-    ruff format --check puree/ __init__.py tests/ dist/ setup.py
+    "$RUFF" format --check puree/ __init__.py tests/ dist/ setup.py
     echo "── Rust checks ──"
     pushd puree/puree_core > /dev/null
     cargo build --release

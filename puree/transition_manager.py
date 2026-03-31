@@ -1,5 +1,4 @@
 import time
-import math
 
 from .log import get_logger
 
@@ -112,9 +111,7 @@ class TransitionManager:
         timing_fn = TIMING_FUNCTIONS.get(timing, _ease)
         if key in self._active and not self._active[key].is_done():
             old_value = self._active[key].current_value()
-        self._active[key] = ActiveTransition(
-            old_value, new_value, duration, delay, timing_fn
-        )
+        self._active[key] = ActiveTransition(old_value, new_value, duration, delay, timing_fn)
 
     def get_value(self, container_id, prop_name):
         """Get current interpolated value, or None if no active transition."""

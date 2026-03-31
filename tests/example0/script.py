@@ -76,7 +76,6 @@ def main(self, app):
 
     sw.dyn_text_btn.click.append(on_change_text)
 
-    style_toggled = [False]
     colors = [
         "rgba(52,152,219,0.25)",
         "rgba(46,204,113,0.25)",

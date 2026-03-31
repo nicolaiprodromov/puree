@@ -1,5 +1,6 @@
-import bpy
 import time
+
+import bpy
 
 from .log import get_logger
 
@@ -32,7 +33,7 @@ class MouseState:
         for callback in self.callbacks:
             try:
                 callback("mouse", pos)
-            except:
+            except Exception:
                 logger.warning("Mouse callback error", exc_info=True)
 
     def update_click(self, clicked):
@@ -40,7 +41,7 @@ class MouseState:
         for callback in self.callbacks:
             try:
                 callback("click", clicked)
-            except:
+            except Exception:
                 logger.warning("Click callback error", exc_info=True)
 
     def register_callback(self, callback):

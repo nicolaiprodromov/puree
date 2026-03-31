@@ -1,5 +1,6 @@
 import bpy
 from bpy.types import Operator
+
 from .log import get_logger
 
 logger = get_logger(__name__)
@@ -12,13 +13,12 @@ class XWZ_OT_enable_hot_reload(Operator):
 
     def execute(self, context):
         try:
+            from . import get_addon_root, render
             from .hot_reload import (
-                setup_hot_reload,
-                register_default_callbacks,
                 get_hot_reload_manager,
+                register_default_callbacks,
+                setup_hot_reload,
             )
-            from . import get_addon_root
-            from . import render
 
             addon_dir = get_addon_root()
             wm = context.window_manager
@@ -49,8 +49,8 @@ class XWZ_OT_disable_hot_reload(Operator):
 
     def execute(self, context):
         try:
-            from .hot_reload import get_hot_reload_manager
             from . import render
+            from .hot_reload import get_hot_reload_manager
 
             manager = get_hot_reload_manager()
             manager.disable()

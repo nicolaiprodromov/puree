@@ -80,8 +80,7 @@ class Storage:
                     )
             except Exception as exc:
                 logger.warning(
-                    "Storage(scope='project'): could not determine blend path "
-                    "(%s) — falling back to global scope.",
+                    "Storage(scope='project'): could not determine blend path (%s) — falling back to global scope.",
                     exc,
                 )
 
@@ -110,9 +109,7 @@ class Storage:
             bpy.app.timers.register(_timer_callback, first_interval=0.5)
             self._save_scheduled = True
         except Exception as exc:
-            logger.warning(
-                "Storage._schedule_save: could not register timer (%s).", exc
-            )
+            logger.warning("Storage._schedule_save: could not register timer (%s).", exc)
 
     def _navigate(self, keys: list[str], create: bool = False):
         """Walk nested dicts following *keys*.

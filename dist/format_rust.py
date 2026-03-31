@@ -1,6 +1,5 @@
-import sys
 import os
-import re
+import sys
 
 
 def strip_rust_comments(source: str) -> str:
@@ -102,15 +101,9 @@ def strip_rust_comments(source: str) -> str:
                 line_start = source.rfind("\n", 0, i)
                 before = source[line_start + 1 : i] if line_start != -1 else source[:i]
                 after_end = j + 2
-                after = (
-                    source[after_end : source.find("\n", after_end)]
-                    if after_end < n
-                    else ""
-                )
+                after = source[after_end : source.find("\n", after_end)] if after_end < n else ""
 
-                if before.strip() == "" and (
-                    after.strip() == "" or after_end >= n or source[after_end] == "\n"
-                ):
+                if before.strip() == "" and (after.strip() == "" or after_end >= n or source[after_end] == "\n"):
                     start = line_start + 1 if line_start != -1 else 0
                     end = source.find("\n", after_end)
                     if end == -1:

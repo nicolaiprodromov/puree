@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 try:
     from .log import get_logger
@@ -40,9 +40,7 @@ class HitDetector:
             logger.error(f"Error loading containers: {e}")
             return False
 
-    def update_mouse(
-        self, x: float, y: float, clicked: bool, scroll_delta: float = 0.0
-    ):
+    def update_mouse(self, x: float, y: float, clicked: bool, scroll_delta: float = 0.0):
         self._detector.update_mouse(x, y, clicked, scroll_delta)
 
     def detect_hits(self) -> List[Dict[str, Any]]:
@@ -102,9 +100,7 @@ class SCSSCompiler:
         param_overrides: Dict[str, str] = None,
         component_name: str = None,
     ) -> str:
-        return self._compiler.compile(
-            scss_content, namespace, param_overrides, component_name
-        )
+        return self._compiler.compile(scss_content, namespace, param_overrides, component_name)
 
     def compile_file(
         self,
@@ -113,9 +109,7 @@ class SCSSCompiler:
         param_overrides: Dict[str, str] = None,
         component_name: str = None,
     ) -> str:
-        cache_key = self._make_cache_key(
-            filepath, namespace, param_overrides, component_name
-        )
+        cache_key = self._make_cache_key(filepath, namespace, param_overrides, component_name)
 
         try:
             file_mtime = os.path.getmtime(filepath)
@@ -126,9 +120,7 @@ class SCSSCompiler:
         except OSError:
             pass
 
-        result = self._compiler.compile_file(
-            filepath, namespace, param_overrides, component_name
-        )
+        result = self._compiler.compile_file(filepath, namespace, param_overrides, component_name)
 
         try:
             file_mtime = os.path.getmtime(filepath)
@@ -143,9 +135,7 @@ class ContainerProcessor:
     def __init__(self):
         self._processor = puree_rust_core.ContainerProcessor()
 
-    def flatten_tree(
-        self, root: Dict[str, Any], node_flat_abs: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def flatten_tree(self, root: Dict[str, Any], node_flat_abs: Dict[str, Any]) -> List[Dict[str, Any]]:
         return self._processor.flatten_tree(root, node_flat_abs)
 
     def update_positions_bulk(
@@ -155,9 +145,7 @@ class ContainerProcessor:
         y_offsets: List[float],
     ) -> bool:
         try:
-            self._processor.update_positions_bulk(
-                container_indices, x_offsets, y_offsets
-            )
+            self._processor.update_positions_bulk(container_indices, x_offsets, y_offsets)
             return True
         except Exception as e:
             logger.error(f"Error updating positions: {e}")
@@ -166,9 +154,7 @@ class ContainerProcessor:
     def get_containers(self) -> List[Dict[str, Any]]:
         return self._processor.get_containers()
 
-    def update_states_bulk(
-        self, container_ids: List[str], hovered: List[bool], clicked: List[bool]
-    ) -> bool:
+    def update_states_bulk(self, container_ids: List[str], hovered: List[bool], clicked: List[bool]) -> bool:
         try:
             self._processor.update_states_bulk(container_ids, hovered, clicked)
             return True
@@ -189,17 +175,13 @@ class ColorProcessor:
     def gamma_correct(self, value: float) -> float:
         return puree_rust_core.gamma_correct(value)
 
-    def apply_gamma_correction(
-        self, r: float, g: float, b: float, a: float
-    ) -> List[float]:
+    def apply_gamma_correction(self, r: float, g: float, b: float, a: float) -> List[float]:
         return list(puree_rust_core.apply_gamma_correction_py(r, g, b, a))
 
     def parse_color(self, color_str: str) -> List[float]:
         return list(puree_rust_core.parse_color_py(color_str))
 
-    def interpolate_color(
-        self, color1: List[float], color2: List[float], t: float
-    ) -> List[float]:
+    def interpolate_color(self, color1: List[float], color2: List[float], t: float) -> List[float]:
         return list(puree_rust_core.interpolate_color_py(color1, color2, t))
 
     def rotate_gradient(
@@ -212,11 +194,7 @@ class ColorProcessor:
         width: float,
         height: float,
     ) -> List[float]:
-        return list(
-            puree_rust_core.rotate_gradient_py(
-                color1, color2, rotation_deg, x, y, width, height
-            )
-        )
+        return list(puree_rust_core.rotate_gradient_py(color1, color2, rotation_deg, x, y, width, height))
 
     def process_colors_batch(self, colors: List[tuple]) -> List[List[float]]:
         return [list(c) for c in self._processor.process_colors_batch(colors)]
@@ -230,9 +208,7 @@ class PyFileWatcher:
         watch_styles: bool = True,
         watch_scripts: bool = True,
     ):
-        self._watcher = puree_rust_core.PyFileWatcher(
-            debounce_ms, watch_yaml, watch_styles, watch_scripts
-        )
+        self._watcher = puree_rust_core.PyFileWatcher(debounce_ms, watch_yaml, watch_styles, watch_scripts)
 
     def watch_path(self, path: str) -> bool:
         return self._watcher.watch_path(path)
@@ -276,7 +252,5 @@ class CSSCascade:
     def parse_css(self, css_string: str):
         self._cascade.parse_css(css_string)
 
-    def resolve(
-        self, containers: list, state: str = "normal", viewport=None
-    ) -> Dict[str, Dict[str, str]]:
+    def resolve(self, containers: list, state: str = "normal", viewport=None) -> Dict[str, Dict[str, str]]:
         return self._cascade.resolve(containers, state, viewport)

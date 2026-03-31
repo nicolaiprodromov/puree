@@ -9,6 +9,12 @@ pub struct ColorProcessor {
     _marker: std::marker::PhantomData<()>,
 }
 
+impl Default for ColorProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl ColorProcessor {
     #[new]
@@ -34,6 +40,7 @@ impl ColorProcessor {
         interpolate_color_simd(color1, color2, t)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn rotate_gradient(
         &self,
         color1: [f32; 4],
@@ -106,7 +113,7 @@ pub fn parse_color(color_str: &str) -> PyResult<[f32; 4]> {
 
     let [r, g, b, a] = css_color.to_array();
 
-    let srgba = Srgba::new(r as f32, g as f32, b as f32, a as f32);
+    let srgba = Srgba::new(r, g, b, a);
     let linear: LinSrgba = srgba.into_linear();
 
     Ok([linear.red, linear.green, linear.blue, linear.alpha])
@@ -146,7 +153,7 @@ pub fn rotate_gradient_optimized(
 
     let rotated_x = rel_x * cos_rot - rel_y * sin_rot;
 
-    let t = (rotated_x / width + 0.5).max(0.0).min(1.0);
+    let t = (rotated_x / width + 0.5).clamp(0.0, 1.0);
 
     interpolate_color_simd(color1, color2, t)
 }

@@ -1,23 +1,30 @@
 import os
 import re
-import yaml
 
-from stretchable import Node
-from stretchable.style import PCT, AUTO, PT
-from stretchable import Edge
-from stretchable.style.props import BoxSizing
-from stretchable.style.props import FlexDirection, FlexWrap
-from stretchable.style.props import AlignItems, AlignSelf, AlignContent
-from stretchable.style.props import JustifyContent, JustifyItems, JustifySelf
-from stretchable.style.props import Display, Position, Overflow
-from stretchable.style.props import GridAutoFlow, GridPlacement
-from stretchable.style.props import GridTrackSizing, GridTrackSize
-from stretchable.style.geometry.rect import RectPointsPercent, RectPointsPercentAuto
+import yaml
+from stretchable import Edge, Node
+from stretchable.style import AUTO, PCT, PT
 from stretchable.style.geometry.length import (
     LengthPointsPercent,
     LengthPointsPercentAuto,
 )
+from stretchable.style.geometry.rect import RectPointsPercent, RectPointsPercentAuto
 from stretchable.style.geometry.size import SizePointsPercent, SizePointsPercentAuto
+from stretchable.style.props import (
+    AlignContent,
+    AlignItems,
+    AlignSelf,
+    BoxSizing,
+    Display,
+    FlexDirection,
+    FlexWrap,
+    GridAutoFlow,
+    JustifyContent,
+    JustifyItems,
+    JustifySelf,
+    Overflow,
+    Position,
+)
 
 from .components.container import Container
 from .components.style import Style
@@ -25,10 +32,10 @@ from .log import get_logger
 
 logger = get_logger(__name__)
 from .native_bindings import (
-    ContainerProcessor,
-    SCSSCompiler,
     ColorProcessor,
+    ContainerProcessor,
     CSSCascade,
+    SCSSCompiler,
 )
 
 node_flat = {}
@@ -154,9 +161,7 @@ class UI:
             self.theme.version = theme[self.theme_index]["version"]
             self.theme.scripts = theme[self.theme_index]["scripts"]
             self.theme.style_files = theme[self.theme_index]["styles"]
-            self.theme.default_font = theme[self.theme_index].get(
-                "default_font", "default"
-            )
+            self.theme.default_font = theme[self.theme_index].get("default_font", "default")
             self.theme.components = theme[self.theme_index]["components"]
 
         self._component_css = ""
@@ -194,9 +199,7 @@ class UI:
                         if not isinstance(child_attr_value, dict):
                             if child_attr_name == "data" and has_component_data:
                                 continue
-                            set_container_attr(
-                                child_container, child_attr_name, child_attr_value
-                            )
+                            set_container_attr(child_container, child_attr_name, child_attr_value)
 
                     if has_component_data:
                         component_ref = attr_value["data"]
@@ -205,30 +208,19 @@ class UI:
 
                         component_params = {}
                         for param_name, param_value in attr_value.items():
-                            if (
-                                not isinstance(param_value, dict)
-                                and param_name != "data"
-                            ):
+                            if not isinstance(param_value, dict) and param_name != "data":
                                 component_params[param_name] = str(param_value)
 
                         for root, dirs, files in os.walk(component_dir):
                             for filename in files:
-                                if (
-                                    filename.endswith(".yaml")
-                                    and f"[{filename.replace('.yaml', '')}]"
-                                    == component_ref
-                                ):
+                                if filename.endswith(".yaml") and f"[{filename.replace('.yaml', '')}]" == component_ref:
                                     file_path = os.path.join(root, filename)
                                     component_base_name = filename.replace(".yaml", "")
-                                    scss_file_path = os.path.join(
-                                        root, f"{component_base_name}.scss"
-                                    )
+                                    scss_file_path = os.path.join(root, f"{component_base_name}.scss")
 
                                     with open(file_path, "r") as f:
                                         component_data = yaml.safe_load(f)
-                                        component_key = component_ref.replace(
-                                            "[", ""
-                                        ).replace("]", "")
+                                        component_key = component_ref.replace("[", "").replace("]", "")
 
                                         if os.path.exists(scss_file_path):
                                             scss_compiler = SCSSCompiler()
@@ -258,11 +250,7 @@ class UI:
                                             def replace_param(match):
                                                 param_name = match.group(1)
                                                 default_value = match.group(2)
-                                                return str(
-                                                    params.get(
-                                                        param_name, default_value
-                                                    )
-                                                )
+                                                return str(params.get(param_name, default_value))
 
                                             return re.sub(pattern, replace_param, value)
 
@@ -270,9 +258,7 @@ class UI:
                                             """Remap component class names to namespaced equivalents."""
                                             if value == component_base_name:
                                                 return child_container.id
-                                            elif value.startswith(
-                                                component_base_name + "_"
-                                            ):
+                                            elif value.startswith(component_base_name + "_"):
                                                 return value.replace(
                                                     component_base_name,
                                                     child_container.id,
@@ -287,9 +273,7 @@ class UI:
                                             ) in comp_data.items():
                                                 if isinstance(attr_value, dict):
                                                     comp_child = Container()
-                                                    comp_child.id = (
-                                                        f"{parent.id}_{attr_name}"
-                                                    )
+                                                    comp_child.id = f"{parent.id}_{attr_name}"
                                                     comp_child.parent = parent
                                                     parent.children.append(comp_child)
 
@@ -297,53 +281,30 @@ class UI:
                                                         child_attr_name,
                                                         child_attr_value,
                                                     ) in attr_value.items():
-                                                        if not isinstance(
-                                                            child_attr_value, dict
-                                                        ):
-                                                            substituted = (
-                                                                substitute_params(
-                                                                    child_attr_value,
-                                                                    params,
-                                                                )
+                                                        if not isinstance(child_attr_value, dict):
+                                                            substituted = substitute_params(
+                                                                child_attr_value,
+                                                                params,
                                                             )
-                                                            if (
-                                                                child_attr_name
-                                                                == "class"
-                                                                and isinstance(
-                                                                    substituted, str
-                                                                )
+                                                            if child_attr_name == "class" and isinstance(
+                                                                substituted, str
                                                             ):
-                                                                comp_child.classes = [
-                                                                    namespace_class(
-                                                                        substituted
-                                                                    )
-                                                                ]
+                                                                comp_child.classes = [namespace_class(substituted)]
                                                             elif hasattr(
                                                                 comp_child,
                                                                 child_attr_name,
                                                             ):
                                                                 setattr(
                                                                     comp_child,
-                                                                    child_attr_name.replace(
-                                                                        "-", "_"
-                                                                    ),
+                                                                    child_attr_name.replace("-", "_"),
                                                                     substituted,
                                                                 )
 
-                                                    load_component(
-                                                        attr_value, comp_child, params
-                                                    )
+                                                    load_component(attr_value, comp_child, params)
                                                 else:
-                                                    substituted = substitute_params(
-                                                        attr_value, params
-                                                    )
-                                                    if (
-                                                        attr_name == "class"
-                                                        and isinstance(substituted, str)
-                                                    ):
-                                                        parent.classes = [
-                                                            namespace_class(substituted)
-                                                        ]
+                                                    substituted = substitute_params(attr_value, params)
+                                                    if attr_name == "class" and isinstance(substituted, str):
+                                                        parent.classes = [namespace_class(substituted)]
                                                     elif hasattr(parent, attr_name):
                                                         setattr(
                                                             parent,
@@ -356,17 +317,10 @@ class UI:
                                             child_container,
                                             component_params,
                                         )
-                                        if (
-                                            component_key
-                                            not in self._component_registry
-                                        ):
+                                        if component_key not in self._component_registry:
                                             self._component_registry[component_key] = {
-                                                "yaml_data": component_data[
-                                                    component_key
-                                                ],
-                                                "scss_path": scss_file_path
-                                                if os.path.exists(scss_file_path)
-                                                else None,
+                                                "yaml_data": component_data[component_key],
+                                                "scss_path": scss_file_path if os.path.exists(scss_file_path) else None,
                                                 "base_name": component_base_name,
                                                 "base_dir": root,
                                             }
@@ -400,16 +354,12 @@ class UI:
                                 comp_data = yaml.safe_load(f)
                             self._component_registry[comp_key] = {
                                 "yaml_data": comp_data,
-                                "scss_path": scss_path
-                                if os.path.exists(scss_path)
-                                else None,
+                                "scss_path": scss_path if os.path.exists(scss_path) else None,
                                 "base_name": comp_key,
                                 "base_dir": dirpath,
                             }
                         except Exception as e:
-                            logger.warning(
-                                f"Failed to pre-register component '{comp_key}': {e}"
-                            )
+                            logger.warning(f"Failed to pre-register component '{comp_key}': {e}")
 
     def parse_container_props_from_style(self, attr_name, attr_value):
         attr_name = attr_name.replace("-", "_")
@@ -525,10 +475,8 @@ class UI:
             try:
                 attr_value = color_processor.parse_color(attr_value)
             except Exception as e:
-                logger.warning(
-                    f"Color parsing failed for '{attr_name}' = '{attr_value}': {e}"
-                )
-                logger.warning(f"Using default black color")
+                logger.warning(f"Color parsing failed for '{attr_name}' = '{attr_value}': {e}")
+                logger.warning("Using default black color")
                 attr_value = [0.0, 0.0, 0.0, 1.0]
 
         elif attr_name in float_props:
@@ -620,11 +568,7 @@ class UI:
                 if token:
                     parts.append(token)
             thumb = color_processor.parse_color(parts[0]) if parts else [1, 1, 1, 0.28]
-            track = (
-                color_processor.parse_color(parts[1])
-                if len(parts) > 1
-                else [1, 1, 1, 0.06]
-            )
+            track = color_processor.parse_color(parts[1]) if len(parts) > 1 else [1, 1, 1, 0.06]
             return ("_scrollbar_color", (thumb, track))
 
         elif attr_name in ("scrollbar_thumb_color", "scrollbar_track_color"):
@@ -632,11 +576,7 @@ class UI:
                 attr_value = color_processor.parse_color(attr_value)
             except Exception:
                 logger.debug("Failed to parse scrollbar color", exc_info=True)
-                attr_value = (
-                    [1.0, 1.0, 1.0, 0.28]
-                    if "thumb" in attr_name
-                    else [1.0, 1.0, 1.0, 0.06]
-                )
+                attr_value = [1.0, 1.0, 1.0, 0.28] if "thumb" in attr_name else [1.0, 1.0, 1.0, 0.06]
 
         return attr_name, attr_value
 
@@ -749,11 +689,7 @@ class UI:
                 container.style.id = container_id
             for prop, value in props.items():
                 result = self.parse_container_props_from_style(prop, value)
-                if (
-                    isinstance(result, tuple)
-                    and len(result) == 2
-                    and result[0] == "_transitions"
-                ):
+                if isinstance(result, tuple) and len(result) == 2 and result[0] == "_transitions":
                     t_list = result[1]
                     container.style.transitions = t_list
                     if t_list:
@@ -762,11 +698,7 @@ class UI:
                         container.style.transition_duration = first["duration"]
                         container.style.transition_timing_function = first["timing"]
                         container.style.transition_delay = first["delay"]
-                elif (
-                    isinstance(result, tuple)
-                    and len(result) == 2
-                    and result[0] == "_scrollbar_color"
-                ):
+                elif isinstance(result, tuple) and len(result) == 2 and result[0] == "_scrollbar_color":
                     thumb, track = result[1]
                     container.style.scrollbar_thumb_color = thumb
                     container.style.scrollbar_track_color = track
@@ -794,18 +726,10 @@ class UI:
                     if normal_props.get(prop) == value:
                         continue
                     result = self.parse_container_props_from_style(prop, value)
-                    if (
-                        isinstance(result, tuple)
-                        and len(result) == 2
-                        and result[0] == "_transitions"
-                    ):
+                    if isinstance(result, tuple) and len(result) == 2 and result[0] == "_transitions":
                         continue
                     attr_name, attr_value = result
-                    state_attr = (
-                        f"{prefix}{attr_name}"
-                        if not attr_name.startswith(prefix)
-                        else attr_name
-                    )
+                    state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
                     if hasattr(container.style, state_attr):
                         setattr(container.style, state_attr, attr_value)
 
@@ -853,8 +777,8 @@ class UI:
 
     def _apply_css_from_cache(self):
         """Re-apply CSS cascade using cached compiled CSS + dynamic CSS. Called after dynamic container changes."""
-        from .native_bindings import CSSCascade
         from .components.style import Style
+        from .native_bindings import CSSCascade
 
         full_css = self._compiled_css_str + self._dynamic_css
         if not full_css.strip():
@@ -881,11 +805,7 @@ class UI:
                 container.style.id = container_id
             for prop, value in props.items():
                 result = self.parse_container_props_from_style(prop, value)
-                if (
-                    isinstance(result, tuple)
-                    and len(result) == 2
-                    and result[0] == "_transitions"
-                ):
+                if isinstance(result, tuple) and len(result) == 2 and result[0] == "_transitions":
                     t_list = result[1]
                     container.style.transitions = t_list
                     if t_list:
@@ -894,11 +814,7 @@ class UI:
                         container.style.transition_duration = first["duration"]
                         container.style.transition_timing_function = first["timing"]
                         container.style.transition_delay = first["delay"]
-                elif (
-                    isinstance(result, tuple)
-                    and len(result) == 2
-                    and result[0] == "_scrollbar_color"
-                ):
+                elif isinstance(result, tuple) and len(result) == 2 and result[0] == "_scrollbar_color":
                     thumb, track = result[1]
                     container.style.scrollbar_thumb_color = thumb
                     container.style.scrollbar_track_color = track
@@ -930,11 +846,7 @@ class UI:
                     ):
                         continue
                     attr_name, attr_value = result
-                    state_attr = (
-                        f"{prefix}{attr_name}"
-                        if not attr_name.startswith(prefix)
-                        else attr_name
-                    )
+                    state_attr = f"{prefix}{attr_name}" if not attr_name.startswith(prefix) else attr_name
                     if hasattr(container.style, state_attr):
                         setattr(container.style, state_attr, attr_value)
 
@@ -947,9 +859,7 @@ class UI:
 
         ensure_styles(self.theme.root)
 
-    def _instantiate_component_into(
-        self, template_name: str, root_container, params: dict
-    ):
+    def _instantiate_component_into(self, template_name: str, root_container, params: dict):
         """
         Populate root_container with children from a cached component template.
         root_container is already created with the right ID by the caller.
@@ -959,8 +869,7 @@ class UI:
         template = self._component_registry.get(template_name)
         if template is None:
             raise ValueError(
-                f"Component '{template_name}' not found in registry. "
-                f"Available: {list(self._component_registry.keys())}"
+                f"Component '{template_name}' not found in registry. Available: {list(self._component_registry.keys())}"
             )
 
         scss_path = template["scss_path"]
@@ -1038,9 +947,9 @@ class UI:
         from . import parser_op
 
         parser_op._container_json_data = self.abs_json_data
+        from .extract_images import ImageExtractor
         from .extract_text import TextExtractor
         from .extract_text_input import TextInputExtractor
-        from .extract_images import ImageExtractor
 
         text_ex = TextExtractor(self, self.abs_json_data)
         ti_ex = TextInputExtractor(self, self.abs_json_data)
@@ -1066,11 +975,11 @@ class UI:
         def get_all_nodes(container, node):
             border_box = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
-            content_box = node.get_box(Edge.CONTENT, relative=True)
-            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
-            padding_box = node.get_box(Edge.PADDING, relative=True)
-            margin_box = node.get_box(Edge.MARGIN, relative=True)
-            margin_box_abs = node.get_box(Edge.MARGIN, relative=False)
+            node.get_box(Edge.CONTENT, relative=True)
+            node.get_box(Edge.CONTENT, relative=False)
+            node.get_box(Edge.PADDING, relative=True)
+            node.get_box(Edge.MARGIN, relative=True)
+            node.get_box(Edge.MARGIN, relative=False)
 
             edge_used, edge_used_abs = border_box, border_box_abs
 
@@ -1167,22 +1076,15 @@ class UI:
             value_str = value_str.lower().strip()
             if value_str in ("auto", ""):
                 return AUTO
-            if any(
-                u in value_str
-                for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")
-            ):
+            if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
                 px_val, is_pct, pct_val = resolve_units(value_str)
                 if is_pct:
                     return LengthPointsPercent.from_any(pct_val * PCT)
                 return LengthPointsPercent.from_any(px_val * PT)
             if "px" in value_str:
-                return LengthPointsPercent.from_any(
-                    float(value_str.replace("px", "")) * PT
-                )
+                return LengthPointsPercent.from_any(float(value_str.replace("px", "")) * PT)
             if "%" in value_str:
-                return LengthPointsPercent.from_any(
-                    float(value_str.replace("%", "")) * PCT
-                )
+                return LengthPointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
             try:
                 num = float(value_str)
                 if num == 0:
@@ -1200,22 +1102,15 @@ class UI:
             value_str = value_str.lower().strip()
             if value_str in ("auto", ""):
                 return LengthPointsPercentAuto.from_any(AUTO)
-            if any(
-                u in value_str
-                for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")
-            ):
+            if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
                 px_val, is_pct, pct_val = resolve_units(value_str)
                 if is_pct:
                     return LengthPointsPercentAuto.from_any(pct_val * PCT)
                 return LengthPointsPercentAuto.from_any(px_val * PT)
             if "px" in value_str:
-                return LengthPointsPercentAuto.from_any(
-                    float(value_str.replace("px", "")) * PT
-                )
+                return LengthPointsPercentAuto.from_any(float(value_str.replace("px", "")) * PT)
             if "%" in value_str:
-                return LengthPointsPercentAuto.from_any(
-                    float(value_str.replace("%", "")) * PCT
-                )
+                return LengthPointsPercentAuto.from_any(float(value_str.replace("%", "")) * PCT)
             try:
                 num = float(value_str)
                 if num == 0:
@@ -1234,9 +1129,7 @@ class UI:
                 bottom = parse_css_value(container.style.padding_bottom)
             if hasattr(container.style, "padding_left"):
                 left = parse_css_value(container.style.padding_left)
-            if hasattr(container.style, "padding") and isinstance(
-                container.style.padding, str
-            ):
+            if hasattr(container.style, "padding") and isinstance(container.style.padding, str):
                 padding_str = container.style.padding.strip().lower()
                 if "calc(" not in padding_str:
                     values = padding_str.split()
@@ -1270,9 +1163,7 @@ class UI:
                 bottom = parse_css_value(container.style.margin_bottom)
             if hasattr(container.style, "margin_left"):
                 left = parse_css_value(container.style.margin_left)
-            if hasattr(container.style, "margin") and isinstance(
-                container.style.margin, str
-            ):
+            if hasattr(container.style, "margin") and isinstance(container.style.margin, str):
                 margin_str = container.style.margin.strip().lower()
                 if "calc(" not in margin_str:
                     values = margin_str.split()
@@ -1298,9 +1189,7 @@ class UI:
             return RectPointsPercent.from_any([top, right, bottom, left])
 
         def parse_border_values(container):
-            width_top = width_right = width_bottom = width_left = (
-                LengthPointsPercent.from_any(0 * PT)
-            )
+            width_top = width_right = width_bottom = width_left = LengthPointsPercent.from_any(0 * PT)
 
             bw = getattr(container.style, "border_width", None)
             if bw is not None:
@@ -1330,9 +1219,7 @@ class UI:
                             width_bottom = parse_css_value(values[2])
                             width_left = parse_css_value(values[3])
 
-            if hasattr(container.style, "border") and isinstance(
-                container.style.border, str
-            ):
+            if hasattr(container.style, "border") and isinstance(container.style.border, str):
                 border_str = container.style.border.strip().lower()
                 if "calc(" not in border_str:
                     parts = border_str.split()
@@ -1350,18 +1237,14 @@ class UI:
                         ]:
                             setattr(container.style, "border_color_css", part)
 
-            if hasattr(container.style, "border_color") and isinstance(
-                container.style.border_color, str
-            ):
+            if hasattr(container.style, "border_color") and isinstance(container.style.border_color, str):
                 setattr(
                     container.style,
                     "border_color_css",
                     container.style.border_color.lower(),
                 )
 
-            return RectPointsPercent.from_any(
-                [width_top, width_right, width_bottom, width_left]
-            )
+            return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
 
         def parse_align_items(val_str):
             m = {
@@ -1447,13 +1330,9 @@ class UI:
             if not value_str or value_str == "0" or value_str == "0px":
                 return SizePointsPercent.from_any(0 * PT)
             if "px" in value_str:
-                return SizePointsPercent.from_any(
-                    float(value_str.replace("px", "")) * PT
-                )
+                return SizePointsPercent.from_any(float(value_str.replace("px", "")) * PT)
             if "%" in value_str:
-                return SizePointsPercent.from_any(
-                    float(value_str.replace("%", "")) * PCT
-                )
+                return SizePointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
             try:
                 return SizePointsPercent.from_any(float(value_str) * PT)
             except (ValueError, TypeError):
@@ -1477,11 +1356,7 @@ class UI:
             }.get(disp_str, Display.FLEX)
 
             pos_str = s.position.lower()
-            position_val = (
-                Position.ABSOLUTE
-                if pos_str in ("absolute", "fixed")
-                else Position.RELATIVE
-            )
+            position_val = Position.ABSOLUTE if pos_str in ("absolute", "fixed") else Position.RELATIVE
 
             overflow_map = {
                 "visible": Overflow.VISIBLE,
@@ -1490,16 +1365,8 @@ class UI:
                 "auto": Overflow.SCROLL,
                 "clip": Overflow.CLIP,
             }
-            overflow_x_str = (
-                s.overflow_x
-                if hasattr(s, "overflow_x") and s.overflow_x
-                else s.overflow
-            ).lower()
-            overflow_y_str = (
-                s.overflow_y
-                if hasattr(s, "overflow_y") and s.overflow_y
-                else s.overflow
-            ).lower()
+            overflow_x_str = (s.overflow_x if hasattr(s, "overflow_x") and s.overflow_x else s.overflow).lower()
+            overflow_y_str = (s.overflow_y if hasattr(s, "overflow_y") and s.overflow_y else s.overflow).lower()
             overflow_x_val = overflow_map.get(overflow_x_str, Overflow.VISIBLE)
             overflow_y_val = overflow_map.get(overflow_y_str, Overflow.VISIBLE)
 
@@ -1507,9 +1374,7 @@ class UI:
             height_pct = parse_css_value(s.height)
 
             min_w = (
-                parse_css_value_auto(s.min_width)
-                if hasattr(s, "min_width")
-                else LengthPointsPercentAuto.from_any(AUTO)
+                parse_css_value_auto(s.min_width) if hasattr(s, "min_width") else LengthPointsPercentAuto.from_any(AUTO)
             )
             min_h = (
                 parse_css_value_auto(s.min_height)
@@ -1517,9 +1382,7 @@ class UI:
                 else LengthPointsPercentAuto.from_any(AUTO)
             )
             max_w = (
-                parse_css_value_auto(s.max_width)
-                if hasattr(s, "max_width")
-                else LengthPointsPercentAuto.from_any(AUTO)
+                parse_css_value_auto(s.max_width) if hasattr(s, "max_width") else LengthPointsPercentAuto.from_any(AUTO)
             )
             max_h = (
                 parse_css_value_auto(s.max_height)
@@ -1527,26 +1390,14 @@ class UI:
                 else LengthPointsPercentAuto.from_any(AUTO)
             )
 
-            inset_top = (
-                parse_css_value_auto(s.top)
-                if hasattr(s, "top")
-                else LengthPointsPercentAuto.from_any(AUTO)
-            )
+            inset_top = parse_css_value_auto(s.top) if hasattr(s, "top") else LengthPointsPercentAuto.from_any(AUTO)
             inset_right = (
-                parse_css_value_auto(s.right)
-                if hasattr(s, "right")
-                else LengthPointsPercentAuto.from_any(AUTO)
+                parse_css_value_auto(s.right) if hasattr(s, "right") else LengthPointsPercentAuto.from_any(AUTO)
             )
             inset_bottom = (
-                parse_css_value_auto(s.bottom)
-                if hasattr(s, "bottom")
-                else LengthPointsPercentAuto.from_any(AUTO)
+                parse_css_value_auto(s.bottom) if hasattr(s, "bottom") else LengthPointsPercentAuto.from_any(AUTO)
             )
-            inset_left = (
-                parse_css_value_auto(s.left)
-                if hasattr(s, "left")
-                else LengthPointsPercentAuto.from_any(AUTO)
-            )
+            inset_left = parse_css_value_auto(s.left) if hasattr(s, "left") else LengthPointsPercentAuto.from_any(AUTO)
 
             padding_val = parse_padding_values(container)
             margin_val = parse_margin_values(container)
@@ -1578,40 +1429,22 @@ class UI:
             if parent_overflow in ("SCROLL", "AUTO"):
                 flex_shrink_val = 0.0
 
-            align_items_val = (
-                parse_align_items(s.align_items) if s.align_items else None
-            )
+            align_items_val = parse_align_items(s.align_items) if s.align_items else None
             align_self_val = parse_align_self(s.align_self) if s.align_self else None
-            align_content_val = (
-                parse_align_content(s.align_content) if s.align_content else None
-            )
-            justify_content_val = (
-                parse_justify_content(s.justify_content) if s.justify_content else None
-            )
-            justify_items_val = (
-                parse_justify_items(s.justify_items) if s.justify_items else None
-            )
-            justify_self_val = (
-                parse_justify_self(s.justify_self) if s.justify_self else None
-            )
+            align_content_val = parse_align_content(s.align_content) if s.align_content else None
+            justify_content_val = parse_justify_content(s.justify_content) if s.justify_content else None
+            justify_items_val = parse_justify_items(s.justify_items) if s.justify_items else None
+            justify_self_val = parse_justify_self(s.justify_self) if s.justify_self else None
 
-            gap_val = (
-                parse_gap_value(s.gap)
-                if hasattr(s, "gap")
-                else SizePointsPercent.from_any(0 * PT)
-            )
+            gap_val = parse_gap_value(s.gap) if hasattr(s, "gap") else SizePointsPercent.from_any(0 * PT)
             if hasattr(s, "row_gap") and s.row_gap:
                 row_gap = parse_css_value(s.row_gap)
-                col_gap_str = (
-                    s.column_gap if hasattr(s, "column_gap") and s.column_gap else s.gap
-                )
+                col_gap_str = s.column_gap if hasattr(s, "column_gap") and s.column_gap else s.gap
                 col_gap = parse_css_value(col_gap_str)
                 gap_val = SizePointsPercent(width=col_gap, height=row_gap)
             elif hasattr(s, "column_gap") and s.column_gap:
                 col_gap = parse_css_value(s.column_gap)
-                row_gap_str = (
-                    s.row_gap if hasattr(s, "row_gap") and s.row_gap else s.gap
-                )
+                row_gap_str = s.row_gap if hasattr(s, "row_gap") and s.row_gap else s.gap
                 row_gap = parse_css_value(row_gap_str)
                 gap_val = SizePointsPercent(width=col_gap, height=row_gap)
 
@@ -1628,9 +1461,7 @@ class UI:
                     "row_dense": GridAutoFlow.ROW_DENSE,
                     "column_dense": GridAutoFlow.COLUMN_DENSE,
                 }
-                grid_kwargs["grid_auto_flow"] = grid_auto_flow_map.get(
-                    grid_auto_flow_str, GridAutoFlow.ROW
-                )
+                grid_kwargs["grid_auto_flow"] = grid_auto_flow_map.get(grid_auto_flow_str, GridAutoFlow.ROW)
 
                 if hasattr(s, "grid_template_rows") and s.grid_template_rows:
                     val = s.grid_template_rows
@@ -1667,26 +1498,14 @@ class UI:
                 grid_kwargs["grid_column"] = s.grid_column
 
             aspect_ratio_val = None
-            if (
-                hasattr(s, "aspect_ratio")
-                and s.aspect_ratio
-                and s.aspect_ratio is not True
-            ):
+            if hasattr(s, "aspect_ratio") and s.aspect_ratio and s.aspect_ratio is not True:
                 try:
                     aspect_ratio_val = float(s.aspect_ratio)
                 except (ValueError, TypeError):
                     pass
 
-            box_sizing_str = (
-                s.box_sizing.lower()
-                if hasattr(s, "box_sizing") and s.box_sizing
-                else "border-box"
-            )
-            box_sizing_val = (
-                BoxSizing.CONTENT
-                if box_sizing_str in ("content_box", "content-box")
-                else BoxSizing.BORDER
-            )
+            box_sizing_str = s.box_sizing.lower() if hasattr(s, "box_sizing") and s.box_sizing else "border-box"
+            box_sizing_val = BoxSizing.CONTENT if box_sizing_str in ("content_box", "content-box") else BoxSizing.BORDER
 
             node = Node(
                 display=display_val,
@@ -1726,11 +1545,7 @@ class UI:
                 **grid_kwargs,
             )
 
-            this_overflow = (
-                s.overflow.upper()
-                if hasattr(s, "overflow") and s.overflow
-                else "VISIBLE"
-            )
+            this_overflow = s.overflow.upper() if hasattr(s, "overflow") and s.overflow else "VISIBLE"
 
             for child in container.children:
                 child_node = create_node(child, parent_overflow=this_overflow)
@@ -1802,9 +1617,7 @@ class UI:
         container_dict = self._container_to_dict(self.theme.root)
 
         self.json_data = container_processor.flatten_tree(container_dict, node_flat)
-        self.abs_json_data = container_processor.flatten_tree(
-            container_dict, node_flat_abs
-        )
+        self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
 
         visibility_map = {}
         opacity_map = {}
@@ -1825,10 +1638,7 @@ class UI:
             position_type_map[container.id] = container.style.position
             if hasattr(container.style, "transitions") and container.style.transitions:
                 transition_map[container.id] = container.style.transitions
-            elif (
-                hasattr(container.style, "transition_property")
-                and container.style.transition_duration > 0
-            ):
+            elif hasattr(container.style, "transition_property") and container.style.transition_duration > 0:
                 transition_map[container.id] = [
                     {
                         "property": container.style.transition_property,
@@ -1837,21 +1647,12 @@ class UI:
                         "delay": float(container.style.transition_delay),
                     }
                 ]
-            if (
-                hasattr(container.style, "scrollbar_width")
-                and container.style.scrollbar_width
-            ):
-                scrollbar_width_map[container.id] = float(
-                    container.style.scrollbar_width
-                )
+            if hasattr(container.style, "scrollbar_width") and container.style.scrollbar_width:
+                scrollbar_width_map[container.id] = float(container.style.scrollbar_width)
             if hasattr(container.style, "scrollbar_thumb_color"):
-                scrollbar_thumb_map[container.id] = (
-                    container.style.scrollbar_thumb_color
-                )
+                scrollbar_thumb_map[container.id] = container.style.scrollbar_thumb_color
             if hasattr(container.style, "scrollbar_track_color"):
-                scrollbar_track_map[container.id] = (
-                    container.style.scrollbar_track_color
-                )
+                scrollbar_track_map[container.id] = container.style.scrollbar_track_color
             for child in container.children:
                 collect_style_props(child)
 
@@ -1878,12 +1679,8 @@ class UI:
                     c["_transition_duration"] = first["duration"]
                     c["_transition_timing_function"] = first["timing"]
                     c["_transition_delay"] = first["delay"]
-            sorted_list = sorted(
-                enumerate(data_list), key=lambda t: t[1].get("z_index", 0)
-            )
-            old_to_new = {
-                old_idx: new_idx for new_idx, (old_idx, _) in enumerate(sorted_list)
-            }
+            sorted_list = sorted(enumerate(data_list), key=lambda t: t[1].get("z_index", 0))
+            old_to_new = {old_idx: new_idx for new_idx, (old_idx, _) in enumerate(sorted_list)}
             result = []
             for _, c in sorted_list:
                 old_parent = c.get("parent", -1)
@@ -1911,10 +1708,7 @@ class UI:
             if isinstance(val, (int, float)):
                 return float(val)
             if isinstance(val, str):
-                return float(
-                    val.replace("px", "").replace("%", "").replace("deg", "").strip()
-                    or "0"
-                )
+                return float(val.replace("px", "").replace("%", "").replace("deg", "").strip() or "0")
             return 0.0
 
         display_str = ensure_string(container.style.display)
@@ -1928,23 +1722,13 @@ class UI:
                 "overflow": overflow_str,
                 "background_color": list(container.style.background_color),
                 "background_color_2": list(container.style.background_color_2),
-                "background_gradient_rot": safe_float(
-                    container.style.background_gradient_rot
-                ),
+                "background_gradient_rot": safe_float(container.style.background_gradient_rot),
                 "hover_background_color": list(container.style.hover_background_color),
-                "hover_background_color_2": list(
-                    container.style.hover_background_color_2
-                ),
-                "hover_background_gradient_rot": safe_float(
-                    container.style.hover_background_gradient_rot
-                ),
+                "hover_background_color_2": list(container.style.hover_background_color_2),
+                "hover_background_gradient_rot": safe_float(container.style.hover_background_gradient_rot),
                 "click_background_color": list(container.style.click_background_color),
-                "click_background_color_2": list(
-                    container.style.click_background_color_2
-                ),
-                "click_background_gradient_rot": safe_float(
-                    container.style.click_background_gradient_rot
-                ),
+                "click_background_color_2": list(container.style.click_background_color_2),
+                "click_background_gradient_rot": safe_float(container.style.click_background_gradient_rot),
                 "border_color": list(container.style.border_color),
                 "border_color_2": list(container.style.border_color_2),
                 "border_gradient_rot": safe_float(container.style.border_gradient_rot),
@@ -1955,18 +1739,10 @@ class UI:
                 "hover_color": list(container.style.hover_color),
                 "click_color": list(container.style.click_color),
                 "border_radius": safe_float(container.style.border_radius),
-                "border_radius_tl": safe_float(
-                    container.style.border_radius_tl or container.style.border_radius
-                ),
-                "border_radius_tr": safe_float(
-                    container.style.border_radius_tr or container.style.border_radius
-                ),
-                "border_radius_br": safe_float(
-                    container.style.border_radius_br or container.style.border_radius
-                ),
-                "border_radius_bl": safe_float(
-                    container.style.border_radius_bl or container.style.border_radius
-                ),
+                "border_radius_tl": safe_float(container.style.border_radius_tl or container.style.border_radius),
+                "border_radius_tr": safe_float(container.style.border_radius_tr or container.style.border_radius),
+                "border_radius_br": safe_float(container.style.border_radius_br or container.style.border_radius),
+                "border_radius_bl": safe_float(container.style.border_radius_bl or container.style.border_radius),
                 "border_width": safe_float(container.style.border_width),
                 "border_width_top": safe_float(container.style.border_width_top),
                 "border_width_right": safe_float(container.style.border_width_right),
@@ -1992,10 +1768,7 @@ class UI:
             if hasattr(container.style, "font_family") and container.style.font_family
             else str(container.font),
             "passive": bool(container.passive)
-            or (
-                hasattr(container.style, "pointer_events")
-                and container.style.pointer_events == "NONE"
-            ),
+            or (hasattr(container.style, "pointer_events") and container.style.pointer_events == "NONE"),
             "click": container.click,
             "toggle": container.toggle,
             "scroll": container.scroll,
@@ -2007,8 +1780,6 @@ class UI:
             "tab_index": int(container.tab_index),
             "focusable": bool(container.focusable),
             "container_ref": container,
-            "children": [
-                self._container_to_dict(child) for child in container.children
-            ],
+            "children": [self._container_to_dict(child) for child in container.children],
         }
         return container_dict

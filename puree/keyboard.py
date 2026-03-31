@@ -1,4 +1,4 @@
-from typing import Optional, Callable, List
+from typing import Callable, List, Optional
 
 
 class KeyBinding:
@@ -26,12 +26,8 @@ class ContainerKeyProxy:
     def __init__(self, container_id: str):
         self._container_id = container_id
 
-    def bind(
-        self, key_combo: str, callback: Callable, when: Optional[str] = None
-    ) -> "KeyBinding":
-        return keys.bind(
-            key_combo, callback, when=when, container_id=self._container_id
-        )
+    def bind(self, key_combo: str, callback: Callable, when: Optional[str] = None) -> "KeyBinding":
+        return keys.bind(key_combo, callback, when=when, container_id=self._container_id)
 
 
 class KeyManager:
@@ -50,9 +46,7 @@ class KeyManager:
         normalized = self._normalize_combo(key_combo)
         handle_id = f"kb_{self._id_counter}"
         self._id_counter += 1
-        binding = KeyBinding(
-            handle_id, normalized, callback, when=when, container_id=container_id
-        )
+        binding = KeyBinding(handle_id, normalized, callback, when=when, container_id=container_id)
         self._bindings.append(binding)
         return binding
 
@@ -98,16 +92,12 @@ class KeyManager:
             except Exception as e:
                 from .log import get_logger
 
-                get_logger(__name__).error(
-                    f"Keyboard binding error: {e}", exc_info=True
-                )
+                get_logger(__name__).error(f"Keyboard binding error: {e}", exc_info=True)
             consumed = True
 
         return consumed
 
-    def _check_when(
-        self, binding: KeyBinding, focused_id: Optional[str], any_input_focused: bool
-    ) -> bool:
+    def _check_when(self, binding: KeyBinding, focused_id: Optional[str], any_input_focused: bool) -> bool:
         if binding.when is None:
             return True
         if binding.when == "input_focused":

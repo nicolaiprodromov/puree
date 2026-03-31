@@ -64,9 +64,7 @@ class VirtualScroll:
         self._item_height: Any = item_height
         self._item_class: Optional[str] = item_class
         self._overscan: int = overscan
-        self._default_height: float = float(
-            60 if item_height == "auto" else item_height
-        )
+        self._default_height: float = float(60 if item_height == "auto" else item_height)
 
         self._data: list = []
         self._renderer: Optional[Callable] = None
@@ -152,11 +150,7 @@ class VirtualScroll:
             if self._item_height != "auto":
                 y_off = item_idx * float(self._item_height) - scroll_offset
             else:
-                y_off = (
-                    self._offsets[item_idx] - scroll_offset
-                    if item_idx < len(self._offsets)
-                    else 0.0
-                )
+                y_off = self._offsets[item_idx] - scroll_offset if item_idx < len(self._offsets) else 0.0
 
             slot._vs_y_offset = y_off
             slot.style.display = "FLEX"
@@ -192,9 +186,7 @@ class VirtualScroll:
 
     def _ensure_pool(self) -> None:
         """Grow the slot pool to match the current container size + overscan."""
-        item_h = (
-            self._item_height if self._item_height != "auto" else self._default_height
-        )
+        item_h = self._item_height if self._item_height != "auto" else self._default_height
         item_h = float(max(item_h, 1))
         container_h = float(getattr(self._container, "height", 0) or 0)
         needed = int(container_h / item_h) + self._overscan * 2 + 4
@@ -253,9 +245,7 @@ class VirtualScroll:
         if item_idx >= len(self._heights):
             return
 
-        measured = float(
-            getattr(slot, "height", self._default_height) or self._default_height
-        )
+        measured = float(getattr(slot, "height", self._default_height) or self._default_height)
         if measured != self._heights[item_idx]:
             self._heights[item_idx] = measured
             self._offsets = _build_offsets(self._heights)

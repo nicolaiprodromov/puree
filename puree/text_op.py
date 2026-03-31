@@ -1,7 +1,8 @@
-import bpy
-import blf
-import gpu
 import os
+
+import blf
+import bpy
+import gpu
 
 from .log import get_logger
 
@@ -99,9 +100,7 @@ class FontManager:
             try:
                 blf.unload(font_path)
             except Exception as e:
-                logger.error(
-                    f"Failed to unload font {font_name} (path: {font_path}): {e}"
-                )
+                logger.error(f"Failed to unload font {font_name} (path: {font_path}): {e}")
         self.fonts.clear()
         self.font_ids.clear()
 
@@ -155,9 +154,7 @@ class TextInstance:
         self.font_weight = font_weight
         self.font_style = font_style
         self.font_id = (
-            font_manager.resolve_font_variant(
-                self.font_name, self.font_weight, self.font_style
-            )
+            font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style)
             if self.font_name
             else 0
         )
@@ -175,9 +172,7 @@ class TextInstance:
         self.text_overflow = text_overflow
         self.overflow_wrap = overflow_wrap
         self.word_break = word_break
-        self.text_shadow_color = (
-            text_shadow_color if text_shadow_color is not None else [0, 0, 0, 0]
-        )
+        self.text_shadow_color = text_shadow_color if text_shadow_color is not None else [0, 0, 0, 0]
         self.text_shadow_offset = [text_shadow_offset_x, text_shadow_offset_y]
         self.text_shadow_blur = text_shadow_blur
         self._cached_dims = None
@@ -206,10 +201,7 @@ class TextInstance:
         self._trigger_redraw()
 
     def update_font(self, new_font_name):
-        if (
-            new_font_name == "default"
-            or new_font_name in font_manager.get_available_fonts()
-        ):
+        if new_font_name == "default" or new_font_name in font_manager.get_available_fonts():
             self.font_name = new_font_name
             self.font_id = font_manager.get_font_id(new_font_name)
             self._invalidate_dims_cache()
@@ -257,26 +249,18 @@ class TextInstance:
         if text is not None and text != self.text:
             self.text = text
             dims_dirty = True
-        if font_name is not None and (
-            font_name == "default" or font_name in font_manager.get_available_fonts()
-        ):
+        if font_name is not None and (font_name == "default" or font_name in font_manager.get_available_fonts()):
             if font_name != self.font_name:
                 self.font_name = font_name
-                self.font_id = font_manager.resolve_font_variant(
-                    font_name, self.font_weight, self.font_style
-                )
+                self.font_id = font_manager.resolve_font_variant(font_name, self.font_weight, self.font_style)
                 dims_dirty = True
         if font_weight is not None and font_weight != self.font_weight:
             self.font_weight = font_weight
-            self.font_id = font_manager.resolve_font_variant(
-                self.font_name, self.font_weight, self.font_style
-            )
+            self.font_id = font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style)
             dims_dirty = True
         if font_style is not None and font_style != self.font_style:
             self.font_style = font_style
-            self.font_id = font_manager.resolve_font_variant(
-                self.font_name, self.font_weight, self.font_style
-            )
+            self.font_id = font_manager.resolve_font_variant(self.font_name, self.font_weight, self.font_style)
             dims_dirty = True
         if size is not None and size != self.size:
             self.size = max(1, min(200, size))
@@ -485,9 +469,7 @@ def draw_all_text():
     viewport_height = _cached_viewport_height or 0
 
     for instance in _text_instances:
-        use_scissor = (
-            instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
-        )
+        use_scissor = instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
 
         if use_scissor:
             sc_x = int(instance.clip[0])
@@ -573,11 +555,7 @@ def draw_all_text():
             cur_lw = line_widths[line_idx] if line_idx < len(line_widths) else 0
             draw_text = line_text
 
-            if (
-                instance.text_overflow == "ELLIPSIS"
-                and container_w > 0
-                and cur_lw > container_w
-            ):
+            if instance.text_overflow == "ELLIPSIS" and container_w > 0 and cur_lw > container_w:
                 ellipsis = "..."
                 ew, _ = blf.dimensions(instance.font_id, ellipsis)
                 avail = container_w - ew
@@ -662,17 +640,14 @@ class DrawTextOP(bpy.types.Operator):
     font_name: bpy.props.EnumProperty(
         name="Font",
         items=lambda self, context: (
-            [("default", "Default (Blender)", "")]
-            + [(name, name, "") for name in font_manager.get_available_fonts()]
+            [("default", "Default (Blender)", "")] + [(name, name, "") for name in font_manager.get_available_fonts()]
         ),
         default=0,
     )
     size: bpy.props.IntProperty(name="Size", default=20, min=1, max=200)
     x_pos: bpy.props.IntProperty(name="X Position", default=50)
     y_pos: bpy.props.IntProperty(name="Y Position", default=50)
-    color: bpy.props.FloatVectorProperty(
-        name="Color", subtype="COLOR", size=4, default=(1.0, 1.0, 1.0, 1.0)
-    )
+    color: bpy.props.FloatVectorProperty(name="Color", subtype="COLOR", size=4, default=(1.0, 1.0, 1.0, 1.0))
     mask_x: bpy.props.IntProperty(name="Mask X", default=0)
     mask_y: bpy.props.IntProperty(name="Mask Y", default=0)
     mask_width: bpy.props.IntProperty(name="Mask Width", default=0)
@@ -699,12 +674,8 @@ class DrawTextOP(bpy.types.Operator):
     text_shadow_color: bpy.props.FloatVectorProperty(
         name="Text Shadow Color", subtype="COLOR", size=4, default=(0.0, 0.0, 0.0, 0.0)
     )
-    text_shadow_offset_x: bpy.props.FloatProperty(
-        name="Text Shadow Offset X", default=0.0
-    )
-    text_shadow_offset_y: bpy.props.FloatProperty(
-        name="Text Shadow Offset Y", default=0.0
-    )
+    text_shadow_offset_x: bpy.props.FloatProperty(name="Text Shadow Offset X", default=0.0)
+    text_shadow_offset_y: bpy.props.FloatProperty(name="Text Shadow Offset Y", default=0.0)
     text_shadow_blur: bpy.props.FloatProperty(name="Text Shadow Blur", default=0.0)
 
     def execute(self, context):
@@ -744,14 +715,10 @@ class DrawTextOP(bpy.types.Operator):
             from .space_config import get_space_class
 
             space_class = get_space_class() or bpy.types.SpaceView3D
-            _draw_handle = space_class.draw_handler_add(
-                draw_all_text, (), "WINDOW", "POST_PIXEL"
-            )
+            _draw_handle = space_class.draw_handler_add(draw_all_text, (), "WINDOW", "POST_PIXEL")
 
         context.area.tag_redraw()
-        logger.info(
-            f"Added text instance #{new_instance.id} with font {self.font_name}"
-        )
+        logger.info(f"Added text instance #{new_instance.id} with font {self.font_name}")
         return {"FINISHED"}
 
 
@@ -822,9 +789,7 @@ class UpdateTextOP(bpy.types.Operator):
     size: bpy.props.IntProperty(name="Size", default=-1, min=-1, max=200)
     x_pos: bpy.props.IntProperty(name="X Position", default=-999999)
     y_pos: bpy.props.IntProperty(name="Y Position", default=-999999)
-    color: bpy.props.FloatVectorProperty(
-        name="Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1)
-    )
+    color: bpy.props.FloatVectorProperty(name="Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1))
     mask_x: bpy.props.IntProperty(name="Mask X", default=-999999)
     mask_y: bpy.props.IntProperty(name="Mask Y", default=-999999)
     mask_width: bpy.props.IntProperty(name="Mask Width", default=-1)
@@ -859,8 +824,7 @@ class UpdateTextOP(bpy.types.Operator):
                     kwargs["text"] = self.text
 
                 if self.font_name != "__NOCHANGE__" and (
-                    self.font_name == "default"
-                    or self.font_name in font_manager.get_available_fonts()
+                    self.font_name == "default" or self.font_name in font_manager.get_available_fonts()
                 ):
                     kwargs["font_name"] = self.font_name
 
@@ -868,12 +832,8 @@ class UpdateTextOP(bpy.types.Operator):
                     kwargs["size"] = self.size
 
                 if self.x_pos != -999999 or self.y_pos != -999999:
-                    new_x = (
-                        self.x_pos if self.x_pos != -999999 else instance.position[0]
-                    )
-                    new_y = (
-                        self.y_pos if self.y_pos != -999999 else instance.position[1]
-                    )
+                    new_x = self.x_pos if self.x_pos != -999999 else instance.position[0]
+                    new_y = self.y_pos if self.y_pos != -999999 else instance.position[1]
                     kwargs["pos"] = [new_x, new_y]
 
                 if any(c != -1 for c in self.color):
@@ -886,12 +846,7 @@ class UpdateTextOP(bpy.types.Operator):
                     ]
                     kwargs["color"] = new_color
 
-                if (
-                    self.mask_x != -999999
-                    or self.mask_y != -999999
-                    or self.mask_width != -1
-                    or self.mask_height != -1
-                ):
+                if self.mask_x != -999999 or self.mask_y != -999999 or self.mask_width != -1 or self.mask_height != -1:
                     current_mask = instance.mask or [0, 0, 0, 0]
                     new_mask = [
                         self.mask_x if self.mask_x != -999999 else current_mask[0],
@@ -899,9 +854,7 @@ class UpdateTextOP(bpy.types.Operator):
                         self.mask_width if self.mask_width != -1 else current_mask[2],
                         self.mask_height if self.mask_height != -1 else current_mask[3],
                     ]
-                    kwargs["mask"] = (
-                        new_mask if new_mask[2] > 0 and new_mask[3] > 0 else None
-                    )
+                    kwargs["mask"] = new_mask if new_mask[2] > 0 and new_mask[3] > 0 else None
 
                 if self.align_h != "__NOCHANGE__":
                     kwargs["align_h"] = self.align_h
@@ -912,13 +865,9 @@ class UpdateTextOP(bpy.types.Operator):
                 if kwargs:
                     instance.update_all(**kwargs)
                     updated_props = list(kwargs.keys())
-                    logger.info(
-                        f"Updated text instance #{self.instance_id}: {', '.join(updated_props)}"
-                    )
+                    logger.info(f"Updated text instance #{self.instance_id}: {', '.join(updated_props)}")
                 else:
-                    logger.info(
-                        f"No properties specified to update for text instance #{self.instance_id}"
-                    )
+                    logger.info(f"No properties specified to update for text instance #{self.instance_id}")
 
                 return {"FINISHED"}
 

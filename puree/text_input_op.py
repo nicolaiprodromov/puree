@@ -1,10 +1,10 @@
-import bpy
-import blf
 import time
 
-from .text_op import FontManager, font_manager
-from .mouse_op import mouse_state
+import blf
+import bpy
+
 from .log import get_logger
+from .text_op import font_manager
 
 logger = get_logger(__name__)
 
@@ -66,7 +66,7 @@ class TextInputInstance:
                 font_id = font_manager.get_font_id(self.font_name)
                 if font_id is not None and font_id >= 0:
                     return font_id
-            except:
+            except Exception:
                 logger.debug("Font lookup failed", exc_info=True)
         return 0
 
@@ -202,10 +202,7 @@ class TextInputInstance:
             prev_line = lines[line_idx - 1]
             new_col = min(col, len(prev_line))
 
-            char_count = sum(
-                len(lines[i]) + (1 if i < len(lines) - 1 else 0)
-                for i in range(line_idx - 1)
-            )
+            char_count = sum(len(lines[i]) + (1 if i < len(lines) - 1 else 0) for i in range(line_idx - 1))
             self.cursor_pos = char_count + new_col
 
         if not shift:
@@ -222,10 +219,7 @@ class TextInputInstance:
             next_line = lines[line_idx + 1]
             new_col = min(col, len(next_line))
 
-            char_count = sum(
-                len(lines[i]) + (1 if i < len(lines) - 1 else 0)
-                for i in range(line_idx + 1)
-            )
+            char_count = sum(len(lines[i]) + (1 if i < len(lines) - 1 else 0) for i in range(line_idx + 1))
             self.cursor_pos = char_count + new_col
 
         if not shift:
@@ -238,8 +232,8 @@ class TextInputInstance:
         self.cursor_blink_time = time.time()
         self.show_cursor = True
         try:
-            from .focus import focus_manager
             from . import parser_op
+            from .focus import focus_manager
 
             container_ref = None
             on_focus = []
@@ -249,9 +243,7 @@ class TextInputInstance:
                 if container_ref:
                     on_focus = container_ref.on_focus
                     on_blur = container_ref.on_blur
-            focus_manager.focus(
-                self.container_id, on_focus, on_blur, container_ref=container_ref
-            )
+            focus_manager.focus(self.container_id, on_focus, on_blur, container_ref=container_ref)
         except Exception:
             pass
 
@@ -319,10 +311,7 @@ def draw_all_text_inputs():
         lines = instance.get_wrapped_lines()
         line_height = instance.size * 1.2
 
-        display_text = instance.text if instance.text else instance.placeholder
-        display_color = (
-            instance.color if instance.text else [c * 0.5 for c in instance.color]
-        )
+        display_color = instance.color if instance.text else [c * 0.5 for c in instance.color]
 
         x_pos = instance.position[0]
         y_pos = instance.position[1]
@@ -357,10 +346,7 @@ def draw_all_text_inputs():
                 start = min(instance.cursor_pos, instance.selection_start)
                 end = max(instance.cursor_pos, instance.selection_start)
 
-                char_count = sum(
-                    len(lines[i]) + (1 if i < len(lines) - 1 else 0)
-                    for i in range(line_idx)
-                )
+                char_count = sum(len(lines[i]) + (1 if i < len(lines) - 1 else 0) for i in range(line_idx))
                 line_start = char_count
                 line_end = char_count + len(line)
 
@@ -391,9 +377,7 @@ def draw_all_text_inputs():
 
                     indices = ((0, 1, 2), (1, 2, 3))
 
-                    batch = batch_for_shader(
-                        shader, "TRIS", {"pos": vertices}, indices=indices
-                    )
+                    batch = batch_for_shader(shader, "TRIS", {"pos": vertices}, indices=indices)
                     shader.bind()
                     shader.uniform_float("color", instance.selection_color)
                     batch.draw(shader)
@@ -408,9 +392,7 @@ def draw_all_text_inputs():
             if line_idx < len(lines):
                 line = lines[line_idx]
                 text_before_cursor = line[:col]
-                cursor_x_offset, _ = blf.dimensions(
-                    instance.font_id, text_before_cursor
-                )
+                cursor_x_offset, _ = blf.dimensions(instance.font_id, text_before_cursor)
 
                 cursor_x = x_pos + cursor_x_offset
                 cursor_y_line = y_pos + line_idx * line_height
@@ -432,9 +414,7 @@ def draw_all_text_inputs():
 
                 indices = ((0, 1, 2), (1, 2, 3))
 
-                batch = batch_for_shader(
-                    shader, "TRIS", {"pos": vertices}, indices=indices
-                )
+                batch = batch_for_shader(shader, "TRIS", {"pos": vertices}, indices=indices)
                 shader.bind()
                 shader.uniform_float("color", instance.cursor_color)
                 batch.draw(shader)
@@ -463,8 +443,8 @@ class KeyboardHandler(bpy.types.Operator):
         if _active_input_id is None:
             if event.value == "PRESS":
                 try:
-                    from .keyboard import keys as key_manager
                     from .focus import focus_manager
+                    from .keyboard import keys as key_manager
 
                     consumed = key_manager.dispatch(
                         event,
@@ -530,10 +510,7 @@ class KeyboardHandler(bpy.types.Operator):
             else:
                 lines = active_input.get_wrapped_lines()
                 line_idx, col = active_input.get_cursor_position_2d()
-                char_count = sum(
-                    len(lines[i]) + (1 if i < len(lines) - 1 else 0)
-                    for i in range(line_idx)
-                )
+                char_count = sum(len(lines[i]) + (1 if i < len(lines) - 1 else 0) for i in range(line_idx))
                 active_input.cursor_pos = char_count
 
             if not event.shift:
@@ -546,10 +523,7 @@ class KeyboardHandler(bpy.types.Operator):
             else:
                 lines = active_input.get_wrapped_lines()
                 line_idx, col = active_input.get_cursor_position_2d()
-                char_count = sum(
-                    len(lines[i]) + (1 if i < len(lines) - 1 else 0)
-                    for i in range(line_idx)
-                )
+                char_count = sum(len(lines[i]) + (1 if i < len(lines) - 1 else 0) for i in range(line_idx))
                 active_input.cursor_pos = char_count + len(lines[line_idx])
 
             if not event.shift:
@@ -608,8 +582,8 @@ class KeyboardHandler(bpy.types.Operator):
             return {"RUNNING_MODAL"}
 
         try:
-            from .keyboard import keys as key_manager
             from .focus import focus_manager
+            from .keyboard import keys as key_manager
 
             consumed = key_manager.dispatch(
                 event,
@@ -634,9 +608,7 @@ class CreateTextInputOP(bpy.types.Operator):
     size: bpy.props.IntProperty(name="Size", default=20, min=1, max=200)
     x_pos: bpy.props.IntProperty(name="X Position", default=50)
     y_pos: bpy.props.IntProperty(name="Y Position", default=50)
-    color: bpy.props.FloatVectorProperty(
-        name="Color", subtype="COLOR", size=4, default=(1.0, 1.0, 1.0, 1.0)
-    )
+    color: bpy.props.FloatVectorProperty(name="Color", subtype="COLOR", size=4, default=(1.0, 1.0, 1.0, 1.0))
     cursor_color: bpy.props.FloatVectorProperty(
         name="Cursor Color", subtype="COLOR", size=4, default=(1.0, 1.0, 1.0, 1.0)
     )
@@ -692,9 +664,7 @@ class CreateTextInputOP(bpy.types.Operator):
             from .space_config import get_space_class
 
             space_class = get_space_class() or bpy.types.SpaceView3D
-            _draw_handle = space_class.draw_handler_add(
-                draw_all_text_inputs, (), "WINDOW", "POST_PIXEL"
-            )
+            _draw_handle = space_class.draw_handler_add(draw_all_text_inputs, (), "WINDOW", "POST_PIXEL")
 
         if not _keyboard_handler_running:
             bpy.ops.xwz.text_input_keyboard("INVOKE_DEFAULT")
@@ -740,12 +710,7 @@ class ClearTextInputsOP(bpy.types.Operator):
     bl_label = "Clear All Text Inputs"
 
     def execute(self, context):
-        global \
-            _draw_handle, \
-            _text_input_instances, \
-            _active_input_id, \
-            _keyboard_handler_running, \
-            _next_input_id
+        global _draw_handle, _text_input_instances, _active_input_id, _keyboard_handler_running, _next_input_id
 
         _text_input_instances.clear()
         _active_input_id = None
@@ -855,12 +820,8 @@ class UpdateTextInputOP(bpy.types.Operator):
     size: bpy.props.IntProperty(name="Size", default=-1, min=-1, max=200)
     x_pos: bpy.props.IntProperty(name="X Position", default=-999999)
     y_pos: bpy.props.IntProperty(name="Y Position", default=-999999)
-    color: bpy.props.FloatVectorProperty(
-        name="Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1)
-    )
-    cursor_color: bpy.props.FloatVectorProperty(
-        name="Cursor Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1)
-    )
+    color: bpy.props.FloatVectorProperty(name="Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1))
+    cursor_color: bpy.props.FloatVectorProperty(name="Cursor Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1))
     selection_color: bpy.props.FloatVectorProperty(
         name="Selection Color", subtype="COLOR", size=4, default=(-1, -1, -1, -1)
     )
@@ -898,10 +859,7 @@ class UpdateTextInputOP(bpy.types.Operator):
                     instance.placeholder = self.placeholder
                     updated_props.append("placeholder")
 
-                if (
-                    self.font_name
-                    and self.font_name in font_manager.get_available_fonts()
-                ):
+                if self.font_name and self.font_name in font_manager.get_available_fonts():
                     instance.font_name = self.font_name
                     instance.refresh_font_id()
                     updated_props.append("font_name")
@@ -935,12 +893,7 @@ class UpdateTextInputOP(bpy.types.Operator):
                             instance.selection_color[i] = self.selection_color[i]
                     updated_props.append("selection_color")
 
-                if (
-                    self.mask_x != -999999
-                    or self.mask_y != -999999
-                    or self.mask_width != -1
-                    or self.mask_height != -1
-                ):
+                if self.mask_x != -999999 or self.mask_y != -999999 or self.mask_width != -1 or self.mask_height != -1:
                     current_mask = instance.mask or [0, 0, 0, 0]
                     new_mask = [
                         self.mask_x if self.mask_x != -999999 else current_mask[0],
@@ -948,9 +901,7 @@ class UpdateTextInputOP(bpy.types.Operator):
                         self.mask_width if self.mask_width != -1 else current_mask[2],
                         self.mask_height if self.mask_height != -1 else current_mask[3],
                     ]
-                    instance.mask = (
-                        new_mask if new_mask[2] > 0 and new_mask[3] > 0 else None
-                    )
+                    instance.mask = new_mask if new_mask[2] > 0 and new_mask[3] > 0 else None
                     updated_props.append("mask")
 
                 if self.align_h != "__NOCHANGE__":
@@ -963,13 +914,9 @@ class UpdateTextInputOP(bpy.types.Operator):
 
                 if updated_props:
                     instance._request_refresh()
-                    logger.info(
-                        f"Updated text input #{self.instance_id}: {', '.join(updated_props)}"
-                    )
+                    logger.info(f"Updated text input #{self.instance_id}: {', '.join(updated_props)}")
                 else:
-                    logger.info(
-                        f"No properties specified to update for text input #{self.instance_id}"
-                    )
+                    logger.info(f"No properties specified to update for text input #{self.instance_id}")
 
                 return {"FINISHED"}
 
@@ -990,12 +937,7 @@ def register():
 
 
 def unregister():
-    global \
-        _draw_handle, \
-        _text_input_instances, \
-        _active_input_id, \
-        _keyboard_handler_running, \
-        _next_input_id
+    global _draw_handle, _text_input_instances, _active_input_id, _keyboard_handler_running, _next_input_id
 
     _text_input_instances.clear()
     _active_input_id = None

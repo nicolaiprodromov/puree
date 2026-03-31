@@ -9,6 +9,12 @@ pub struct HitDetector {
     mouse_state: MouseState,
 }
 
+impl Default for HitDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl HitDetector {
     #[new]

@@ -1,23 +1,25 @@
-import bpy
-import gpu
 import os
 import time
-import moderngl as mgl
-from .components.container import container_default
-import numpy as np
 from collections import deque
+
+import bpy
+import gpu
+import moderngl as mgl
+import numpy as np
+
+from .components.container import container_default
 from .log import get_logger
 
 logger = get_logger(__name__)
 
+from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
-from bpy.types import Operator, Panel
 
-from .scroll_op import scroll_state, XWZ_OT_scroll, XWZ_OT_scroll_launch
-from .mouse_op import mouse_state, XWZ_OT_mouse, XWZ_OT_mouse_launch
-from .parser_op import XWZ_OT_ui_parser
 from . import parser_op
 from .input_router import input_router
+from .mouse_op import XWZ_OT_mouse, XWZ_OT_mouse_launch, mouse_state
+from .parser_op import XWZ_OT_ui_parser
+from .scroll_op import XWZ_OT_scroll, XWZ_OT_scroll_launch, scroll_state
 
 _render_data = None
 _modal_timer = None
@@ -198,13 +200,11 @@ class RenderPipeline:
             self.outline_texture = self.mgl_context.texture(self.texture_size, 4)
             self.outline_texture.filter = (mgl.NEAREST, mgl.NEAREST)
 
-            outline_ids = np.array([], dtype=np.int32)
+            np.array([], dtype=np.int32)
             self.debug_outline_buffer = self.mgl_context.buffer(reserve=400)
 
             outline_count = np.array([0], dtype=np.int32)
-            self.debug_outline_count_buffer = self.mgl_context.buffer(
-                outline_count.tobytes()
-            )
+            self.debug_outline_count_buffer = self.mgl_context.buffer(outline_count.tobytes())
 
             return True
         except Exception:
@@ -361,10 +361,7 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
 
         if size_changed:
-            from . import hit_op
-            from . import text_op
-            from . import img_op
-            from . import text_input_op
+            from . import hit_op, img_op, text_input_op, text_op
 
             hit_op._cached_viewport_size = None
             text_op._cached_viewport_height = None
@@ -615,17 +612,13 @@ class RenderPipeline:
             logger.warning("No valid space class found, falling back to SpaceView3D")
             space_class = bpy.types.SpaceView3D
 
-        self.draw_handler = space_class.draw_handler_add(
-            self.draw_texture, (), "WINDOW", "POST_PIXEL"
-        )
+        self.draw_handler = space_class.draw_handler_add(self.draw_texture, (), "WINDOW", "POST_PIXEL")
 
     def _draw_scrollbars(self):
         """Overlay scrollbar track+thumb on every overflow:scroll container."""
         from . import hit_op
 
-        containers = (
-            hit_op._container_data if hit_op._container_data else self.container_data
-        )
+        containers = hit_op._container_data if hit_op._container_data else self.container_data
         if not containers:
             return
 
@@ -666,9 +659,7 @@ class RenderPipeline:
 
             bw_r = float(c.get("border_width_right", 0.0) or c.get("border_width", 0.0))
             bw_t = float(c.get("border_width_top", 0.0) or c.get("border_width", 0.0))
-            bw_b = float(
-                c.get("border_width_bottom", 0.0) or c.get("border_width", 0.0)
-            )
+            bw_b = float(c.get("border_width_bottom", 0.0) or c.get("border_width", 0.0))
 
             inner_x = cx + cw - bw_r
             inner_y = cy + bw_t
@@ -738,9 +729,7 @@ class RenderPipeline:
 
         for clip_rect, rects in groups:
             gpu.state.scissor_test_set(True)
-            gpu.state.scissor_set(
-                clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3]
-            )
+            gpu.state.scissor_set(clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3])
 
             for rx, ry, rw, rh, col in rects:
                 x0 = rx
@@ -759,12 +748,7 @@ class RenderPipeline:
 
     def draw_texture(self):
         """Draw containers directly via native vertex+fragment shader. Zero readback."""
-        if not (
-            self.running
-            and self.native_shader
-            and self.native_batch
-            and self.data_texture
-        ):
+        if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
 
         saved_blend = gpu.state.blend_get()
@@ -778,30 +762,18 @@ class RenderPipeline:
             self.native_shader.uniform_sampler("containerData", self.data_texture)
             if self.gradient_texture:
                 self.native_shader.uniform_sampler("gradientTex", self.gradient_texture)
-                self.native_shader.uniform_float(
-                    "gradTexHeight", float(self.gradient_texture.height)
-                )
+                self.native_shader.uniform_float("gradTexHeight", float(self.gradient_texture.height))
             else:
                 if not hasattr(self, "_dummy_grad_tex") or self._dummy_grad_tex is None:
                     dummy = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
                     dbuf = gpu.types.Buffer("FLOAT", 4, dummy)
-                    self._dummy_grad_tex = gpu.types.GPUTexture(
-                        (1, 1), format="RGBA32F", data=dbuf
-                    )
+                    self._dummy_grad_tex = gpu.types.GPUTexture((1, 1), format="RGBA32F", data=dbuf)
                 self.native_shader.uniform_sampler("gradientTex", self._dummy_grad_tex)
                 self.native_shader.uniform_float("gradTexHeight", 1.0)
-            self.native_shader.uniform_float(
-                "viewportWidth", float(self.region_size[0])
-            )
-            self.native_shader.uniform_float(
-                "viewportHeight", float(self.region_size[1])
-            )
-            self.native_shader.uniform_float(
-                "hoverIndex", float(self._current_hover_index)
-            )
-            self.native_shader.uniform_float(
-                "clickIndex", float(self._current_click_index)
-            )
+            self.native_shader.uniform_float("viewportWidth", float(self.region_size[0]))
+            self.native_shader.uniform_float("viewportHeight", float(self.region_size[1]))
+            self.native_shader.uniform_float("hoverIndex", float(self._current_hover_index))
+            self.native_shader.uniform_float("clickIndex", float(self._current_click_index))
 
             gpu.matrix.push()
             gpu.matrix.load_identity()
@@ -874,7 +846,7 @@ class RenderPipeline:
             import gc
 
             gc.collect()
-        except:
+        except Exception:
             pass
 
         if self.scroll_callback_registered:
@@ -940,9 +912,7 @@ class RenderPipeline:
                     local_t = (t - stops[j][4]) / max(span, 1e-6) if span > 0 else 0.0
                     local_t = max(0.0, min(1.0, local_t))
                     for c in range(4):
-                        row[x * 4 + c] = (
-                            stops[j][c] + (stops[j + 1][c] - stops[j][c]) * local_t
-                        )
+                        row[x * 4 + c] = stops[j][c] + (stops[j + 1][c] - stops[j][c]) * local_t
                     break
         return row
 
@@ -995,18 +965,10 @@ class RenderPipeline:
         """Build the 68-float struct for a single container (17 texels)."""
         bg_color = container.get("background_color", [1, 1, 1, 1])
         bg_color_2 = container.get("background_color_2", [1, 1, 1, 1])
-        hover_bg_color = container.get(
-            "hover_background_color", container_default.hover_background_color
-        )
-        hover_bg_color_2 = container.get(
-            "hover_background_color_2", container_default.hover_background_color_2
-        )
-        click_bg_color = container.get(
-            "click_background_color", container_default.click_background_color
-        )
-        click_bg_color_2 = container.get(
-            "click_background_color_2", container_default.click_background_color_2
-        )
+        hover_bg_color = container.get("hover_background_color", container_default.hover_background_color)
+        hover_bg_color_2 = container.get("hover_background_color_2", container_default.hover_background_color_2)
+        click_bg_color = container.get("click_background_color", container_default.click_background_color)
+        click_bg_color_2 = container.get("click_background_color_2", container_default.click_background_color_2)
         border_color = container.get("border_color", [1, 1, 1, 1])
         border_color_2 = container.get("border_color_2", [0.0, 0.0, 0.0, 0.0])
         position = container.get("position", [0, 0])
@@ -1016,15 +978,9 @@ class RenderPipeline:
 
         br = container.get("border_radius", 0.0)
 
-        grad_row_normal = self._gradient_row_map.get(
-            container.get("gradient_stops", ""), -1.0
-        )
-        grad_row_hover = self._gradient_row_map.get(
-            container.get("hover_gradient_stops", ""), -1.0
-        )
-        grad_row_click = self._gradient_row_map.get(
-            container.get("click_gradient_stops", ""), -1.0
-        )
+        grad_row_normal = self._gradient_row_map.get(container.get("gradient_stops", ""), -1.0)
+        grad_row_hover = self._gradient_row_map.get(container.get("hover_gradient_stops", ""), -1.0)
+        grad_row_click = self._gradient_row_map.get(container.get("click_gradient_stops", ""), -1.0)
 
         bw = container.get("border_width", 0.0)
         bw_top = container.get("border_width_top", 0.0) or bw
@@ -1225,12 +1181,8 @@ class RenderPipeline:
                     child = containers[ci]
                     child_pos = child.get("position", [0, 0])
                     child_size = child.get("size", [0, 0])
-                    max_right = max(
-                        max_right, float(child_pos[0]) + float(child_size[0]) - cx
-                    )
-                    max_bottom = max(
-                        max_bottom, float(child_pos[1]) + float(child_size[1]) - cy
-                    )
+                    max_right = max(max_right, float(child_pos[0]) + float(child_size[0]) - cx)
+                    max_bottom = max(max_bottom, float(child_pos[1]) + float(child_size[1]) - cy)
                     stack.extend(child.get("children", []))
                 self._content_bounds[i] = [max_right, max_bottom]
 
@@ -1397,9 +1349,7 @@ class RenderPipeline:
             )
         return None
 
-    def _apply_initial_scroll_clips(
-        self, containers, text_blocks, image_blocks=None, text_input_blocks=None
-    ):
+    def _apply_initial_scroll_clips(self, containers, text_blocks, image_blocks=None, text_input_blocks=None):
         """Store scroll clip rects for text/image/text_input instances.
         Text: clip stored separately (mask stays for alignment, clip for scissor).
         Images/text_inputs: mask intersected with scroll clip (they use mask for both)."""
@@ -1461,10 +1411,7 @@ class RenderPipeline:
             if k and not c.get("passive", False):
                 click_index = i
 
-        changed = (
-            hover_index != self._current_hover_index
-            or click_index != self._current_click_index
-        )
+        changed = hover_index != self._current_hover_index or click_index != self._current_click_index
 
         if changed:
             old_hover = self._current_hover_index
@@ -1557,14 +1504,10 @@ class RenderPipeline:
                     current = self.transitions.get_value(cid, "opacity")
                     if entering_hover:
                         start = current if current is not None else normal_op
-                        self.transitions.start_transition(
-                            cid, "opacity", start, hover_op, t_dur, t_delay, t_timing
-                        )
+                        self.transitions.start_transition(cid, "opacity", start, hover_op, t_dur, t_delay, t_timing)
                     else:
                         start = current if current is not None else hover_op
-                        self.transitions.start_transition(
-                            cid, "opacity", start, normal_op, t_dur, t_delay, t_timing
-                        )
+                        self.transitions.start_transition(cid, "opacity", start, normal_op, t_dur, t_delay, t_timing)
 
         if 0 <= old_idx < n:
             c = containers[old_idx]
@@ -1685,17 +1628,13 @@ class XWZ_OT_start_ui(Operator):
             logger.warning(f"Failed to start mouse modal: {e}")
 
         context.window_manager.modal_handler_add(self)
-        _modal_timer = context.window_manager.event_timer_add(
-            0.016, window=context.window
-        )
+        _modal_timer = context.window_manager.event_timer_add(0.016, window=context.window)
 
         _render_data._apply_initial_scroll_clips(
             _render_data.container_data,
             parser_op.text_blocks,
             parser_op.image_blocks if hasattr(parser_op, "image_blocks") else None,
-            parser_op.text_input_blocks
-            if hasattr(parser_op, "text_input_blocks")
-            else None,
+            parser_op.text_input_blocks if hasattr(parser_op, "text_input_blocks") else None,
         )
 
         for _container_id in parser_op.image_blocks:
@@ -1775,12 +1714,12 @@ class XWZ_OT_start_ui(Operator):
             )
 
         try:
-            from .hot_reload import (
-                setup_hot_reload,
-                register_default_callbacks,
-                get_hot_reload_manager,
-            )
             from . import get_addon_root
+            from .hot_reload import (
+                get_hot_reload_manager,
+                register_default_callbacks,
+                setup_hot_reload,
+            )
 
             addon_dir = get_addon_root()
             wm = context.window_manager
@@ -1830,9 +1769,7 @@ class XWZ_OT_start_ui(Operator):
             region = context.region
 
             if area and region:
-                size_changed = _render_data.update_region_size(
-                    region.width, region.height
-                )
+                size_changed = _render_data.update_region_size(region.width, region.height)
                 if size_changed:
                     from .hit_op import _container_data
 
@@ -1868,10 +1805,7 @@ class XWZ_OT_start_ui(Operator):
                 global _hot_reload_enabled
                 if _hot_reload_enabled:
                     _render_data._hot_reload_frame_counter += 1
-                    if (
-                        _render_data._hot_reload_frame_counter
-                        >= _render_data._hot_reload_check_interval
-                    ):
+                    if _render_data._hot_reload_frame_counter >= _render_data._hot_reload_check_interval:
                         _render_data._hot_reload_frame_counter = 0
                         try:
                             from .hot_reload import get_hot_reload_manager
@@ -1883,9 +1817,7 @@ class XWZ_OT_start_ui(Operator):
 
                 _render_data.update_fps()
 
-                size_changed = _render_data.update_region_size(
-                    target_region.width, target_region.height
-                )
+                size_changed = _render_data.update_region_size(target_region.width, target_region.height)
                 if size_changed:
                     _render_data._area_cache_valid = False
 
@@ -1893,9 +1825,7 @@ class XWZ_OT_start_ui(Operator):
 
                 hover_changed = False
                 if hit_op._container_data:
-                    hover_changed = _render_data._detect_state_changes(
-                        hit_op._container_data
-                    )
+                    hover_changed = _render_data._detect_state_changes(hit_op._container_data)
 
                 transitions_active = _render_data.transitions.has_active()
                 if transitions_active and hit_op._container_data:
@@ -1909,9 +1839,9 @@ class XWZ_OT_start_ui(Operator):
                                 _render_data._prev_container_states[save_key] = list(
                                     c.get("background_color", [0, 0, 0, 0])
                                 )
-                                _render_data._prev_container_states[
-                                    f"_orig_hover_{cid}"
-                                ] = list(c.get("hover_background_color", [0, 0, 0, -1]))
+                                _render_data._prev_container_states[f"_orig_hover_{cid}"] = list(
+                                    c.get("hover_background_color", [0, 0, 0, -1])
+                                )
                             c["background_color"] = bg
                             c["hover_background_color"] = [0, 0, 0, -1]
 
@@ -1928,41 +1858,27 @@ class XWZ_OT_start_ui(Operator):
                         if op is not None:
                             save_key = f"_orig_op_{cid}"
                             if save_key not in _render_data._prev_container_states:
-                                _render_data._prev_container_states[save_key] = c.get(
-                                    "opacity", 1.0
-                                )
+                                _render_data._prev_container_states[save_key] = c.get("opacity", 1.0)
                             c["opacity"] = op
 
                         if bg is None:
                             save_key = f"_orig_bg_{cid}"
                             if save_key in _render_data._prev_container_states:
-                                c["background_color"] = (
-                                    _render_data._prev_container_states.pop(save_key)
-                                )
-                                c["hover_background_color"] = (
-                                    _render_data._prev_container_states.pop(
-                                        f"_orig_hover_{cid}", [0, 0, 0, -1]
-                                    )
+                                c["background_color"] = _render_data._prev_container_states.pop(save_key)
+                                c["hover_background_color"] = _render_data._prev_container_states.pop(
+                                    f"_orig_hover_{cid}", [0, 0, 0, -1]
                                 )
                         if bc is None:
                             save_key = f"_orig_bc_{cid}"
                             if save_key in _render_data._prev_container_states:
-                                c["border_color"] = (
-                                    _render_data._prev_container_states.pop(save_key)
-                                )
+                                c["border_color"] = _render_data._prev_container_states.pop(save_key)
                         if op is None:
                             save_key = f"_orig_op_{cid}"
                             if save_key in _render_data._prev_container_states:
-                                c["opacity"] = _render_data._prev_container_states.pop(
-                                    save_key
-                                )
+                                c["opacity"] = _render_data._prev_container_states.pop(save_key)
 
                     texture_changed = True
-                elif (
-                    not transitions_active
-                    and _render_data._prev_container_states
-                    and hit_op._container_data
-                ):
+                elif not transitions_active and _render_data._prev_container_states and hit_op._container_data:
                     for i, c in enumerate(hit_op._container_data):
                         cid = c.get("id", "")
                         for prefix, prop in [
@@ -1971,19 +1887,13 @@ class XWZ_OT_start_ui(Operator):
                         ]:
                             save_key = f"{prefix}{cid}"
                             if save_key in _render_data._prev_container_states:
-                                c[prop] = _render_data._prev_container_states.pop(
-                                    save_key
-                                )
+                                c[prop] = _render_data._prev_container_states.pop(save_key)
                         hover_key = f"_orig_hover_{cid}"
                         if hover_key in _render_data._prev_container_states:
-                            c["hover_background_color"] = (
-                                _render_data._prev_container_states.pop(hover_key)
-                            )
+                            c["hover_background_color"] = _render_data._prev_container_states.pop(hover_key)
                         op_key = f"_orig_op_{cid}"
                         if op_key in _render_data._prev_container_states:
-                            c["opacity"] = _render_data._prev_container_states.pop(
-                                op_key
-                            )
+                            c["opacity"] = _render_data._prev_container_states.pop(op_key)
                     _render_data._prev_container_states.clear()
                     texture_changed = True
 
@@ -1991,8 +1901,7 @@ class XWZ_OT_start_ui(Operator):
 
                 state_synced = parser_op.sync_dirty_containers()
                 if state_synced:
-                    from . import hit_op
-                    from . import text_op
+                    from . import hit_op, text_op
 
                     new_data = parser_op._container_json_data
                     old_data = hit_op._container_data
@@ -2021,23 +1930,15 @@ class XWZ_OT_start_ui(Operator):
                     _render_data._cache_original_positions(new_data)
                     _render_data._cache_original_text_positions(parser_op.text_blocks)
                     if hasattr(parser_op, "image_blocks"):
-                        _render_data._cache_original_image_positions(
-                            parser_op.image_blocks
-                        )
+                        _render_data._cache_original_image_positions(parser_op.image_blocks)
                     if hasattr(parser_op, "text_input_blocks"):
-                        _render_data._cache_original_text_input_positions(
-                            parser_op.text_input_blocks
-                        )
+                        _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
 
                     _render_data._apply_initial_scroll_clips(
                         new_data,
                         parser_op.text_blocks,
-                        parser_op.image_blocks
-                        if hasattr(parser_op, "image_blocks")
-                        else None,
-                        parser_op.text_input_blocks
-                        if hasattr(parser_op, "text_input_blocks")
-                        else None,
+                        parser_op.image_blocks if hasattr(parser_op, "image_blocks") else None,
+                        parser_op.text_input_blocks if hasattr(parser_op, "text_input_blocks") else None,
                     )
 
                     if _render_data._scroll_offsets:
@@ -2046,19 +1947,13 @@ class XWZ_OT_start_ui(Operator):
                         if hasattr(parser_op, "image_blocks"):
                             _render_data._apply_scroll_to_images(parser_op.image_blocks)
                         if hasattr(parser_op, "text_input_blocks"):
-                            _render_data._apply_scroll_to_text_inputs(
-                                parser_op.text_input_blocks
-                            )
+                            _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
 
                     for text_instance in text_op._text_instances:
                         container_id = text_instance.container_id
                         if container_id in parser_op.text_blocks:
                             block = parser_op.text_blocks[container_id]
-                            clip = (
-                                list(block["scroll_clip"])
-                                if "scroll_clip" in block
-                                else None
-                            )
+                            clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                             text_instance.update_all(
                                 text=block["text"],
                                 font_name=block["font"],
@@ -2129,47 +2024,33 @@ class XWZ_OT_start_ui(Operator):
                 scroll_changed = _render_data._scroll_changed
                 if scroll_changed:
                     _render_data._scroll_changed = False
-                    from . import hit_op
-                    from . import text_op
+                    from . import hit_op, text_op
 
                     if hit_op._container_data:
                         _render_data.update_data_texture(hit_op._container_data)
 
-                        if (
-                            hasattr(hit_op, "_native_detector")
-                            and hit_op._native_detector
-                        ):
-                            hit_op._native_detector.load_containers(
-                                hit_op._container_data
-                            )
+                        if hasattr(hit_op, "_native_detector") and hit_op._native_detector:
+                            hit_op._native_detector.load_containers(hit_op._container_data)
 
                         acc = _render_data._scroll_accumulation
 
                         for text_instance in text_op._text_instances:
                             container_id = text_instance.container_id
                             if container_id in parser_op.text_blocks:
-                                idx = _render_data._container_id_to_index.get(
-                                    container_id, -1
-                                )
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
 
                                 block = parser_op.text_blocks[container_id]
-                                scroll_clip = (
-                                    _render_data._get_scroll_clip_for_container(
-                                        idx, hit_op._container_data
-                                    )
-                                )
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
 
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
 
                                 orig_pos = _render_data._original_positions.get(idx)
                                 if orig_pos:
-                                    c_size = hit_op._container_data[idx].get(
-                                        "size", [0, 0]
-                                    )
+                                    c_size = hit_op._container_data[idx].get("size", [0, 0])
                                     mask_x = orig_pos[0] - sx
                                     mask_y = orig_pos[1] - sy
                                     mask_w = float(c_size[0])
@@ -2206,19 +2087,13 @@ class XWZ_OT_start_ui(Operator):
                         for image_instance in img_op._image_instances:
                             container_id = image_instance.container_id
                             if container_id in parser_op.image_blocks:
-                                idx = _render_data._container_id_to_index.get(
-                                    container_id, -1
-                                )
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
 
                                 block = parser_op.image_blocks[container_id]
-                                scroll_clip = (
-                                    _render_data._get_scroll_clip_for_container(
-                                        idx, hit_op._container_data
-                                    )
-                                )
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
 
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
@@ -2246,29 +2121,19 @@ class XWZ_OT_start_ui(Operator):
                         for input_instance in text_input_op._text_input_instances:
                             container_id = input_instance.container_id
                             if container_id in parser_op.text_input_blocks:
-                                idx = _render_data._container_id_to_index.get(
-                                    container_id, -1
-                                )
+                                idx = _render_data._container_id_to_index.get(container_id, -1)
                                 if idx < 0 or idx >= len(acc):
                                     continue
                                 sx, sy = acc[idx]
 
                                 block = parser_op.text_input_blocks[container_id]
-                                scroll_clip = (
-                                    _render_data._get_scroll_clip_for_container(
-                                        idx, hit_op._container_data
-                                    )
-                                )
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
 
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
 
                                 block = parser_op.text_input_blocks[container_id]
-                                scroll_clip = (
-                                    _render_data._get_scroll_clip_for_container(
-                                        idx, hit_op._container_data
-                                    )
-                                )
+                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
 
                                 mask_x = block["mask_x"]
                                 mask_y = block["mask_y"]
@@ -2321,27 +2186,17 @@ class XWZ_OT_start_ui(Operator):
                         hit_op._container_data = new_data
 
                         _render_data._cache_original_positions(new_data)
-                        _render_data._cache_original_text_positions(
-                            parser_op.text_blocks
-                        )
+                        _render_data._cache_original_text_positions(parser_op.text_blocks)
                         if hasattr(parser_op, "image_blocks"):
-                            _render_data._cache_original_image_positions(
-                                parser_op.image_blocks
-                            )
+                            _render_data._cache_original_image_positions(parser_op.image_blocks)
                         if hasattr(parser_op, "text_input_blocks"):
-                            _render_data._cache_original_text_input_positions(
-                                parser_op.text_input_blocks
-                            )
+                            _render_data._cache_original_text_input_positions(parser_op.text_input_blocks)
 
                         _render_data._apply_initial_scroll_clips(
                             new_data,
                             parser_op.text_blocks,
-                            parser_op.image_blocks
-                            if hasattr(parser_op, "image_blocks")
-                            else None,
-                            parser_op.text_input_blocks
-                            if hasattr(parser_op, "text_input_blocks")
-                            else None,
+                            parser_op.image_blocks if hasattr(parser_op, "image_blocks") else None,
+                            parser_op.text_input_blocks if hasattr(parser_op, "text_input_blocks") else None,
                         )
 
                         from . import text_op as _text_op_resize
@@ -2358,13 +2213,9 @@ class XWZ_OT_start_ui(Operator):
                             _render_data._apply_scroll_to_containers(new_data)
                             _render_data._apply_scroll_to_text(parser_op.text_blocks)
                             if hasattr(parser_op, "image_blocks"):
-                                _render_data._apply_scroll_to_images(
-                                    parser_op.image_blocks
-                                )
+                                _render_data._apply_scroll_to_images(parser_op.image_blocks)
                             if hasattr(parser_op, "text_input_blocks"):
-                                _render_data._apply_scroll_to_text_inputs(
-                                    parser_op.text_input_blocks
-                                )
+                                _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
 
                     from .hit_op import _container_data
 
@@ -2485,7 +2336,7 @@ def unregister():
         try:
             context = bpy.context
             context.window_manager.event_timer_remove(_modal_timer)
-        except:
+        except Exception:
             pass
         _modal_timer = None
 
@@ -2502,14 +2353,12 @@ def unregister():
 
         gc.collect()
 
-        modules_to_remove = [
-            name for name in sys.modules.keys() if name.startswith("moderngl")
-        ]
+        modules_to_remove = [name for name in sys.modules.keys() if name.startswith("moderngl")]
         for module_name in modules_to_remove:
             if module_name in sys.modules:
                 try:
                     del sys.modules[module_name]
-                except:
+                except Exception:
                     pass
 
         gc.collect()

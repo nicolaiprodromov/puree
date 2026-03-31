@@ -18,6 +18,12 @@ pub struct ContainerProcessor {
     id_to_index: HashMap<String, usize>,
 }
 
+impl Default for ContainerProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl ContainerProcessor {
     #[new]
@@ -218,7 +224,7 @@ impl ContainerProcessor {
 
             let container = Container {
                 id: id.clone(),
-                style_id: style_id,
+                style_id,
                 display,
                 overflow,
                 data,
@@ -392,24 +398,24 @@ impl ContainerProcessor {
         dict.set_item("text", &container.text)?;
         dict.set_item("font", &container.font)?;
 
-        let pos = PyList::new(py, &[container.position[0], container.position[1]]);
+        let pos = PyList::new(py, [container.position[0], container.position[1]]);
         dict.set_item("position", pos)?;
 
-        let size = PyList::new(py, &[container.size[0], container.size[1]]);
+        let size = PyList::new(py, [container.size[0], container.size[1]]);
         dict.set_item("size", size)?;
 
-        let background_color = PyList::new(py, &container.background_color);
+        let background_color = PyList::new(py, container.background_color);
         dict.set_item("background_color", background_color)?;
 
-        let background_color_2 = PyList::new(py, &container.background_color_2);
+        let background_color_2 = PyList::new(py, container.background_color_2);
         dict.set_item("background_color_2", background_color_2)?;
 
         dict.set_item("background_gradient_rot", container.background_gradient_rot)?;
 
-        let hover_background_color = PyList::new(py, &container.hover_background_color);
+        let hover_background_color = PyList::new(py, container.hover_background_color);
         dict.set_item("hover_background_color", hover_background_color)?;
 
-        let hover_background_color_2 = PyList::new(py, &container.hover_background_color_2);
+        let hover_background_color_2 = PyList::new(py, container.hover_background_color_2);
         dict.set_item("hover_background_color_2", hover_background_color_2)?;
 
         dict.set_item(
@@ -417,10 +423,10 @@ impl ContainerProcessor {
             container.hover_background_gradient_rot,
         )?;
 
-        let click_background_color = PyList::new(py, &container.click_background_color);
+        let click_background_color = PyList::new(py, container.click_background_color);
         dict.set_item("click_background_color", click_background_color)?;
 
-        let click_background_color_2 = PyList::new(py, &container.click_background_color_2);
+        let click_background_color_2 = PyList::new(py, container.click_background_color_2);
         dict.set_item("click_background_color_2", click_background_color_2)?;
 
         dict.set_item(
@@ -428,10 +434,10 @@ impl ContainerProcessor {
             container.click_background_gradient_rot,
         )?;
 
-        let border_color = PyList::new(py, &container.border_color);
+        let border_color = PyList::new(py, container.border_color);
         dict.set_item("border_color", border_color)?;
 
-        let border_color_2 = PyList::new(py, &container.border_color_2);
+        let border_color_2 = PyList::new(py, container.border_color_2);
         dict.set_item("border_color_2", border_color_2)?;
 
         dict.set_item("border_gradient_rot", container.border_gradient_rot)?;
@@ -447,17 +453,17 @@ impl ContainerProcessor {
         dict.set_item("border_width_left", container.border_width_left)?;
         dict.set_item("gradient_stops", &container.gradient_stops)?;
 
-        let color = PyList::new(py, &container.color);
+        let color = PyList::new(py, container.color);
         dict.set_item("color", color)?;
 
         dict.set_item("font_size", container.font_size)?;
         dict.set_item("text_x", container.text_x)?;
         dict.set_item("text_y", container.text_y)?;
 
-        let box_shadow_color = PyList::new(py, &container.box_shadow_color);
+        let box_shadow_color = PyList::new(py, container.box_shadow_color);
         dict.set_item("box_shadow_color", box_shadow_color)?;
 
-        let box_shadow_offset = PyList::new(py, &container.box_shadow_offset);
+        let box_shadow_offset = PyList::new(py, container.box_shadow_offset);
         dict.set_item("box_shadow_offset", box_shadow_offset)?;
 
         dict.set_item("box_shadow_blur", container.box_shadow_blur)?;

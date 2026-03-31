@@ -143,9 +143,7 @@ def progress_bar(current, total, width=30, label=""):
         label = label[:17] + "..."
     lbl = f" {label}" if label else ""
     erase = "\033[K" if _COLOR else ""
-    _write(
-        f"\r  {PINK}{bar_fill}{DARK}{bar_empty}{RESET} {WHITE}{pct:3d}%{RESET}{GREY}{lbl}{RESET}{erase}"
-    )
+    _write(f"\r  {PINK}{bar_fill}{DARK}{bar_empty}{RESET} {WHITE}{pct:3d}%{RESET}{GREY}{lbl}{RESET}{erase}")
     if current >= total:
         _write("\n")
 
@@ -223,9 +221,7 @@ class ProgressTracker:
         bar_fill = "\u2588" * filled
         bar_empty = "\u2591" * empty
         erase = "\033[K" if _COLOR else ""
-        _write(
-            f"\r  {PINK}{bar_fill}{DARK}{bar_empty}{RESET} {WHITE}{pct:3d}%{RESET}{erase}"
-        )
+        _write(f"\r  {PINK}{bar_fill}{DARK}{bar_empty}{RESET} {WHITE}{pct:3d}%{RESET}{erase}")
 
     def _update_bar(self):
         if self._lines_below > 0:
@@ -268,7 +264,8 @@ class ProgressTracker:
     def divider(self):
         cols = shutil.get_terminal_size((80, 24)).columns
         w = min(cols - 4, 50)
-        self._print_line(f"  {DARK}{'\u2500' * w}{RESET}")
+        line = "\u2500" * w
+        self._print_line(f"  {DARK}{line}{RESET}")
 
 
 def step(msg):

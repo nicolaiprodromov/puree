@@ -52,14 +52,8 @@ class _CollapseAnimation:
         self.start_time = time.monotonic()
         self.duration = duration
         self.expanding = expanding
-        self._original_overflow = (
-            getattr(container.style, "overflow", "VISIBLE")
-            if container.style
-            else "VISIBLE"
-        )
-        self._original_height = (
-            getattr(container.style, "height", 0) if container.style else 0
-        )
+        self._original_overflow = getattr(container.style, "overflow", "VISIBLE") if container.style else "VISIBLE"
+        self._original_height = getattr(container.style, "height", 0) if container.style else 0
 
 
 class CollapseManager:
@@ -148,9 +142,7 @@ class CollapseManager:
             t = min(1.0, elapsed / anim.duration) if anim.duration > 0 else 1.0
             eased = _ease_out_quad(t)
 
-            current_h = (
-                anim.start_height + (anim.target_height - anim.start_height) * eased
-            )
+            current_h = anim.start_height + (anim.target_height - anim.start_height) * eased
 
             c = anim.container
             if c.style:
@@ -261,11 +253,7 @@ class CollapseManager:
                 layout = node_flat_abs.get(child.id)
                 if layout:
                     total += float(layout.get("height", 0))
-            if (
-                container.style
-                and hasattr(container.style, "gap")
-                and container.style.gap
-            ):
+            if container.style and hasattr(container.style, "gap") and container.style.gap:
                 try:
                     gap_str = str(container.style.gap).replace("px", "").strip()
                     gap_val = float(gap_str) if gap_str else 0.0
@@ -281,11 +269,7 @@ class CollapseManager:
         if getattr(container, "collapsed", False):
             for i, child in enumerate(container.children):
                 if i > 0:
-                    if (
-                        hasattr(child, "style")
-                        and child.style is not None
-                        and hasattr(child.style, "display")
-                    ):
+                    if hasattr(child, "style") and child.style is not None and hasattr(child.style, "display"):
                         child.style.display = "NONE"
 
     def apply_initial_states(self, root_container) -> None:
@@ -300,11 +284,7 @@ class CollapseManager:
             if getattr(c, "collapsed", False):
                 for i, child in enumerate(c.children):
                     if i > 0:
-                        if (
-                            hasattr(child, "style")
-                            and child.style is not None
-                            and hasattr(child.style, "display")
-                        ):
+                        if hasattr(child, "style") and child.style is not None and hasattr(child.style, "display"):
                             child.style.display = "NONE"
             for child in c.children:
                 walk(child)

@@ -1,8 +1,8 @@
-import socket
 import json
-import sys
 import os
 import re
+import socket
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from puree.log import setup_cli_logging
@@ -28,9 +28,7 @@ def read_manifest():
         id_match = re.search(r'^id\s*=\s*"([^"]+)"', content, re.MULTILINE)
 
         if not all([name_match, version_match, id_match]):
-            logger.error(
-                "Error: Could not parse name, version, or id from blender_manifest.toml"
-            )
+            logger.error("Error: Could not parse name, version, or id from blender_manifest.toml")
             return None, None, None
 
         addon_name = name_match.group(1).replace(" ", "")
@@ -71,9 +69,7 @@ except Exception as e:
             logger.info("Installation successful!")
             return True
         else:
-            logger.error(
-                f"Installation failed: {response_obj.get('message', 'Unknown error')}"
-            )
+            logger.error(f"Installation failed: {response_obj.get('message', 'Unknown error')}")
             return False
 
     except ConnectionRefusedError:
@@ -90,7 +86,7 @@ except Exception as e:
         if client:
             try:
                 client.close()
-            except:
+            except Exception:
                 pass
 
 
@@ -104,7 +100,7 @@ def uninstall_addon(package_id):
         python_code = f"""import bpy
 try:
     print('Uninstalling extension...')
-    
+
     # Method 1: Try using the extension manager directly
     try:
         import addon_utils
@@ -115,13 +111,13 @@ try:
             bpy.ops.preferences.addon_disable(module='{package_id}')
         except:
             print('Could not disable addon, continuing with uninstall...')
-    
+
     # Method 3: Try to remove via extensions system
     try:
         # Find all repos and try to uninstall from each
         repos = bpy.context.preferences.extensions.repos
         uninstalled = False
-        
+
         for i, repo in enumerate(repos):
             try:
                 result = bpy.ops.extensions.package_uninstall(pkg_id='{package_id}', repo_index=i)
@@ -132,17 +128,17 @@ try:
             except Exception as e:
                 print(f'Failed to uninstall from repo {{repo.name}}: {{str(e)}}')
                 continue
-        
+
         if not uninstalled:
             # Try without repo_index
             result = bpy.ops.extensions.package_uninstall(pkg_id='{package_id}')
             if result == {{'FINISHED'}}:
                 print('Extension uninstalled successfully')
                 uninstalled = True
-        
+
         if not uninstalled:
             print('Warning: Could not uninstall extension, it may not be installed or already removed')
-            
+
     except Exception as e:
         print(f'Uninstall error: {{str(e)}}')
         # Try legacy addon removal as last resort
@@ -151,7 +147,7 @@ try:
             print('Extension removed via legacy method')
         except:
             raise Exception(f'All uninstall methods failed: {{str(e)}}')
-            
+
 except Exception as e:
     print('Uninstallation failed:', str(e))
     raise e"""
@@ -168,9 +164,7 @@ except Exception as e:
             logger.info("Uninstallation successful!")
             return True
         else:
-            logger.error(
-                f"Uninstallation failed: {response_obj.get('message', 'Unknown error')}"
-            )
+            logger.error(f"Uninstallation failed: {response_obj.get('message', 'Unknown error')}")
             return False
 
     except ConnectionRefusedError:
@@ -187,7 +181,7 @@ except Exception as e:
         if client:
             try:
                 client.close()
-            except:
+            except Exception:
                 pass
 
 
@@ -208,9 +202,7 @@ if __name__ == "__main__":
     success = False
 
     if action == "install":
-        logger.info(
-            f"Installing addon: {addon_name} version {version} (ID: {package_id})"
-        )
+        logger.info(f"Installing addon: {addon_name} version {version} (ID: {package_id})")
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         package_file = os.path.join(script_dir, "out", f"{addon_name}_{version}.zip")

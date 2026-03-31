@@ -1,4 +1,5 @@
 import os
+
 import bpy
 import gpu
 from gpu_extras.batch import batch_for_shader
@@ -52,9 +53,7 @@ class ImageManager:
         addon_assets_path = os.path.join(get_addon_root(), "assets")
         if os.path.exists(addon_assets_path):
             for image_file in os.listdir(addon_assets_path):
-                if image_file.lower().endswith(
-                    (".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tga", ".webp")
-                ):
+                if image_file.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tga", ".webp")):
                     image_path = os.path.join(addon_assets_path, image_file)
                     try:
                         if image_file not in bpy.data.images:
@@ -165,9 +164,7 @@ class ImageInstance:
         self.id = len(_image_instances)
         self.container_id = container_id
         self.image_name = image_name
-        self.texture = (
-            image_manager.get_texture(self.image_name) if self.image_name else None
-        )
+        self.texture = image_manager.get_texture(self.image_name) if self.image_name else None
         self.position = pos
         self.size = size
         self.mask = mask
@@ -184,9 +181,7 @@ class ImageInstance:
             vertices = [(0, 0), (1, 0), (1, 1), (0, 1)]
             uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
             indices = [(0, 1, 2), (0, 2, 3)]
-            self.batch = batch_for_shader(
-                self.shader, "TRIS", {"pos": vertices, "texCoord": uvs}, indices=indices
-            )
+            self.batch = batch_for_shader(self.shader, "TRIS", {"pos": vertices, "texCoord": uvs}, indices=indices)
 
     def get_display_size(self):
         if not self.aspect_ratio or not self.texture:
@@ -249,10 +244,7 @@ class ImageInstance:
         align_v=None,
         opacity=None,
     ):
-        if (
-            image_name is not None
-            and image_name in image_manager.get_available_images()
-        ):
+        if image_name is not None and image_name in image_manager.get_available_images():
             self.image_name = image_name
             self.texture = image_manager.get_texture(image_name)
             self._create_batch()
@@ -311,9 +303,7 @@ def draw_all_images():
             xmax = instance.mask[0] + instance.mask[2]
             ymax = viewport_height - instance.mask[1]
             gpu.state.scissor_test_set(True)
-            gpu.state.scissor_set(
-                int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin)
-            )
+            gpu.state.scissor_set(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
 
         display_size = instance.get_display_size()
 
@@ -419,14 +409,10 @@ class DrawImageOP(bpy.types.Operator):
             from .space_config import get_space_class
 
             space_class = get_space_class() or bpy.types.SpaceView3D
-            _draw_handle = space_class.draw_handler_add(
-                draw_all_images, (), "WINDOW", "POST_PIXEL"
-            )
+            _draw_handle = space_class.draw_handler_add(draw_all_images, (), "WINDOW", "POST_PIXEL")
 
         context.area.tag_redraw()
-        logger.info(
-            f"Added image instance #{new_instance.id} with image {self.image_name}"
-        )
+        logger.info(f"Added image instance #{new_instance.id} with image {self.image_name}")
         return {"FINISHED"}
 
 
@@ -486,9 +472,7 @@ class UpdateImageOP(bpy.types.Operator):
     def get_image_items(self, context):
         image_manager._load_images()
         items = [("__NOCHANGE__", "No Change", "Don't change the image")]
-        items.extend(
-            [(name, name, "") for name in image_manager.get_available_images()]
-        )
+        items.extend([(name, name, "") for name in image_manager.get_available_images()])
         return items
 
     instance_id: bpy.props.IntProperty(name="Instance ID", default=0, min=0)
@@ -537,53 +521,25 @@ class UpdateImageOP(bpy.types.Operator):
             if instance.id == self.instance_id:
                 kwargs = {}
 
-                if (
-                    self.image_name != "__NOCHANGE__"
-                    and self.image_name in image_manager.get_available_images()
-                ):
+                if self.image_name != "__NOCHANGE__" and self.image_name in image_manager.get_available_images():
                     kwargs["image_name"] = self.image_name
 
                 if self.width != -1 or self.height != -1:
-                    new_width = (
-                        max(1, min(2000, self.width))
-                        if self.width != -1
-                        else instance.size[0]
-                    )
-                    new_height = (
-                        max(1, min(2000, self.height))
-                        if self.height != -1
-                        else instance.size[1]
-                    )
+                    new_width = max(1, min(2000, self.width)) if self.width != -1 else instance.size[0]
+                    new_height = max(1, min(2000, self.height)) if self.height != -1 else instance.size[1]
                     kwargs["size"] = [new_width, new_height]
 
                 if self.x_pos != -999999 or self.y_pos != -999999:
-                    new_x = (
-                        self.x_pos if self.x_pos != -999999 else instance.position[0]
-                    )
-                    new_y = (
-                        self.y_pos if self.y_pos != -999999 else instance.position[1]
-                    )
+                    new_x = self.x_pos if self.x_pos != -999999 else instance.position[0]
+                    new_y = self.y_pos if self.y_pos != -999999 else instance.position[1]
                     kwargs["pos"] = [new_x, new_y]
 
-                if (
-                    self.mask_x != -999999
-                    or self.mask_y != -999999
-                    or self.mask_width != -1
-                    or self.mask_height != -1
-                ):
+                if self.mask_x != -999999 or self.mask_y != -999999 or self.mask_width != -1 or self.mask_height != -1:
                     current_mask = instance.mask or [0, 0, 0, 0]
-                    new_mask_x = (
-                        self.mask_x if self.mask_x != -999999 else current_mask[0]
-                    )
-                    new_mask_y = (
-                        self.mask_y if self.mask_y != -999999 else current_mask[1]
-                    )
-                    new_mask_w = (
-                        self.mask_width if self.mask_width != -1 else current_mask[2]
-                    )
-                    new_mask_h = (
-                        self.mask_height if self.mask_height != -1 else current_mask[3]
-                    )
+                    new_mask_x = self.mask_x if self.mask_x != -999999 else current_mask[0]
+                    new_mask_y = self.mask_y if self.mask_y != -999999 else current_mask[1]
+                    new_mask_w = self.mask_width if self.mask_width != -1 else current_mask[2]
+                    new_mask_h = self.mask_height if self.mask_height != -1 else current_mask[3]
 
                     if new_mask_w > 0 and new_mask_h > 0:
                         kwargs["mask"] = [
@@ -609,12 +565,10 @@ class UpdateImageOP(bpy.types.Operator):
 
                 if kwargs:
                     instance.update_all(**kwargs)
-                    updated_props = list(kwargs.keys())
+                    list(kwargs.keys())
 
                 else:
-                    logger.info(
-                        f"No properties specified to update for image instance #{self.instance_id}"
-                    )
+                    logger.info(f"No properties specified to update for image instance #{self.instance_id}")
 
                 return {"FINISHED"}
 

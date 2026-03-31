@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Optional, List
+
 import math as _math
+from typing import List, Optional
 
 
 def _parse_css_angle(s):
@@ -61,12 +62,7 @@ def _apply_linear_gradient(style, value_str):
     first = args[0].strip().lower()
     angle = 180.0
     color_start = 0
-    if (
-        first.endswith("deg")
-        or first.endswith("rad")
-        or first.endswith("turn")
-        or first.startswith("to ")
-    ):
+    if first.endswith("deg") or first.endswith("rad") or first.endswith("turn") or first.startswith("to "):
         angle = _parse_css_angle(first)
         color_start = 1
 
@@ -120,9 +116,7 @@ def _apply_linear_gradient(style, value_str):
                 stops[i] = (rgba, float(i) / max(n - 1, 1))
         parts_str = str(angle)
         for rgba, pos in stops:
-            parts_str += " {} {} {} {} {}".format(
-                rgba[0], rgba[1], rgba[2], rgba[3], pos
-            )
+            parts_str += " {} {} {} {} {}".format(rgba[0], rgba[1], rgba[2], rgba[3], pos)
         style.gradient_stops = parts_str
         style.background_color = stops[0][0]
         style.background_color_2 = stops[1][0]
@@ -193,9 +187,7 @@ class Container:
         except AttributeError:
             pass
 
-        raise AttributeError(
-            f"'Container' object has no attribute or child named '{name}'"
-        )
+        raise AttributeError(f"'Container' object has no attribute or child named '{name}'")
 
     def __setattr__(self, name, value):
         container_attrs = {
@@ -250,23 +242,17 @@ class Container:
     def mark_dirty(self):
         self._dirty = True
 
-    def add_child(
-        self, template: str, id: str = None, params: dict = None
-    ) -> "Container":
+    def add_child(self, template: str, id: str = None, params: dict = None) -> "Container":
         """Create a new child container from a component template and append it."""
         from ..dynamic import dynamic_manager
 
         return dynamic_manager.add_child(self, template, child_id=id, params=params)
 
-    def insert_child(
-        self, index: int, template: str, id: str = None, params: dict = None
-    ) -> "Container":
+    def insert_child(self, index: int, template: str, id: str = None, params: dict = None) -> "Container":
         """Create a new child container from a component template and insert it at *index*."""
         from ..dynamic import dynamic_manager
 
-        return dynamic_manager.insert_child(
-            self, index, template, child_id=id, params=params
-        )
+        return dynamic_manager.insert_child(self, index, template, child_id=id, params=params)
 
     def remove_child(self, id_or_container) -> bool:
         """Remove a child container by ID string or Container reference."""
@@ -280,9 +266,7 @@ class Container:
 
         dynamic_manager.clear_children(self)
 
-    def set_markdown(
-        self, text: str, app=None, fonts: dict = None, classes: dict = None
-    ) -> None:
+    def set_markdown(self, text: str, app=None, fonts: dict = None, classes: dict = None) -> None:
         """Clear children and render *text* as markdown into this container."""
         from ..markdown import render_markdown
 
@@ -485,13 +469,9 @@ class Container:
                 if name == "width" or name == "height":
                     value_str = str(value).lower()
                     if "px" in value_str:
-                        length_val = LengthPointsPercentAuto.from_any(
-                            int(value_str.replace("px", "")) * PT
-                        )
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace("px", "")) * PT)
                     elif "%" in value_str:
-                        length_val = LengthPointsPercentAuto.from_any(
-                            int(value_str.replace("%", "")) * PCT
-                        )
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace("%", "")) * PCT)
                     else:
                         length_val = LengthPointsPercentAuto.from_any(0 * PT)
 
@@ -499,15 +479,11 @@ class Container:
                     if name == "width":
                         new_style_dict["size"] = SizePointsPercentAuto(
                             width=length_val,
-                            height=current_size.height
-                            if current_size
-                            else LengthPointsPercentAuto.from_any(0 * PT),
+                            height=current_size.height if current_size else LengthPointsPercentAuto.from_any(0 * PT),
                         )
                     else:
                         new_style_dict["size"] = SizePointsPercentAuto(
-                            width=current_size.width
-                            if current_size
-                            else LengthPointsPercentAuto.from_any(0 * PT),
+                            width=current_size.width if current_size else LengthPointsPercentAuto.from_any(0 * PT),
                             height=length_val,
                         )
 
@@ -521,13 +497,9 @@ class Container:
 
                     value_str = str(value).lower()
                     if "px" in value_str:
-                        length_val = LengthPointsPercentAuto.from_any(
-                            int(value_str.replace("px", "")) * PT
-                        )
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace("px", "")) * PT)
                     elif "%" in value_str:
-                        length_val = LengthPointsPercentAuto.from_any(
-                            int(value_str.replace("%", "")) * PCT
-                        )
+                        length_val = LengthPointsPercentAuto.from_any(int(value_str.replace("%", "")) * PCT)
                     else:
                         length_val = LengthPointsPercentAuto.from_any(0 * PT)
 
@@ -554,9 +526,7 @@ class Container:
                             else LengthPointsPercentAuto.from_any(0 * PT)
                         )
                     else:
-                        top = right = bottom = left = LengthPointsPercentAuto.from_any(
-                            0 * PT
-                        )
+                        top = right = bottom = left = LengthPointsPercentAuto.from_any(0 * PT)
 
                     if name == "margin_top":
                         top = length_val
@@ -567,27 +537,17 @@ class Container:
                     elif name == "margin_left":
                         left = length_val
 
-                    new_style_dict["margin"] = RectPointsPercentAuto(
-                        top=top, right=right, bottom=bottom, left=left
-                    )
+                    new_style_dict["margin"] = RectPointsPercentAuto(top=top, right=right, bottom=bottom, left=left)
 
                 self._layout_node.style = Style(**new_style_dict)
                 self._layout_node.mark_dirty()
 
-        if (
-            name in ("background", "background_color")
-            and "linear-gradient" in str(value)
-            and self.style is not None
-        ):
+        if name in ("background", "background_color") and "linear-gradient" in str(value) and self.style is not None:
             if _apply_linear_gradient(self.style, str(value)):
                 self.mark_dirty()
                 return
 
-        if (
-            name == "background"
-            and "linear-gradient" not in str(value)
-            and self.style is not None
-        ):
+        if name == "background" and "linear-gradient" not in str(value) and self.style is not None:
             name = "background_color"
 
         color_props = {

@@ -7,10 +7,11 @@ Public API:
 """
 
 from __future__ import annotations
-import re
+
 import logging
+import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -148,9 +149,7 @@ def _build_children(parent, blocks: List[Block], fonts: dict, cls: dict) -> None
             c.id = block_id
             c.text = block.text
             key = _heading_class_key(block.level)
-            c.classes = [
-                cls.get(key, DEFAULT_CLASSES.get(key, DEFAULT_CLASSES["heading_n"]))
-            ]
+            c.classes = [cls.get(key, DEFAULT_CLASSES.get(key, DEFAULT_CLASSES["heading_n"]))]
             c.font = fonts.get("bold", "NeueMontreal-Bold")
             c.parent = parent
             parent.children.append(c)
@@ -209,9 +208,7 @@ def _build_children(parent, blocks: List[Block], fonts: dict, cls: dict) -> None
                     span.classes = [cls.get("bold", DEFAULT_CLASSES["bold"])]
                 elif span_type == "code":
                     span.font = fonts.get("mono", fonts.get("regular", "default"))
-                    span.classes = [
-                        cls.get("code_inline", DEFAULT_CLASSES["code_inline"])
-                    ]
+                    span.classes = [cls.get("code_inline", DEFAULT_CLASSES["code_inline"])]
                 else:
                     span.font = fonts.get("regular", "default")
                     span.classes = [cls.get("text_span", DEFAULT_CLASSES["text_span"])]

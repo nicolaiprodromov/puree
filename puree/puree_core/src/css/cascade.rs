@@ -97,8 +97,8 @@ const INHERITED_PROPERTIES: &[&str] = &[
 ];
 
 fn strip_custom_prefix(css_name: &str) -> String {
-    if css_name.starts_with("--") {
-        css_name[2..].to_string()
+    if let Some(stripped) = css_name.strip_prefix("--") {
+        stripped.to_string()
     } else {
         css_name.to_string()
     }
@@ -303,6 +303,7 @@ fn auto_distribute_positions(positions: &mut [Option<f32>]) {
         let start_pos = positions[start].unwrap();
         let end_pos = positions[end].unwrap();
         let gap_count = (end - start) as f32;
+        #[allow(clippy::needless_range_loop)]
         for j in (start + 1)..end {
             let t = (j - start) as f32 / gap_count;
             positions[j] = Some(start_pos + t * (end_pos - start_pos));
@@ -361,8 +362,8 @@ fn parse_gradient_angle(s: &str) -> f64 {
     if let Some(turn) = s.strip_suffix("turn") {
         return turn.trim().parse::<f64>().unwrap_or(0.5) * 360.0;
     }
-    if s.starts_with("to ") {
-        let dir = &s[3..].trim().to_lowercase();
+    if let Some(stripped) = s.strip_prefix("to ") {
+        let dir = &stripped.trim().to_lowercase();
         return match dir.as_str() {
             "top" => 0.0,
             "right" => 90.0,
@@ -468,7 +469,7 @@ fn expand_flex(value: &str) -> Vec<(String, String)> {
 
 /// Expand `gap` shorthand: `gap: 10px`, `gap: 10px 20px`
 fn expand_gap(value: &str) -> Vec<(String, String)> {
-    let parts: Vec<&str> = value.trim().split_whitespace().collect();
+    let parts: Vec<&str> = value.split_whitespace().collect();
     match parts.len() {
         1 => vec![
             ("row-gap".into(), parts[0].to_string()),
@@ -529,7 +530,7 @@ fn expand_font(value: &str) -> Vec<(String, String)> {
 
 /// Expand `overflow` shorthand: `overflow: hidden`, `overflow: hidden visible`
 fn expand_overflow(value: &str) -> Vec<(String, String)> {
-    let parts: Vec<&str> = value.trim().split_whitespace().collect();
+    let parts: Vec<&str> = value.split_whitespace().collect();
     match parts.len() {
         1 => vec![
             ("overflow-x".into(), parts[0].to_string()),
@@ -1615,6 +1616,12 @@ pub struct CSSCascade {
     active_rules: Vec<CascadeRule>,
 }
 
+impl Default for CSSCascade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl CSSCascade {
     #[new]
@@ -1803,6 +1810,7 @@ impl CSSCascade {
             }
         }
 
+        #[allow(clippy::needless_range_loop)]
         for idx in 0..resolved.len() {
             let props_snapshot: Vec<(String, String)> = resolved[idx]
                 .iter()
@@ -1841,6 +1849,7 @@ fn resolve_var(value: &str, props: &HashMap<String, String>) -> String {
         let mut chars = result.chars().peekable();
         let mut changed = false;
 
+        #[allow(clippy::while_let_on_iterator)]
         while let Some(ch) = chars.next() {
             if ch == 'v' {
                 let rest: String = std::iter::once(ch).chain(chars.clone()).take(4).collect();
@@ -1929,7 +1938,7 @@ fn parse_containers(containers: &PyList) -> PyResult<Vec<ContainerInfo>> {
     for (i, info) in infos.iter().enumerate() {
         parent_children.entry(info.parent_idx).or_default().push(i);
     }
-    for (_parent, children) in &parent_children {
+    for children in parent_children.values() {
         let count = children.len();
         for (ci, &child_idx) in children.iter().enumerate() {
             infos[child_idx].child_index = ci;

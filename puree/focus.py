@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from typing import Optional
+
 from .log import get_logger
 
 logger = get_logger(__name__)
@@ -11,9 +13,7 @@ class FocusManager:
         self._focused_on_blur: Optional[list] = None
         self._focused_container_ref = None
 
-    def focus(
-        self, container_id: str, on_focus: list, on_blur: list, container_ref=None
-    ) -> None:
+    def focus(self, container_id: str, on_focus: list, on_blur: list, container_ref=None) -> None:
         """Focus a container by ID. Blurs the previous one first."""
         if self._focused_id == container_id:
             return

@@ -209,16 +209,17 @@ install: build_package venv
 # ── CI checks ────────────────────────────────────────────────────────
 
 ci:
-	@echo "── Python lint ──"
-	@ruff check puree/ __init__.py tests/ dist/ setup.py
-	@echo "── Python format ──"
-	@ruff format --check puree/ __init__.py tests/ dist/ setup.py
-	@echo "── Rust checks ──"
-	@cd puree/puree_core && cargo build --release
-	@cd puree/puree_core && cargo clippy -- -D warnings
-	@cd puree/puree_core && cargo test
-	@cd puree/puree_core && cargo fmt -- --check
-	@echo "✓ All checks passed"
+	@VENV=".venv"; \
+	if [ ! -d "$$VENV" ]; then echo "Error: .venv not found. Run 'make venv' first."; exit 1; fi; \
+	RUFF="$$VENV/bin/ruff"; \
+	if [ ! -f "$$RUFF" ]; then echo "Installing ruff into .venv..."; "$$VENV/bin/pip" install ruff --quiet; fi; \
+	echo "── Python lint ──"; \
+	"$$RUFF" check puree/ __init__.py tests/ dist/ setup.py; \
+	echo "── Python format ──"; \
+	"$$RUFF" format --check puree/ __init__.py tests/ dist/ setup.py; \
+	echo "── Rust checks ──"; \
+	cd puree/puree_core && cargo build --release && cargo clippy -- -D warnings && cargo test && cargo fmt -- --check; \
+	echo "✓ All checks passed"
 # ── Release workflow ─────────────────────────────────────────────────
 
 bump:

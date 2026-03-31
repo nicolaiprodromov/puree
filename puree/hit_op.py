@@ -1,10 +1,11 @@
 import bpy
+
 from . import parser_op
-from .scroll_op import scroll_state
-from .mouse_op import mouse_state
-from .native_bindings import HitDetector
 from .input_router import input_router
 from .log import get_logger
+from .mouse_op import mouse_state
+from .native_bindings import HitDetector
+from .scroll_op import scroll_state
 
 logger = get_logger(__name__)
 
@@ -65,16 +66,14 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
 
         try:
             mouse_x, mouse_y = self._get_mouse_pos()
-        except:
+        except Exception:
             logger.debug("Hit detection error", exc_info=True)
             return {"PASS_THROUGH"}
 
         if not _native_detector:
             return {"PASS_THROUGH"}
 
-        _native_detector.update_mouse(
-            mouse_x, mouse_y, mouse_state.is_clicked, float(scroll_state.scroll_delta)
-        )
+        _native_detector.update_mouse(mouse_x, mouse_y, mouse_state.is_clicked, float(scroll_state.scroll_delta))
 
         results = _native_detector.detect_hits()
 
@@ -121,11 +120,7 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
 
                 container["_clicked"] = result["is_clicked"]
 
-                if (
-                    result["click_changed"]
-                    and result["is_clicked"]
-                    and not container["_prev_clicked"]
-                ):
+                if result["click_changed"] and result["is_clicked"] and not container["_prev_clicked"]:
                     from . import text_input_op
 
                     text_input_clicked = False
@@ -138,9 +133,7 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                     if not text_input_clicked:
                         for input_instance in text_input_op._text_input_instances:
                             if input_instance.is_focused:
-                                bpy.ops.xwz.blur_text_input(
-                                    instance_id=input_instance.id
-                                )
+                                bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
 
                     if not text_input_clicked:
                         if container.get("focusable", False):
@@ -172,7 +165,7 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
             mouse_x, mouse_y = self._get_mouse_pos()
             width, height = self._get_viewport_size()
             return 0 <= mouse_x <= width and 0 <= mouse_y <= height
-        except:
+        except Exception:
             logger.debug("Viewport bounds check error", exc_info=True)
             return False
 

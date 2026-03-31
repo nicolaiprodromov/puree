@@ -1,10 +1,11 @@
-import bpy
-import yaml
 import os
-from typing import Optional, Dict, Any, List, Tuple
-from .native_bindings import ConfigParser
+from typing import Any, Dict, Optional, Tuple
+
+import bpy
+
 from . import get_addon_root
 from .log import get_logger
+from .native_bindings import ConfigParser
 
 logger = get_logger(__name__)
 
@@ -62,20 +63,14 @@ class SpaceAwareConfig:
             space_validation = self.config_parser.validate_space(target_theme.space)
 
             if not space_validation.is_valid:
-                logger.warning(
-                    f"Invalid space configuration: {space_validation.error_message}"
-                )
-                logger.warning(
-                    f"Supported spaces: {', '.join(self.config_parser.get_supported_spaces())}"
-                )
+                logger.warning(f"Invalid space configuration: {space_validation.error_message}")
+                logger.warning(f"Supported spaces: {', '.join(self.config_parser.get_supported_spaces())}")
                 return False
 
             self.target_space = space_validation.area_type
             self.space_handler_name = space_validation.handler_name
 
-            logger.info(
-                f"Parsed config for theme '{self.selected_theme}' targeting space '{self.target_space}'"
-            )
+            logger.info(f"Parsed config for theme '{self.selected_theme}' targeting space '{self.target_space}'")
             return True
 
         except Exception as e:

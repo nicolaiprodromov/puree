@@ -37,9 +37,9 @@ TCP access:
     the active log file path.  Use `just tail` to live-follow it.
 """
 
+import logging
 import os
 import sys
-import logging
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 
@@ -87,14 +87,8 @@ def set_debug(enabled: bool):
     _debug_mode = enabled
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     for handler in root.handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(
-            handler, RotatingFileHandler
-        ):
-            handler.setLevel(
-                logging.DEBUG
-                if enabled
-                else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR)
-            )
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
+            handler.setLevel(logging.DEBUG if enabled else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR))
 
 
 def reinitialize():
@@ -108,9 +102,7 @@ def reinitialize():
     _ensure_initialized()
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     root.info("=" * 72)
-    root.info(
-        "  Puree session started  |  log: %s", _log_path or "(file logging unavailable)"
-    )
+    root.info("  Puree session started  |  log: %s", _log_path or "(file logging unavailable)")
     root.info("=" * 72)
 
 
@@ -155,9 +147,7 @@ def setup_cli_logging(name: str) -> logging.Logger:
     _ensure_initialized()
     logger = logging.getLogger(f"{_ROOT_LOGGER_NAME}.cli.{name}")
     for handler in logging.getLogger(_ROOT_LOGGER_NAME).handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(
-            handler, RotatingFileHandler
-        ):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
             handler.setLevel(logging.INFO)
             handler.setFormatter(logging.Formatter(_CLI_FORMAT))
     return logger

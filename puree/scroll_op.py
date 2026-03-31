@@ -1,5 +1,6 @@
-import bpy
 import math
+
+import bpy
 
 from .log import get_logger
 
