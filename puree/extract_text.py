@@ -28,7 +28,7 @@ class TextExtractor:
                 text = text.title()
 
             # Use content box (inside padding+border) for text positioning
-            content_box = getattr(container, '_content_box_abs', None)
+            content_box = getattr(container, "_content_box_abs", None)
             if content_box and content_box["width"] > 0:
                 text_origin_x = content_box["x"]
                 text_origin_y = content_box["y"]

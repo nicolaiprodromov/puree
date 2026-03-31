@@ -247,7 +247,7 @@ refresh TARGET:
     fi
     echo "Done!"
 
-# Run all CI checks locally
+# Run all CI checks locally (auto-formats and auto-fixes first, then checks)
 ci:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -262,16 +262,18 @@ ci:
         "$VENV/bin/pip" install ruff --quiet
     fi
     TARGETS="puree/ __init__.py tests/ dist/ setup.py"
-    echo "── Python format ──"
-    "$RUFF" format --check $TARGETS
-    echo "── Python lint ──"
+    echo "── Python format (auto-fix) ──"
+    "$RUFF" format $TARGETS
+    echo "── Python lint (auto-fix) ──"
+    "$RUFF" check --fix $TARGETS || true
+    echo "── Python lint (check) ──"
     "$RUFF" check $TARGETS
     echo "── Rust checks ──"
     pushd puree/puree_core > /dev/null
     cargo build --release
     cargo clippy -- -D warnings
     cargo test
-    cargo fmt -- --check
+    cargo fmt
     popd > /dev/null
     echo "✓ All checks passed"
 

@@ -25,7 +25,7 @@ class TextInputExtractor:
                     placeholder = parts[1].strip()
 
             # Use content box (inside padding+border) for text input positioning
-            content_box = getattr(container, '_content_box_abs', None)
+            content_box = getattr(container, "_content_box_abs", None)
             if content_box and content_box["width"] > 0:
                 input_x = content_box["x"]
                 input_y = content_box["y"]

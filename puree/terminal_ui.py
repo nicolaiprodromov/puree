@@ -17,9 +17,6 @@ import sys
 import threading
 import time
 
-# ── ANSI helpers ─────────────────────────────────────────────────────
-
-
 def _supports_color():
     """Check if the terminal supports ANSI color codes."""
     if os.environ.get("NO_COLOR"):
@@ -80,9 +77,6 @@ LOGO_GRADIENT = [
     _ansi("38;5;222"),  # #FFD787 — golden peach
 ]
 
-
-# ── Logo ─────────────────────────────────────────────────────────────
-
 PUREE_LOGO_COMPACT = [
     r"  ██████╗ ██╗   ██╗██████╗ ███████╗ ███████╗ ",
     r"  ██╔══██╗██║   ██║██╔══██╗██╔════╝ ██╔════╝ ",
@@ -91,8 +85,6 @@ PUREE_LOGO_COMPACT = [
     r"  ██║     ╚██████╔╝██║  ██║███████╗ ███████╗ ",
     r"  ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚══════╝ ",
 ]
-
-# ── Spinner frames ───────────────────────────────────────────────────
 
 # Braille dots spinner — smooth and clean
 SPINNER_BRAILLE = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -145,12 +137,7 @@ SPINNER_COOK = [
 
 DEFAULT_SPINNER = SPINNER_COOK
 
-
-# ── Progress bar ─────────────────────────────────────────────────────
-
-
 def progress_bar(current, total, width=30, label=""):
-    """Render a single-line progress bar. Call repeatedly to update."""
     if total <= 0:
         frac = 1.0
     else:
@@ -168,9 +155,6 @@ def progress_bar(current, total, width=30, label=""):
     _write(f"\r  {PINK}{bar_fill}{DARK}{bar_empty}{RESET} {WHITE}{pct:3d}%{RESET}{GREY}{lbl}{RESET}{erase}")
     if current >= total:
         _write("\n")
-
-
-# ── Spinner class ────────────────────────────────────────────────────
 
 
 class Spinner:
@@ -222,10 +206,6 @@ class Spinner:
             self.stop(self.message)
         return False
 
-
-# ── Progress tracker ─────────────────────────────────────────────────
-
-
 class ProgressTracker:
     def __init__(self, total, width=30):
         self.total = max(total, 1)
@@ -237,7 +217,6 @@ class ProgressTracker:
         self._lines_below = 1
 
     def set_total(self, total):
-        """Adjust total without changing current progress."""
         self.total = max(total, 1)
         self._update_bar()
 
@@ -259,12 +238,10 @@ class ProgressTracker:
             _write(f"\033[{self._lines_below}B\r")
 
     def advance(self, n=1):
-        """Advance progress by n steps."""
         self.current = min(self.current + n, self.total)
         self._update_bar()
 
     def finish(self):
-        """Ensure bar shows 100%."""
         self.current = self.total
         self._update_bar()
 
@@ -295,47 +272,33 @@ class ProgressTracker:
         line = "\u2500" * w
         self._print_line(f"  {DARK}{line}{RESET}")
 
-
-# ── Step logger ──────────────────────────────────────────────────────
-
-
 def step(msg):
-    """Print a completed step with a checkmark."""
     _write(f"  {GREEN}✓{RESET} {msg}\n")
 
 
 def step_fail(msg):
-    """Print a failed step."""
     _write(f"  {RED}✗{RESET} {msg}\n")
 
 
 def step_warn(msg):
-    """Print a warning step."""
     _write(f"  {YELLOW}!{RESET} {msg}\n")
 
 
 def step_info(msg):
-    """Print an info line (dimmed bullet)."""
     _write(f"  {DARK}→{RESET} {GREY}{msg}{RESET}\n")
 
 
 def header(msg):
-    """Print a bold header line."""
     _write(f"\n  {BOLD}{WHITE}{msg}{RESET}\n")
 
 
 def divider():
-    """Print a subtle divider."""
     cols = shutil.get_terminal_size((80, 24)).columns
     w = min(cols - 4, 50)
     _write(f"  {DARK}{'─' * w}{RESET}\n")
 
 
-# ── Logo display ─────────────────────────────────────────────────────
-
-
 def print_logo(animate=True):
-    """Print the compact PUREE logo with gradient animation."""
     lines = PUREE_LOGO_COMPACT
     gradient = LOGO_GRADIENT
 
@@ -346,61 +309,46 @@ def print_logo(animate=True):
         if animate:
             time.sleep(0.04)
 
-
-# ── High-level wrappers for CLI commands ─────────────────────────────
-
-
 def banner_init():
-    """Animated banner for `puree init`."""
     print_logo(animate=True)
     header("Initializing new Puree project")
     divider()
 
 
 def banner_build():
-    """Banner for `puree build`."""
     print_logo(animate=True)
     header("Building extension")
     divider()
 
 
 def banner_install():
-    """Banner for `puree install`."""
     print_logo(animate=True)
     header("Installing extension")
     divider()
 
 
 def banner_link():
-    """Banner for `puree link`."""
     print_logo(animate=True)
     header("Linking for development")
     divider()
 
 
 def banner_unlink():
-    """Banner for `puree unlink`."""
     print_logo(animate=True)
     header("Unlinking")
     divider()
 
 
 def banner_reload():
-    """Banner for `puree reload`."""
     print_logo(animate=False)
 
 
 def outro_success(message="Done!"):
-    """Print a success outro."""
     _write(f"\n  {GREEN}{BOLD}{'─' * 3} {message} {'─' * 3}{RESET}\n\n")
 
 
 def outro_fail(message="Failed"):
-    """Print a failure outro."""
     _write(f"\n  {RED}{BOLD}{'─' * 3} {message} {'─' * 3}{RESET}\n\n")
-
-
-# ── Demo (run this file directly) ────────────────────────────────────
 
 if __name__ == "__main__":
     print_logo(animate=True)

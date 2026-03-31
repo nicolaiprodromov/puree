@@ -20,7 +20,7 @@ class ImageExtractor:
     def _extract_images(self, container):
         if container.img != "":
             # Use content box (inside padding+border) for image positioning
-            content_box = getattr(container, '_content_box_abs', None)
+            content_box = getattr(container, "_content_box_abs", None)
             if content_box and content_box["width"] > 0:
                 img_x = content_box["x"]
                 img_y = content_box["y"]
