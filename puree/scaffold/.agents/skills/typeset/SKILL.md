@@ -97,7 +97,7 @@ $font-size-xxl: 36px;  // display / hero text
 - **5 sizes cover most needs**: caption, secondary, body, subheading, heading
 - **Use a consistent ratio** between levels (1.25, 1.333, or 1.5)
 - **Combine dimensions**: Size + weight + color + space for strong hierarchy — don't rely on size alone
-- All sizes in **px** are most common, but `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, and `calc()` are also supported. `clamp()`, `min()`, `max()`, `fr` are NOT supported.
+- All sizes in **px** — Puree does not support `em`, `rem`, `clamp()`, or viewport units
 
 ### Fix Readability
 
@@ -147,7 +147,7 @@ $font-size-xxl: 36px;  // display / hero text
 - Use decorative/display fonts for body text
 - Default to generic fonts when personality matters
 - Pair fonts that are similar but not identical (two geometric sans-serifs)
-- Use `clamp()`, `min()`, `max()`, or `fr` units — these are NOT supported (`rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()` ARE supported)
+- Use `em`, `rem`, `clamp()`, or `vw` units — Puree only supports `px` and unitless `line-height`
 - Reference `font-family` in SCSS — fonts are loaded via YAML `font:` attribute
 
 ## Verify Typography Improvements

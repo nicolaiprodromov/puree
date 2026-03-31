@@ -1,3 +1,6 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
 """
 puree.net — Built-in HTTP client with SSE streaming.
 
@@ -33,20 +36,24 @@ Callbacks are always delivered on the main Blender thread via a queue
 drained every 50 ms by a bpy.app.timers interval.
 """
 
-import collections
-import concurrent.futures
 import json as _json
 import threading
-import urllib.error
+import collections
+import concurrent.futures
 import urllib.request
-from dataclasses import dataclass
+import urllib.error
+from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from .log import get_logger
 
 logger = get_logger(__name__)
 
+# ── Shared callback queue ────────────────────────────────────────────────────
+
 _callback_queue: collections.deque = collections.deque()
+
+# ── Data classes ─────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -108,6 +115,9 @@ class SSEStream:
         return self._stop_event.is_set()
 
 
+# ── HTTP error wrapper ────────────────────────────────────────────────────────
+
+
 class HttpError(Exception):
     """Raised when the server returns a non-2xx response."""
 
@@ -120,6 +130,9 @@ class HttpError(Exception):
     @property
     def text(self) -> str:
         return self.body.decode("utf-8", errors="replace")
+
+
+# ── HttpClient ────────────────────────────────────────────────────────────────
 
 
 class HttpClient:
@@ -136,6 +149,8 @@ class HttpClient:
             thread_name_prefix="puree-http",
         )
 
+    # ── public API ───────────────────────────────────────────────────────────
+
     def get(
         self,
         url: str,
@@ -146,14 +161,11 @@ class HttpClient:
         timeout: float = 30,
     ) -> concurrent.futures.Future:
         """Issue a GET request in the background."""
-        return self._submit(
-            "GET",
-            url,
-            headers=headers,
-            on_success=on_success,
-            on_error=on_error,
-            timeout=timeout,
-        )
+        return self._submit("GET", url,
+                            headers=headers,
+                            on_success=on_success,
+                            on_error=on_error,
+                            timeout=timeout)
 
     def post(
         self,
@@ -167,63 +179,43 @@ class HttpClient:
         timeout: float = 30,
     ) -> concurrent.futures.Future:
         """Issue a POST request in the background."""
-        return self._submit(
-            "POST",
-            url,
-            json_data=json,
-            data=data,
-            headers=headers,
-            on_success=on_success,
-            on_error=on_error,
-            timeout=timeout,
-        )
+        return self._submit("POST", url,
+                            json_data=json,
+                            data=data,
+                            headers=headers,
+                            on_success=on_success,
+                            on_error=on_error,
+                            timeout=timeout)
 
     def shutdown(self) -> None:
         """Shut down the thread pool.  Called automatically on addon unregister."""
         logger.debug("HttpClient.shutdown() called")
         self._pool.shutdown(wait=False)
 
-    def _submit(
-        self,
-        method,
-        url,
-        *,
-        json_data=None,
-        data=None,
-        headers=None,
-        on_success=None,
-        on_error=None,
-        timeout=30,
-    ):
+    # ── internals ────────────────────────────────────────────────────────────
+
+    def _submit(self, method, url, *, json_data=None, data=None,
+                headers=None, on_success=None, on_error=None, timeout=30):
         future = self._pool.submit(
             self._worker,
-            method,
-            url,
-            json_data,
-            data,
-            headers,
-            on_success,
-            on_error,
-            timeout,
+            method, url, json_data, data, headers, on_success, on_error, timeout,
         )
         return future
 
     def _worker(self, method, url, json_data, data, headers, on_success, on_error, timeout):
         try:
-            response = _do_request(
-                method,
-                url,
-                json_data=json_data,
-                data=data,
-                headers=headers,
-                timeout=timeout,
-            )
+            response = _do_request(method, url,
+                                   json_data=json_data, data=data,
+                                   headers=headers, timeout=timeout)
             if on_success is not None:
                 _callback_queue.append((on_success, response))
         except Exception as exc:
             logger.warning("http.%s %s failed: %s", method.lower(), url, exc)
             if on_error is not None:
                 _callback_queue.append((on_error, exc))
+
+
+# ── SSEClient ─────────────────────────────────────────────────────────────────
 
 
 class SSEClient:
@@ -245,23 +237,13 @@ class SSEClient:
         on_chunk: Optional[Callable] = None,
         on_done: Optional[Callable] = None,
         on_error: Optional[Callable] = None,
-        timeout: float = 0,
+        timeout: float = 0,          # 0 → no read timeout for long-lived streams
     ) -> SSEStream:
         """Open an SSE connection and return an :class:`SSEStream` handle."""
         stream = SSEStream()
         t = threading.Thread(
             target=self._stream_worker,
-            args=(
-                stream,
-                url,
-                method,
-                json,
-                headers,
-                on_chunk,
-                on_done,
-                on_error,
-                timeout,
-            ),
+            args=(stream, url, method, json, headers, on_chunk, on_done, on_error, timeout),
             daemon=True,
             name=f"puree-sse-{url[:40]}",
         )
@@ -269,23 +251,12 @@ class SSEClient:
         logger.debug("SSE stream started: %s %s", method, url)
         return stream
 
-    def _stream_worker(
-        self,
-        stream,
-        url,
-        method,
-        json_data,
-        headers,
-        on_chunk,
-        on_done,
-        on_error,
-        timeout,
-    ):
+    # ── internals ────────────────────────────────────────────────────────────
+
+    def _stream_worker(self, stream, url, method, json_data, headers,
+                       on_chunk, on_done, on_error, timeout):
         try:
-            merged_headers = {
-                "Accept": "text/event-stream",
-                "Cache-Control": "no-cache",
-            }
+            merged_headers = {"Accept": "text/event-stream", "Cache-Control": "no-cache"}
             if headers:
                 merged_headers.update(headers)
 
@@ -296,6 +267,8 @@ class SSEClient:
                 req.add_header("Content-Type", "application/json")
                 req.data = body
 
+            # Use 0 timeout for truly persistent connections; fall back to
+            # the provided value if caller wants a read timeout.
             open_kwargs = {}
             if timeout:
                 open_kwargs["timeout"] = timeout
@@ -344,9 +317,11 @@ class SSEClient:
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
 
             if line.startswith(":"):
+                # Comment — ignore
                 continue
 
             if line == "":
+                # Blank line → dispatch accumulated event
                 if data_lines:
                     event = SSEEvent(
                         event=event_type,
@@ -355,17 +330,22 @@ class SSEClient:
                     )
                     if on_chunk is not None:
                         _callback_queue.append((on_chunk, event))
+                # Reset buffers for next event
                 event_type = "message"
                 data_lines = []
                 event_id = ""
                 continue
 
             if line.startswith("event:"):
-                event_type = line[len("event:") :].strip()
+                event_type = line[len("event:"):].strip()
             elif line.startswith("data:"):
-                data_lines.append(line[len("data:") :].strip())
+                data_lines.append(line[len("data:"):].strip())
             elif line.startswith("id:"):
-                event_id = line[len("id:") :].strip()
+                event_id = line[len("id:"):].strip()
+            # Retry fields and unknown fields are intentionally ignored
+
+
+# ── Low-level request helper ──────────────────────────────────────────────────
 
 
 def _do_request(
@@ -406,6 +386,9 @@ def _do_request(
         raise HttpError(0, str(exc.reason), b"") from exc
 
 
+# ── Callback drainer ──────────────────────────────────────────────────────────
+
+
 def _drain_callbacks() -> None:
     """
     Drain the shared callback queue.
@@ -426,13 +409,14 @@ def _drain_callbacks() -> None:
             logger.error("Callback error: %s", exc, exc_info=True)
 
 
+# ── Lifecycle (called from puree/__init__.py) ─────────────────────────────────
+
 _drain_handle = None
 
 
 def register() -> None:
     """Start the callback drain timer.  Called from ``puree.__init__.register()``."""
     from .timers import set_interval
-
     global _drain_handle
     _drain_handle = set_interval(_drain_callbacks, 50)
     logger.debug("net.register(): drain timer started (handle=%s)", _drain_handle.id)
@@ -443,12 +427,14 @@ def unregister() -> None:
     global _drain_handle
     if _drain_handle is not None:
         from .timers import clear
-
         clear(_drain_handle)
         logger.debug("net.unregister(): drain timer stopped")
         _drain_handle = None
+    # Shut down the HTTP thread pool cleanly
     http.shutdown()
 
+
+# ── Module-level singletons ───────────────────────────────────────────────────
 
 http = HttpClient()
 sse = SSEClient()

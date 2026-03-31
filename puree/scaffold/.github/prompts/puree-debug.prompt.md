@@ -26,7 +26,7 @@ Read the user's `index.yaml`, `style.scss`, and `script.py` files before checkin
 ## Step 3: SCSS Checks
 
 - [ ] **Class names match** — Every `style:` and `class:` in YAML has a matching `.classname` in SCSS?
-- [ ] **Unsupported properties** — Any `clamp()`, `min()`, `max()`, `fr`, `transform`, `float`, `z-index`? (`calc()`, `em`/`rem`/`vw`/`vh`/`vmin`/`vmax` ARE supported)
+- [ ] **Unsupported properties** — Any `calc()`, `em`/`rem`/`vw`/`vh`, `transform`, `float`, `z-index`?
 - [ ] **Hover/active** — Only `background-color`, `color`, `border-color`, `opacity` in `:hover`/`:active`? (layout props are ignored)
 - [ ] **Transitions** — Target only animatable properties? (`background-color`, `color`, `border-color`, `opacity`)
 - [ ] **Puree extensions** — `--text-align-v`, `--img-align-h` etc. use `#{$var}` interpolation for variables?

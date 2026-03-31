@@ -1,3 +1,13 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 """
 Puree logging system.
 
@@ -36,16 +46,15 @@ TCP access:
     Send 'log_path' to the reload server (127.0.0.1:19746) to get
     the active log file path.  Use `just tail` to live-follow it.
 """
-
-import logging
 import os
 import sys
+import logging
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 
 _LOG_DIR_NAME = "logs"
 _LOG_FILE_NAME = "puree.log"
-_MAX_BYTES = 5 * 1024 * 1024
+_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 _BACKUP_COUNT = 3
 _ROOT_LOGGER_NAME = "puree"
 
@@ -54,13 +63,15 @@ _CLI_FORMAT = "%(message)s"
 _CONSOLE_FORMAT = "%(levelname)-8s %(name)s: %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-_SILENT_LEVEL = logging.CRITICAL + 1
+_SILENT_LEVEL = logging.CRITICAL + 1  # effectively mutes console
 
 _initialized = False
 _debug_mode = None
 _file_handler_ok = False
 _log_path = None
 
+
+# ── Public API ───────────────────────────────────────────────────────
 
 def get_logger(name: str) -> logging.Logger:
     """Get a named logger under the 'puree' hierarchy.
@@ -88,7 +99,10 @@ def set_debug(enabled: bool):
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     for handler in root.handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
-            handler.setLevel(logging.DEBUG if enabled else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR))
+            handler.setLevel(
+                logging.DEBUG if enabled
+                else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR)
+            )
 
 
 def reinitialize():
@@ -100,6 +114,7 @@ def reinitialize():
     global _initialized
     _initialized = False
     _ensure_initialized()
+    # Session banner — makes reload boundaries easy to find in the log
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     root.info("=" * 72)
     root.info("  Puree session started  |  log: %s", _log_path or "(file logging unavailable)")
@@ -123,7 +138,7 @@ def capture_output(source: str = "user"):
     """
     _ensure_initialized()
     if not _file_handler_ok:
-        yield
+        yield  # nothing to capture into
         return
 
     user_logger = logging.getLogger(f"{_ROOT_LOGGER_NAME}.{source}")
@@ -133,6 +148,7 @@ def capture_output(source: str = "user"):
     try:
         yield
     finally:
+        # Flush any partial line before restoring
         sys.stdout.flush()
         sys.stderr.flush()
         sys.stdout = old_stdout
@@ -153,6 +169,8 @@ def setup_cli_logging(name: str) -> logging.Logger:
     return logger
 
 
+# ── Internals ────────────────────────────────────────────────────────
+
 def _is_debug() -> bool:
     global _debug_mode
     if _debug_mode is not None:
@@ -164,7 +182,6 @@ def _get_log_dir() -> str:
     """Resolve log directory: <addon_root>/logs/."""
     try:
         from . import get_addon_root
-
         addon_root = get_addon_root()
     except (ImportError, RuntimeError):
         addon_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -178,8 +195,9 @@ def _ensure_initialized():
 
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     root.setLevel(logging.DEBUG)
-    root.propagate = False
+    root.propagate = False  # never bubble up to root (prevents Blender duplicates)
 
+    # Clear stale handlers from previous loads/reloads
     for h in root.handlers[:]:
         try:
             h.close()
@@ -187,6 +205,7 @@ def _ensure_initialized():
             pass
         root.removeHandler(h)
 
+    # ── File handler (always logs everything) ────────────────────────
     _file_handler_ok = False
     _log_path = None
     try:
@@ -205,14 +224,15 @@ def _ensure_initialized():
         root.addHandler(file_handler)
         _file_handler_ok = True
     except Exception:
-        pass
+        pass  # console handler will compensate
 
+    # ── Console handler ──────────────────────────────────────────────
     if _is_debug():
         console_level = logging.DEBUG
     elif _file_handler_ok:
         console_level = _SILENT_LEVEL
     else:
-        console_level = logging.ERROR
+        console_level = logging.ERROR  # no file — surface errors as fallback
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(console_level)
@@ -221,6 +241,8 @@ def _ensure_initialized():
 
     _initialized = True
 
+
+# ── Stream capture helpers ───────────────────────────────────────────
 
 class _TeeStream:
     """Wraps a stream so writes go to both the original stream and a logger.

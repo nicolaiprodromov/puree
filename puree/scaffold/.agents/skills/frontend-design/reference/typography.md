@@ -22,7 +22,7 @@ The common mistake: too many font sizes that are too close together (14px, 15px,
 
 Popular ratios: 1.25 (major third), 1.333 (perfect fourth), 1.5 (perfect fifth). Pick one and commit.
 
-**Puree supports `px`, `rem`, and `em` for font sizes.** `rem` resolves against root font-size (default 16px), `em` against parent font-size. Viewport units (`vw`, `vh`, `vmin`, `vmax`) and `calc()` also work.
+**Puree uses px for all font sizes.** There is no `rem`, `em`, or viewport-relative unit support.
 
 ### Readability & Measure
 

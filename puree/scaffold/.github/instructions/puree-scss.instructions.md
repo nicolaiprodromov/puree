@@ -28,11 +28,9 @@ These use `--` prefix and **require `#{$var}` interpolation** for SCSS variables
 --text-align-v: $alignment;
 ```
 
-## Animatable Properties (ONLY these 3)
+## Animatable Properties (ONLY these 4)
 
-`background-color`, `border-color`, `opacity`
-
-`color` (text) changes instantly on hover/active — it is **not** transition-interpolated.
+`background-color`, `color`, `border-color`, `opacity`
 
 **Layout properties in `:hover`/`:active` are IGNORED** — no reflow on hover. Only visual properties above are respected.
 
@@ -57,14 +55,9 @@ These use `--` prefix and **require `#{$var}` interpolation** for SCSS variables
 | Universal             | `*`                | ✓         |
 | Descendant            | `.a .b`            | ✓         |
 | Child                 | `.a > .b`          | ✓         |
-| Adjacent sibling      | `.a + .b`          | ✓         |
-| General sibling       | `.a ~ .b`          | ✓         |
 | Pseudo-class          | `:hover`, `:active`| ✓         |
 | Multiple              | `.a, .b { }`       | ✓         |
-| `:first-child`, `:last-child` |            | ✓         |
-| `:nth-child(an+b)`   |                    | ✓         |
-| `:not()`              |                    | ✓         |
-| Attribute, `:is()`, `:where()`, `::before/after` | | ✗ |
+| Attribute, `:nth-child`, sibling, `:not()`, `::before/after` | | ✗ |
 
 ## Gradients
 
@@ -98,15 +91,13 @@ border-width: 1px 2px 3px 4px;  // top right bottom left
 
 ## Inheritance
 
-Only these inherit from parent: `color`, `font-size`, `text-align`, `font-family`, `font-weight`, `font-style`, `pointer-events`, `visibility`, `text-transform`, `line-height`, `letter-spacing`, `white-space`. Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
+Only these inherit from parent: `color`, `font-size`, `text-align`. Everything else must be set explicitly. No `inherit`/`initial`/`unset` keywords.
 
 ## Units & Functions
 
-- **Supported**: `px`, `%`, `auto`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()`
-- **NOT supported**: `fr`, `clamp()`, `min()`, `max()`
-- `rem` resolves against root font-size (default 16px), `em` against parent font-size
-- `vw`/`vh` = 1% of viewport width/height; `vmin`/`vmax` = 1% of smaller/larger dimension
-- `calc()` supports `+` and `-` operators with mixed units (e.g. `calc(100% - 20px)`)
+- **Supported**: `px`, `%`, `auto`
+- **NOT supported**: `em`, `rem`, `vw`, `vh`, `fr`
+- **NOT supported**: `calc()`, `clamp()`, `min()`, `max()`
 
 ## Display Values
 
@@ -115,29 +106,16 @@ Only these inherit from parent: `color`, `font-size`, `text-align`, `font-family
 ## Layout
 
 Full flexbox: `flex-direction`, `flex-wrap`, `flex-grow/shrink/basis`, `align-items/self/content`, `justify-content/items/self`, `gap`
-Grid: `grid-template-rows/columns`, `grid-auto-flow` (including `dense` variants), `grid-row/column`
+Grid: `grid-template-rows/columns`, `grid-auto-flow`, `grid-row/column`
 Positioning: `relative`, `absolute` (no `fixed`, `sticky`)
-Media queries: `@media (min-width: Npx)`, `@media (max-width: Npx)`, `@media (min-height: Npx)`, `@media (max-height: Npx)`
+Media queries: `@media (min-width: Npx)`, `@media (max-width: Npx)`
 
 ## SCSS Features
 
 Variables (`$var`), nesting, mixins, `!default`, `var(--name)` with fallback, `@media` queries — all work.
 
-## Scrollbar Customization
-
-| Property | Values | Description |
-|----------|--------|-------------|
-| `scrollbar-width` | `none`, `thin` (6px), `auto` (8px), or px value | Track width |
-| `scrollbar-color` | color | Shorthand for thumb + track colors |
-| `scrollbar-thumb-color` | color | Thumb (draggable part) color |
-| `scrollbar-track-color` | color | Track (background) color |
-
-## Pointer Events
-
-`pointer-events: none` prevents hover/click detection on the element and all its children. Use for overlay containers that shouldn't block interaction.
-
 ## NOT Supported
 
-`float`, `clear`, `z-index`, `transform`, `@keyframes`, `animation`, pseudo-elements (`::before`/`::after`), attribute selectors, `:is()`/`:where()`, per-side border colors
+`float`, `clear`, `z-index`, `transform`, `@keyframes`, `animation`, pseudo-elements (`::before`/`::after`), attribute selectors, `:nth-child`, sibling combinators, `:not()`/`:is()`/`:where()`, per-side border colors
 
 For the full property reference, see the Puree documentation (PUREE_VS_CSS.md) at https://github.com/nicprod/puree

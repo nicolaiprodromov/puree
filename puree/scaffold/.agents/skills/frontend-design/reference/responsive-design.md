@@ -173,13 +173,9 @@ Puree loads images via the `img:` YAML attribute. Images don't have `srcset` or 
 }
 ```
 
-## Units
+## Units: px and % Only
 
-Puree supports `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, and `calc()` units. `fr`, `clamp()`, `min()`, `max()` are NOT supported.
-
-- `rem` resolves against root font-size (default 16px), `em` against parent font-size
-- `vw`/`vh` = 1% of viewport width/height; `vmin`/`vmax` = 1% of smaller/larger dimension
-- `calc()` supports `+` and `-` operators with mixed units (e.g. `calc(100% - 20px)`)
+Puree supports `px` and `%` units. There are no `rem`, `em`, `vw`, `vh`, or `fr` units.
 
 - Use `%` for fluid widths that adapt to parent size (`width: 100%`, `width: 50%`)
 - Use `px` for fixed sizes, spacing, font sizes, and borders
@@ -194,4 +190,4 @@ Test your interface at different panel widths in Blender by resizing the addon's
 
 ---
 
-**Avoid**: Assuming a fixed panel width. Hiding critical functionality at narrow widths — adapt the layout instead. Using unsupported units (`fr`). Using unsupported media features (pointer, hover).
+**Avoid**: Assuming a fixed panel width. Hiding critical functionality at narrow widths — adapt the layout instead. Using unsupported units (rem, vw, vh). Using unsupported media features (pointer, hover).

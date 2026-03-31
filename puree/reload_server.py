@@ -1,8 +1,17 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import socket
 import threading
 
-from .log import get_log_path, get_logger
-
+from .log import get_logger, get_log_path
 logger = get_logger(__name__)
 
 PUREE_RELOAD_PORT = 19746
@@ -20,7 +29,9 @@ class ReloadServer:
         if self._running:
             return True
         self._running = True
-        self._thread = threading.Thread(target=self._serve, daemon=True, name="PureeReloadServer")
+        self._thread = threading.Thread(
+            target=self._serve, daemon=True, name="PureeReloadServer"
+        )
         self._thread.start()
         return True
 
@@ -28,6 +39,7 @@ class ReloadServer:
         if not self._running:
             return
         self._running = False
+        # Poke the socket to unblock accept()
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.5)

@@ -88,11 +88,9 @@ All CSS property names work as-is: `background-color`, `color`, `font-size`, `te
 
 **SCSS variables in `--` properties MUST use interpolation**: `--text-align-v: #{$var};`
 
-### Animatable Properties — ONLY These 3
+### Animatable Properties — ONLY These 4
 
-`background-color` · `border-color` · `opacity`
-
-`color` (text) changes instantly on hover/active — **not** transition-interpolated.
+`background-color` · `color` · `border-color` · `opacity`
 
 **Layout properties in `:hover`/`:active` are SILENTLY IGNORED.** No width, height, padding, margin, gap, flex-* changes on hover.
 
@@ -146,20 +144,21 @@ border-radius: 8px;             // or per-corner
 
 ### Selectors Supported
 
-`.class`, `#id`, `*`, `.a .b` (descendant), `.a > .b` (child), `.a + .b` (adjacent sibling), `.a ~ .b` (general sibling), `:hover`, `:active`, `.a, .b` (multiple), `:first-child`, `:last-child`, `:nth-child(an+b)`, `:not()`
+`.class`, `#id`, `*`, `.a .b` (descendant), `.a > .b` (child), `:hover`, `:active`, `.a, .b` (multiple)
 
 ### Selectors NOT Supported
 
-Attribute selectors, `:is()`, `:where()`, `::before`, `::after`
+Attribute selectors, `:nth-child`, sibling combinators (`~`, `+`), `:not()`, `:is()`, `:where()`, `::before`, `::after`
 
 ### Inheritance
 
-Only these inherit: `color`, `font-size`, `text-align`, `font-family`, `font-weight`, `font-style`, `pointer-events`, `visibility`, `text-transform`, `line-height`, `letter-spacing`, `white-space`. Everything else must be set explicitly. No `inherit`/`initial`/`unset`.
+Only these inherit: `color`, `font-size`, `text-align`. Everything else must be set explicitly. No `inherit`/`initial`/`unset`.
 
 ### Units
 
-- **Supported**: `px`, `%`, `auto`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()`
-- **NOT supported**: `fr`, `clamp()`, `min()`, `max()`
+- **Supported**: `px`, `%`, `auto`
+- **NOT supported**: `em`, `rem`, `vw`, `vh`, `fr`
+- **NOT supported**: `calc()`, `clamp()`, `min()`, `max()`
 
 ### Display Values
 
@@ -275,8 +274,7 @@ def on_click(container):
 | Radial/conic gradients | ✗ |
 | Multiple box-shadows | ✗ |
 | Per-side border colors | ✗ |
-| Attribute selectors | ✗ |
-| `:is()`, `:where()` | ✗ |
+| `:nth-child`, `:not()`, attribute selectors | ✗ |
 | `font-family` in CSS (use YAML `font:`) | ✗ |
 | `inherit`, `initial`, `unset` keywords | ✗ |
 | Hyphens in YAML node names | ✗ |
@@ -291,11 +289,11 @@ Before outputting any code, mentally verify:
 2. ✅ `main()` returns `app`
 3. ✅ Every property change is followed by `mark_dirty()`
 4. ✅ Component params use `"{{name, 'default'}}"` format
-5. ✅ Only `background-color`, `color`, `border-color`, `opacity` in `:hover`/`:active` (only `background-color`, `border-color`, `opacity` are transition-animated)
-6. ✅ Transitions only target those 3 animatable properties
+5. ✅ Only `background-color`, `color`, `border-color`, `opacity` in `:hover`/`:active`
+6. ✅ Transitions only target those 4 animatable properties
 7. ✅ Font names match files in `fonts/` directory (no extension)
 8. ✅ `--` extension properties use `#{$var}` interpolation
-9. ✅ No `fr`, `clamp()`, `min()`, `max()`, `transform`, `@keyframes`, pseudo-elements (`rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, `calc()` ARE supported)
+9. ✅ No `calc()`, `em`/`rem`, `transform`, `@keyframes`, pseudo-elements
 10. ✅ Gradients are `linear-gradient()` only
 
 ---

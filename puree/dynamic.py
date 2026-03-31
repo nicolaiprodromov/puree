@@ -1,7 +1,8 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
 from __future__ import annotations
-
-from typing import TYPE_CHECKING, Optional
-
+from typing import Optional, TYPE_CHECKING
 from .log import get_logger
 
 logger = get_logger(__name__)
@@ -9,8 +10,8 @@ logger = get_logger(__name__)
 _id_counter = 0
 
 if TYPE_CHECKING:
-    from .components.container import Container
     from .parser import UI
+    from .components.container import Container
 
 
 class DynamicContainerManager:
@@ -20,25 +21,21 @@ class DynamicContainerManager:
     """
 
     def __init__(self):
-        self._ui: Optional["UI"] = None
+        self._ui: Optional['UI'] = None
 
-    def set_ui(self, ui: "UI") -> None:
+    def set_ui(self, ui: 'UI') -> None:
         self._ui = ui
 
-    def _require_ui(self) -> "UI":
+    def _require_ui(self) -> 'UI':
         if self._ui is None:
             raise RuntimeError(
-                "DynamicContainerManager has no UI. Call set_ui() after parsing, or ensure the UI is loaded."
+                "DynamicContainerManager has no UI. "
+                "Call set_ui() after parsing, or ensure the UI is loaded."
             )
         return self._ui
 
-    def add_child(
-        self,
-        parent: "Container",
-        template: str,
-        child_id: Optional[str] = None,
-        params: Optional[dict] = None,
-    ) -> "Container":
+    def add_child(self, parent: 'Container', template: str,
+                  child_id: Optional[str] = None, params: Optional[dict] = None) -> 'Container':
         """
         Add a new child container from a component template and append it to parent.
 
@@ -52,7 +49,7 @@ class DynamicContainerManager:
             The newly created Container.
         """
         ui = self._require_ui()
-        template_name = template.strip("[]")
+        template_name = template.strip('[]')
 
         if child_id is None:
             global _id_counter
@@ -60,7 +57,6 @@ class DynamicContainerManager:
             _id_counter += 1
 
         from .components.container import Container
-
         child = Container()
         child.id = child_id
         child.parent = parent
@@ -84,14 +80,8 @@ class DynamicContainerManager:
         logger.debug(f"add_child: created '{child_id}' under '{parent.id}'")
         return child
 
-    def insert_child(
-        self,
-        parent: "Container",
-        index: int,
-        template: str,
-        child_id: Optional[str] = None,
-        params: Optional[dict] = None,
-    ) -> "Container":
+    def insert_child(self, parent: 'Container', index: int, template: str,
+                     child_id: Optional[str] = None, params: Optional[dict] = None) -> 'Container':
         """
         Insert a new child container from a component template at a specific index.
 
@@ -106,7 +96,7 @@ class DynamicContainerManager:
             The newly created Container.
         """
         ui = self._require_ui()
-        template_name = template.strip("[]")
+        template_name = template.strip('[]')
 
         if child_id is None:
             global _id_counter
@@ -114,7 +104,6 @@ class DynamicContainerManager:
             _id_counter += 1
 
         from .components.container import Container
-
         child = Container()
         child.id = child_id
         child.parent = parent
@@ -139,7 +128,7 @@ class DynamicContainerManager:
         logger.debug(f"insert_child: created '{child_id}' at index {idx} under '{parent.id}'")
         return child
 
-    def remove_child(self, parent: "Container", id_or_container) -> bool:
+    def remove_child(self, parent: 'Container', id_or_container) -> bool:
         """
         Remove a child container by ID string or Container reference.
 
@@ -169,7 +158,7 @@ class DynamicContainerManager:
         logger.debug(f"remove_child: removed '{getattr(target, 'id', id_or_container)}' from '{parent.id}'")
         return True
 
-    def clear_children(self, parent: "Container") -> None:
+    def clear_children(self, parent: 'Container') -> None:
         """Remove all children from a container."""
         ui = self._require_ui()
 
@@ -186,4 +175,5 @@ class DynamicContainerManager:
         logger.debug(f"clear_children: cleared all children from '{parent.id}'")
 
 
+# Module-level singleton used by Container methods and parser_op.
 dynamic_manager = DynamicContainerManager()

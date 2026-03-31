@@ -1,23 +1,29 @@
+# Created by XWZ
+# ◕‿◕ Distributed for free at:
+# https://github.com/nicolaiprodromov/puree
+# ╔═════════════════════════════════╗
+# ║  ██   ██  ██      ██  ████████  ║
+# ║   ██ ██   ██  ██  ██       ██   ║
+# ║    ███    ██  ██  ██     ██     ║
+# ║   ██ ██   ██  ██  ██   ██       ║
+# ║  ██   ██   ████████   ████████  ║
+# ╚═════════════════════════════════╝
 import importlib
 import importlib.util
 import os
 from time import sleep
 
-from .log import capture_output, get_logger
-
+from .log import get_logger, capture_output
 logger = get_logger(__name__)
 
-
-class Compiler:
+class Compiler():
     def __init__(self, ui):
         self.ui = ui
-
     def compile(self):
         global global_vars
         from . import get_addon_root
-
         addon_dir = get_addon_root()
-
+        
         for _script_ in self.ui.theme.scripts:
             module_name = _script_.replace(".py", "")
             try:
@@ -27,7 +33,7 @@ class Compiler:
                     module = importlib.util.module_from_spec(spec)
                     with capture_output("user"):
                         spec.loader.exec_module(module)
-                        if hasattr(module, "main"):
+                        if hasattr(module, 'main'):
                             self.ui = module.main(self, self.ui)
                 sleep(0.1)
             except (ImportError, FileNotFoundError) as e:

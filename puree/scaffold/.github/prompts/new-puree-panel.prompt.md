@@ -26,7 +26,7 @@ Generate these 4 files in the target directory:
 - Add `transition: background-color 0.15s ease` for smooth interactions
 - Only `background-color`, `color`, `border-color`, `opacity` are animatable
 - Use `--text-align-v: center` for vertical text centering
-- `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, and `calc()` units are supported (no `fr`, `clamp()`, `min()`, `max()`)
+- Only `px` and `%` units (no em/rem/vw/vh)
 
 ### 3. `script.py` — Interactivity
 ```python

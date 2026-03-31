@@ -44,10 +44,10 @@ Check every SCSS file:
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
 | **Unsupported properties** | 🔴 Critical | `float`, `clear`, `z-index`, `transform`, `@keyframes`, `animation`, pseudo-elements |
-| **Unsupported functions** | 🔴 Critical | `clamp()`, `min()`, `max()` — `calc()` with `+`/`-` IS supported |
-| **Unsupported units** | 🔴 Critical | `fr` — `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax` all work |
+| **Unsupported functions** | 🔴 Critical | `calc()`, `clamp()`, `min()`, `max()` |
+| **Unsupported units** | 🔴 Critical | `em`, `rem`, `vw`, `vh`, `fr` — only `px` and `%` work |
 | **Unsupported display** | 🔴 Critical | `inline`, `inline-flex`, `inline-block` — only `flex`, `grid`, `block`, `none` |
-| **Unsupported selectors** | 🔴 Critical | Attribute selectors, `::before`/`::after`, `:is()`, `:where()` — `:nth-child`, `:not()`, `:first-child`, `:last-child`, siblings `+`/`~` ARE supported |
+| **Unsupported selectors** | 🔴 Critical | Attribute selectors, `:nth-child`, `::before`/`::after`, `:not()`, `:is()`, siblings |
 | **Layout in hover/active** | 🔴 Critical | `width`, `height`, `padding`, `margin`, `flex-*`, `gap` in `:hover`/`:active` — IGNORED |
 | **Non-animatable transition** | 🔴 Critical | `transition` targeting anything other than `background-color`, `color`, `border-color`, `opacity` |
 | **Extension interpolation** | 🔴 Critical | `--text-align-v: $var` instead of `--text-align-v: #{$var}` |
