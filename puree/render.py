@@ -110,7 +110,6 @@ class RenderPipeline:
         self._vis_clips = []  # cached per-container (visible, cx, cy, cw, ch, opacity)
 
     def _safe_release_moderngl_object(self, obj):
-        """Safely release a ModernGL object, checking if it's valid first"""
         if obj and hasattr(obj, "mglo"):
             try:
                 if type(obj.mglo).__name__ != "InvalidObject":
@@ -122,7 +121,6 @@ class RenderPipeline:
         return False
 
     def _write_container_buffer(self, data_bytes):
-        """Write data to container_buffer, reallocating if the size changed."""
         if not self.container_buffer:
             return
         need = len(data_bytes)
@@ -218,10 +216,7 @@ class RenderPipeline:
             logger.error("Failed to create buffers and textures", exc_info=True)
             return False
 
-    # ── Native rendering pipeline (eliminates compute+PBO readback) ──
-
     def create_native_shader(self):
-        """Compile Blender-native vertex+fragment shader pair via GPUShaderCreateInfo."""
         vert_source = self.load_shader_file("container_draw.vert")
         frag_source = self.load_shader_file("container_draw.frag")
 
@@ -261,7 +256,6 @@ class RenderPipeline:
             return False
 
     def create_container_batch(self, count):
-        """Build static vertex batch for N containers. Rebuilt when container count changes."""
         if not self.native_shader or count <= 0:
             return False
 
@@ -295,8 +289,6 @@ class RenderPipeline:
             return False
 
     def _pack_container_data_texture(self, containers):
-        """Pack container data into flat float32 array for RGBA32F data texture.
-        Layout: 17 texels (68 floats) per container."""
         n = len(containers)
         data = np.zeros(n * 68, dtype=np.float32)
 
@@ -318,7 +310,6 @@ class RenderPipeline:
         return data
 
     def create_data_texture(self, containers):
-        """Create RGBA32F data texture from container data."""
         n = len(containers)
         if n == 0:
             return False
@@ -343,7 +334,6 @@ class RenderPipeline:
             return False
 
     def update_data_texture(self, containers):
-        """Recreate data texture with updated container data (~16KB, negligible cost)."""
         if self.data_texture:
             try:
                 del self.data_texture
@@ -415,7 +405,6 @@ class RenderPipeline:
         self.write_mouse_buffer()
 
     def on_scroll(self, delta, absolute_value):
-        """Route scroll event to deepest scrollable container under mouse."""
         from . import hit_op
 
         containers = hit_op._container_data
@@ -490,7 +479,6 @@ class RenderPipeline:
             self.compute_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0.0
 
     def check_if_changed(self):
-        """Check if data texture rebuild is needed (layout/style changes, not hover)."""
         changed = False
 
         if self.force_initial_draw:
@@ -621,7 +609,6 @@ class RenderPipeline:
         self.draw_handler = space_class.draw_handler_add(self.draw_texture, (), "WINDOW", "POST_PIXEL")
 
     def _draw_scrollbars(self):
-        """Overlay scrollbar track+thumb on every overflow:scroll container."""
         from . import hit_op
 
         containers = hit_op._container_data if hit_op._container_data else self.container_data
@@ -757,7 +744,6 @@ class RenderPipeline:
         gpu.state.depth_test_set(saved_depth)
 
     def draw_texture(self):
-        """Draw containers directly via native vertex+fragment shader. Zero readback."""
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
 
@@ -885,8 +871,6 @@ class RenderPipeline:
         self.container_count = 0
 
     def _parse_gradient_stops(self, stops_str):
-        """Parse gradient stops string: 'ANGLE R G B A POS R G B A POS ...'
-        Returns (angle_deg, [(r,g,b,a,pos), ...]) or None if empty/invalid."""
         if not stops_str or not stops_str.strip():
             return None
         parts = stops_str.strip().split()
@@ -914,7 +898,6 @@ class RenderPipeline:
             return None
 
     def _prerender_gradient_row(self, stops, width=256):
-        """Pre-render gradient stops into a 256-wide RGBA float array."""
         row = np.zeros(width * 4, dtype=np.float32)
         for x in range(width):
             t = x / max(width - 1, 1)
@@ -930,8 +913,6 @@ class RenderPipeline:
         return row
 
     def _build_gradient_texture(self, containers):
-        """Scan containers for multi-stop gradients, pre-render them into a 2D texture.
-        Returns True if texture was created/updated, populates self._gradient_row_map."""
         gradient_defs = {}  # stops_str → (angle, stops)
 
         for c in containers:
@@ -971,7 +952,6 @@ class RenderPipeline:
             return False
 
     def _build_container_struct(self, container):
-        """Build the 68-float struct for a single container (17 texels)."""
         bg_color = container.get("background_color", [1, 1, 1, 1])
         bg_color_2 = container.get("background_color_2", [1, 1, 1, 1])
         hover_bg_color = container.get("hover_background_color", container_default.hover_background_color)
@@ -1074,8 +1054,6 @@ class RenderPipeline:
         ]
 
     def _precompute_visibility_and_clips(self, containers):
-        """Precompute per-container visibility, clip rects, and accumulated opacity on CPU.
-        Eliminates O(depth) parent chain walks per pixel in the shader."""
         n = len(containers)
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
@@ -1146,10 +1124,7 @@ class RenderPipeline:
 
         return results
 
-    # ─── Scroll infrastructure ────────────────────────────────────────────
-
     def _cache_original_positions(self, containers):
-        """Cache original (unscrolled) positions after layout, compute content bounds."""
         self._original_positions = {}
         self._container_id_to_index = {}
         for i, c in enumerate(containers):
@@ -1159,7 +1134,6 @@ class RenderPipeline:
         self._compute_content_bounds(containers)
 
     def _cache_original_text_positions(self, text_blocks):
-        """Cache original text positions from layout for scroll adjustment."""
         self._original_text_positions = {}
         for cid, block in text_blocks.items():
             self._original_text_positions[cid] = {
@@ -1172,7 +1146,6 @@ class RenderPipeline:
             }
 
     def _cache_original_image_positions(self, image_blocks):
-        """Cache original image positions from layout for scroll adjustment."""
         self._original_image_positions = {}
         for cid, block in image_blocks.items():
             self._original_image_positions[cid] = {
@@ -1183,7 +1156,6 @@ class RenderPipeline:
             }
 
     def _compute_content_bounds(self, containers):
-        """Compute content bounds for each scrollable container (for scroll clamping)."""
         self._content_bounds = {}
         n = len(containers)
         for i, c in enumerate(containers):
@@ -1208,7 +1180,6 @@ class RenderPipeline:
                 self._content_bounds[i] = [max_right, max_bottom]
 
     def _find_scrollable_ancestor(self, idx, containers):
-        """Find the deepest container at or above idx with overflow:scroll/auto."""
         current = idx
         n = len(containers)
         for _ in range(20):
@@ -1225,8 +1196,6 @@ class RenderPipeline:
         return -1
 
     def _compute_scroll_accumulation(self, containers):
-        """Compute accumulated scroll offset per container (from all scrollable ancestors).
-        Uses recursive approach to handle z-index reordering (parents may appear after children)."""
         n = len(containers)
         acc = [[0.0, 0.0] for _ in range(n)]
         computed = [False] * n
@@ -1255,7 +1224,6 @@ class RenderPipeline:
         return acc
 
     def _apply_scroll_to_containers(self, containers):
-        """Apply scroll offsets to container positions using cached originals."""
         if not self._scroll_offsets or not self._original_positions:
             return False
         acc = self._compute_scroll_accumulation(containers)
@@ -1276,8 +1244,6 @@ class RenderPipeline:
         return changed
 
     def _apply_scroll_to_text(self, text_blocks):
-        """Apply scroll offsets to text and mask positions.
-        Both must move together — text_op.py derives final position from the mask, not pos."""
         if not self._scroll_offsets or not self._original_text_positions:
             return
         for cid, block in text_blocks.items():
@@ -1294,7 +1260,6 @@ class RenderPipeline:
             block["mask_y"] = int(orig["mask_y"] - sy)
 
     def _apply_scroll_to_images(self, image_blocks):
-        """Apply scroll offsets to image positions (masks handled separately via scroll clip)."""
         if not self._scroll_offsets or not self._original_image_positions:
             return
         for cid, block in image_blocks.items():
@@ -1310,7 +1275,6 @@ class RenderPipeline:
             # Don't scroll the mask — it will be set from scroll clip in the render loop
 
     def _cache_original_text_input_positions(self, text_input_blocks):
-        """Cache original text input positions from layout for scroll adjustment."""
         self._original_text_input_positions = {}
         for cid, block in text_input_blocks.items():
             self._original_text_input_positions[cid] = {
@@ -1321,7 +1285,6 @@ class RenderPipeline:
             }
 
     def _apply_scroll_to_text_inputs(self, text_input_blocks):
-        """Apply scroll offsets to text input positions (masks handled separately)."""
         if not self._scroll_offsets or not self._original_text_input_positions:
             return
         for cid, block in text_input_blocks.items():
@@ -1336,8 +1299,6 @@ class RenderPipeline:
             block["y_pos"] = int(orig["y_pos"] - sy)
 
     def _get_scroll_clip_for_container(self, idx, containers):
-        """Get the clip rect for a container inside a scrollable ancestor.
-        Only clips to overflow:scroll/auto parents (overflow:hidden is handled by parser masks)."""
         n = len(containers)
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
@@ -1369,9 +1330,6 @@ class RenderPipeline:
         return None
 
     def _apply_initial_scroll_clips(self, containers, text_blocks, image_blocks=None, text_input_blocks=None):
-        """Store scroll clip rects for text/image/text_input instances.
-        Text: clip stored separately (mask stays for alignment, clip for scissor).
-        Images/text_inputs: mask intersected with scroll clip (they use mask for both)."""
         for cid, block in text_blocks.items():
             idx = self._container_id_to_index.get(cid, -1)
             if idx < 0:
@@ -1419,7 +1377,6 @@ class RenderPipeline:
                     block["mask_height"] = max(0, ib - iy)
 
     def _detect_state_changes(self, container_data):
-        """Detect hover/click state changes. Start transitions if configured."""
         hover_index = -1
         click_index = -1
 
@@ -1444,11 +1401,9 @@ class RenderPipeline:
         return changed
 
     def _start_hover_transitions(self, old_idx, new_idx, containers):
-        """Start CSS transitions when hover state changes."""
         n = len(containers)
 
         def _start_props(c, cid, transitions, entering_hover):
-            """Start transitions for all applicable properties on a container."""
             for t in transitions:
                 t_prop = t["property"]
                 t_dur = t["duration"]
@@ -1927,6 +1882,42 @@ class XWZ_OT_start_ui(Operator):
                                     new_data[i][key] = old_data[i][key]
 
                     hit_op._container_data = new_data
+
+                    # Synced data may have new style values — update saved
+                    # transition originals so restores don't revert set_property changes
+                    if _render_data._prev_container_states or _render_data.transitions.has_active():
+                        for c in new_data:
+                            cid = c.get("id", "")
+                            new_bg = list(c.get("background_color", [0, 0, 0, 0]))
+                            new_hover_bg = list(c.get("hover_background_color", [0, 0, 0, -1]))
+                            new_bc = list(c.get("border_color", [0, 0, 0, 0]))
+                            new_op = c.get("opacity", 1.0)
+
+                            # Update saved originals
+                            bg_key = f"_orig_bg_{cid}"
+                            if bg_key in _render_data._prev_container_states:
+                                _render_data._prev_container_states[bg_key] = new_bg
+                            hover_key = f"_orig_hover_{cid}"
+                            if hover_key in _render_data._prev_container_states:
+                                _render_data._prev_container_states[hover_key] = new_hover_bg
+                            bc_key = f"_orig_bc_{cid}"
+                            if bc_key in _render_data._prev_container_states:
+                                _render_data._prev_container_states[bc_key] = new_bc
+                            op_key = f"_orig_op_{cid}"
+                            if op_key in _render_data._prev_container_states:
+                                _render_data._prev_container_states[op_key] = new_op
+
+                            # Retarget active transitions to use new values
+                            bg_t = _render_data.transitions._active.get((cid, "background_color"))
+                            if bg_t and not bg_t.is_done():
+                                is_hovered = c.get("_hovered", False)
+                                bg_t.end_value = new_hover_bg if is_hovered else new_bg
+                            bc_t = _render_data.transitions._active.get((cid, "border_color"))
+                            if bc_t and not bc_t.is_done():
+                                bc_t.end_value = new_bc
+                            op_t = _render_data.transitions._active.get((cid, "opacity"))
+                            if op_t and not op_t.is_done():
+                                op_t.end_value = new_op
 
                     # Reload hit detector with updated layout positions
                     if hasattr(hit_op, "_native_detector") and hit_op._native_detector:

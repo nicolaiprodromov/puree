@@ -171,7 +171,6 @@ class UI:
         self._component_css = ""
 
         def set_container_attr(container, attr_name, attr_value):
-            """Set a YAML attribute on a container, handling 'class' specially."""
             if attr_name == "class":
                 if isinstance(attr_value, str):
                     container.classes = attr_value.split()
@@ -195,7 +194,7 @@ class UI:
                         child_container.id = attr_name
                     else:
                         child_container.id = f"{parent_container.id}_{attr_name}"
-                    # Always add YAML key as a class so CSS can target it
+
                     child_container.classes = [attr_name]
                     child_container.parent = parent_container
                     parent_container.children.append(child_container)
@@ -260,7 +259,6 @@ class UI:
                                             return re.sub(pattern, replace_param, value)
 
                                         def namespace_class(value):
-                                            """Remap component class names to namespaced equivalents."""
                                             if value == component_base_name:
                                                 return child_container.id
                                             elif value.startswith(component_base_name + "_"):
@@ -569,8 +567,6 @@ class UI:
         return attr_name, attr_value
 
     def _parse_transition_shorthand(self, raw_value):
-        """Parse transition shorthand supporting comma-separated multi-transition.
-        Returns ('_transitions', [{'property', 'duration', 'timing', 'delay'}, ...])."""
         transitions = []
         # Split by comma respecting parentheses (e.g. cubic-bezier(...))
         depth, buf, segments = 0, [], []
@@ -736,7 +732,6 @@ class UI:
         ensure_styles(self.theme.root)
 
     def _build_container_list(self):
-        """Build flat list of containers with parent indices for CSSCascade."""
         flat = []
 
         def walk(container, parent_idx):
@@ -755,7 +750,6 @@ class UI:
         return flat
 
     def _find_container(self, container_id):
-        """Find a container by ID in the tree."""
 
         def search(container):
             if container.id == container_id:
@@ -768,12 +762,7 @@ class UI:
 
         return search(self.theme.root)
 
-    # -------------------------------------------------------------------------
-    # Dynamic container support (Feature 2)
-    # -------------------------------------------------------------------------
-
     def _apply_css_from_cache(self):
-        """Re-apply CSS cascade using cached compiled CSS + dynamic CSS. Called after dynamic container changes."""
         from .components.style import Style
         from .native_bindings import CSSCascade
 
@@ -857,10 +846,6 @@ class UI:
         ensure_styles(self.theme.root)
 
     def _instantiate_component_into(self, template_name: str, root_container, params: dict):
-        """
-        Populate root_container with children from a cached component template.
-        root_container is already created with the right ID by the caller.
-        """
         import re as _re
 
         template = self._component_registry.get(template_name)
@@ -931,7 +916,6 @@ class UI:
         load_comp(yaml_data, root_container)
 
     def _rebuild_after_structural_change(self):
-        """Called after add/remove child. Reapplies CSS and rebuilds the full layout tree."""
         # Re-apply CSS to all containers (picks up newly added containers)
         self._apply_css_from_cache()
         # Rebuild entire Stretchable layout tree from the Container tree
@@ -962,18 +946,17 @@ class UI:
         node_flat_abs.clear()
 
         def _zero_subtree(container):
-            """Assign zero-size layout to a container and all descendants."""
             zero = {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
             node_flat[container.id] = zero
             node_flat_abs[container.id] = zero.copy()
+            container._content_box_abs = zero.copy()
             for child in container.children:
                 _zero_subtree(child)
 
         def get_all_nodes(container, node):
             border_box = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
-            _content_box = node.get_box(Edge.CONTENT, relative=True)
-            _content_box_abs = node.get_box(Edge.CONTENT, relative=False)
+            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
             _padding_box = node.get_box(Edge.PADDING, relative=True)
             _margin_box = node.get_box(Edge.MARGIN, relative=True)
             _margin_box_abs = node.get_box(Edge.MARGIN, relative=False)
@@ -992,6 +975,13 @@ class UI:
                 "y": edge_used_abs.y,
                 "width": edge_used_abs.width,
                 "height": edge_used_abs.height,
+            }
+
+            container._content_box_abs = {
+                "x": content_box_abs.x,
+                "y": content_box_abs.y,
+                "width": content_box_abs.width,
+                "height": content_box_abs.height,
             }
 
             container._layout_node = node
@@ -1022,7 +1012,6 @@ class UI:
         _unit_re = re.compile(r"(-?[\d.]+)\s*(px|%|rem|em|vmin|vmax|vw|vh)?")
 
         def resolve_units(value_str, parent_font_size=16.0):
-            """Resolve a CSS value string to pixels. Returns (px_value, is_percent, pct_value)."""
             value_str = value_str.strip().lower()
             # calc() — evaluate simple expressions
             m = _calc_re.match(value_str)
@@ -1097,7 +1086,6 @@ class UI:
                 return LengthPointsPercent.from_any(0 * PT)
 
         def parse_css_value_auto(value_str):
-            """Like parse_css_value but returns LengthPointsPercentAuto (supports auto)."""
             # Style() defaults unset dimensions to float 0.0 — treat as AUTO
             if not isinstance(value_str, str):
                 if value_str == 0:
@@ -1580,16 +1568,17 @@ class UI:
         self.canvas_size = canvas_size
 
         def _zero_subtree(container):
-            """Assign zero-size layout to a container and all descendants."""
             zero = {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
             node_flat[container.id] = zero
             node_flat_abs[container.id] = zero.copy()
+            container._content_box_abs = zero.copy()
             for child in container.children:
                 _zero_subtree(child)
 
         def get_all_nodes(container, node):
             border_box = node.get_box(Edge.BORDER, relative=True)
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
 
             edge_used, edge_used_abs = border_box, border_box_abs
 
@@ -1605,6 +1594,13 @@ class UI:
                 "y": edge_used_abs.y,
                 "width": edge_used_abs.width,
                 "height": edge_used_abs.height,
+            }
+
+            container._content_box_abs = {
+                "x": content_box_abs.x,
+                "y": content_box_abs.y,
+                "width": content_box_abs.width,
+                "height": content_box_abs.height,
             }
 
             # Taffy/Stretchable skips layout for children of display:none nodes

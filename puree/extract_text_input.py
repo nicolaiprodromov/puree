@@ -24,18 +24,31 @@ class TextInputExtractor:
                 if len(parts) > 1:
                     placeholder = parts[1].strip()
 
+            # Use content box (inside padding+border) for text input positioning
+            content_box = getattr(container, '_content_box_abs', None)
+            if content_box and content_box["width"] > 0:
+                input_x = content_box["x"]
+                input_y = content_box["y"]
+                input_w = content_box["width"]
+                input_h = content_box["height"]
+            else:
+                input_x = self.json_data[self.flat_index]["position"][0]
+                input_y = self.json_data[self.flat_index]["position"][1]
+                input_w = self.json_data[self.flat_index]["size"][0]
+                input_h = self.json_data[self.flat_index]["size"][1]
+
             self.text_input_blocks[container.id] = {
                 "container_id": container.id,
                 "placeholder": placeholder,
                 "font": container.font if container.font != "" else self.ui.theme.default_font,
-                "x_pos": int(self.json_data[self.flat_index]["position"][0] + container.style.text_x),
-                "y_pos": int(self.json_data[self.flat_index]["position"][1] + container.style.text_y),
+                "x_pos": int(input_x + container.style.text_x),
+                "y_pos": int(input_y + container.style.text_y),
                 "font_size": int(container.style.font_size),
                 "color": container.style.color,
-                "mask_x": int(self.json_data[self.flat_index]["position"][0]),
-                "mask_y": int(self.json_data[self.flat_index]["position"][1]),
-                "mask_width": int(self.json_data[self.flat_index]["size"][0]),
-                "mask_height": int(self.json_data[self.flat_index]["size"][1]),
+                "mask_x": int(input_x),
+                "mask_y": int(input_y),
+                "mask_width": int(input_w),
+                "mask_height": int(input_h),
                 "align_h": container.style.text_align,
                 "align_v": container.style.text_align_v,
             }

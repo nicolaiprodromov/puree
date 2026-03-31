@@ -188,6 +188,7 @@ def sync_dirty_containers():
 
         def update_layout_data(container, node):
             border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
 
             node_flat_abs[container.id] = {
                 "x": border_box_abs.x,
@@ -196,12 +197,20 @@ def sync_dirty_containers():
                 "height": border_box_abs.height,
             }
 
+            container._content_box_abs = {
+                "x": content_box_abs.x,
+                "y": content_box_abs.y,
+                "width": content_box_abs.width,
+                "height": content_box_abs.height,
+            }
+
             # Taffy/Stretchable skips layout for children of display:none nodes
             if container.style and container.style.display.upper() == "NONE":
 
                 def _zero_subtree(c):
                     zero = {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
                     node_flat_abs[c.id] = zero
+                    c._content_box_abs = zero.copy()
                     for child in c.children:
                         _zero_subtree(child)
 

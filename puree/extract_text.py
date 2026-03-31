@@ -26,18 +26,32 @@ class TextExtractor:
                 text = text.lower()
             elif transform == "CAPITALIZE":
                 text = text.title()
+
+            # Use content box (inside padding+border) for text positioning
+            content_box = getattr(container, '_content_box_abs', None)
+            if content_box and content_box["width"] > 0:
+                text_origin_x = content_box["x"]
+                text_origin_y = content_box["y"]
+                text_area_w = content_box["width"]
+                text_area_h = content_box["height"]
+            else:
+                text_origin_x = self.json_data[self.flat_index]["position"][0]
+                text_origin_y = self.json_data[self.flat_index]["position"][1]
+                text_area_w = self.json_data[self.flat_index]["size"][0]
+                text_area_h = self.json_data[self.flat_index]["size"][1]
+
             self.text_blocks[container.id] = {
                 "container_id": container.id,
                 "text": text,
                 "font": container.font if container.font != "" else (self.ui.theme.default_font or "default"),
-                "text_x": int(self.json_data[self.flat_index]["position"][0] + container.style.text_x),
-                "text_y": int(self.json_data[self.flat_index]["position"][1] + container.style.text_y),
+                "text_x": int(text_origin_x + container.style.text_x),
+                "text_y": int(text_origin_y + container.style.text_y),
                 "font_size": int(container.style.font_size),
                 "color": container.style.color,
-                "mask_x": int(self.json_data[self.flat_index]["position"][0]),
-                "mask_y": int(self.json_data[self.flat_index]["position"][1]),
-                "mask_width": int(self.json_data[self.flat_index]["size"][0]),
-                "mask_height": int(self.json_data[self.flat_index]["size"][1]),
+                "mask_x": int(text_origin_x),
+                "mask_y": int(text_origin_y),
+                "mask_width": int(text_area_w),
+                "mask_height": int(text_area_h),
                 "align_h": container.style.text_align,
                 "align_v": container.style.text_align_v,
                 "opacity": container.style.opacity,

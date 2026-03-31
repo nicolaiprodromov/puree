@@ -1,0 +1,22 @@
+app:
+  selected_theme: hello
+  default_theme: hello
+  theme:
+    - name: hello
+      author: puree
+      version: 1.0.0
+      default_font: NeueMontreal-Regular
+      styles:
+        - tests/helloworld/style.scss
+      scripts:
+        - tests/helloworld/script.py
+      components: tests/helloworld/components/
+      root:
+        class: root
+        testy:
+          style: testy
+          button:
+            style: button
+            text: Click me
+            testy1:
+              style: testy1
