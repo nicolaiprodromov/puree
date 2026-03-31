@@ -79,6 +79,7 @@ class Storage:
         if self._scope == "project":
             try:
                 import bpy  # lazy — not available outside Blender
+
                 blend_path = bpy.data.filepath
                 if blend_path:
                     blend_dir = pathlib.Path(blend_path).parent
@@ -91,8 +92,7 @@ class Storage:
                     )
             except Exception as exc:
                 logger.warning(
-                    "Storage(scope='project'): could not determine blend path "
-                    "(%s) — falling back to global scope.", exc
+                    "Storage(scope='project'): could not determine blend path (%s) — falling back to global scope.", exc
                 )
 
         # Global scope (or fallback)
@@ -191,18 +191,21 @@ class Storage:
         try:
             with path.open("r", encoding="utf-8") as fh:
                 self._data = json.load(fh)
-            logger.debug("Storage('%s'): loaded %d top-level keys from %s.",
-                         self._namespace, len(self._data), path)
+            logger.debug("Storage('%s'): loaded %d top-level keys from %s.", self._namespace, len(self._data), path)
         except json.JSONDecodeError as exc:
             logger.warning(
                 "Storage('%s'): JSON decode error in %s (%s) — starting fresh.",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             self._data = {}
         except OSError as exc:
             logger.warning(
                 "Storage('%s'): could not read %s (%s) — starting fresh.",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             self._data = {}
 
@@ -225,6 +228,8 @@ class Storage:
         except OSError as exc:
             logger.error(
                 "Storage('%s'): failed to save to %s: %s",
-                self._namespace, path, exc,
+                self._namespace,
+                path,
+                exc,
             )
             return False

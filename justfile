@@ -261,10 +261,11 @@ ci:
         echo "Installing ruff into .venv..."
         "$VENV/bin/pip" install ruff --quiet
     fi
-    echo "── Python lint ──"
-    "$RUFF" check puree/ __init__.py tests/ dist/ setup.py
+    TARGETS="puree/ __init__.py tests/ dist/ setup.py"
     echo "── Python format ──"
-    "$RUFF" format --check puree/ __init__.py tests/ dist/ setup.py
+    "$RUFF" format --check $TARGETS
+    echo "── Python lint ──"
+    "$RUFF" check $TARGETS
     echo "── Rust checks ──"
     pushd puree/puree_core > /dev/null
     cargo build --release
@@ -273,6 +274,33 @@ ci:
     cargo fmt -- --check
     popd > /dev/null
     echo "✓ All checks passed"
+
+# Auto-fix all safe Python + Rust issues
+fix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    VENV=".venv"
+    if [ ! -d "$VENV" ]; then
+        echo "Error: .venv not found. Run 'just venv' first."
+        exit 1
+    fi
+    RUFF="$VENV/bin/ruff"
+    if [ ! -f "$RUFF" ]; then
+        echo "Installing ruff into .venv..."
+        "$VENV/bin/pip" install ruff --quiet
+    fi
+    TARGETS="puree/ __init__.py tests/ dist/ setup.py"
+    echo "── Python lint fix ──"
+    "$RUFF" check --fix $TARGETS || true
+    echo "── Python format ──"
+    "$RUFF" format $TARGETS
+    echo "── Rust format ──"
+    find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
+    echo ""
+    echo "── Remaining issues (manual fix needed) ──"
+    "$RUFF" check $TARGETS || true
+    echo ""
+    echo "✓ Safe fixes applied. Review any remaining issues above."
 
 # Link + reload (quick dev cycle)
 deploy:

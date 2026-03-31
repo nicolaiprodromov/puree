@@ -36,13 +36,13 @@ Callbacks are always delivered on the main Blender thread via a queue
 drained every 50 ms by a bpy.app.timers interval.
 """
 
-import json as _json
-import threading
 import collections
 import concurrent.futures
-import urllib.request
+import json as _json
+import threading
 import urllib.error
-from dataclasses import dataclass, field
+import urllib.request
+from dataclasses import dataclass
 from typing import Callable, Optional
 
 from .log import get_logger
@@ -161,11 +161,7 @@ class HttpClient:
         timeout: float = 30,
     ) -> concurrent.futures.Future:
         """Issue a GET request in the background."""
-        return self._submit("GET", url,
-                            headers=headers,
-                            on_success=on_success,
-                            on_error=on_error,
-                            timeout=timeout)
+        return self._submit("GET", url, headers=headers, on_success=on_success, on_error=on_error, timeout=timeout)
 
     def post(
         self,
@@ -179,13 +175,16 @@ class HttpClient:
         timeout: float = 30,
     ) -> concurrent.futures.Future:
         """Issue a POST request in the background."""
-        return self._submit("POST", url,
-                            json_data=json,
-                            data=data,
-                            headers=headers,
-                            on_success=on_success,
-                            on_error=on_error,
-                            timeout=timeout)
+        return self._submit(
+            "POST",
+            url,
+            json_data=json,
+            data=data,
+            headers=headers,
+            on_success=on_success,
+            on_error=on_error,
+            timeout=timeout,
+        )
 
     def shutdown(self) -> None:
         """Shut down the thread pool.  Called automatically on addon unregister."""
@@ -194,19 +193,25 @@ class HttpClient:
 
     # ── internals ────────────────────────────────────────────────────────────
 
-    def _submit(self, method, url, *, json_data=None, data=None,
-                headers=None, on_success=None, on_error=None, timeout=30):
+    def _submit(
+        self, method, url, *, json_data=None, data=None, headers=None, on_success=None, on_error=None, timeout=30
+    ):
         future = self._pool.submit(
             self._worker,
-            method, url, json_data, data, headers, on_success, on_error, timeout,
+            method,
+            url,
+            json_data,
+            data,
+            headers,
+            on_success,
+            on_error,
+            timeout,
         )
         return future
 
     def _worker(self, method, url, json_data, data, headers, on_success, on_error, timeout):
         try:
-            response = _do_request(method, url,
-                                   json_data=json_data, data=data,
-                                   headers=headers, timeout=timeout)
+            response = _do_request(method, url, json_data=json_data, data=data, headers=headers, timeout=timeout)
             if on_success is not None:
                 _callback_queue.append((on_success, response))
         except Exception as exc:
@@ -237,7 +242,7 @@ class SSEClient:
         on_chunk: Optional[Callable] = None,
         on_done: Optional[Callable] = None,
         on_error: Optional[Callable] = None,
-        timeout: float = 0,          # 0 → no read timeout for long-lived streams
+        timeout: float = 0,  # 0 → no read timeout for long-lived streams
     ) -> SSEStream:
         """Open an SSE connection and return an :class:`SSEStream` handle."""
         stream = SSEStream()
@@ -253,8 +258,7 @@ class SSEClient:
 
     # ── internals ────────────────────────────────────────────────────────────
 
-    def _stream_worker(self, stream, url, method, json_data, headers,
-                       on_chunk, on_done, on_error, timeout):
+    def _stream_worker(self, stream, url, method, json_data, headers, on_chunk, on_done, on_error, timeout):
         try:
             merged_headers = {"Accept": "text/event-stream", "Cache-Control": "no-cache"}
             if headers:
@@ -337,11 +341,11 @@ class SSEClient:
                 continue
 
             if line.startswith("event:"):
-                event_type = line[len("event:"):].strip()
+                event_type = line[len("event:") :].strip()
             elif line.startswith("data:"):
-                data_lines.append(line[len("data:"):].strip())
+                data_lines.append(line[len("data:") :].strip())
             elif line.startswith("id:"):
-                event_id = line[len("id:"):].strip()
+                event_id = line[len("id:") :].strip()
             # Retry fields and unknown fields are intentionally ignored
 
 
@@ -417,6 +421,7 @@ _drain_handle = None
 def register() -> None:
     """Start the callback drain timer.  Called from ``puree.__init__.register()``."""
     from .timers import set_interval
+
     global _drain_handle
     _drain_handle = set_interval(_drain_callbacks, 50)
     logger.debug("net.register(): drain timer started (handle=%s)", _drain_handle.id)
@@ -427,6 +432,7 @@ def unregister() -> None:
     global _drain_handle
     if _drain_handle is not None:
         from .timers import clear
+
         clear(_drain_handle)
         logger.debug("net.unregister(): drain timer stopped")
         _drain_handle = None

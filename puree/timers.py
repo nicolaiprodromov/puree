@@ -29,6 +29,7 @@ _registry: Dict[str, "TimerHandle"] = {}
 
 # ── TimerHandle ─────────────────────────────────────────────────────────────
 
+
 class TimerHandle:
     """Opaque handle returned by set_interval / set_timeout."""
 
@@ -49,6 +50,7 @@ class TimerHandle:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _generate_handle_id() -> str:
     return str(uuid.uuid4())[:8]
 
@@ -58,6 +60,7 @@ def _register_handle(handle: TimerHandle) -> None:
 
 
 # ── Public API ───────────────────────────────────────────────────────────────
+
 
 def set_interval(fn: Callable, interval_ms: float) -> TimerHandle:
     """
@@ -172,6 +175,7 @@ def clear(handle: TimerHandle) -> None:
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────────────
+
 
 def _cleanup_all() -> None:
     """

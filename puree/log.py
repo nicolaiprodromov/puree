@@ -46,9 +46,10 @@ TCP access:
     Send 'log_path' to the reload server (127.0.0.1:19746) to get
     the active log file path.  Use `just tail` to live-follow it.
 """
+
+import logging
 import os
 import sys
-import logging
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 
@@ -72,6 +73,7 @@ _log_path = None
 
 
 # ── Public API ───────────────────────────────────────────────────────
+
 
 def get_logger(name: str) -> logging.Logger:
     """Get a named logger under the 'puree' hierarchy.
@@ -99,10 +101,7 @@ def set_debug(enabled: bool):
     root = logging.getLogger(_ROOT_LOGGER_NAME)
     for handler in root.handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, RotatingFileHandler):
-            handler.setLevel(
-                logging.DEBUG if enabled
-                else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR)
-            )
+            handler.setLevel(logging.DEBUG if enabled else (_SILENT_LEVEL if _file_handler_ok else logging.ERROR))
 
 
 def reinitialize():
@@ -171,6 +170,7 @@ def setup_cli_logging(name: str) -> logging.Logger:
 
 # ── Internals ────────────────────────────────────────────────────────
 
+
 def _is_debug() -> bool:
     global _debug_mode
     if _debug_mode is not None:
@@ -182,6 +182,7 @@ def _get_log_dir() -> str:
     """Resolve log directory: <addon_root>/logs/."""
     try:
         from . import get_addon_root
+
         addon_root = get_addon_root()
     except (ImportError, RuntimeError):
         addon_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -243,6 +244,7 @@ def _ensure_initialized():
 
 
 # ── Stream capture helpers ───────────────────────────────────────────
+
 
 class _TeeStream:
     """Wraps a stream so writes go to both the original stream and a logger.

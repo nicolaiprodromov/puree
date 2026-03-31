@@ -61,24 +61,24 @@ class InputRouter:
         properties are stored at the top level of the dict (not nested
         under a 'style' sub-dict — that key holds the style ID string).
         """
-        bg = container.get('background_color')
+        bg = container.get("background_color")
         if bg and len(bg) >= 4 and bg[3] > 0:
             return True
 
-        bg2 = container.get('background_color_2')
+        bg2 = container.get("background_color_2")
         if bg2 and len(bg2) >= 4 and bg2[3] > 0:
             return True
 
-        bw = container.get('border_width', 0)
+        bw = container.get("border_width", 0)
         if bw > 0:
-            bc = container.get('border_color')
+            bc = container.get("border_color")
             if bc and len(bc) >= 4 and bc[3] > 0:
                 return True
 
-        sc = container.get('box_shadow_color')
+        sc = container.get("box_shadow_color")
         if sc and len(sc) >= 4 and sc[3] > 0:
-            blur = container.get('box_shadow_blur', 0)
-            offset = container.get('box_shadow_offset', [0, 0, 0])
+            blur = container.get("box_shadow_blur", 0)
+            offset = container.get("box_shadow_offset", [0, 0, 0])
             if blur > 0 or any(abs(v) > 0 for v in offset):
                 return True
 
@@ -96,9 +96,9 @@ class InputRouter:
         whether the cursor is visually inside any drawn surface.
         """
         for c in container_data:
-            if not c.get('_hovered', False):
+            if not c.get("_hovered", False):
                 continue
-            if c.get('passive', False):
+            if c.get("passive", False):
                 continue
 
             # Walk from the hovered container up through ancestors
@@ -106,7 +106,7 @@ class InputRouter:
             while current is not None:
                 if InputRouter.has_drawn_pixels(current):
                     return True
-                parent_idx = current.get('parent', -1)
+                parent_idx = current.get("parent", -1)
                 if parent_idx < 0 or parent_idx >= len(container_data):
                     break
                 current = container_data[parent_idx]
@@ -136,7 +136,7 @@ class InputRouter:
     # Query (called by each modal operator before returning)
     # ------------------------------------------------------------------
 
-    def should_consume_event(self, event_type: str = '') -> bool:
+    def should_consume_event(self, event_type: str = "") -> bool:
         """Return True if the event should be consumed (RUNNING_MODAL).
 
         When captured (mouse-down started on UI) we consume everything

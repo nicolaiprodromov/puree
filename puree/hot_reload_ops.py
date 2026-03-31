@@ -10,88 +10,86 @@
 # ╚═════════════════════════════════╝
 import bpy
 from bpy.types import Operator
+
 from .log import get_logger
+
 logger = get_logger(__name__)
 
+
 class XWZ_OT_enable_hot_reload(Operator):
-    bl_idname      = "xwz.enable_hot_reload"
-    bl_label       = "Enable Hot Reload"
+    bl_idname = "xwz.enable_hot_reload"
+    bl_label = "Enable Hot Reload"
     bl_description = "Enable live file watching and UI hot reload"
-    
+
     def execute(self, context):
         try:
-            from .hot_reload import (
-                setup_hot_reload, 
-                register_default_callbacks, 
-                get_hot_reload_manager
-            )
-            from . import get_addon_root
-            from . import render
-            
+            from . import get_addon_root, render
+            from .hot_reload import get_hot_reload_manager, register_default_callbacks, setup_hot_reload
+
             addon_dir = get_addon_root()
             wm = context.window_manager
-            
+
             if setup_hot_reload(addon_dir, wm.xwz_ui_conf_path):
                 register_default_callbacks()
-                
+
                 manager = get_hot_reload_manager()
                 manager.enable()
-                
+
                 render._hot_reload_enabled = True
-                
+
                 logger.info("Hot reload enabled")
-                return {'FINISHED'}
+                return {"FINISHED"}
             else:
                 logger.error("Failed to enable hot reload")
-                return {'CANCELLED'}
-                
+                return {"CANCELLED"}
+
         except Exception as e:
             logger.error(f"Hot reload error: {e}", exc_info=True)
-            return {'CANCELLED'}
+            return {"CANCELLED"}
 
 
 class XWZ_OT_disable_hot_reload(Operator):
-    bl_idname      = "xwz.disable_hot_reload"
-    bl_label       = "Disable Hot Reload"
+    bl_idname = "xwz.disable_hot_reload"
+    bl_label = "Disable Hot Reload"
     bl_description = "Disable live file watching and UI hot reload"
-    
+
     def execute(self, context):
         try:
-            from .hot_reload import get_hot_reload_manager
             from . import render
-            
+            from .hot_reload import get_hot_reload_manager
+
             manager = get_hot_reload_manager()
             manager.disable()
-            
+
             render._hot_reload_enabled = False
-            
+
             logger.info("Hot reload disabled")
-            return {'FINISHED'}
-            
+            return {"FINISHED"}
+
         except Exception as e:
             logger.error(f"Error disabling hot reload: {e}")
-            return {'CANCELLED'}
+            return {"CANCELLED"}
 
 
 class XWZ_OT_trigger_ui_reload(Operator):
-    bl_idname      = "xwz.trigger_ui_reload"
-    bl_label       = "Reload UI"
+    bl_idname = "xwz.trigger_ui_reload"
+    bl_label = "Reload UI"
     bl_description = "Manually trigger a full UI reload"
-    
+
     def execute(self, context):
         try:
             from .hot_reload import trigger_ui_reload
-            
+
             if trigger_ui_reload():
                 logger.info("UI reloaded")
-                return {'FINISHED'}
+                return {"FINISHED"}
             else:
                 logger.warning("UI reload completed with warnings")
-                return {'FINISHED'}
-                
+                return {"FINISHED"}
+
         except Exception as e:
             logger.error(f"Reload failed: {e}", exc_info=True)
-            return {'CANCELLED'}
+            return {"CANCELLED"}
 
 
 def register():

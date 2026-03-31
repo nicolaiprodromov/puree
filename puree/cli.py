@@ -35,6 +35,7 @@ def _get_version():
     """Read version from the installed puree package metadata or fallback."""
     try:
         from importlib.metadata import version
+
         return version("puree-ui")
     except Exception:
         return "dev"
@@ -55,7 +56,9 @@ def _get_blender_version(blender_exe):
     try:
         result = subprocess.run(
             [blender_exe, "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         match = re.search(r"Blender\s+(\d+\.\d+)", result.stdout)
         if match:
@@ -69,9 +72,15 @@ def _get_blender_python_version(blender_exe):
     """Get the Python version bundled with Blender (e.g. '3.13')."""
     try:
         result = subprocess.run(
-            [blender_exe, "--background", "--python-expr",
-             "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
-            capture_output=True, text=True, timeout=30,
+            [
+                blender_exe,
+                "--background",
+                "--python-expr",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         for line in result.stdout.strip().splitlines():
             line = line.strip()
@@ -91,6 +100,7 @@ def _find_local_wheels_dir():
     """
     try:
         import puree as _puree_pkg
+
         candidate = Path(_puree_pkg.__file__).parent.parent / "wheels"
         if not candidate.is_dir():
             return None
@@ -251,18 +261,18 @@ def _manifest_template(py_version):
     if system == "Linux" and machine == "x86_64":
         plat_tag = "manylinux_2_17_x86_64.manylinux2014_x86_64"
         cp_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
-        gl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64"
-        yaml_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
-        stretch_plat = f"cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64"
-        moderngl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
+        _gl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64"
+        _yaml_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
+        _stretch_plat = "cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64"
+        _moderngl_plat = f"cp{py_version.replace('.', '')}-cp{py_version.replace('.', '')}-{plat_tag}"
         blender_platforms = '  "linux-x64",'
     elif system == "Windows":
         cp = f"cp{py_version.replace('.', '')}"
         cp_plat = f"{cp}-{cp}-win_amd64"
-        gl_plat = cp_plat
-        yaml_plat = cp_plat
-        stretch_plat = "cp38-abi3-win_amd64"
-        moderngl_plat = cp_plat
+        _gl_plat = cp_plat
+        _yaml_plat = cp_plat
+        _stretch_plat = "cp38-abi3-win_amd64"
+        _moderngl_plat = cp_plat
         blender_platforms = '  "windows-x64",'
     elif system == "Darwin":
         cp = f"cp{py_version.replace('.', '')}"
@@ -273,17 +283,17 @@ def _manifest_template(py_version):
             mac_tag = "macosx_10_9_x86_64"
             blender_platforms = '  "macos-x64",'
         cp_plat = f"{cp}-{cp}-{mac_tag}"
-        gl_plat = cp_plat
-        yaml_plat = cp_plat
-        stretch_plat = f"cp38-abi3-{mac_tag}"
-        moderngl_plat = cp_plat
+        _gl_plat = cp_plat
+        _yaml_plat = cp_plat
+        _stretch_plat = f"cp38-abi3-{mac_tag}"
+        _moderngl_plat = cp_plat
     else:
         # Fallback — user will need to fix
         cp_plat = "FIXME"
-        gl_plat = "FIXME"
-        yaml_plat = "FIXME"
-        stretch_plat = "FIXME"
-        moderngl_plat = "FIXME"
+        _gl_plat = "FIXME"
+        _yaml_plat = "FIXME"
+        _stretch_plat = "FIXME"
+        _moderngl_plat = "FIXME"
         blender_platforms = '  "linux-x64",'
 
     return textwrap.dedent(f"""\
@@ -327,6 +337,7 @@ def _manifest_template(py_version):
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+
 def _run_with_progress(tracker, fn, steps, interval=0.8):
     """Run *fn* in a background thread while ticking the progress bar.
 
@@ -366,6 +377,7 @@ def _run_with_progress(tracker, fn, steps, interval=0.8):
 
 # ── Commands ─────────────────────────────────────────────────────────
 
+
 def cmd_init(args):
     """Initialize a new Puree project in the current directory."""
     cwd = Path.cwd()
@@ -396,7 +408,9 @@ def cmd_init(args):
     if tui:
         # Blender startup is the main bottleneck (~5-10s) — tick the bar while waiting
         py_version = _run_with_progress(
-            tracker, lambda: _get_blender_python_version(blender_exe), steps=8,
+            tracker,
+            lambda: _get_blender_python_version(blender_exe),
+            steps=8,
         )
         tracker.step("Detected Blender")
         tracker.step_info(f"Blender: {blender_exe}")
@@ -471,10 +485,15 @@ def cmd_init(args):
         def _download_wheels():
             subprocess.run(
                 [
-                    sys.executable, "-m", "pip", "download",
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "download",
                     "--only-binary=:all:",
-                    "--python-version", py_version,
-                    "--dest", str(wheels_dir),
+                    "--python-version",
+                    py_version,
+                    "--dest",
+                    str(wheels_dir),
                     "puree-ui",
                 ],
                 check=True,
@@ -492,12 +511,15 @@ def cmd_init(args):
             if tui:
                 tracker.advance(5)
                 tracker.step_warn("Failed to download wheels")
-                tracker.step_info(f"pip download --only-binary=:all: "
-                                  f"--python-version {py_version} --dest wheels puree-ui")
+                tracker.step_info(
+                    f"pip download --only-binary=:all: --python-version {py_version} --dest wheels puree-ui"
+                )
             else:
                 print(f"  Warning: Failed to download wheels: {e.stderr.strip()}")
-                print("  You can download them manually: pip download --only-binary=:all: "
-                      f"--python-version {py_version} --dest wheels puree-ui")
+                print(
+                    "  You can download them manually: pip download --only-binary=:all: "
+                    f"--python-version {py_version} --dest wheels puree-ui"
+                )
 
     # Step 5: Update manifest with actual wheel filenames
     _update_manifest_wheels(cwd)
@@ -514,9 +536,9 @@ def cmd_init(args):
         print("Done! Your Puree project is ready.")
         print()
         print("Next steps:")
-        print(f"  1. puree build     — Build the extension zip")
-        print(f"  2. puree install   — Install into Blender")
-        print(f"  3. Open Blender and look for the Puree tab in the N-panel")
+        print("  1. puree build     — Build the extension zip")
+        print("  2. puree install   — Install into Blender")
+        print("  3. Open Blender and look for the Puree tab in the N-panel")
         print()
 
 
@@ -597,9 +619,19 @@ def cmd_build(args):
         sp.start()
 
     result = subprocess.run(
-        [blender_exe, "--background", "--command", "extension", "build",
-         "--source-dir", str(cwd), "--output-filepath", str(output_file)],
-        capture_output=True, text=True,
+        [
+            blender_exe,
+            "--background",
+            "--command",
+            "extension",
+            "build",
+            "--source-dir",
+            str(cwd),
+            "--output-filepath",
+            str(output_file),
+        ],
+        capture_output=True,
+        text=True,
     )
 
     if output_file.exists():
@@ -683,7 +715,8 @@ def cmd_install(args):
 
     result = subprocess.run(
         [blender_exe, "--background", "--python-expr", install_script],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
     if "installed and enabled successfully" in result.stdout:
@@ -770,6 +803,7 @@ def cmd_link(args):
     # Install wheel dependencies into Blender's extension site-packages
     # Extract wheels directly (zip files) to avoid pip rejecting cross-version wheels
     import zipfile
+
     wheels_dir = cwd / "wheels"
     if wheels_dir.exists() and list(wheels_dir.glob("*.whl")):
         if tui:
@@ -781,7 +815,7 @@ def cmd_link(args):
         whl_count = 0
         for whl in sorted(wheels_dir.glob("*.whl")):
             try:
-                with zipfile.ZipFile(whl, 'r') as zf:
+                with zipfile.ZipFile(whl, "r") as zf:
                     zf.extractall(site_packages)
                 whl_count += 1
                 if not tui:
@@ -884,13 +918,15 @@ def cmd_reload(args):
 
 # ── Entry Point ──────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="puree",
         description="Puree UI — Bootstrap, build, and install Blender addons",
     )
     parser.add_argument(
-        "--version", action="version",
+        "--version",
+        action="version",
         version=f"puree {_get_version()}",
     )
 

@@ -11,7 +11,8 @@
 import socket
 import threading
 
-from .log import get_logger, get_log_path
+from .log import get_log_path, get_logger
+
 logger = get_logger(__name__)
 
 PUREE_RELOAD_PORT = 19746
@@ -29,9 +30,7 @@ class ReloadServer:
         if self._running:
             return True
         self._running = True
-        self._thread = threading.Thread(
-            target=self._serve, daemon=True, name="PureeReloadServer"
-        )
+        self._thread = threading.Thread(target=self._serve, daemon=True, name="PureeReloadServer")
         self._thread.start()
         return True
 

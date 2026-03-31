@@ -2,7 +2,9 @@
 # ◕‿◕ Distributed for free at:
 # https://github.com/nicolaiprodromov/puree
 from __future__ import annotations
+
 from typing import Optional
+
 from .log import get_logger
 
 logger = get_logger(__name__)
@@ -68,12 +70,13 @@ class FocusManager:
         """Tab to next focusable container (sorted by tab_index ascending)."""
         try:
             from . import parser_op
+
             containers = parser_op._container_json_data
             focusable = sorted(
                 [
-                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    (c["id"], c.get("on_focus", []), c.get("on_blur", []), c.get("tab_index", 0))
                     for c in containers
-                    if c.get('focusable', False) and c.get('tab_index', -1) >= 0
+                    if c.get("focusable", False) and c.get("tab_index", -1) >= 0
                 ],
                 key=lambda x: x[3],
             )
@@ -96,12 +99,13 @@ class FocusManager:
         """Shift+Tab to previous focusable container (sorted by tab_index ascending)."""
         try:
             from . import parser_op
+
             containers = parser_op._container_json_data
             focusable = sorted(
                 [
-                    (c['id'], c.get('on_focus', []), c.get('on_blur', []), c.get('tab_index', 0))
+                    (c["id"], c.get("on_focus", []), c.get("on_blur", []), c.get("tab_index", 0))
                     for c in containers
-                    if c.get('focusable', False) and c.get('tab_index', -1) >= 0
+                    if c.get("focusable", False) and c.get("tab_index", -1) >= 0
                 ],
                 key=lambda x: x[3],
             )

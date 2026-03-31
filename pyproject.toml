@@ -48,4 +48,17 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = ["E501", "E402", "F821"]
+ignore = [
+    "E501",   # line too long (formatter handles)
+    "E402",   # module-level import not at top
+    "F821",   # undefined name
+    # Rules that conflict with ruff format (formatter handles these):
+    "W191",   # indentation contains tabs
+    "W291",   # trailing whitespace
+    "W292",   # no newline at end of file
+    "W293",   # blank line contains whitespace
+    "W391",   # blank line at end of file
+    "E111",   # indentation is not a multiple of X
+    "E114",   # indentation is not a multiple of X (comment)
+    "E117",   # over-indented
+]
