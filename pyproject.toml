@@ -41,3 +41,11 @@ packages = ["puree", "puree.components"]
 
 [tool.setuptools.package-data]
 puree = ["scaffold/**/*.md", "shaders/*.glsl", "shaders/*.vert", "shaders/*.frag", "wheels/*.whl", "native_binaries/*.so", "native_binaries/*.pyd", "native_binaries/*.dylib"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

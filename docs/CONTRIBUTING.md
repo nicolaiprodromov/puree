@@ -88,20 +88,40 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 | `just install-deps` | Install wheel dependencies into Blender’s extension site-packages |
 | `just wheels` | Download platform-specific dependency wheels |
 | `just bump x.y.z` | Update version across all project files and rebuild |
-| `just release x.y.z` | Complete release workflow: bumps version, commits, pushes, and creates GitHub release |
+| `just release x.y.z` | Bump, commit, tag, and push — GitHub Actions handles build & publish |
+| `just ci` | Run all CI checks locally (Python lint/format, Rust build/clippy/test/fmt) |
 
 > All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
 
 > [!NOTE]
 > Before bumping version, make sure all changes are committed.
 
+## CI / CD
+
+CI runs automatically on every push to `master` and on all pull requests. It checks:
+- **Python**: `ruff check` (lint) + `ruff format --check` (formatting) + YAML validation + package build
+- **Rust**: `cargo build --release` + `cargo clippy` + `cargo test` + `cargo fmt --check`
+
+Run the same checks locally before pushing:
+
+```bash
+just ci
+```
+
+If CI fails on your PR, check the **Actions** tab on GitHub for details.
+
+Releases are automated: `just release x.y.z` bumps the version, tags, and pushes. GitHub Actions then builds cross-platform wheels, publishes to PyPI, and creates a GitHub Release.
+
+See [CI/CD Guide](tmp/CICD.md) for full details.
+
 ## Contribution Guidelines
 
 1. Create a feature branch from `master`
 2. Make your changes with clear, descriptive commits
-3. Test your changes with `just link && just reload` (or `puree link && puree reload`) in Blender 5.1+
-4. Ensure no regressions in existing functionality
-5. Submit a pull request with a clear description of changes
+3. Run `just ci` to verify your changes pass all checks
+4. Test your changes with `just link && just reload` (or `puree link && puree reload`) in Blender 5.1+
+5. Ensure no regressions in existing functionality
+6. Submit a pull request with a clear description of changes
 
 ### All contributions to this repository must adhere to the following rules
 

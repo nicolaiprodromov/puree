@@ -5,6 +5,7 @@
 
 *A declarative UI framework for Blender addons and much more*
 
+[![CI](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)

@@ -135,11 +135,13 @@ just install          # Install puree CLI locally for testing (creates .venv)
 just venv             # Create venv and install CLI in editable mode
 just install-deps     # Install wheel dependencies into Blender site-packages
 just wheels           # Download Python dependency wheels
+just ci               # Run all CI checks locally (lint, format, clippy, test)
 just bump x.y.z       # Version bump everywhere
-just release x.y.z    # Full release workflow
+just release x.y.z    # Bump, tag, push — GitHub Actions builds & publishes
 ```
 
 > All `just` commands have `make` equivalents (`make deploy`, `make link`, etc.)
+> CI runs automatically on push to `master` and on all PRs via GitHub Actions.
 
 ## Known Issues & Gotchas
 

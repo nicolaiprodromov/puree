@@ -8,7 +8,7 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
-.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy format install install-deps venv bump release
+.PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy format install install-deps venv bump release ci
 
 BLENDER_VERSION := 5.1
 ADDON_DIR       := $(CURDIR)
@@ -206,7 +206,19 @@ venv:
 	@echo "  Try:      puree --version"
 
 install: build_package venv
+# ── CI checks ────────────────────────────────────────────────────────
 
+ci:
+	@echo "── Python lint ──"
+	@ruff check puree/ __init__.py tests/ dist/ setup.py
+	@echo "── Python format ──"
+	@ruff format --check puree/ __init__.py tests/ dist/ setup.py
+	@echo "── Rust checks ──"
+	@cd puree/puree_core && cargo build --release
+	@cd puree/puree_core && cargo clippy -- -D warnings
+	@cd puree/puree_core && cargo test
+	@cd puree/puree_core && cargo fmt -- --check
+	@echo "✓ All checks passed"
 # ── Release workflow ─────────────────────────────────────────────────
 
 bump:
@@ -222,24 +234,20 @@ endif
 release:
 ifeq ($(OS),Windows_NT)
 	@if not defined VERSION (echo Error: VERSION argument required. Usage: make release VERSION=0.0.3 && exit /b 1)
-	@echo Updating version to $(VERSION)...
+	@echo Releasing v$(VERSION)...
 	@$(MAKE) bump VERSION=$(VERSION)
-	@echo Committing version bump...
 	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
-	@git commit -m "Bump version to $(VERSION)"
-	@git push origin master
-	@echo Building and releasing v$(VERSION)...
-	@cd dist && $(PYTHON) release.py $(VERSION)
-	@echo Release v$(VERSION) completed!
+	@git commit -m "Release v$(VERSION)"
+	@git tag v$(VERSION)
+	@git push origin master --tags
+	@echo Pushed v$(VERSION) -- GitHub Actions will build and publish
 else
 	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make release VERSION=0.0.3"; exit 1; fi
-	@echo "Updating version to $(VERSION)..."
+	@echo "Releasing v$(VERSION)..."
 	@$(MAKE) bump VERSION=$(VERSION)
-	@echo "Committing version bump..."
 	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
-	@git commit -m "Bump version to $(VERSION)"
-	@git push origin master
-	@echo "Building and releasing v$(VERSION)..."
-	@cd dist && $(PYTHON) release.py $(VERSION)
-	@echo "Release v$(VERSION) completed!"
+	@git commit -m "Release v$(VERSION)"
+	@git tag v$(VERSION)
+	@git push origin master --tags
+	@echo "✓ Pushed v$(VERSION) — GitHub Actions will build and publish"
 endif

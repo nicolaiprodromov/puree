@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  python-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install ruff pyyaml build
+
+      - name: Lint
+        run: ruff check puree/ __init__.py tests/ dist/ setup.py
+
+      - name: Format check
+        run: ruff format --check puree/ __init__.py tests/ dist/ setup.py
+
+      - name: YAML validation
+        run: |
+          python -c "
+          import yaml, pathlib, sys
+          errors = []
+          for p in pathlib.Path('.').rglob('*.yaml'):
+              if '.git' in p.parts or 'target' in p.parts:
+                  continue
+              try:
+                  yaml.safe_load(p.read_text())
+              except yaml.YAMLError as e:
+                  errors.append(f'{p}: {e}')
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          "
+
+      - name: Package build
+        run: python -m build --sdist --wheel
+
+  rust-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: puree/puree_core
+
+      - name: Build
+        working-directory: puree/puree_core
+        run: cargo build --release
+
+      - name: Clippy
+        working-directory: puree/puree_core
+        run: cargo clippy -- -D warnings
+
+      - name: Test
+        working-directory: puree/puree_core
+        run: cargo test
+
+      - name: Format check
+        working-directory: puree/puree_core
+        run: cargo fmt -- --check

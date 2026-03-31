@@ -247,6 +247,23 @@ refresh TARGET:
     fi
     echo "Done!"
 
+# Run all CI checks locally
+ci:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "── Python lint ──"
+    ruff check puree/ __init__.py tests/ dist/ setup.py
+    echo "── Python format ──"
+    ruff format --check puree/ __init__.py tests/ dist/ setup.py
+    echo "── Rust checks ──"
+    pushd puree/puree_core > /dev/null
+    cargo build --release
+    cargo clippy -- -D warnings
+    cargo test
+    cargo fmt -- --check
+    popd > /dev/null
+    echo "✓ All checks passed"
+
 # Link + reload (quick dev cycle)
 deploy:
     just link
@@ -308,12 +325,10 @@ bump VERSION:
     just build
 
 release VERSION:
-    @echo "Updating version to {{VERSION}}..."
+    @echo "Releasing v{{VERSION}}..."
     just bump {{VERSION}}
-    @echo "Committing version bump..."
     git add blender_manifest.toml __init__.py setup.py pyproject.toml
-    git commit -m "Bump version to {{VERSION}}"
-    git push origin master
-    @echo "Building and releasing v{{VERSION}}..."
-    @cd dist; {{python}} release.py {{VERSION}}
-    @echo "Release v{{VERSION}} completed!"
+    git commit -m "Release v{{VERSION}}"
+    git tag v{{VERSION}}
+    git push origin master --tags
+    @echo "✓ Pushed v{{VERSION}} — GitHub Actions will build and publish"
