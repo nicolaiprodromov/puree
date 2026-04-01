@@ -16,6 +16,7 @@ from .input_router import input_router
 from .log import get_logger
 from .mouse_op import mouse_state
 from .native_bindings import HitDetector
+from .panel import log_event
 from .scroll_op import scroll_state
 
 logger = get_logger(__name__)
@@ -134,9 +135,12 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
 
                 if result["hover_changed"]:
                     if result["is_hovered"] and not container["_prev_hovered"]:
+                        log_event("hover", container_id)
                         for hover_handler in container["hover"]:
                             hover_handler(container)
                     elif not result["is_hovered"] and container["_prev_hovered"]:
+                        if not result.get("has_children_hit", False):
+                            log_event("hoverout", container_id)
                         for hoverout_handler in container["hoverout"]:
                             hoverout_handler(container)
 
@@ -165,15 +169,18 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                                 focus_manager.focus(
                                     container_id, container.get("on_focus", []), container.get("on_blur", [])
                                 )
+                                log_event("focus", container_id)
                             except Exception:
                                 pass
 
+                    log_event("click", container_id)
                     for click_handler in container["click"]:
                         click_handler(container)
 
                     container["_toggled"] = True
                     if container["_toggled"] and not container["_prev_toggled"]:
                         container["_toggle_value"] = not container["_toggle_value"]
+                        log_event("toggle", container_id)
                         for toggle_handler in container["toggle"]:
                             toggle_handler(container)
                 else:

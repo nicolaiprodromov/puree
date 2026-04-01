@@ -34,7 +34,7 @@ from .scroll_op import XWZ_OT_scroll, XWZ_OT_scroll_launch, scroll_state
 _render_data = None
 _modal_timer = None
 _hot_reload_enabled = False
-_debug_outlined_containers = set()
+_modal_generation = 0
 
 CONTAINER_STRIDE = 68
 
@@ -76,38 +76,34 @@ class RenderPipeline:
         self.last_container_update = 0
         self.conf_path = "xwz.ui.toml"
         self.force_initial_draw = True
-        # Native rendering pipeline (replaces compute+PBO readback)
         self.native_shader = None
         self.native_batch = None
         self.data_texture = None
         self.gradient_texture = None
-        self._gradient_row_map = {}  # gradient_key → row index
+        self._gradient_row_map = {}
         self.container_count = 0
         self._data_needs_update = True
-        # Hot reload throttle
         self._hot_reload_frame_counter = 0
-        # Transition manager
+        
         from .transition_manager import TransitionManager
 
         self.transitions = TransitionManager()
         self._hot_reload_check_interval = 30
-        # Cached area/region lookup
         self._cached_target_area = None
         self._cached_target_region = None
         self._cached_target_space = None
         self._area_cache_valid = False
-        # Scroll infrastructure: per-container scroll offsets
-        self._scroll_offsets = {}  # scrollable container index → [sx, sy]
-        self._original_positions = {}  # container index → original [x, y] from layout
-        self._container_id_to_index = {}  # container id → flat index
-        self._content_bounds = {}  # scrollable container index → [content_w, content_h]
-        self._scroll_accumulation = []  # per-container accumulated [sx, sy] from ancestors
+        self._scroll_offsets = {}
+        self._original_positions = {}
+        self._container_id_to_index = {}
+        self._content_bounds = {}
+        self._scroll_accumulation = []
         self._scroll_pixels_per_tick = 40.0
         self._scroll_changed = False
-        self._original_text_positions = {}  # container_id → {text_x, text_y, mask_x, mask_y}
-        self._original_image_positions = {}  # container_id → {x_pos, y_pos, mask_x, mask_y}
-        self._original_text_input_positions = {}  # container_id → {x_pos, y_pos, mask_x, mask_y}
-        self._vis_clips = []  # cached per-container (visible, cx, cy, cw, ch, opacity)
+        self._original_text_positions = {}
+        self._original_image_positions = {}
+        self._original_text_input_positions = {}
+        self._vis_clips = []
 
     def _safe_release_moderngl_object(self, obj):
         if obj and hasattr(obj, "mglo"):
@@ -315,7 +311,6 @@ class RenderPipeline:
             return False
 
         try:
-            # Build gradient texture first (populates _gradient_row_map for struct packing)
             self._build_gradient_texture(containers)
 
             data = self._pack_container_data_texture(containers)
@@ -361,7 +356,6 @@ class RenderPipeline:
         size_changed = old_region_size != self.region_size
 
         if size_changed:
-            # Invalidate cached viewport sizes in hit_op, text_op, img_op, text_input_op
             from . import hit_op, img_op, text_input_op, text_op
 
             hit_op._cached_viewport_size = None
@@ -374,10 +368,8 @@ class RenderPipeline:
             if updated_container_data:
                 self.container_data = updated_container_data
 
-                # Update native data texture (primary path)
                 self.update_data_texture(self.container_data)
 
-                # Update compute buffer if available (for outline shader)
                 if self.container_buffer:
                     container_array = []
                     for i, container in enumerate(self.container_data):
@@ -412,13 +404,11 @@ class RenderPipeline:
             self.write_mouse_buffer()
             return
 
-        # Find the deepest hovered container (INCLUDING passive ones) for scroll routing.
         hovered_idx = -1
         for i, c in enumerate(containers):
             if c.get("_hovered", False):
                 hovered_idx = i
 
-        # Fall back to non-passive hover index
         if hovered_idx < 0:
             hovered_idx = self._current_hover_index
 
@@ -429,7 +419,6 @@ class RenderPipeline:
                 pixel_delta = delta * self._scroll_pixels_per_tick
                 offset[1] = offset[1] + pixel_delta
 
-                # Clamp to content bounds
                 bounds = self._content_bounds.get(scrollable_idx)
                 if bounds:
                     container_size = containers[scrollable_idx].get("size", [0, 0])
@@ -438,7 +427,6 @@ class RenderPipeline:
 
                 self._scroll_offsets[scrollable_idx] = offset
 
-                # Apply scroll to container positions
                 if self._apply_scroll_to_containers(containers):
                     from . import parser_op
 
@@ -559,15 +547,13 @@ class RenderPipeline:
         if not self.load_container_data():
             return False
 
-        # ModernGL context — kept for outline shader / future compute effects
         if not self.init_moderngl_context():
-            pass  # Non-fatal: moderngl no longer required for primary rendering
+            pass
         if self.mgl_context:
             self.create_compute_shader()
             self.create_outline_shader()
             self.create_buffers_and_textures()
 
-        # Native rendering pipeline (primary path — zero readback)
         if not self.create_native_shader():
             return False
         if not self.create_container_batch(len(self.container_data)):
@@ -575,7 +561,6 @@ class RenderPipeline:
         if not self.create_data_texture(self.container_data):
             return False
 
-        # Cache original positions for scroll infrastructure
         self._cache_original_positions(self.container_data)
         self._cache_original_text_positions(parser_op.text_blocks)
         if hasattr(parser_op, "image_blocks"):
@@ -625,14 +610,12 @@ class RenderPipeline:
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
 
-        # Build set of scroll container indices for nesting detection
         scroll_indices = set()
         for i, c in enumerate(containers):
             if c.get("display", False) and c.get("overflow_type", "VISIBLE") in ("SCROLL", "AUTO"):
                 scroll_indices.add(i)
 
-        # Collect (rects, clip_rect) per scrollbar — clip from parent vis_clips
-        groups = []  # list of (clip_rect_screen, [(rx, ry, rw, rh, col), ...])
+        groups = []
 
         for i in scroll_indices:
             c = containers[i]
@@ -649,14 +632,13 @@ class RenderPipeline:
             if cw <= 0 or ch <= 0:
                 continue
 
-            # Inset by border width so scrollbar sits inside the border edge
             bw_r = float(c.get("border_width_right", 0.0) or c.get("border_width", 0.0))
             bw_t = float(c.get("border_width_top", 0.0) or c.get("border_width", 0.0))
             bw_b = float(c.get("border_width_bottom", 0.0) or c.get("border_width", 0.0))
 
-            inner_x = cx + cw - bw_r  # right border inner edge
-            inner_y = cy + bw_t  # top border inner edge
-            inner_h = ch - bw_t - bw_b  # inner height
+            inner_x = cx + cw - bw_r
+            inner_y = cy + bw_t
+            inner_h = ch - bw_t - bw_b
 
             if inner_h <= 0:
                 continue
@@ -666,7 +648,6 @@ class RenderPipeline:
             if content_h <= ch:
                 continue
 
-            # Check if a parent scroll container exists → shift left to avoid overlap
             nesting_depth = 0
             pidx = int(c.get("parent", -1))
             for _ in range(20):
@@ -676,7 +657,6 @@ class RenderPipeline:
                     nesting_depth += 1
                 pidx = int(containers[pidx].get("parent", -1))
 
-            # Position scrollbar inside the right border edge
             track_x = inner_x - MARGIN - bar_w - nesting_depth * (bar_w + MARGIN)
 
             offset = self._scroll_offsets.get(i, [0.0, 0.0])
@@ -697,12 +677,10 @@ class RenderPipeline:
             rects.append((track_x, inner_y, bar_w, inner_h, track_col))
             rects.append((track_x, thumb_y, bar_w, thumb_h, thumb_col))
 
-            # Compute clip rect from _vis_clips (parent-chain clip for this container)
             if i < len(self._vis_clips):
                 vis, clip_x, clip_y, clip_w, clip_h, _ = self._vis_clips[i]
                 if vis == 0.0:
                     continue
-                # Convert CSS coords (top-left origin) to screen coords (bottom-left origin)
                 scr_clip_x = int(clip_x)
                 scr_clip_y = int(vh - clip_y - clip_h)
                 scr_clip_w = int(clip_w)
@@ -744,8 +722,6 @@ class RenderPipeline:
         gpu.state.depth_test_set(saved_depth)
 
     def _draw_debug_overlay(self):
-        """Draw a dark overlay over the entire UI with the selected container cut out,
-        plus a dark blue border around it."""
         if not self.debug_outlined_containers:
             return
 
@@ -755,7 +731,6 @@ class RenderPipeline:
         if not containers:
             return
 
-        # Get the single selected container
         selected_id = next(iter(self.debug_outlined_containers))
         try:
             idx = int(selected_id)
@@ -778,9 +753,6 @@ class RenderPipeline:
         vw = float(self.region_size[0])
         vh = float(self.region_size[1])
 
-        # Convert CSS coords (top-left origin, Y-down) to screen coords (bottom-left origin, Y-up)
-        # CSS: cy_css is distance from top
-        # Screen: sy is distance from bottom = vh - cy_css - ch
         sx = cx
         sy = vh - cy_css - ch
 
@@ -792,51 +764,42 @@ class RenderPipeline:
 
         overlay_color = (0.0, 0.0, 0.0, 0.7)
 
-        # Read user-configurable passpartout opacity
         try:
-            overlay_alpha = bpy.context.window_manager.xwz_debug_passpartout
+            overlay_alpha = bpy.context.window_manager.xwz_debug_passepartout
             overlay_color = (0.0, 0.0, 0.0, overlay_alpha)
         except Exception:
             pass
 
-        # Read user-configurable border color
         try:
             bc = bpy.context.window_manager.xwz_debug_border_color
             border_color = (bc[0], bc[1], bc[2], 1.0)
         except Exception:
             border_color = (0.1, 0.15, 0.4, 1.0)
 
-        # Draw 4 rects around the selected container to form the overlay
-        # Bottom strip (below selected)
         if sy > 0:
             verts = [(0, 0), (vw, 0), (vw, sy), (0, sy)]
             shader.uniform_float("color", overlay_color)
             batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Top strip (above selected)
         top_y = sy + ch
         if top_y < vh:
             verts = [(0, top_y), (vw, top_y), (vw, vh), (0, vh)]
             shader.uniform_float("color", overlay_color)
             batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Left strip (left of selected, between bottom and top strips)
         if sx > 0:
             verts = [(0, sy), (sx, sy), (sx, top_y), (0, top_y)]
             shader.uniform_float("color", overlay_color)
             batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Right strip (right of selected, between bottom and top strips)
         right_x = sx + cw
         if right_x < vw:
             verts = [(right_x, sy), (vw, sy), (vw, top_y), (right_x, top_y)]
             shader.uniform_float("color", overlay_color)
             batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Draw border around the selected container
         border_w = 2.0
 
-        # Bottom border
         verts = [
             (sx - border_w, sy - border_w),
             (sx + cw + border_w, sy - border_w),
@@ -846,7 +809,6 @@ class RenderPipeline:
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Top border
         verts = [
             (sx - border_w, top_y),
             (sx + cw + border_w, top_y),
@@ -856,12 +818,10 @@ class RenderPipeline:
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Left border
         verts = [(sx - border_w, sy), (sx, sy), (sx, top_y), (sx - border_w, top_y)]
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
-        # Right border
         verts = [(sx + cw, sy), (sx + cw + border_w, sy), (sx + cw + border_w, top_y), (sx + cw, top_y)]
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
@@ -872,7 +832,6 @@ class RenderPipeline:
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
 
-        # Save GPU state before any changes
         saved_blend = gpu.state.blend_get()
         saved_depth = gpu.state.depth_test_get()
 
@@ -886,7 +845,6 @@ class RenderPipeline:
                 self.native_shader.uniform_sampler("gradientTex", self.gradient_texture)
                 self.native_shader.uniform_float("gradTexHeight", float(self.gradient_texture.height))
             else:
-                # Create a 1x1 dummy texture for the sampler
                 if not hasattr(self, "_dummy_grad_tex") or self._dummy_grad_tex is None:
                     dummy = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
                     dbuf = gpu.types.Buffer("FLOAT", 4, dummy)
@@ -916,7 +874,6 @@ class RenderPipeline:
         except Exception:
             logger.error("Error drawing debug overlay", exc_info=True)
 
-        # Restore GPU state to what the editor expects
         gpu.state.blend_set(saved_blend)
         gpu.state.depth_test_set(saved_depth)
 
@@ -983,13 +940,11 @@ class RenderPipeline:
             mouse_state.unregister_callback(self.on_mouse_event)
             self.mouse_callback_registered = False
 
-        # Clear cached references
         self._cached_target_area = None
         self._cached_target_region = None
         self._cached_target_space = None
         self._area_cache_valid = False
 
-        # Clean up native pipeline resources
         if self.data_texture:
             try:
                 del self.data_texture
@@ -1004,7 +959,7 @@ class RenderPipeline:
         if not stops_str or not stops_str.strip():
             return None
         parts = stops_str.strip().split()
-        if len(parts) < 6:  # need at least angle + 1 stop (5 values)
+        if len(parts) < 6:
             return None
         try:
             angle = float(parts[0])
@@ -1031,7 +986,6 @@ class RenderPipeline:
         row = np.zeros(width * 4, dtype=np.float32)
         for x in range(width):
             t = x / max(width - 1, 1)
-            # Find surrounding stops
             for j in range(len(stops) - 1):
                 if stops[j + 1][4] >= t or j == len(stops) - 2:
                     span = stops[j + 1][4] - stops[j][4]
@@ -1043,7 +997,7 @@ class RenderPipeline:
         return row
 
     def _build_gradient_texture(self, containers):
-        gradient_defs = {}  # stops_str → (angle, stops)
+        gradient_defs = {}
 
         for c in containers:
             for key in ("gradient_stops", "hover_gradient_stops", "click_gradient_stops"):
@@ -1097,12 +1051,10 @@ class RenderPipeline:
 
         br = container.get("border_radius", 0.0)
 
-        # Gradient texture row indices (-1 = no gradient texture, use 2-color mix)
         grad_row_normal = self._gradient_row_map.get(container.get("gradient_stops", ""), -1.0)
         grad_row_hover = self._gradient_row_map.get(container.get("hover_gradient_stops", ""), -1.0)
         grad_row_click = self._gradient_row_map.get(container.get("click_gradient_stops", ""), -1.0)
 
-        # Per-side border widths (0 = use uniform border_width)
         bw = container.get("border_width", 0.0)
         bw_top = container.get("border_width_top", 0.0) or bw
         bw_right = container.get("border_width_right", 0.0) or bw
@@ -1697,11 +1649,14 @@ class XWZ_OT_start_ui(Operator):
     bl_description = "Start puree UI"
 
     def execute(self, context):
-        global _render_data, _modal_timer
+        global _render_data, _modal_timer, _modal_generation
 
         if _render_data and _render_data.running:
             logger.warning("Demo already running")
             return {"CANCELLED"}
+
+        _modal_generation += 1
+        self._generation = _modal_generation
 
         _render_data = RenderPipeline()
 
@@ -1857,10 +1812,14 @@ class XWZ_OT_start_ui(Operator):
         return {"RUNNING_MODAL"}
 
     def modal(self, context, event):
-        global _render_data
+        global _render_data, _modal_generation
 
         if not (_render_data and _render_data.running):
             self.cancel(context)
+            return {"CANCELLED"}
+
+        # Stale modal from a previous start — exit without cleanup
+        if getattr(self, '_generation', 0) != _modal_generation:
             return {"CANCELLED"}
 
         if event.type == "WINDOW_DEACTIVATE":
