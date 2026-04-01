@@ -84,7 +84,7 @@ class RenderPipeline:
         self.container_count = 0
         self._data_needs_update = True
         self._hot_reload_frame_counter = 0
-        
+
         from .transition_manager import TransitionManager
 
         self.transitions = TransitionManager()
@@ -1819,7 +1819,7 @@ class XWZ_OT_start_ui(Operator):
             return {"CANCELLED"}
 
         # Stale modal from a previous start — exit without cleanup
-        if getattr(self, '_generation', 0) != _modal_generation:
+        if getattr(self, "_generation", 0) != _modal_generation:
             return {"CANCELLED"}
 
         if event.type == "WINDOW_DEACTIVATE":

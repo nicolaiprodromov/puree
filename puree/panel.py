@@ -85,7 +85,7 @@ class XWZ_OT_show_hierarchy(bpy.types.Operator):
     bl_description = "Show the container hierarchy"
 
     def execute(self, context):
-        context.window_manager.xwz_debug_tab = 'HIERARCHY'
+        context.window_manager.xwz_debug_tab = "HIERARCHY"
         return {"FINISHED"}
 
 
@@ -95,7 +95,7 @@ class XWZ_OT_show_event_log(bpy.types.Operator):
     bl_description = "Show the live event log"
 
     def execute(self, context):
-        context.window_manager.xwz_debug_tab = 'EVENTS'
+        context.window_manager.xwz_debug_tab = "EVENTS"
         return {"FINISHED"}
 
 
@@ -105,7 +105,7 @@ class XWZ_OT_show_console(bpy.types.Operator):
     bl_description = "Show the developer console output"
 
     def execute(self, context):
-        context.window_manager.xwz_debug_tab = 'CONSOLE'
+        context.window_manager.xwz_debug_tab = "CONSOLE"
         return {"FINISHED"}
 
 
@@ -115,7 +115,7 @@ class XWZ_OT_show_settings(bpy.types.Operator):
     bl_description = "Show debug panel settings"
 
     def execute(self, context):
-        context.window_manager.xwz_debug_tab = 'SETTINGS'
+        context.window_manager.xwz_debug_tab = "SETTINGS"
         return {"FINISHED"}
 
 
@@ -188,6 +188,7 @@ class XWZ_OT_clear_console(bpy.types.Operator):
         _console_messages.clear()
         context.window_manager.xwz_console_messages.clear()
         return {"FINISHED"}
+
 
 class ContainerItem(PropertyGroup):
     container_id: StringProperty()
@@ -447,25 +448,15 @@ def register_dynamic_panel():
                     toolbar_row = col.row(align=False)
                     left = toolbar_row.row(align=True)
                     inspect_icon = "VIEWZOOM" if not wm.xwz_inspect_mode else "HIDE_OFF"
-                    left.operator(
-                        "xwz.toggle_inspect_mode", text="", icon=inspect_icon, depress=wm.xwz_inspect_mode
-                    )
+                    left.operator("xwz.toggle_inspect_mode", text="", icon=inspect_icon, depress=wm.xwz_inspect_mode)
                     right = toolbar_row.row(align=True)
                     right.alignment = "RIGHT"
-                    right.operator(
-                        "xwz.show_hierarchy", text="Hierarchy", icon="OUTLINER", depress=tab == 'HIERARCHY'
-                    )
-                    right.operator(
-                        "xwz.show_event_log", text="Events", icon="TEXT", depress=tab == 'EVENTS'
-                    )
-                    right.operator(
-                        "xwz.show_console", text="Console", icon="CONSOLE", depress=tab == 'CONSOLE'
-                    )
-                    right.operator(
-                        "xwz.show_settings", text="", icon="PREFERENCES", depress=tab == 'SETTINGS'
-                    )
+                    right.operator("xwz.show_hierarchy", text="Hierarchy", icon="OUTLINER", depress=tab == "HIERARCHY")
+                    right.operator("xwz.show_event_log", text="Events", icon="TEXT", depress=tab == "EVENTS")
+                    right.operator("xwz.show_console", text="Console", icon="CONSOLE", depress=tab == "CONSOLE")
+                    right.operator("xwz.show_settings", text="", icon="PREFERENCES", depress=tab == "SETTINGS")
 
-                    if tab == 'EVENTS':
+                    if tab == "EVENTS":
                         _update_event_log_collection()
                         col.template_list(
                             "XWZ_UL_event_log",
@@ -477,7 +468,7 @@ def register_dynamic_panel():
                             rows=10,
                         )
                         col.operator("xwz.clear_event_log", text="Clear", icon="TRASH")
-                    elif tab == 'CONSOLE':
+                    elif tab == "CONSOLE":
                         _update_console_collection()
                         col.template_list(
                             "XWZ_UL_console_messages",
@@ -489,7 +480,7 @@ def register_dynamic_panel():
                             rows=10,
                         )
                         col.operator("xwz.clear_console", text="Clear", icon="TRASH")
-                    elif tab == 'SETTINGS':
+                    elif tab == "SETTINGS":
                         col.separator(factor=0.5)
 
                         col.label(text="Overlay", icon="OVERLAY")
