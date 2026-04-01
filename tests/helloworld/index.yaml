@@ -3,7 +3,7 @@ app:
   default_theme: hello
   theme:
     - name: hello
-      author: puree
+      author: nicolaiprodromov
       version: 1.0.0
       default_font: NeueMontreal-Regular
       styles:
@@ -11,12 +11,58 @@ app:
       scripts:
         - tests/helloworld/script.py
       components: tests/helloworld/components/
+
       root:
         class: root
-        testy:
-          style: testy
+        container_test:
+          class: container_test
           button:
-            style: button
+            class: button
             text: Click me
-            testy1:
-              style: testy1
+          button_2:
+            class: button_1
+            text: Click me
+          button_3:
+            class: button
+            text: Click me
+          button_4:
+            class: button
+            text: Click me
+          button_5:
+            class: button
+            text: Click me
+          button_6:
+            class: button
+            text: Click me
+          button_7:
+            class: button
+            text: Click me
+          button_8:
+            class: button
+            text: Click me
+          button_9:
+            class: button
+            text: Click me
+          button_10:
+            class: button
+            text: Click me
+          button_11:
+            class: button
+            text: Click me
+          button_12:
+            class: button
+            text: Click me
+          button_13:
+            class: button
+            text: Click me
+          button_14:
+            class: button
+            text: Click me
+          button_15:
+            class: button
+            text: Click me
+          button_16:
+            class: button
+            text: Click me
+            testy:
+              class: testy

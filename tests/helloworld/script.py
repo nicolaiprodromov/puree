@@ -17,7 +17,6 @@ def main(self, app):
         _color_index = (_color_index + 1) % len(colors)
         base, hover = colors[_color_index]
         button.set_property("background-color", base)
-        button.set_property("hover-background-color", hover)
         button.mark_dirty()
 
     button.click.append(on_click)
