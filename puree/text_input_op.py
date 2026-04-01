@@ -248,6 +248,12 @@ class TextInputInstance:
             focus_manager.focus(self.container_id, [], [])
         except Exception:
             pass
+        try:
+            from .panel import log_event
+
+            log_event("input:focus", self.container_id)
+        except Exception:
+            pass
 
     def blur(self):
         global _active_input_id
@@ -255,11 +261,16 @@ class TextInputInstance:
         if _active_input_id == self.id:
             _active_input_id = None
         self.selection_start = None
-        # Notify FocusManager
         try:
             from .focus import focus_manager
 
             focus_manager.blur(self.container_id)
+        except Exception:
+            pass
+        try:
+            from .panel import log_event
+
+            log_event("input:blur", self.container_id)
         except Exception:
             pass
 
@@ -444,7 +455,6 @@ class KeyboardHandler(bpy.types.Operator):
             return {"CANCELLED"}
 
         if _active_input_id is None:
-            # Still dispatch global keyboard shortcuts even when no text input focused
             if event.value == "PRESS":
                 try:
                     from .focus import focus_manager
@@ -566,7 +576,6 @@ class KeyboardHandler(bpy.types.Operator):
                 return {"RUNNING_MODAL"}
 
         if event.type == "TAB" and event.value == "PRESS" and not event.shift:
-            # Tab through focusable containers
             try:
                 from .focus import focus_manager
 
@@ -576,7 +585,6 @@ class KeyboardHandler(bpy.types.Operator):
             return {"RUNNING_MODAL"}
 
         if event.type == "TAB" and event.value == "PRESS" and event.shift:
-            # Shift+Tab — go backwards
             try:
                 from .focus import focus_manager
 
@@ -585,7 +593,6 @@ class KeyboardHandler(bpy.types.Operator):
                 pass
             return {"RUNNING_MODAL"}
 
-        # Dispatch to keyboard shortcut manager (with text input context)
         try:
             from .focus import focus_manager
             from .keyboard import keys as key_manager

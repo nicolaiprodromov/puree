@@ -27,6 +27,7 @@ if _submodules:
             _boot_logger.warning("reload %s: %s", _mod_name, _e)
 
 from .collapse import collapse_manager
+from .console import console
 from .focus import focus_manager
 from .keyboard import keys
 from .log import get_log_path, get_logger
@@ -50,6 +51,7 @@ __all__ = [
     "render_markdown",
     "VirtualScroll",
     "collapse_manager",
+    "console",
     "focus_manager",
     "keys",
     "http",
@@ -364,6 +366,14 @@ def unregister():
         keys.clear()
     except Exception as e:
         logger.warning(f"Keyboard cleanup warning: {e}")
+
+    # Clear console messages
+    try:
+        from .console import console
+
+        console.clear()
+    except Exception as e:
+        logger.warning(f"Console cleanup warning: {e}")
 
     del bpy.types.WindowManager.xwz_ui_conf_path
     del bpy.types.WindowManager.xwz_debug_panel

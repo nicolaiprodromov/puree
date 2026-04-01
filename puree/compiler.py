@@ -35,6 +35,10 @@ class Compiler:
                 spec = importlib.util.spec_from_file_location(module_name, script_path)
                 if spec and spec.loader:
                     module = importlib.util.module_from_spec(spec)
+                    # Inject console into user script namespace
+                    from .console import console
+
+                    module.console = console
                     with capture_output("user"):
                         spec.loader.exec_module(module)
                         if hasattr(module, "main"):

@@ -96,6 +96,11 @@ class TransitionManager:
             return
         if old_value == new_value:
             return
+
+        from .panel import log_event
+
+        log_event(f"transition:{prop_name}", container_id)
+
         key = (container_id, prop_name)
         timing_fn = TIMING_FUNCTIONS.get(timing, _ease)
         # If already transitioning this property, use current interpolated value as start
