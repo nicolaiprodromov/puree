@@ -128,9 +128,10 @@ def register():
     bpy.types.WindowManager.xwz_container_hierarchy_index = IntProperty()
     bpy.types.WindowManager.xwz_debug_border_color = FloatVectorProperty(
         name="Border Color",
-        subtype='COLOR',
+        subtype="COLOR",
         default=(0.1, 0.15, 0.4),
-        min=0.0, max=1.0,
+        min=0.0,
+        max=1.0,
         size=3,
     )
 
@@ -220,7 +221,6 @@ def register_dynamic_panel():
                 # Debug border color picker
                 row = layout.box()
                 row.prop(context.window_manager, "xwz_debug_border_color", text="Border Color")
-
 
     _current_panel_class = XWZ_PT_dynamic_panel
     bpy.utils.register_class(XWZ_PT_dynamic_panel)

@@ -830,14 +830,22 @@ class RenderPipeline:
         border_w = 2.0
 
         # Bottom border
-        verts = [(sx - border_w, sy - border_w), (sx + cw + border_w, sy - border_w),
-                 (sx + cw + border_w, sy), (sx - border_w, sy)]
+        verts = [
+            (sx - border_w, sy - border_w),
+            (sx + cw + border_w, sy - border_w),
+            (sx + cw + border_w, sy),
+            (sx - border_w, sy),
+        ]
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
         # Top border
-        verts = [(sx - border_w, top_y), (sx + cw + border_w, top_y),
-                 (sx + cw + border_w, top_y + border_w), (sx - border_w, top_y + border_w)]
+        verts = [
+            (sx - border_w, top_y),
+            (sx + cw + border_w, top_y),
+            (sx + cw + border_w, top_y + border_w),
+            (sx - border_w, top_y + border_w),
+        ]
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
@@ -847,8 +855,7 @@ class RenderPipeline:
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 
         # Right border
-        verts = [(sx + cw, sy), (sx + cw + border_w, sy),
-                 (sx + cw + border_w, top_y), (sx + cw, top_y)]
+        verts = [(sx + cw, sy), (sx + cw + border_w, sy), (sx + cw + border_w, top_y), (sx + cw, top_y)]
         shader.uniform_float("color", border_color)
         batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
 

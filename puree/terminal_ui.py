@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 
+
 def _supports_color():
     """Check if the terminal supports ANSI color codes."""
     if os.environ.get("NO_COLOR"):
@@ -137,6 +138,7 @@ SPINNER_COOK = [
 
 DEFAULT_SPINNER = SPINNER_COOK
 
+
 def progress_bar(current, total, width=30, label=""):
     if total <= 0:
         frac = 1.0
@@ -206,6 +208,7 @@ class Spinner:
             self.stop(self.message)
         return False
 
+
 class ProgressTracker:
     def __init__(self, total, width=30):
         self.total = max(total, 1)
@@ -272,6 +275,7 @@ class ProgressTracker:
         line = "\u2500" * w
         self._print_line(f"  {DARK}{line}{RESET}")
 
+
 def step(msg):
     _write(f"  {GREEN}✓{RESET} {msg}\n")
 
@@ -308,6 +312,7 @@ def print_logo(animate=True):
         _write(f"{color}{line}{RESET}\n")
         if animate:
             time.sleep(0.04)
+
 
 def banner_init():
     print_logo(animate=True)
@@ -349,6 +354,7 @@ def outro_success(message="Done!"):
 
 def outro_fail(message="Failed"):
     _write(f"\n  {RED}{BOLD}{'─' * 3} {message} {'─' * 3}{RESET}\n\n")
+
 
 if __name__ == "__main__":
     print_logo(animate=True)
