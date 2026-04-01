@@ -743,6 +743,117 @@ class RenderPipeline:
         gpu.state.blend_set(saved_blend)
         gpu.state.depth_test_set(saved_depth)
 
+    def _draw_debug_overlay(self):
+        """Draw a dark overlay over the entire UI with the selected container cut out,
+        plus a dark blue border around it."""
+        if not self.debug_outlined_containers:
+            return
+
+        from . import hit_op
+
+        containers = hit_op._container_data if hit_op._container_data else self.container_data
+        if not containers:
+            return
+
+        # Get the single selected container
+        selected_id = next(iter(self.debug_outlined_containers))
+        try:
+            idx = int(selected_id)
+        except (ValueError, TypeError):
+            return
+        if idx < 0 or idx >= len(containers):
+            return
+
+        c = containers[idx]
+        if not c.get("display", False):
+            return
+
+        pos = c.get("position", [0, 0])
+        sz = c.get("size", [0, 0])
+        cx, cy_css = float(pos[0]), float(pos[1])
+        cw, ch = float(sz[0]), float(sz[1])
+        if cw <= 0 or ch <= 0:
+            return
+
+        vw = float(self.region_size[0])
+        vh = float(self.region_size[1])
+
+        # Convert CSS coords (top-left origin, Y-down) to screen coords (bottom-left origin, Y-up)
+        # CSS: cy_css is distance from top
+        # Screen: sy is distance from bottom = vh - cy_css - ch
+        sx = cx
+        sy = vh - cy_css - ch
+
+        shader = gpu.shader.from_builtin("UNIFORM_COLOR")
+        shader.bind()
+
+        saved_blend = gpu.state.blend_get()
+        gpu.state.blend_set("ALPHA")
+
+        overlay_color = (0.0, 0.0, 0.0, 0.7)
+
+        # Read user-configurable border color
+        try:
+            bc = bpy.context.window_manager.xwz_debug_border_color
+            border_color = (bc[0], bc[1], bc[2], 1.0)
+        except Exception:
+            border_color = (0.1, 0.15, 0.4, 1.0)
+
+        # Draw 4 rects around the selected container to form the overlay
+        # Bottom strip (below selected)
+        if sy > 0:
+            verts = [(0, 0), (vw, 0), (vw, sy), (0, sy)]
+            shader.uniform_float("color", overlay_color)
+            batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Top strip (above selected)
+        top_y = sy + ch
+        if top_y < vh:
+            verts = [(0, top_y), (vw, top_y), (vw, vh), (0, vh)]
+            shader.uniform_float("color", overlay_color)
+            batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Left strip (left of selected, between bottom and top strips)
+        if sx > 0:
+            verts = [(0, sy), (sx, sy), (sx, top_y), (0, top_y)]
+            shader.uniform_float("color", overlay_color)
+            batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Right strip (right of selected, between bottom and top strips)
+        right_x = sx + cw
+        if right_x < vw:
+            verts = [(right_x, sy), (vw, sy), (vw, top_y), (right_x, top_y)]
+            shader.uniform_float("color", overlay_color)
+            batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Draw border around the selected container
+        border_w = 2.0
+
+        # Bottom border
+        verts = [(sx - border_w, sy - border_w), (sx + cw + border_w, sy - border_w),
+                 (sx + cw + border_w, sy), (sx - border_w, sy)]
+        shader.uniform_float("color", border_color)
+        batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Top border
+        verts = [(sx - border_w, top_y), (sx + cw + border_w, top_y),
+                 (sx + cw + border_w, top_y + border_w), (sx - border_w, top_y + border_w)]
+        shader.uniform_float("color", border_color)
+        batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Left border
+        verts = [(sx - border_w, sy), (sx, sy), (sx, top_y), (sx - border_w, top_y)]
+        shader.uniform_float("color", border_color)
+        batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        # Right border
+        verts = [(sx + cw, sy), (sx + cw + border_w, sy),
+                 (sx + cw + border_w, top_y), (sx + cw, top_y)]
+        shader.uniform_float("color", border_color)
+        batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
+        gpu.state.blend_set(saved_blend)
+
     def draw_texture(self):
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
@@ -785,6 +896,11 @@ class RenderPipeline:
             self._draw_scrollbars()
         except Exception:
             logger.error("Error drawing scrollbars", exc_info=True)
+
+        try:
+            self._draw_debug_overlay()
+        except Exception:
+            logger.error("Error drawing debug overlay", exc_info=True)
 
         # Restore GPU state to what the editor expects
         gpu.state.blend_set(saved_blend)

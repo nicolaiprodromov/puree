@@ -8,8 +8,9 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
+
 import bpy
-from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
+from bpy.props import BoolProperty, CollectionProperty, FloatVectorProperty, IntProperty, StringProperty
 from bpy.types import Panel, PropertyGroup, UIList
 
 from . import render
@@ -34,16 +35,18 @@ class XWZ_UL_container_hierarchy(UIList):
             tree_prefix = ""
             for i in range(item.depth):
                 if i == item.depth - 1:
-                    tree_prefix += "├─ "
+                    tree_prefix += "↳ "
                 else:
-                    tree_prefix += "│  "
+                    tree_prefix += "    "
 
             icon = "CHECKBOX_HLT" if item.is_outlined else "CHECKBOX_DEHLT"
-            op = row.operator("xwz.toggle_debug_outline", text="", icon=icon, emboss=False)
-            op.container_id = item.container_id
+            if item.depth > 0:
+                op = row.operator("xwz.toggle_debug_outline", text="", icon=icon, emboss=False)
+                op.container_id = item.container_id
 
-            display_icon = "HIDE_OFF" if item.is_visible else "HIDE_ON"
-            row.label(text=f"{tree_prefix}{item.display_name}", icon=display_icon)
+            if item.display_name == "root":
+                tree_prefix = " ⾕  "
+            row.label(text=f"{tree_prefix}{item.display_name}")
 
         elif self.layout_type == "GRID":
             layout.alignment = "CENTER"
@@ -95,15 +98,18 @@ def update_container_hierarchy():
 class XWZ_OT_toggle_debug_outline(bpy.types.Operator):
     bl_idname = "xwz.toggle_debug_outline"
     bl_label = "Toggle Debug Outline"
-    bl_description = "Toggle debug outline for this container"
+    bl_description = "Select this container for debug highlight"
 
     container_id: bpy.props.StringProperty()
 
     def execute(self, context):
         if render._render_data:
             if self.container_id in render._render_data.debug_outlined_containers:
-                render._render_data.debug_outlined_containers.remove(self.container_id)
+                # Clicking the already-selected container deselects it
+                render._render_data.debug_outlined_containers.clear()
             else:
+                # Single-select: clear all, then select this one
+                render._render_data.debug_outlined_containers.clear()
                 render._render_data.debug_outlined_containers.add(self.container_id)
 
             render._render_data.needs_texture_update = True
@@ -120,9 +126,17 @@ def register():
 
     bpy.types.WindowManager.xwz_container_hierarchy = CollectionProperty(type=ContainerItem)
     bpy.types.WindowManager.xwz_container_hierarchy_index = IntProperty()
+    bpy.types.WindowManager.xwz_debug_border_color = FloatVectorProperty(
+        name="Border Color",
+        subtype='COLOR',
+        default=(0.1, 0.15, 0.4),
+        min=0.0, max=1.0,
+        size=3,
+    )
 
 
 def unregister():
+    del bpy.types.WindowManager.xwz_debug_border_color
     del bpy.types.WindowManager.xwz_container_hierarchy_index
     del bpy.types.WindowManager.xwz_container_hierarchy
 
@@ -166,22 +180,26 @@ def register_dynamic_panel():
             return context.window_manager.xwz_debug_panel
 
         def draw(self, context):
-            # Same draw method as the original panel
             layout = self.layout
 
+            # Status row: Running/Paused + Stop/Start on the same row, tall
+            row = layout.row(align=True)
+            row.scale_y = 1.8
             if render._render_data and render._render_data.running:
-                layout.label(text="Running", icon="PLAY")
-                layout.operator("xwz.stop_ui", icon="PAUSE")
+                row.operator("xwz.stop_ui", text="Stop", icon="PAUSE")
+            else:
+                row.operator("xwz.start_ui", text="Start", icon="PLAY")
+                layout.label(text=f"Debug panel in {target_space}")
 
+            if render._render_data and render._render_data.running:
                 box = layout.box()
-                col = box.column(align=True)
+                col = box.row(align=True)
                 col.separator()
-                col.label(text=f"Texture: {render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
-                col.label(text=f"FPS: {render._render_data.compute_fps:.1f}")
+                col.label(text=f"{render._render_data.texture_size[0]}x{render._render_data.texture_size[1]}")
+                col.label(text=f"{render._render_data.compute_fps:.1f} FPS")
 
                 box = layout.box()
                 col = box.column(align=True)
-                col.label(text="Container Hierarchy:", icon="OUTLINER")
 
                 from . import parser_op
 
@@ -199,11 +217,10 @@ def register_dynamic_panel():
                         rows=10,
                     )
 
-            else:
-                layout.label(text="Paused", icon="PAUSE")
-                layout.operator("xwz.start_ui", icon="PLAY")
+                # Debug border color picker
+                row = layout.box()
+                row.prop(context.window_manager, "xwz_debug_border_color", text="Border Color")
 
-            layout.label(text=f"Debug panel in {target_space}")
 
     _current_panel_class = XWZ_PT_dynamic_panel
     bpy.utils.register_class(XWZ_PT_dynamic_panel)
