@@ -10,7 +10,7 @@
 # ╚═════════════════════════════════╝
 
 import bpy
-from bpy.props import BoolProperty, CollectionProperty, FloatVectorProperty, IntProperty, StringProperty
+from bpy.props import BoolProperty, CollectionProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
 from bpy.types import Panel, PropertyGroup, UIList
 
 from . import render
@@ -117,15 +117,42 @@ class XWZ_OT_toggle_debug_outline(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class XWZ_OT_toggle_inspect_mode(bpy.types.Operator):
+    bl_idname = "xwz.toggle_inspect_mode"
+    bl_label = "Toggle Inspect Mode"
+    bl_description = "Hover over elements to highlight them (like browser inspector)"
+
+    def execute(self, context):
+        wm = context.window_manager
+        wm.xwz_inspect_mode = not wm.xwz_inspect_mode
+        if not wm.xwz_inspect_mode and render._render_data:
+            # Clear highlight when exiting inspect mode
+            render._render_data.debug_outlined_containers.clear()
+            render._render_data.needs_texture_update = True
+        return {"FINISHED"}
+
+
 def register():
     bpy.utils.register_class(ContainerItem)
     bpy.utils.register_class(XWZ_UL_container_hierarchy)
     bpy.utils.register_class(XWZ_OT_toggle_debug_outline)
+    bpy.utils.register_class(XWZ_OT_toggle_inspect_mode)
 
     register_dynamic_panel()
 
     bpy.types.WindowManager.xwz_container_hierarchy = CollectionProperty(type=ContainerItem)
     bpy.types.WindowManager.xwz_container_hierarchy_index = IntProperty()
+    bpy.types.WindowManager.xwz_inspect_mode = BoolProperty(
+        name="Inspect Mode",
+        default=False,
+    )
+    bpy.types.WindowManager.xwz_debug_passpartout = FloatProperty(
+        name="Passpartout",
+        default=0.7,
+        min=0.0,
+        max=1.0,
+        subtype="FACTOR",
+    )
     bpy.types.WindowManager.xwz_debug_border_color = FloatVectorProperty(
         name="Border Color",
         subtype="COLOR",
@@ -138,11 +165,14 @@ def register():
 
 def unregister():
     del bpy.types.WindowManager.xwz_debug_border_color
+    del bpy.types.WindowManager.xwz_debug_passpartout
+    del bpy.types.WindowManager.xwz_inspect_mode
     del bpy.types.WindowManager.xwz_container_hierarchy_index
     del bpy.types.WindowManager.xwz_container_hierarchy
 
     unregister_dynamic_panel()
 
+    bpy.utils.unregister_class(XWZ_OT_toggle_inspect_mode)
     bpy.utils.unregister_class(XWZ_OT_toggle_debug_outline)
     bpy.utils.unregister_class(XWZ_UL_container_hierarchy)
     bpy.utils.unregister_class(ContainerItem)
@@ -208,6 +238,14 @@ def register_dynamic_panel():
                     update_container_hierarchy()
 
                     wm = context.window_manager
+
+                    # Inspect mode button above the hierarchy
+                    inspect_row = col.row(align=True)
+                    inspect_icon = "VIEWZOOM" if not wm.xwz_inspect_mode else "HIDE_OFF"
+                    inspect_row.operator(
+                        "xwz.toggle_inspect_mode", text="", icon=inspect_icon, depress=wm.xwz_inspect_mode
+                    )
+
                     col.template_list(
                         "XWZ_UL_container_hierarchy",
                         "",
@@ -217,6 +255,10 @@ def register_dynamic_panel():
                         "xwz_container_hierarchy_index",
                         rows=10,
                     )
+
+                # Passpartout opacity slider
+                row = layout.box()
+                row.prop(context.window_manager, "xwz_debug_passpartout", text="Passpartout", slider=True)
 
                 # Debug border color picker
                 row = layout.box()

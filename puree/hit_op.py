@@ -8,6 +8,7 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
+
 import bpy
 
 from . import parser_op
@@ -59,7 +60,6 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         if not hit_modal_running:
             return {"FINISHED"}
 
-        # Only process mouse-related events
         if event.type not in {
             "MOUSEMOVE",
             "LEFTMOUSE",
@@ -84,23 +84,31 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
         if not _native_detector:
             return {"PASS_THROUGH"}
 
-        _native_detector.update_mouse(mouse_x, mouse_y, mouse_state.is_clicked, float(scroll_state.scroll_delta))
+        effective_clicked = mouse_state.is_clicked and (input_router._captured or input_router.is_over_ui)
+
+        _native_detector.update_mouse(mouse_x, mouse_y, effective_clicked, float(scroll_state.scroll_delta))
 
         results = _native_detector.detect_hits()
 
         if results is not None:
             self.apply_hit_results(results)
 
-        # Update input router — check if cursor is over any drawn surface,
-        # walking parent chains for transparent children of drawn containers
         any_hit = input_router.is_over_drawn_surface(_container_data)
         input_router.update_hover_state(any_hit)
 
-        # Track capture for press/release (supports future drag)
         if event.type == "LEFTMOUSE" and event.value == "PRESS":
-            input_router.notify_press()
+            if input_router.is_over_ui:
+                input_router.notify_press()
+            else:
+                mouse_state.update_click(False)
+                input_router.notify_release()
         elif event.type == "LEFTMOUSE" and event.value == "RELEASE":
             input_router.notify_release()
+
+            mouse_state.update_click(False)
+
+        if mouse_state.is_clicked and not input_router._captured and not input_router.is_over_ui:
+            mouse_state.update_click(False)
 
         for _container in _container_data:
             _container["_prev_hovered"] = _container["_hovered"]
@@ -109,9 +117,6 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
 
         scroll_state._prev_scroll_value = scroll_state.scroll_value
 
-        # hit_op is registered first = processed last in Blender's modal stack.
-        # All other Puree modals (mouse, scroll, render) have already processed
-        # this event, so consuming here only blocks Blender's native handlers.
         if input_router.should_consume_event(event.type):
             return {"RUNNING_MODAL"}
         return {"PASS_THROUGH"}
@@ -152,7 +157,6 @@ class XWZ_OT_hit_detect(bpy.types.Operator):
                             if input_instance.is_focused:
                                 bpy.ops.xwz.blur_text_input(instance_id=input_instance.id)
 
-                    # Focus management: focus on click for focusable containers
                     if not text_input_clicked:
                         if container.get("focusable", False):
                             try:

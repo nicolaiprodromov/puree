@@ -792,6 +792,13 @@ class RenderPipeline:
 
         overlay_color = (0.0, 0.0, 0.0, 0.7)
 
+        # Read user-configurable passpartout opacity
+        try:
+            overlay_alpha = bpy.context.window_manager.xwz_debug_passpartout
+            overlay_color = (0.0, 0.0, 0.0, overlay_alpha)
+        except Exception:
+            pass
+
         # Read user-configurable border color
         try:
             bc = bpy.context.window_manager.xwz_debug_border_color
@@ -1520,6 +1527,23 @@ class RenderPipeline:
 
             # Start transitions for containers with transition CSS properties
             self._start_hover_transitions(old_hover, hover_index, container_data)
+
+        # Inspect mode: auto-highlight hovered container
+        try:
+            if bpy.context.window_manager.xwz_inspect_mode:
+                inspect_idx = -1
+                for i, c in enumerate(container_data):
+                    if c.get("_hovered", False):
+                        inspect_idx = i
+                if inspect_idx >= 0:
+                    new_id = str(inspect_idx)
+                    if new_id not in self.debug_outlined_containers:
+                        self.debug_outlined_containers.clear()
+                        self.debug_outlined_containers.add(new_id)
+                        self.needs_texture_update = True
+                        changed = True
+        except Exception:
+            pass
 
         return changed
 

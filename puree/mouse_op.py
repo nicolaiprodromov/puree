@@ -101,7 +101,10 @@ class XWZ_OT_mouse(bpy.types.Operator):
 
         elif event.type == "LEFTMOUSE" and event.value == "PRESS":
             if self.click_enabled:
-                mouse_state.update_click(True)
+                from .input_router import input_router
+
+                if input_router.is_over_ui:
+                    mouse_state.update_click(True)
 
         elif event.type == "LEFTMOUSE" and event.value == "RELEASE":
             if self.click_enabled:
