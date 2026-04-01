@@ -10,13 +10,13 @@
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
-*Puree UI* for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
+*Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, and markdown rendering — addressing the limitations of Blender's native UI system.
 
-It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to causal users and powerful enough for seasoned programmers.
+It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to casual users and powerful enough for seasoned programmers.
 
 > Puree is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
-<img src="docs/images/usage1.gif" alt="Puree UI" width="70%"/>
+<img src="docs/images/usage1.gif" alt="Puree UI" width="100%"/>
 
 </div>
 
@@ -129,11 +129,11 @@ Here's a short tutorial to get you started with Puree:
 
 Puree follows a hybrid Rust/Python pipeline optimized for performance:
 
-1. **Parse** – Rust-native parsers process YAML/SCSS into styled container trees
-2. **Layout** – Stretchable flexbox engine computes responsive layouts  
-3. **Flatten** – Rust optimizes container hierarchy into GPU-ready buffers
-4. **Render** – ModernGL compute shaders generate UI texture with full effects
-5. **Interact** – Rust hit detection handles all mouse/scroll events in real-time
+1. **Parse** - Rust-native parsers process YAML/SCSS into styled container trees
+2. **Layout** - Stretchable flexbox engine computes responsive layouts  
+3. **Flatten** - Rust optimizes container hierarchy into GPU-ready buffers
+4. **Render** - ModernGL compute shaders generate UI texture with full effects
+5. **Interact** - Rust hit detection handles all mouse, scroll, and keyboard events in real-time
 
 <br>
 
@@ -141,7 +141,7 @@ Puree follows a hybrid Rust/Python pipeline optimized for performance:
 flowchart LR
  subgraph INPUT["Inputs"]
         A["YAML/SCSS"]
-        I["Mouse/Scroll"]
+        I["Mouse/Scroll/Keys"]
         K["Python"]
         M["File Watch"]
   end
@@ -229,32 +229,35 @@ flowchart LR
 
 This architecture enables:
 
-- **Native performance** – Critical paths run in compiled Rust code
-- **GPU acceleration**   – All rendering & parallel computation happens in shaders
-- **Reactive layouts**   – Automatic layout recompute on interactions, viewport resize, etc.
+- **Native performance** - Critical paths run in compiled Rust code
+- **GPU acceleration**   - All rendering & parallel computation happens in shaders
+- **Reactive layouts**   - Automatic layout recompute on interactions, viewport resize, etc.
 
 
 > Read the full [documentation](docs/DOCS.md) for detailed guides, API references, and examples.
 
-## Support & Issues
+
+---
+
+## Roadmap
+
+Puree aims to become the orchestration layer for user interfaces in Blender; prioritizing standardization, accessibility, and privacy while exposing deep creative freedom to developers.
+
+| Direction | Description |
+|---|---|
+| 🔩 **Isolated Rust Runtime** | Standalone Rust runtime with narrow IPC surface. Container data flows from runtime to Blender; events flow back. Shared memory for rendered output. |
+| ♿ **Accessibility** | Screen reader support, focus APIs, assistive technology. Semantic tree mapping containers to roles, labels, states, and focus order. WCAG contrast validation. |
+| 🔒 **Privacy & Permissions** | Extensions declare capabilities (filesystem paths, network hosts, Blender data). Runtime enforcement, user consent, and action logging. |
+| 📦 **Reference Extensions** | Port the [Lottie renderer](https://superhivemarket.com/products/lottie-addon) and [SVG exporter](https://superhivemarket.com/products/svg-exporter) to Puree as open-source reference implementations. |
+
+---
+
 
 ### Getting Help
 
 For questions and support, check out the [docs](docs/DOCS.md) or [support guide](docs/SUPPORT.md).
 
-### Reporting Issues
-
-Found a bug or have a feature request? [Open an issue](https://github.com/nicolaiprodromov/puree/issues) with:
-
-- Clear description of the problem or feature
-- Steps to reproduce (for bugs)
-- Blender version and OS
-- Relevant error messages or screenshots
-
-## Built With
-
-<a href="https://www.blender.org/"><img src="https://img.shields.io/badge/Blender-2B2B2B?style=flat-square&logo=blender&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-2B2B2B?style=flat-square&logo=python&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language"><img src="https://img.shields.io/badge/GLSL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://pyo3.rs/"><img src="https://img.shields.io/badge/PyO3-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/moderngl/moderngl"><img src="https://img.shields.io/badge/ModernGL-2B2B2B?style=flat-square&logo=opengl&logoColor=white&logoSize=auto" height="28"/></a> <a href="https://github.com/vislyhq/stretchable"><img src="https://img.shields.io/badge/Stretchable-2B2B2B?style=flat-square&logo=rust&logoColor=white&logoSize=auto" height="28"/></a>
+---
 
 > *Special thanks to the open-source community and the developers behind the projects that make **Puree** possible.*
 
-<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/munky.gif?raw=true" width="100px">
