@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/gg.gif" alt="Puree UI Logo" width="100%"/>
+<img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/gg.gif" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
@@ -11,13 +11,11 @@
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
 
-*Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, and markdown rendering — addressing the limitations of Blender's native UI system.
-
-It's meant for all Blender users that want to enhance their ability to present their creations, models, addons and products inside the software in a streamlined, easy & intuitive way, adaptable to casual users and powerful enough for seasoned programmers.
+*Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, and markdown rendering; addressing the limitations of Blender's native UI system.
 
 > Puree is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
-<img src="docs/images/usage1.gif" alt="Puree UI" width="100%"/>
+<img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/usage1.gif" alt="Puree UI" width="100%"/>
 
 </div>
 
@@ -33,7 +31,7 @@ Blender's `gpu` module provides Python bindings for GPU rendering, but with arch
 
 - The [`gpu.types.GPUShader`](https://docs.blender.org/api/current/gpu.types.html#gpu.types.GPUShader) API enforces vertex + fragment shader pairs for traditional geometry rendering. This works for drawing meshes but requires additional overhead for UI operations like filling thousands of rectangles per frame.
 
-- While Blender's Python API exposes [compute shader support](https://docs.blender.org/api/current/gpu.html#custom-compute-shader-using-image-store-and-vertex-fragment-shader), it currently targets image-based operations using `imageStore()`. Direct binding of Shader Storage Buffer Objects (SSBOs) for custom data-parallel algorithms is not available through the Python API—this technique is needed for efficient UI rendering where container properties (position, color, border radius) must be processed in parallel.
+- While Blender's Python API exposes [compute shader support](https://docs.blender.org/api/current/gpu.html#custom-compute-shader-using-image-store-and-vertex-fragment-shader), it currently targets image-based operations using `imageStore()`. Direct binding of Shader Storage Buffer Objects (SSBOs) for custom data-parallel algorithms is not available through the Python API; this technique is needed for efficient UI rendering where container properties (position, color, border radius) must be processed in parallel.
 
 ### *Why Abstraction Matters*
 
@@ -53,22 +51,22 @@ Imperative UI code couples structure with styling, changing a button's color mea
 
 *From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu.*
 
-Check the [examples](/examples) folder for detailed examples of what can be accomplished with **Puree**.
+Check the [tests](/tests) folder for detailed examples of what can be accomplished with **Puree**.
 
 <div align="center">
 
-<video src="docs/images/example1.mp4" controls width="100%">
+<video src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/example1.mp4" controls width="100%">
 </video>
 
 
 [*Example usage with hot reload for fast iterations*](https://youtu.be/moDWxOJ27fE?si=tnEKvIn6RMQNcraj)
 
-<video src="docs/images/example2.mp4" controls width="100%">
+<video src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/example2.mp4" controls width="100%">
 </video>
 
 [*Slightly more complex interface*](https://youtu.be/9Xn1MqDesqQ?si=nvzfTDF6uEu73VLC)
 
-<video src="docs/images/example3.mp4" controls width="100%">
+<video src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/example3.mp4" controls width="100%">
 </video>
 
 [*Scene object tracking example*](https://youtu.be/43_a7iXoEj4?si=DoZpDfxBQ6YlxP_u)
@@ -78,15 +76,14 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 ---
 
 ## Quick Start
-
+<!-- 
 Here's a short tutorial to get you started with Puree:
 
-<video src="docs/images/example4.mp4" controls width="50%">
-</video>
+<video src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/example4.mp4" controls width="50%">
+</video> -->
 
 > [!IMPORTANT]
-> ### **Puree is in beta - WIP**
-> - Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
 
 1. **Install Puree:**
 
@@ -117,8 +114,8 @@ Here's a short tutorial to get you started with Puree:
     puree install
     ```
 
-5. **Open Blender** — look for the Puree tab in the N-panel of the 3D Viewport.
-6. **For faster development** (optional) — use symlink mode instead of build+install:
+5. **Open Blender** - look for the Puree tab in the N-panel of the 3D Viewport.
+6. **For faster development** (optional) - use symlink mode instead of build+install:
 
     ```bash
     puree link            # Symlink project into Blender (one-time)
@@ -248,16 +245,16 @@ Puree aims to become the orchestration layer for user interfaces in Blender; pri
 
 <div align="center">
 
-<img src="docs/images/ggg_out.png" alt="Puree UI Logo" width="50%"/>
+<img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/ggg_out.png" alt="Puree UI Logo" width="50%"/>
 
 </div>
 
 | Direction | Description |
 |---|---|
-| 🔩 **Isolated Rust Runtime** | Standalone Rust runtime with narrow IPC surface. Container data flows from runtime to Blender; events flow back. Shared memory for rendered output. |
-| ♿ **Accessibility** | Screen reader support, focus APIs, assistive technology. Semantic tree mapping containers to roles, labels, states, and focus order. WCAG contrast validation. |
-| 🔒 **Privacy & Permissions** | Extensions declare capabilities (filesystem paths, network hosts, Blender data). Runtime enforcement, user consent, and action logging. |
-| 📦 **Reference Extensions** | Port the [Lottie renderer](https://superhivemarket.com/products/lottie-addon) and [SVG exporter](https://superhivemarket.com/products/svg-exporter) to Puree as open-source reference implementations. |
+| **Isolated Rust Runtime** | Standalone Rust runtime with narrow IPC surface. Container data flows from runtime to Blender; events flow back. Shared memory for rendered output. |
+| **Accessibility** | Screen reader support, focus APIs, assistive technology. Semantic tree mapping containers to roles, labels, states, and focus order. WCAG contrast validation. |
+| **Privacy & Permissions** | Extensions declare capabilities (filesystem paths, network hosts, Blender data). Runtime enforcement, user consent, and action logging. |
+| **Reference Extensions** | Port the [Lottie renderer](https://superhivemarket.com/products/lottie-addon) and [SVG exporter](https://superhivemarket.com/products/svg-exporter) to Puree as open-source reference implementations. |
 
 ---
 
@@ -268,7 +265,7 @@ For questions and support, check out the [docs](docs/DOCS.md) or [support guide]
 
 ---
 
-<img src="docs/images/puree_ui_kit.png" alt="Puree UI Logo" width="100%"/>
+<img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/puree_ui_kit.png" alt="Puree UI Logo" width="100%"/>
 
 > *Special thanks to the open-source community and the developers behind the projects that make **Puree** possible.*
 
