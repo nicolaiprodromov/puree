@@ -1,11 +1,12 @@
 <div align="center">
-<img src="https://github.com/nicolaiprodromov/puree/blob/master/docs/images/puree_ui_kit.png?raw=true" alt="Puree UI Logo" width="100%"/>
+
+<img src="docs/images/gg.gif" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
 *A declarative UI framework for Blender addons and much more*
 
-[![CI](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml)
+<!--[![CI](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml) -->
 [![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
@@ -58,6 +59,7 @@ Check the [examples](/examples) folder for detailed examples of what can be acco
 
 <video src="docs/images/example1.mp4" controls width="100%">
 </video>
+
 
 [*Example usage with hot reload for fast iterations*](https://youtu.be/moDWxOJ27fE?si=tnEKvIn6RMQNcraj)
 
@@ -239,9 +241,16 @@ This architecture enables:
 
 ---
 
+
 ## Roadmap
 
 Puree aims to become the orchestration layer for user interfaces in Blender; prioritizing standardization, accessibility, and privacy while exposing deep creative freedom to developers.
+
+<div align="center">
+
+<img src="docs/images/ggg_out.png" alt="Puree UI Logo" width="50%"/>
+
+</div>
 
 | Direction | Description |
 |---|---|
@@ -258,6 +267,8 @@ Puree aims to become the orchestration layer for user interfaces in Blender; pri
 For questions and support, check out the [docs](docs/DOCS.md) or [support guide](docs/SUPPORT.md).
 
 ---
+
+<img src="docs/images/puree_ui_kit.png" alt="Puree UI Logo" width="100%"/>
 
 > *Special thanks to the open-source community and the developers behind the projects that make **Puree** possible.*
 
