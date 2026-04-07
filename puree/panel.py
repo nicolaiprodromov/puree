@@ -143,9 +143,6 @@ class XWZ_OT_clear_event_log(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# ── Console tab ──────────────────────────────────────────────────────
-
-
 class ConsoleMessageItem(PropertyGroup):
     level: StringProperty()
     message: StringProperty()
