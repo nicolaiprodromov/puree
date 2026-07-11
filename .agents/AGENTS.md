@@ -2,6 +2,8 @@
 
 This document catalogs all agents, skills, prompts, and instruction files available for working with Puree.
 
+VERY IMPORTANT: YOU ARE NEVER ALLOWED TO USE ANY GIT WRITING OPERATIONS, ONLY READ! NO COMMITING, NO PUSHING! UNLESS THE USER GRANTS THIS PRIVILEGE!
+
 ---
 
 ## Agents

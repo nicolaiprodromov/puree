@@ -1,0 +1,37 @@
+# Normalize all text files to LF in the repository.
+# Checkout endings follow platform config (autocrlf), except where pinned below.
+* text=auto
+
+# Must be LF on disk — executed by bash/make/just inside Linux containers
+*.sh      text eol=lf
+Makefile  text eol=lf
+justfile  text eol=lf
+
+# Windows batch scripts are happiest with CRLF on disk
+*.bat     text eol=crlf
+
+# Source and config (explicit for clarity)
+*.py      text
+*.rs      text
+*.md      text
+*.yml     text
+*.yaml    text
+*.toml    text
+*.scss    text
+*.json    text
+*.glsl    text
+*.vert    text
+*.frag    text
+
+# Binary assets — never touch line endings
+*.png     binary
+*.gif     binary
+*.webp    binary
+*.mp4     binary
+*.otf     binary
+*.ttf     binary
+*.so      binary
+*.pyd     binary
+*.dylib   binary
+*.whl     binary
+*.zip     binary

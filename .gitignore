@@ -39,3 +39,4 @@ __pycache__/
 Cargo.lock
 
 .ruff_cache/
+.devcontainer/
