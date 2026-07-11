@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/gg.gif" alt="Puree UI Logo" width="100%"/>
+<img src="https://raw.githubusercontent.com/nicolaiprodromov/puree/master/docs/images/gg.gif" alt="Puree UI Logo" width="100%"/>
 
 <br>
 
