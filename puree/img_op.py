@@ -179,6 +179,7 @@ class ImageInstance:
         self.position = pos
         self.size = size
         self.mask = mask
+        self.clip = None  # Separate scissor rect [x, y, w, h] for scroll clipping
         self.aspect_ratio = aspect_ratio
         self.align_h = align_h
         self.align_v = align_v
@@ -250,6 +251,7 @@ class ImageInstance:
         size=None,
         pos=None,
         mask=None,
+        clip=None,
         aspect_ratio=None,
         align_h=None,
         align_v=None,
@@ -265,6 +267,8 @@ class ImageInstance:
             self.position = list(pos)
         if mask is not None:
             self.mask = mask
+        if clip is not None:
+            self.clip = clip
         if aspect_ratio is not None:
             self.aspect_ratio = aspect_ratio
         if align_h is not None:
@@ -308,13 +312,26 @@ def draw_all_images():
         if not instance.texture or not instance.batch:
             continue
 
+        scissor_rect = None
         if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
-            xmin = instance.mask[0]
-            ymin = viewport_height - instance.mask[1] - instance.mask[3]
-            xmax = instance.mask[0] + instance.mask[2]
-            ymax = viewport_height - instance.mask[1]
+            scissor_rect = [float(v) for v in instance.mask]
+        # Intersect with the scroll-area clip (scissor duty) — the mask keeps
+        # its alignment duty at the scrolled content position.
+        if instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0:
+            if scissor_rect is None:
+                scissor_rect = [float(v) for v in instance.clip]
+            else:
+                ix = max(scissor_rect[0], float(instance.clip[0]))
+                iy = max(scissor_rect[1], float(instance.clip[1]))
+                ir = min(scissor_rect[0] + scissor_rect[2], float(instance.clip[0]) + float(instance.clip[2]))
+                ib = min(scissor_rect[1] + scissor_rect[3], float(instance.clip[1]) + float(instance.clip[3]))
+                scissor_rect = [ix, iy, max(0.0, ir - ix), max(0.0, ib - iy)]
+
+        if scissor_rect is not None:
+            xmin = scissor_rect[0]
+            ymin = viewport_height - scissor_rect[1] - scissor_rect[3]
             gpu.state.scissor_test_set(True)
-            gpu.state.scissor_set(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
+            gpu.state.scissor_set(int(xmin), int(ymin), int(scissor_rect[2]), int(scissor_rect[3]))
 
         display_size = instance.get_display_size()
 
@@ -358,7 +375,7 @@ def draw_all_images():
 
         gpu.matrix.pop_projection()
 
-        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+        if scissor_rect is not None:
             gpu.state.scissor_test_set(False)
 
     gpu.state.blend_set(saved_blend)

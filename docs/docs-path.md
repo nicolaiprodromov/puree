@@ -11,7 +11,7 @@ New to Puree? Follow this recommended reading order:
 ### 1. Getting Started
 | Doc | Level | What You'll Learn |
 |-----|-------|-------------------|
-| [Home](index.md) | Beginner | Overview, quick start, architecture diagram |
+| [Home](index.md) | Beginner | Overview, quick start, key features, render pipeline |
 | [Documentation](DOCS.md) | Beginner | File structure, YAML/SCSS/Python walkthrough, installation |
 
 ### 2. Building Interfaces

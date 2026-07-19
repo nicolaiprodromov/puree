@@ -332,12 +332,6 @@ $btn-color: #fff !default;
 
 The `!default` flag is key — it allows parent contexts to override these values via component parameters, while providing sensible defaults when no override is given.
 
----
-
-|  | Previous Page | Next Page |
-|----------|----------|------|
-| Puree is under active development. APIs may change between versions. **Special thanks to the open-source community and the developers behind the projects that make puree possible.** | [Documentation](DOCS.md) | [API Reference](API.md) |
-
 ### Property-Based Access
 
 ```python
@@ -415,8 +409,8 @@ card:
 
 **File: `static/style.scss`**
 
-```css
-default_card {
+```scss
+.default_card {
     width: 300px;
     height: 400px;
     background-color: #ffffff;
@@ -424,14 +418,14 @@ default_card {
     padding: 20px;
 }
 
-card_header {
-    text-scale: 24px;
-    text-color: #333333;
+.card_header {
+    font-size: 24px;
+    color: #333333;
 }
 
-card_body {
-    text-scale: 16px;
-    text-color: #666666;
+.card_body {
+    font-size: 16px;
+    color: #666666;
 }
 ```
 

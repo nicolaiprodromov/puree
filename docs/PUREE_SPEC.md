@@ -71,18 +71,21 @@ app:
             text: "Hello from Puree!"
 ```
 
+Each `theme:` entry may also set a `space:` key selecting which Blender editor the UI renders in (e.g. `space: VIEW_3D` — the default when omitted). Supported values: `VIEW_3D`, `IMAGE_EDITOR`, `NODE_EDITOR`, `SEQUENCE_EDITOR`, `CLIP_EDITOR`, `DOPESHEET_EDITOR`, `GRAPH_EDITOR`, `NLA_EDITOR`, `TEXT_EDITOR`, `CONSOLE`, `INFO`, `TOPBAR`, `STATUSBAR`, `OUTLINER`, `PROPERTIES`, `FILE_BROWSER`, `SPREADSHEET`, `PREFERENCES`.
+
 ### Node Properties
 
 Each YAML node can have these properties:
 
 | Property     | Type   | Description                                        |
-|--------------|--------|----------------------------------------------------||
+|--------------|--------|----------------------------------------------------|
 | `style`      | string | CSS class name for styling (matched as `.classname` in SCSS) |
 | `class`      | string | Space-separated CSS class names (alternative to `style`)     |
 | `text`       | string | Text content to display                            |
 | `font`       | string | Font name (without extension): `NeueMontreal-Bold` |
 | `img`        | string | Image name from `assets/` (without extension)      |
 | `data`       | string | Component reference: `'[component_name]'`          |
+| `data`       | string | Text input: `'<INPUT> \| placeholder text'` turns the node into an editable text input |
 | `passive`    | bool   | If true, element is non-interactive                |
 | `focusable`  | bool   | If true, element can receive keyboard focus        |
 | `tab_index`  | int    | Tab order for keyboard navigation (`-1` = not in tab order) |
@@ -118,6 +121,19 @@ Puree supports standard CSS selectors:
 
 // Child selector
 .sidebar > .title { font-weight: bold; }
+
+// Universal selector
+* { letter-spacing: 0; }
+
+// Sibling combinators
+.label + .value { color: #999; }          // adjacent sibling
+.item ~ .item { border-top-width: 1px; }  // general sibling
+
+// Structural pseudo-classes
+.list_item:first-child { border-radius: 8px 8px 0 0; }
+.list_item:last-child { border-radius: 0 0 8px 8px; }
+.row:nth-child(odd) { background-color: rgba(255,255,255,0.03); }  // odd, even, an+b
+.nav_item:not(.active) { opacity: 0.7; }
 
 // Pseudo-classes
 .button:hover { color: #444; }
@@ -212,9 +228,11 @@ Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`
 
 #### Box Model
 
+**Units:** length values accept `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, and `vmax`, plus `calc()` expressions with `+` and `-` only (e.g. `calc(100% - 40px)`).
+
 | CSS Property              | Type   | Default       | Description                                       |
 |---------------------------|--------|---------------|---------------------------------------------------|
-| `width`                   | length | `0`           | Element width (`px`, `%`, `auto`)                 |
+| `width`                   | length | `0`           | Element width (`px`, `%`, `rem`, `em`, `vw`/`vh`/`vmin`/`vmax`, `calc()`, `auto`) |
 | `height`                  | length | `0`           | Element height                                    |
 | `padding`                 | short  | `0`           | Padding (shorthand: `10px`, `10px 20px`)          |
 | `margin`                  | short  | `0`           | Margin (shorthand)                                |
@@ -239,7 +257,7 @@ Font face selection uses YAML `font:` attribute (e.g., `font: NeueMontreal-Bold`
 | `overflow`                | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
 | `overflow-x`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
 | `overflow-y`              | enum   | `visible`     | `hidden`, `visible`, `scroll`, `auto`             |
-| `box-sizing`              | enum   | `content-box` | `content-box`, `border-box`                       |
+| `box-sizing`              | enum   | `border-box`  | `content-box`, `border-box`                       |
 | `pointer-events`          | enum   | `auto`        | `auto`, `none`. `none` prevents hover/click detection on the element and all children — use for overlay containers that shouldn't block interaction. |
 
 **Border gradient** (CSS standard):
@@ -295,12 +313,12 @@ Example: `box-shadow: 4px 4px 10px rgba(0,0,0,0.5);`
 | `display`         | enum  | `flex`     | `flex`, `grid`, `block`, `none`. `block`: children stack vertically and fill parent width (no flex properties like `flex-grow` apply). `flex`: standard flexbox. `grid`: CSS grid. `none`: hidden + removed from layout. |
 | `flex-direction`  | enum  | `row`      | `row`, `column`, `row-reverse`, `column-reverse`               |
 | `justify-content` | enum  | `start`    | `start`, `end`, `center`, `space-between`, `space-around`, `space-evenly` |
-| `align-items`     | enum  | `start`    | `start`, `end`, `center`, `baseline`, `stretch`                |
+| `align-items`     | enum  | `stretch`  | `start`, `end`, `center`, `baseline`, `stretch`                |
 | `align-content`   | enum  | `start`    | `start`, `end`, `center`, `stretch`, `space-between`, `space-around` |
 | `flex-wrap`       | enum  | `nowrap`   | `nowrap`, `wrap`, `wrap-reverse`                               |
 | `flex-grow`       | float | `0`        | Growth factor                                                  |
 | `flex-shrink`     | float | `1`        | Shrink factor                                                  |
-| `flex-basis`      | length| `0`        | Base size                                                      |
+| `flex-basis`      | length| `auto`     | Base size                                                      |
 | `gap`             | length| `0`        | Gap between flex/grid items                                    |
 
 #### Layout (Grid)
@@ -352,9 +370,11 @@ Instead of separate hover/click color properties, use standard pseudo-classes:
 }
 ```
 
-**Supported pseudo-classes:**
+**Supported state pseudo-classes:**
 - `:hover` — mouse is over the element
 - `:active` — element is being clicked/pressed
+
+Structural pseudo-classes (`:first-child`, `:last-child`, `:nth-child()`, `:not()`) are also supported — see the Selectors section above.
 
 ### SCSS Features
 
@@ -933,7 +953,7 @@ grid_container:
     > ⚠️ **Common debugging issue**: SCSS uses lowercase (`display: none`, `display: flex`) but Python runtime requires UPPERCASE (`style.display = 'NONE'`, `style.display = 'FLEX'`). Mismatched case will silently fail.
 
 12. **Only 3 animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
-13. **Draw order**: Containers are drawn in tree order (depth-first). Use the YAML `layer:` attribute (integer) for z-ordering — higher values draw later/on top. The CSS `z-index` property exists on the Style class but is **not** used by the GPU renderer.
+13. **Draw order**: Containers are drawn in tree order (depth-first), then sorted by CSS `z-index` — higher values draw later/on top. The sort is stable, so tree order is preserved among elements with equal `z-index`. Use CSS `z-index` for stacking. The YAML `layer:` attribute is **deprecated** and has no effect (it is never read by the engine).
 14. **Container `.keys` property**: Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped keyboard shortcuts. See the [Keyboard section in API Reference](API.md#keyboard--pureekeyboard).
 
 ---
@@ -967,17 +987,17 @@ from puree.markdown import render_markdown
 # Preferred: Container method with full options
 container.set_markdown(
     "# Title\n\nSome **bold** text and `code`.",
-    app=app,                                    # enables dynamic features
-    fonts={"code": "JetBrainsMono"},            # optional: custom fonts per element
-    classes={"h1": "custom_heading"}            # optional: custom CSS classes per element
+    fonts={"mono": "JetBrainsMono"},            # optional: custom fonts per element
+    classes={"heading_1": "custom_heading"}     # optional: custom CSS classes per element
 )
 
 # Or use the function directly
 render_markdown(container, markdown_text)
 ```
 
-Supports: headings (h1-h6), bold, inline code, code blocks, list items, blockquotes, horizontal rules.
-Default CSS classes (`.md_paragraph`, `.md_h1`, `.md_code_block`, etc.) are injected automatically and can be overridden in your SCSS.
+Supports: headings (h1-h6), bold, inline code, code blocks, list items, blockquotes, horizontal rules. Not supported: italics, links, images, tables, nested lists.
+Each rendered block gets a default CSS class (`.md_paragraph`, `.md_h1`, `.md_code_block`, etc.) — style those classes in your SCSS, or remap elements to your own classes via the `classes` parameter.
+Valid `fonts` keys: `regular`, `bold`, `mono`. Valid `classes` keys: `paragraph`, `heading_1`, `heading_2`, `heading_3`, `heading_n`, `code_block`, `code_inline`, `list_item`, `blockquote`, `divider`, `inline_row`, `bold`, `text_span`.
 
 ### Virtual Scrolling
 
@@ -997,7 +1017,7 @@ def main(self, app):
     scroll.set_virtual_data(items)
     
     # Define how each item renders
-    def render_item(container, item):
+    def render_item(container, item, index):
         container.text = item['text']
         container.mark_dirty()
     
@@ -1031,12 +1051,12 @@ def main(self, app):
     
     # You can also check state:
     # details.is_collapsed  → True/False
-    # details.collapse()    → animate to collapsed
-    # details.expand()      → animate to expanded
+    # details.collapse()    → collapse instantly
+    # details.expand()      → expand instantly
     return app
 ```
 
-The first child of a collapsible container is the **header** (always visible); remaining children form the collapsible **body**.
+The first child of a collapsible container is the **header** (always visible); remaining children form the collapsible **body**. Collapse/expand is an **instant** visibility change — it is not animated.
 
 ### Keyboard Shortcuts
 
@@ -1047,22 +1067,22 @@ def main(self, app):
     input_field = app.theme.root.input_field
     
     # Global shortcuts (always active)
-    keys.bind("CTRL+N", lambda c: new_chat())
-    keys.bind("ESCAPE", lambda c: cancel())
+    keys.bind("CTRL+N", lambda: new_chat())
+    keys.bind("ESCAPE", lambda: cancel())
     
     # Conditional: only when a text input has focus
-    keys.bind("ENTER", lambda c: send_message(), when="input_focused")
+    keys.bind("ENTER", lambda: send_message(), when="input_focused")
     
     # Container-scoped: only when this specific container is focused
-    input_field.keys.bind("SHIFT+ENTER", lambda c: insert_newline())
+    input_field.keys.bind("SHIFT+ENTER", lambda: insert_newline())
     
     # Unbind when no longer needed
-    binding = keys.bind("CTRL+S", lambda c: save())
+    binding = keys.bind("CTRL+S", lambda: save())
     keys.unbind(binding)
     return app
 ```
 
-Key names use Blender conventions but common aliases (`ENTER`, `ESCAPE`, `DELETE`, `BACKSPACE`) are auto-mapped.
+Key names use Blender conventions but common aliases (`ENTER`, `ESCAPE`, `DELETE`, `BACKSPACE`) are auto-mapped. Key callbacks are invoked with **no arguments** — bind zero-argument callables.
 
 ### Storage, Timers, HTTP, Focus
 

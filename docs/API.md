@@ -12,6 +12,10 @@ All properties are set via SCSS files. Use `container.set_property('css-property
 
 **Reading style at runtime:** Access via `container.style.field_name`. Enum values are UPPERCASE at runtime — e.g. `container.style.display` returns `'FLEX'` or `'NONE'`.
 
+**Length units:** `px`, `%`, `rem`, `em`, `vw`, `vh`, `vmin`, `vmax`, plus `calc()` expressions (addition and subtraction only, e.g. `calc(100% - 24px)`).
+
+**Selectors:** class, ID, descendant, child (`>`), adjacent sibling (`+`), general sibling (`~`), universal (`*`), comma lists, and the pseudo-classes `:hover`, `:active`, `:first-child`, `:last-child`, `:nth-child(an+b|odd|even)`, `:not()`.
+
 ### Colors & Backgrounds
 
 | CSS Property | Description |
@@ -23,12 +27,12 @@ All properties are set via SCSS files. Use `container.set_property('css-property
 | `opacity` | Element opacity (0–1) |
 | `visibility` | `visible`, `hidden` (hidden keeps layout space) |
 
-**Hover and active states** are set via standard SCSS pseudo-classes. Only these four properties are supported in `:hover` / `:active` rules (layout properties like width/padding are ignored):
+**Hover and active states** are set via standard SCSS pseudo-classes. Only these properties are supported in `:hover` / `:active` rules (layout properties like width/padding are ignored):
 
-| Pseudo-class | Animatable properties |
+| Pseudo-class | Supported properties |
 |---|---|
-| `:hover { }` | `background-color`, `color`, `border-color`, `opacity` (only `background-color`, `border-color`, `opacity` are transition-animated; `color` changes instantly) |
-| `:active { }` | `background-color`, `color`, `border-color`, `opacity` (only `background-color`, `border-color`, `opacity` are transition-animated; `color` changes instantly) |
+| `:hover { }` | `background-color`, `background` (incl. `linear-gradient()`), `color`, `border-color`, `opacity` (only `background-color`, `border-color`, `opacity` are transition-animated; `color` changes instantly) |
+| `:active { }` | `background-color`, `background` (incl. `linear-gradient()`), `color`, `border-color`, `opacity` (only `background-color`, `border-color`, `opacity` are transition-animated; `color` changes instantly) |
 
 ### Typography
 
@@ -152,9 +156,9 @@ button = app.theme.root.sidebar.nav_button
 | `text` | `str` | Text content |
 | `img` | `str` | Image asset name (no extension) |
 | `font` | `str` | Font face name (no extension) |
-| `data` | `str` | Component reference string |
+| `data` | `str` | Component reference (`'[component_name]'`) or text-input marker (`'<INPUT> \| placeholder'`) |
 | `classes` | `list` | CSS class names applied to this container |
-| `layer` | `int` | Z-ordering layer (higher = drawn later/on top). Overrides tree draw order. |
+| `layer` | `int` | **Deprecated — no effect.** Defined on the container but never read by the renderer. Draw order comes from CSS `z-index` sorting (stable sort — tree order is preserved within the same `z-index`). |
 | `passive` | `bool` | If `True`, element ignores all interaction events |
 | `focusable` | `bool` | If `True`, element can receive keyboard focus |
 | `tab_index` | `int` | Tab order for keyboard navigation (`-1` = not in tab order) |
@@ -175,6 +179,8 @@ button = app.theme.root.sidebar.nav_button
 | `_toggle_value` | `bool` | The persistent boolean state of the toggle (True/False — persists across frames) |
 | `_scroll_value` | `float` | Current scroll offset in px (read-only) |
 
+**Text-input nodes:** setting `data: "<INPUT> | placeholder text"` on a YAML node turns it into an editable text input — the text after the `|` becomes the placeholder. The input uses the node's font, `font-size`, `color`, and text alignment.
+
 ---
 
 ## Container Methods
@@ -188,17 +194,17 @@ button = app.theme.root.sidebar.nav_button
 | `insert_child(index, template, id, params)` | `(int, str, str \| None, dict \| None) -> Container` | Insert a child at a specific position from a component template. |
 | `remove_child(id_or_container)` | `(str \| Container) -> bool` | Remove a child by ID string or Container reference. |
 | `clear_children()` | `() -> None` | Remove all children from this container. |
-| `focus()` | `() -> None` | Give this container keyboard focus. Requires `focusable: true` and `tab_index` in YAML. |
+| `focus()` | `() -> None` | Give this container keyboard focus. Works on any container — `focusable: true` and `tab_index` are only needed for Tab/Shift+Tab cycling (`focus_manager.tab_next()` / `tab_prev()`). |
 | `blur()` | `() -> None` | Remove keyboard focus from this container. |
 | `is_focused` | `-> bool` | Property — returns `True` if this container currently has keyboard focus. |
-| `collapse()` | `() -> None` | Animate collapse to header-only height. |
-| `expand()` | `() -> None` | Animate expand to full height. |
+| `collapse()` | `() -> None` | Collapse instantly to header-only height (children after the first are hidden). |
+| `expand()` | `() -> None` | Expand instantly to full height (all children shown). |
 | `toggle_collapse()` | `() -> None` | Toggle between collapsed and expanded states. |
 | `is_collapsed` | `-> bool` | Property — returns `True` if this container is currently collapsed. |
-| `set_markdown(text, app, fonts, classes)` | `(str, UI \| None, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. `app` enables dynamic features; `fonts` maps markdown elements to font names; `classes` maps elements to CSS classes. |
+| `set_markdown(text, fonts, classes)` | `(str, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. `fonts` maps `'regular'` / `'bold'` / `'mono'` to font names; `classes` maps markdown elements to CSS classes. |
 | `keys` | `ContainerKeyProxy` | Property — scoped keyboard shortcut binding. Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped shortcuts. |
 | `set_virtual_data(data_list)` | `(list) -> None` | Assign a data list for virtual scrolling. Requires `virtual: true`. |
-| `set_item_renderer(fn)` | `(Callable[[Container, Any], None]) -> None` | Set the callback to render each virtual scroll item. |
+| `set_item_renderer(fn)` | `(Callable[[Container, Any, int], None]) -> None` | Set the callback to render each virtual scroll item. The callback receives `(container, item, index)`. |
 
 ---
 
@@ -302,7 +308,7 @@ input_field.on_blur.append(lambda c: unhighlight(c))
 # Tab navigation works automatically for containers with tab_index >= 0
 ```
 
-Containers must have `focusable: true` in YAML (or `container.focusable = True` at runtime) to be focusable. Set `tab_index` to control Tab order.
+`container.focus()` works on any container. `focusable: true` in YAML (or `container.focusable = True` at runtime) and `tab_index >= 0` are only required for Tab/Shift+Tab keyboard cycling (`focus_manager.tab_next()` / `tab_prev()`); `tab_index` controls the Tab order.
 
 ### Keyboard — `puree.keyboard`
 
@@ -322,7 +328,12 @@ input_field.keys.bind("SHIFT+ENTER", insert_newline)
 # Unbind
 binding = keys.bind("CTRL+S", save_action)
 keys.unbind(binding)
+
+# Remove all bindings
+keys.clear()
 ```
+
+**Callbacks receive zero arguments** — bind zero-arg callables (`keys.bind("CTRL+N", new_chat)` or `keys.bind("CTRL+N", lambda: new_chat())`). A callback that expects arguments will raise `TypeError` when the shortcut fires.
 
 **Key combo format:** Modifier keys (`CTRL`, `SHIFT`, `ALT`) joined with `+` before the key name. Key names use Blender conventions (`RET` for Enter, `ESC` for Escape, etc.) but common aliases (`ENTER`, `ESCAPE`, `DELETE`, `BACKSPACE`) are auto-mapped.
 
@@ -335,32 +346,37 @@ Render a subset of Markdown as child containers. Requires dynamic container supp
 **Preferred** — use the Container method `set_markdown()`:
 ```python
 # Recommended: Container method (full signature)
-container.set_markdown(text, app=None, fonts=None, classes=None)
+container.set_markdown(text, fonts=None, classes=None)
 
-# app: enables dynamic features (pass the UI app instance)
-# fonts: dict mapping markdown elements to font names (e.g. {"code": "JetBrainsMono"})
-# classes: dict mapping elements to CSS classes (e.g. {"h1": "custom_heading"})
+# fonts: dict mapping font roles to font names — keys: 'regular', 'bold', 'mono'
+#        (e.g. {"mono": "JetBrainsMono"})
+# classes: dict mapping markdown elements to CSS classes — keys: 'paragraph',
+#          'heading_1', 'heading_2', 'heading_3', 'heading_n', 'code_block',
+#          'code_inline', 'list_item', 'blockquote', 'divider', 'inline_row',
+#          'bold', 'text_span' (e.g. {"heading_1": "custom_heading"})
 ```
 
-The underlying function `render_markdown()` is also available:
+The underlying function `render_markdown()` is also available with the same parameters:
 ```python
 from puree.markdown import render_markdown
-render_markdown(container, markdown_text)
+render_markdown(container, markdown_text, fonts=None, classes=None)
 ```
 
 **Supported Markdown:**
 
 | Syntax | Rendering |
 |---|---|
-| `**bold**` | Bold font variant |
+| `**bold**` / `__bold__` | Bold font variant |
 | `` `inline code` `` | Monospace font + background |
 | ```` ```code block``` ```` | Child container with dark bg, monospace font |
 | `# Heading` | Larger font size, bold (h1–h6) |
-| `- list item` | Indented text with bullet prefix |
+| `- list item` / `* list item` | Indented text with bullet prefix |
 | `> blockquote` | Left border accent + indented text |
 | `---` | Horizontal divider container |
 
-Default CSS classes (`.md_paragraph`, `.md_h1`, `.md_code_block`, etc.) are injected automatically and can be overridden in your SCSS.
+**Not supported:** italics, links, images, tables, and nested lists.
+
+Each rendered block gets a default CSS class (`.md_paragraph`, `.md_h1`, `.md_code_block`, etc. — see `puree/components/defaults/markdown_defaults.scss`). Override the styling by targeting those classes in your SCSS, or remap elements to your own classes via the `classes` parameter.
 
 ### Virtual Scrolling — `puree.virtual_scroll`
 
@@ -379,14 +395,16 @@ scroll.set_virtual_data(messages_list)
 scroll.set_item_renderer(render_message)
 scroll.mark_dirty()
 
-def render_message(container, item):
+def render_message(container, item, index):
     container.text = item["text"]
     container.mark_dirty()
 ```
 
+The renderer callback receives `(container, item, index)` — the recycled item container, the data entry, and its index in the data list.
+
 ### Collapse / Expand — `puree.collapse`
 
-Animated collapse/expand for disclosure sections.
+Collapse/expand for disclosure sections. The state change is instant (not animated).
 
 ```yaml
 tool_details:
@@ -401,7 +419,7 @@ tool_details:
 
 ```python
 details = app.theme.root.tool_details
-details.toggle_collapse()   # animated expand/collapse
+details.toggle_collapse()   # instant expand/collapse
 details.mark_dirty()
 
 # Or explicitly:
@@ -409,7 +427,21 @@ details.collapse()
 details.expand()
 ```
 
-The first child acts as the header and is always visible. Animation duration is 0.2s with ease-out timing.
+The first child acts as the header and is always visible; the remaining children are hidden while collapsed.
+
+### Console — `puree.console`
+
+Browser-style logging that surfaces in Blender. Messages appear in the debug panel's **Console** tab (N-panel → puree) and are mirrored to `logs/puree.log`.
+
+```python
+console.log("value:", value)     # general output
+console.info("loaded 42 items")  # informational
+console.warn("slow response")    # warning
+console.error("request failed")  # error
+console.clear()                  # clear the console tab
+```
+
+The `console` object is **auto-injected as a global into your theme scripts** — no import needed. Outside theme scripts, import it with `from puree import console`. The console keeps the most recent 500 messages.
 
 ---
 

@@ -1,3 +1,9 @@
+# ─────────────────────────────────────────────────────────────────────
+#  Puree · hello world
+#  A draggable floating card that demonstrates the framework: a grab bar
+#  on top (drag it to move the card) over a scrollable body of demos.
+#  Structure lives here (YAML), looks in style.scss, logic in script.py.
+# ─────────────────────────────────────────────────────────────────────
 app:
   selected_theme: hello
   default_theme: hello
@@ -5,6 +11,7 @@ app:
     - name: hello
       author: nicolaiprodromov
       version: 1.0.0
+      space: VIEW_3D
       default_font: NeueMontreal-Regular
       styles:
         - tests/helloworld/style.scss
@@ -14,55 +21,269 @@ app:
 
       root:
         class: root
-        container_test:
-          class: container_test
-          button:
-            class: button
-            text: Click me
-          button_2:
-            class: button_1
-            text: Click me
-          button_3:
-            class: button
-            text: Click me
-          button_4:
-            class: button
-            text: Click me
-          button_5:
-            class: button
-            text: Click me
-          button_6:
-            class: button
-            text: Click me
-          button_7:
-            class: button
-            text: Click me
-          button_8:
-            class: button
-            text: Click me
-          button_9:
-            class: button
-            text: Click me
-          button_10:
-            class: button
-            text: Click me
-          button_11:
-            class: button
-            text: Click me
-          button_12:
-            class: button
-            text: Click me
-          button_13:
-            class: button
-            text: Click me
-          button_14:
-            class: button
-            text: Click me
-          button_15:
-            class: button
-            text: Click me
-          button_16:
-            class: button
-            text: Click me
-            testy:
-              class: testy
+
+        page:
+          class: page
+
+          # ── Grab bar — press and drag to move the card ──────────
+          grab_bar:
+            class: grab_bar
+            grab_grip: { class: grab_grip, passive: true }
+            grab_hint:
+              class: grab_hint
+              text: drag to move
+              passive: true
+
+          # ── Scrollable body — everything below the grab bar ─────
+          page_body:
+            class: page_body
+
+            # ── Hero ────────────────────────────────────────────────
+            hero:
+              class: hero
+              dot_a: { class: dot dot_a, passive: true }
+              dot_b: { class: dot dot_b, passive: true }
+              dot_c: { class: dot dot_c, passive: true }
+              dot_d: { class: dot dot_d, passive: true }
+              hero_kicker:
+                class: hero_kicker
+                text: Hello, world — this page is rendered by your GPU
+                passive: true
+              hero_title:
+                class: hero_title
+                text: PUREE
+                font: NeueMontreal-Bold
+                passive: true
+              hero_tagline:
+                class: hero_tagline
+                text: A declarative UI framework for Blender addons — and much more.
+                passive: true
+              hero_sub:
+                class: hero_sub
+                text: One index.yaml for structure, one style.scss for looks, one script.py for behavior.
+                passive: true
+              badges:
+                class: badges
+                badge_release:
+                  class: badge
+                  badge_release_key: { class: badge_key, text: release, passive: true }
+                  badge_release_val: { class: badge_val val_blue, text: v0.1.3, passive: true }
+                badge_blender:
+                  class: badge
+                  badge_blender_key: { class: badge_key, text: blender, passive: true }
+                  badge_blender_val: { class: badge_val val_orange, text: 5.1+, passive: true }
+                badge_gl:
+                  class: badge
+                  badge_gl_key: { class: badge_key, text: moderngl, passive: true }
+                  badge_gl_val: { class: badge_val val_sky, text: 5.12.0, passive: true }
+                badge_core:
+                  class: badge
+                  badge_core_key: { class: badge_key, text: core, passive: true }
+                  badge_core_val: { class: badge_val val_grey, text: rust, passive: true }
+
+            # ── 01 · How it works ───────────────────────────────────
+            section_pipeline:
+              class: section
+              eyebrow_pipeline:
+                class: eyebrow
+                num_pipeline: { class: eyebrow_num, text: "01", passive: true }
+                title_pipeline: { class: eyebrow_title, text: HOW IT WORKS, passive: true }
+                rule_pipeline: { class: eyebrow_rule, passive: true }
+              pipeline_intro:
+                class: section_intro
+                text: Every frame flows through five stages. Click a stage to inspect it.
+                passive: true
+              chips:
+                class: chips
+                chip_parse:    { class: chip, text: Parse }
+                chip_layout:   { class: chip, text: Layout }
+                chip_flatten:  { class: chip, text: Flatten }
+                chip_render:   { class: chip, text: Render }
+                chip_interact: { class: chip, text: Interact }
+              stage_panel:
+                class: stage_panel
+                stage_head:
+                  class: stage_head
+                  stage_name: { class: stage_name, text: Parse, font: NeueMontreal-Bold, passive: true }
+                  stage_num: { class: stage_num, text: 1 / 5, passive: true }
+                stage_desc:
+                  class: stage_desc
+                  text: Rust-native parsers turn this YAML and SCSS into a styled container tree.
+                  passive: true
+
+            # ── 02 · Layout ─────────────────────────────────────────
+            section_layout:
+              class: section
+              eyebrow_layout:
+                class: eyebrow
+                num_layout: { class: eyebrow_num, text: "02", passive: true }
+                title_layout: { class: eyebrow_title, text: FLEXBOX & GRID, passive: true }
+                rule_layout: { class: eyebrow_rule, passive: true }
+              layout_grid:
+                class: layout_grid
+                cell_a: { class: cell cell_a, text: span 2 }
+                cell_b: { class: cell cell_b }
+                cell_c: { class: cell cell_c, text: row span 2 }
+                cell_d: { class: cell cell_d }
+                cell_e: { class: cell cell_e, text: span 2 }
+                cell_f: { class: cell cell_f }
+                cell_g: { class: cell cell_g }
+                cell_h: { class: cell cell_h, text: 1fr tracks }
+              layout_caption:
+                class: caption
+                text: A CSS grid with fr tracks and spans — computed by Stretchable (Taffy) in Rust. Resize the viewport and watch it reflow.
+                passive: true
+
+            # ── 03 · Interaction ────────────────────────────────────
+            section_interact:
+              class: section
+              eyebrow_interact:
+                class: eyebrow
+                num_interact: { class: eyebrow_num, text: "03", passive: true }
+                title_interact: { class: eyebrow_title, text: INTERACTION, passive: true }
+                rule_interact: { class: eyebrow_rule, passive: true }
+              button_row:
+                class: button_row
+                btn_render: { class: btn_primary, text: Render, font: NeueMontreal-Bold }
+                btn_preview: { class: btn_secondary, text: Preview }
+                btn_reset: { class: btn_ghost, text: Reset demo }
+              action_status:
+                class: action_status
+                text: Hover, press, click — states and transitions live in style.scss.
+                passive: true
+              toggle_row:
+                class: demo_row
+                toggle_label: { class: demo_label, text: Wireframe overlay, passive: true }
+                switch_track:
+                  class: switch_track
+                  switch_knob: { class: switch_knob, passive: true }
+                toggle_state: { class: demo_value, text: "OFF", passive: true }
+              stepper_row:
+                class: demo_row
+                stepper_label: { class: demo_label, text: Sample count, passive: true }
+                stepper:
+                  class: stepper
+                  step_minus: { class: step_btn step_minus, text: "-", font: NeueMontreal-Bold }
+                  step_value: { class: step_value, text: "8", font: NeueMontreal-Bold, passive: true }
+                  step_plus: { class: step_btn step_plus, text: "+", font: NeueMontreal-Bold }
+                stepper_hint: { class: demo_value, text: saved on disk, passive: true }
+
+            # ── 04 · GPU surfaces ───────────────────────────────────
+            section_surface:
+              class: section
+              eyebrow_surface:
+                class: eyebrow
+                num_surface: { class: eyebrow_num, text: "04", passive: true }
+                title_surface: { class: eyebrow_title, text: GPU SURFACES, passive: true }
+                rule_surface: { class: eyebrow_rule, passive: true }
+              surface_grid:
+                class: surface_grid
+                card_gradient:
+                  class: card card_gradient
+                  card_gradient_label: { class: card_label on_gradient, text: linear-gradient, passive: true }
+                card_border:
+                  class: card card_border
+                  card_border_label: { class: card_label, text: border-image, passive: true }
+                card_shadow:
+                  class: card card_shadow
+                  card_shadow_label: { class: card_label, text: box-shadow, passive: true }
+                card_radius:
+                  class: card card_radius
+                  card_radius_label: { class: card_label, text: border-radius, passive: true }
+              surface_caption:
+                class: caption
+                text: Signed-distance-field rendering in a fragment shader — no meshes, no widgets, just math on the GPU.
+                passive: true
+
+            # ── 05 · Typography ─────────────────────────────────────
+            section_type:
+              class: section
+              eyebrow_type:
+                class: eyebrow
+                num_type: { class: eyebrow_num, text: "05", passive: true }
+                title_type: { class: eyebrow_title, text: TYPOGRAPHY, passive: true }
+                rule_type: { class: eyebrow_rule, passive: true }
+              spec_light:
+                class: spec_light
+                text: Interfaces deserve real type.
+                font: NeueMontreal-Light
+                passive: true
+              spec_bold:
+                class: spec_bold
+                text: Bold for headings and emphasis,
+                font: NeueMontreal-Bold
+                passive: true
+              spec_italic:
+                class: spec_italic
+                text: italic for asides and captions,
+                font: NeueMontreal-Italic
+                passive: true
+              spec_regular:
+                class: spec_regular
+                text: regular for body copy — any .ttf or .otf dropped into fonts/ and picked per node with the font attribute.
+                passive: true
+              spec_caps:
+                class: spec_caps
+                text: uppercase · letter-spacing · text-shadow · ellipsis
+                passive: true
+
+            # ── 06 · Live data ──────────────────────────────────────
+            section_live:
+              class: section
+              eyebrow_live:
+                class: eyebrow
+                num_live: { class: eyebrow_num, text: "06", passive: true }
+                title_live: { class: eyebrow_title, text: LIVE DATA, passive: true }
+                rule_live: { class: eyebrow_rule, passive: true }
+                clock_chip: { class: clock_chip, text: "--:--:--", font: NeueMontreal-Bold, passive: true }
+              input_row:
+                class: input_row
+                greet_input:
+                  class: greet_input
+                  data: "<INPUT> | Type your name and press Enter…"
+                  focusable: true
+                  tab_index: 1
+                greet_btn: { class: btn_primary, text: Greet, font: NeueMontreal-Bold }
+              greet_line:
+                class: greet_line
+                text: Hello, world.
+                font: NeueMontreal-Italic
+                passive: true
+              live_caption:
+                class: caption
+                text: The clock ticks with puree.timers, and the stepper above survives restarts via puree.storage.
+                passive: true
+
+            # ── 07 · Markdown ───────────────────────────────────────
+            section_md:
+              class: section
+              eyebrow_md:
+                class: eyebrow
+                num_md: { class: eyebrow_num, text: "07", passive: true }
+                title_md: { class: eyebrow_title, text: MARKDOWN, passive: true }
+                rule_md: { class: eyebrow_rule, passive: true }
+              md_body:
+                class: md_body
+
+            # ── Footer ──────────────────────────────────────────────
+            footer:
+              class: footer
+              footer_rule: { class: footer_rule, passive: true }
+              footer_row:
+                class: footer_row
+                footer_mark: { class: footer_mark, img: loggoui2, passive: true }
+                footer_lines:
+                  class: footer_lines
+                  footer_credit:
+                    class: footer_credit
+                    text: Built with Rust, ModernGL and Stretchable.
+                    passive: true
+                  footer_license:
+                    class: footer_license
+                    text: GPL-3.0 · github.com/nicolaiprodromov/puree
+                    passive: true
+              footer_hint:
+                class: footer_hint
+                text: "Try it: edit tests/helloworld/style.scss and save — hot reload repaints this page in place."
+                font: NeueMontreal-Italic
+                passive: true

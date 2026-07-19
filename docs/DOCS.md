@@ -3,12 +3,11 @@ layout: page
 title : 1. Documentation
 ---
 
-<img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
 
 The *Puree* framework for Blender is a declarative framework that provides a web-inspired API for building user interfaces, addressing the limitations of Blender's native UI system in supporting complex interface architectures and providing enhanced flexibility.
 
-> Puree is built on top of **ModernGL**, **grass** (Rust SCSS compiler), and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> Puree is built on top of **Blender's native GPU module**, **grass** (Rust SCSS compiler), and the **Taffy** layout engine to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 > **Note:** You may see `XWZ_` prefixes on Blender operator class names (e.g., `XWZ_OT_ui_parser`). This is an internal namespace prefix used to avoid operator name collisions with other Blender addons. It does not affect user-facing functionality.
 
@@ -52,7 +51,7 @@ The *Puree* framework for Blender is a declarative framework that provides a web
 
 ### 1. Install with pip (recommended)
 
-Install puree and use the CLI to bootstrap a new project:
+Install puree and use the CLI to bootstrap a new project (the CLI requires **Python 3.11+** and **Blender 5.1+ on your system PATH** — `puree init` launches Blender in the background to detect its bundled Python version):
 
 ```bash
 pip install puree-ui
@@ -60,13 +59,13 @@ mkdir my_addon && cd my_addon
 puree init
 ```
 
-This creates a complete project structure with all dependencies, a `blender_manifest.toml`, and a starter UI (pink box with "PUREE" in blue).
+This creates a complete project structure with all dependencies, a `blender_manifest.toml`, and a starter UI (a pink page with "PUREE" in blue).
 
 Then build and install:
 
 ```bash
-puree build       # Build the extension zip (requires Blender on PATH)
-puree install     # Install the extension into Blender
+puree build       # Build the extension zip into dist/
+puree install     # Install the latest zip from dist/ into Blender
 ```
 
 For faster development iteration, use symlink mode:
@@ -124,7 +123,7 @@ Click here for installation commands
     | [Blender 5.1+](https://www.blender.org/download/) (must be on PATH) |
     | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
     | [Rust](https://rust-lang.org/tools/install/) |
-    | [Python 3.10+](https://www.python.org/downloads/) |
+    | [Python 3.11+](https://www.python.org/downloads/) |
 
 2. Clone this repository.
 
@@ -590,17 +589,23 @@ def main(self, app):
 
 ### Target Space Configuration
 
-By default, Puree renders in the **3D Viewport** sidebar (N-panel). You can target other Blender spaces by setting the `space` field in your theme config:
+By default, Puree renders as a full-region overlay in the **3D Viewport** (the N-panel "puree" tab is only the debug panel). You can target other Blender spaces by setting the `space` field inside your theme entry:
 
 ```yaml
 app:
-  version: 1.0.0
-  space: VIEW_3D    # Default — 3D Viewport
-  themes:
+  selected_theme: my_theme
+  default_theme: my_theme
+  theme:
     - name: my_theme
-      style: style.scss
-      script: script.py
-      config: index.yaml
+      version: 1.0.0
+      space: VIEW_3D    # Default — 3D Viewport
+      styles:
+        - static/style.scss
+      scripts:
+        - static/script.py
+      components: static/components/
+      root:
+        # ... your container tree
 ```
 
 **Supported spaces:**
@@ -610,30 +615,49 @@ app:
 | `VIEW_3D` | 3D Viewport (default) |
 | `IMAGE_EDITOR` | UV/Image Editor |
 | `NODE_EDITOR` | Shader/Geometry Node Editor |
-| `PROPERTIES` | Properties panel |
+| `SEQUENCE_EDITOR` | Video Sequencer |
+| `CLIP_EDITOR` | Movie Clip Editor |
+| `DOPESHEET_EDITOR` | Dope Sheet |
+| `GRAPH_EDITOR` | Graph Editor |
+| `NLA_EDITOR` | NLA Editor |
+| `TEXT_EDITOR` | Text Editor |
+| `CONSOLE` | Python Console |
+| `INFO` | Info |
+| `TOPBAR` | Top Bar |
+| `STATUSBAR` | Status Bar |
 | `OUTLINER` | Outliner |
+| `PROPERTIES` | Properties panel |
+| `FILE_BROWSER` | File Browser |
+| `SPREADSHEET` | Spreadsheet |
+| `PREFERENCES` | Preferences |
 
 The space configuration is handled by `puree/space_config.py` and determines which Blender area type the draw handler attaches to.
 
-### Multi-Theme Support
+### Theme Selection
 
-Puree supports multiple themes within a single addon. Each theme can have its own YAML, SCSS, and Python script:
+An `index.yaml` may define multiple themes under `theme:`, each with its own styles, scripts, and target space — but **only one theme is active at a time**. Puree parses and runs the theme named by `selected_theme` (falling back to `default_theme`); the scripts of other themes do not execute.
 
 ```yaml
 app:
-  version: 1.0.0
-  themes:
+  selected_theme: main_panel
+  default_theme: main_panel
+  theme:
     - name: main_panel
-      style: style.scss
-      script: script.py
-      config: index.yaml
+      space: VIEW_3D
+      styles: [static/style.scss]
+      scripts: [static/script.py]
+      components: static/components/
+      root:
+        # ...
     - name: settings_panel
-      style: settings_style.scss
-      script: settings_script.py
-      config: settings.yaml
+      space: PROPERTIES
+      styles: [static/settings_style.scss]
+      scripts: [static/settings_script.py]
+      root:
+        # ...
 ```
 
-Each theme's scripts execute in order, and each `script.py` receives the UI instance with access to all themes via `app.theme` (for the current theme) or the theme registry. Components defined in `components/` are shared across all themes.
+Within the selected theme, the `scripts:` list executes in order, and each script's `main(self, app)` receives the UI instance.
 
 ### Dynamic Container Creation
 
@@ -691,6 +715,10 @@ def main(self, app):
     # Markdown rendering into a container
     preview = app.theme.root.bg.preview
     preview.set_markdown("# Hello\n\nThis is **bold** text.")
+    
+    # Console logging (no import needed — `console` is auto-injected
+    # into theme scripts; shows in the debug panel's Console tab)
+    console.log("UI ready")
     
     return app
 ```

@@ -22,6 +22,7 @@ build_core:
 build_package:
     @cd dist; {{python}} build_package.py
 
+[unix]
 build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -45,17 +46,24 @@ build:
         exit 1
     fi
 
+# Build the extension zip (uses `puree build` logic via Blender on PATH)
+[windows]
+build:
+    @{{python}} -c "import sys; sys.path.insert(0, '.'); from puree.cli import cmd_build; cmd_build(None)"
+
 wheels:
-    @pip download --only-binary=:all: --python-version 3.13 --dest wheels puree-ui
+    @{{python}} -m pip download --only-binary=:all: --python-version 3.13 --dest wheels puree-ui
     @{{python}} dist/update_wheels.py
 
 # ── Development workflow ─────────────────────────────────────────────
 
 blender_version := "5.1"
-ext_dir := env("HOME") / ".config/blender" / blender_version / "extensions/user_default"
-site_packages := env("HOME") / ".config/blender" / blender_version / "extensions/.local/lib/python3.13/site-packages"
+blender_config := if os() == "windows" { env("APPDATA") / "Blender Foundation/Blender" } else { env("HOME") / ".config/blender" }
+ext_dir := blender_config / blender_version / "extensions/user_default"
+site_packages := blender_config / blender_version / "extensions/.local/lib/python3.13/site-packages"
 
 # Symlink source into Blender extensions (replaces installed copy)
+[unix]
 link:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -97,7 +105,13 @@ link:
     echo ""
     echo "Dev mode active. Use 'just reload' after code changes."
 
+# Junction source into Blender extensions (no admin needed, unlike symlinks)
+[windows]
+link:
+    @{{python}} dist/dev_link.py link
+
 # Remove dev symlinks
+[unix]
 unlink:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -117,11 +131,17 @@ unlink:
     fi
     echo "Dev mode deactivated."
 
+# Remove dev junctions
+[windows]
+unlink:
+    @{{python}} dist/dev_link.py unlink
+
 # Reload the addon in a running Blender instance
 reload:
     @{{python}} dist/dev_reload.py
 
 # Live-follow the Puree log file (requires Blender running with addon loaded)
+[unix]
 tail:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -134,7 +154,13 @@ tail:
     echo "─────────────────────────────────────────"
     tail -f "$LOG"
 
+# Live-follow the Puree log file (requires Blender running with addon loaded)
+[windows]
+tail:
+    @Get-Content logs/puree.log -Tail 10 -Wait
+
 # Print last N lines of the Puree log (default 50)
+[unix]
 logs N="50":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -145,14 +171,26 @@ logs N="50":
     fi
     tail -n {{N}} "$LOG"
 
+# Print last N lines of the Puree log (default 50)
+[windows]
+logs N="50":
+    @Get-Content logs/puree.log -Tail {{N}}
+
 # Delete all log files
+[unix]
 clear-logs:
     #!/usr/bin/env bash
     set -euo pipefail
     rm -f logs/puree.log logs/puree.log.*
     echo "✓ Logs cleared"
 
+# Delete all log files
+[windows]
+clear-logs:
+    @Remove-Item logs/puree.log* -ErrorAction SilentlyContinue; Write-Output "logs cleared"
+
 # Install wheel dependencies into Blender's extension site-packages
+[unix]
 install-deps:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -173,8 +211,14 @@ install-deps:
         echo "  ✓ $base"
     done
 
+# Install wheel dependencies into Blender's extension site-packages
+[windows]
+install-deps:
+    @{{python}} dist/dev_link.py install-deps
+
 # Refresh puree_ui wheel in a target project folder (fixes stale wheels after engine changes)
 # Usage: just refresh /path/to/my-addon
+[unix]
 refresh TARGET:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -247,7 +291,13 @@ refresh TARGET:
     fi
     echo "Done!"
 
+# Refresh puree_ui wheel in a target project folder
+[windows]
+refresh TARGET:
+    @Write-Error "'just refresh' is not ported to Windows yet — run it from Linux/WSL."
+
 # Run all CI checks locally (auto-formats and auto-fixes first, then checks)
+[unix]
 ci:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -277,7 +327,13 @@ ci:
     popd > /dev/null
     echo "✓ All checks passed"
 
+# Run all CI checks locally
+[windows]
+ci:
+    @Write-Error "'just ci' is not ported to Windows yet — run it from Linux/WSL."
+
 # Auto-fix all safe Python + Rust issues
+[unix]
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -309,9 +365,15 @@ deploy:
     just link
     just reload
 
+# Auto-fix all safe Python + Rust issues
+[windows]
+fix:
+    @Write-Error "'just fix' is not ported to Windows yet — run it from Linux/WSL."
+
 # ── Code formatting ──────────────────────────────────────────────────
 
 # Strip comments and format all Python + Rust code (requires .venv with ruff)
+[unix]
 format:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -335,10 +397,16 @@ format:
     find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
     echo "✓ Format complete"
 
+# Strip comments and format all Python + Rust code
+[windows]
+format:
+    @Write-Error "'just format' is not ported to Windows yet — run it from Linux/WSL."
+
 # ── Venv (for testing CLI locally) ───────────────────────────────────
 
 # Create venv and install puree CLI in editable mode
 # Optionally pass a path: just venv /path/to/my/venv
+[unix]
 venv VENV_PATH=".venv":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -351,6 +419,11 @@ venv VENV_PATH=".venv":
     echo "✓ Installed puree CLI in {{VENV_PATH}}"
     echo "  Activate: source {{VENV_PATH}}/bin/activate"
     echo "  Try:      puree --version"
+
+# Create venv and install puree CLI in editable mode
+[windows]
+venv VENV_PATH=".venv":
+    @if (!(Test-Path "{{VENV_PATH}}")) { {{python}} -m venv "{{VENV_PATH}}"; Write-Output "created {{VENV_PATH}}" }; & "{{VENV_PATH}}/Scripts/pip.exe" install --upgrade pip --quiet; & "{{VENV_PATH}}/Scripts/pip.exe" install --editable . --quiet; Write-Output "Installed puree CLI in {{VENV_PATH}} — activate: {{VENV_PATH}}\Scripts\Activate.ps1"
 
 # Install = rebuild wheel + create venv + install CLI
 # Rebuilds the wheel first so wheels/ is always fresh for `puree init`

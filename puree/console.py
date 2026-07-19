@@ -26,8 +26,14 @@ Usage:
 import time
 from collections import deque
 
+from .log import get_logger
+
 _MAX_MESSAGES = 500
 _messages = deque(maxlen=_MAX_MESSAGES)
+
+# Mirror console traffic into the Puree log file so `just logs` / `just tail`
+# show script output without the N-panel open.
+_logger = get_logger(__name__)
 
 
 def _format_args(*args):
@@ -44,18 +50,22 @@ class _Console:
     @staticmethod
     def log(*args):
         _messages.appendleft((time.monotonic(), "LOG", _format_args(*args)))
+        _logger.info("console: %s", _format_args(*args))
 
     @staticmethod
     def warn(*args):
         _messages.appendleft((time.monotonic(), "WARN", _format_args(*args)))
+        _logger.warning("console: %s", _format_args(*args))
 
     @staticmethod
     def error(*args):
         _messages.appendleft((time.monotonic(), "ERROR", _format_args(*args)))
+        _logger.error("console: %s", _format_args(*args))
 
     @staticmethod
     def info(*args):
         _messages.appendleft((time.monotonic(), "INFO", _format_args(*args)))
+        _logger.info("console: %s", _format_args(*args))
 
     @staticmethod
     def clear():

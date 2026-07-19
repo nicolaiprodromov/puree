@@ -44,11 +44,65 @@ class HitDetector:
 
     def load_containers(self, container_list: List[Dict[str, Any]]) -> bool:
         try:
-            self._detector.load_containers(container_list)
+            self._detector.load_containers(self._clip_to_overflow_ancestors(container_list))
             return True
         except Exception as e:
             logger.error(f"Error loading containers: {e}")
             return False
+
+    @staticmethod
+    def _clip_to_overflow_ancestors(containers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Clip each container's hit rect to its overflow-clipping ancestors.
+
+        The renderer clips children of overflow hidden/scroll/auto containers
+        (RenderPipeline._precompute_visibility_and_clips), but the native
+        detector does plain rect tests. Without this, content scrolled out of
+        a scroll container would still be hoverable/clickable where nothing is
+        drawn. Original dicts are never mutated — clipped containers are
+        shallow-copied with substituted position/size.
+        """
+        n = len(containers)
+        out = []
+        for i, c in enumerate(containers):
+            pos = c.get("position", [0, 0])
+            size = c.get("size", [0, 0])
+            ox, oy = float(pos[0]), float(pos[1])
+            ow, oh = float(size[0]), float(size[1])
+            x0, y0, x1, y1 = ox, oy, ox + ow, oy + oh
+
+            idx = i
+            for _ in range(20):
+                pidx = int(containers[idx].get("parent", -1))
+                if pidx < 0 or pidx >= n:
+                    break
+                parent = containers[pidx]
+                # overflow (bool) is False for overflow:hidden; scroll/auto clip too
+                if not parent.get("overflow", True) or parent.get("overflow_type", "VISIBLE") in ("SCROLL", "AUTO"):
+                    pp = parent.get("position", [0, 0])
+                    ps = parent.get("size", [0, 0])
+                    px, py = float(pp[0]), float(pp[1])
+                    x0 = max(x0, px)
+                    y0 = max(y0, py)
+                    x1 = min(x1, px + float(ps[0]))
+                    y1 = min(y1, py + float(ps[1]))
+                idx = pidx
+
+            w = max(0.0, x1 - x0)
+            h = max(0.0, y1 - y0)
+            if x0 == ox and y0 == oy and w == ow and h == oh:
+                out.append(c)
+                continue
+            clipped = dict(c)
+            if w <= 0.0 or h <= 0.0:
+                # Fully scrolled/clipped out — park the rect far off-screen so
+                # a degenerate zero-size rect can't match an exact edge point.
+                clipped["position"] = [-1.0e6, -1.0e6]
+                clipped["size"] = [0.0, 0.0]
+            else:
+                clipped["position"] = [x0, y0]
+                clipped["size"] = [w, h]
+            out.append(clipped)
+        return out
 
     def update_mouse(self, x: float, y: float, clicked: bool, scroll_delta: float = 0.0):
         self._detector.update_mouse(x, y, clicked, scroll_delta)

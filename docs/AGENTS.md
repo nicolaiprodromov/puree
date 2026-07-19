@@ -83,6 +83,7 @@
 | `puree-debug` | Debug a user-facing panel issue |
 | `puree-engine-debug` | Debug an engine-level issue |
 | `add-css-property` | Checklist for adding a new CSS property |
+| `implement-feature` | Implement a new framework feature end-to-end |
 
 ## Instruction Files
 

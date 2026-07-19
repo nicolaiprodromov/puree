@@ -435,6 +435,13 @@ class RenderPipeline:
                     self._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
                     self._scroll_changed = True
 
+                    # Sync the native hit detector NOW, not on the next TIMER
+                    # tick: hit detection for this same wheel event runs before
+                    # the render modal sees TIMER, and a one-tick-stale detector
+                    # puts hover/click a full scroll step (40px) off.
+                    if hit_op._native_detector:
+                        hit_op._native_detector.load_containers(containers)
+
         self.write_mouse_buffer()
 
     def on_mouse_event(self, event_type, data):
@@ -1228,6 +1235,8 @@ class RenderPipeline:
             }
 
     def _cache_original_image_positions(self, image_blocks):
+        # Full content boxes straight from the extractor — the scroll pass
+        # shifts these by the accumulated scroll offset each frame.
         self._original_image_positions = {}
         for cid, block in image_blocks.items():
             self._original_image_positions[cid] = {
@@ -1235,6 +1244,8 @@ class RenderPipeline:
                 "y_pos": block["y_pos"],
                 "mask_x": block["mask_x"],
                 "mask_y": block["mask_y"],
+                "mask_width": block["mask_width"],
+                "mask_height": block["mask_height"],
             }
 
     def _compute_content_bounds(self, containers):
@@ -1354,9 +1365,17 @@ class RenderPipeline:
             sx, sy = self._scroll_accumulation[idx]
             block["x_pos"] = int(orig["x_pos"] - sx)
             block["y_pos"] = int(orig["y_pos"] - sy)
-            # Don't scroll the mask — it will be set from scroll clip in the render loop
+            # The mask is the ALIGNMENT box (img_op anchors LEFT/CENTER/... inside
+            # it), so it must scroll with the content. Clipping to the scroll
+            # area happens in the render loop by intersecting with scroll_clip.
+            block["mask_x"] = int(orig["mask_x"] - sx)
+            block["mask_y"] = int(orig["mask_y"] - sy)
+            block["mask_width"] = orig["mask_width"]
+            block["mask_height"] = orig["mask_height"]
 
     def _cache_original_text_input_positions(self, text_input_blocks):
+        # Full content boxes straight from the extractor — the scroll pass
+        # shifts these by the accumulated scroll offset each frame.
         self._original_text_input_positions = {}
         for cid, block in text_input_blocks.items():
             self._original_text_input_positions[cid] = {
@@ -1364,6 +1383,8 @@ class RenderPipeline:
                 "y_pos": block["y_pos"],
                 "mask_x": block["mask_x"],
                 "mask_y": block["mask_y"],
+                "mask_width": block["mask_width"],
+                "mask_height": block["mask_height"],
             }
 
     def _apply_scroll_to_text_inputs(self, text_input_blocks):
@@ -1379,6 +1400,12 @@ class RenderPipeline:
             sx, sy = self._scroll_accumulation[idx]
             block["x_pos"] = int(orig["x_pos"] - sx)
             block["y_pos"] = int(orig["y_pos"] - sy)
+            # Mask is the alignment box — scroll it with the content (see
+            # _apply_scroll_to_images); clipping is intersected in the loop.
+            block["mask_x"] = int(orig["mask_x"] - sx)
+            block["mask_y"] = int(orig["mask_y"] - sy)
+            block["mask_width"] = orig["mask_width"]
+            block["mask_height"] = orig["mask_height"]
 
     def _get_scroll_clip_for_container(self, idx, containers):
         n = len(containers)
@@ -1412,51 +1439,24 @@ class RenderPipeline:
         return None
 
     def _apply_initial_scroll_clips(self, containers, text_blocks, image_blocks=None, text_input_blocks=None):
-        for cid, block in text_blocks.items():
-            idx = self._container_id_to_index.get(cid, -1)
-            if idx < 0:
+        # Store the scroll-area clip separately for ALL block kinds. The mask is
+        # the element's content box and doubles as its ALIGNMENT box in the draw
+        # code — intersecting it with the scroll bounds (the old behavior for
+        # images/inputs) silently re-anchored the element to the scroll area's
+        # corner. The draw loops intersect mask ∩ clip for scissoring instead.
+        for blocks in (text_blocks, image_blocks, text_input_blocks):
+            if not blocks:
                 continue
-            clip = self._get_scroll_clip_for_container(idx, containers)
-            if clip:
-                # Store scroll clip separately — mask stays as container bounds for alignment
-                cx, cy, cw, ch = clip
-                block["scroll_clip"] = [cx, cy, cw, ch]
-        if image_blocks:
-            for cid, block in image_blocks.items():
+            for cid, block in blocks.items():
                 idx = self._container_id_to_index.get(cid, -1)
                 if idx < 0:
                     continue
                 clip = self._get_scroll_clip_for_container(idx, containers)
                 if clip:
                     cx, cy, cw, ch = clip
-                    mx, my = block["mask_x"], block["mask_y"]
-                    mw, mh = block["mask_width"], block["mask_height"]
-                    ix = max(mx, cx)
-                    iy = max(my, cy)
-                    ir = min(mx + mw, cx + cw)
-                    ib = min(my + mh, cy + ch)
-                    block["mask_x"] = ix
-                    block["mask_y"] = iy
-                    block["mask_width"] = max(0, ir - ix)
-                    block["mask_height"] = max(0, ib - iy)
-        if text_input_blocks:
-            for cid, block in text_input_blocks.items():
-                idx = self._container_id_to_index.get(cid, -1)
-                if idx < 0:
-                    continue
-                clip = self._get_scroll_clip_for_container(idx, containers)
-                if clip:
-                    cx, cy, cw, ch = clip
-                    mx, my = block["mask_x"], block["mask_y"]
-                    mw, mh = block["mask_width"], block["mask_height"]
-                    ix = max(mx, cx)
-                    iy = max(my, cy)
-                    ir = min(mx + mw, cx + cw)
-                    ib = min(my + mh, cy + ch)
-                    block["mask_x"] = ix
-                    block["mask_y"] = iy
-                    block["mask_width"] = max(0, ir - ix)
-                    block["mask_height"] = max(0, ib - iy)
+                    block["scroll_clip"] = [cx, cy, cw, ch]
+                else:
+                    block.pop("scroll_clip", None)
 
     def _detect_state_changes(self, container_data):
         hover_index = -1
@@ -1751,6 +1751,15 @@ class XWZ_OT_start_ui(Operator):
             if block and "scroll_clip" in block:
                 text_instance.clip = list(block["scroll_clip"])
 
+        # Same for image instances (their operator has no clip parameter)
+        from . import img_op as img_op_mod
+
+        for image_instance in img_op_mod._image_instances:
+            cid = image_instance.container_id
+            block = parser_op.image_blocks.get(cid) if hasattr(parser_op, "image_blocks") else None
+            if block and "scroll_clip" in block:
+                image_instance.clip = list(block["scroll_clip"])
+
         for _container_id in parser_op.text_input_blocks:
             block = parser_op.text_input_blocks[_container_id]
             bpy.ops.xwz.create_text_input(
@@ -1768,6 +1777,15 @@ class XWZ_OT_start_ui(Operator):
                 align_h=block.get("align_h", "LEFT").upper(),
                 align_v=block.get("align_v", "TOP").upper(),
             )
+
+        # Set scissor clips on input instances (created just above)
+        from . import text_input_op as text_input_op_mod
+
+        for input_instance in text_input_op_mod._text_input_instances:
+            cid = input_instance.container_id
+            block = parser_op.text_input_blocks.get(cid)
+            if block and "scroll_clip" in block:
+                input_instance.clip = list(block["scroll_clip"])
 
         try:
             from . import get_addon_root
@@ -2025,10 +2043,6 @@ class XWZ_OT_start_ui(Operator):
                             if op_t and not op_t.is_done():
                                 op_t.end_value = new_op
 
-                    # Reload hit detector with updated layout positions
-                    if hasattr(hit_op, "_native_detector") and hit_op._native_detector:
-                        hit_op._native_detector.load_containers(hit_op._container_data)
-
                     # Cache original positions and text/image positions for scroll
                     _render_data._cache_original_positions(new_data)
                     _render_data._cache_original_text_positions(parser_op.text_blocks)
@@ -2053,6 +2067,23 @@ class XWZ_OT_start_ui(Operator):
                             _render_data._apply_scroll_to_images(parser_op.image_blocks)
                         if hasattr(parser_op, "text_input_blocks"):
                             _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
+
+                        # The update_all calls below push masks computed from the
+                        # UNSCROLLED fresh layout — schedule the scroll-update pass
+                        # (same TIMER tick, runs before the next draw) to replace
+                        # them with masks derived from the scrolled positions.
+                        # Without this, apps with timers (e.g. a 1 Hz clock that
+                        # marks itself dirty) flicker scrolled images/inputs.
+                        _render_data._scroll_changed = True
+
+                    # Reload hit detector AFTER scroll offsets are re-applied.
+                    # Loading it from the fresh (unscrolled) layout and then
+                    # re-scrolling the dicts left the detector a full scroll
+                    # offset behind on every dirty-container sync — hover and
+                    # click snapped back to unscrolled coordinates every time
+                    # a script called mark_dirty() (clock ticks, set_property).
+                    if hasattr(hit_op, "_native_detector") and hit_op._native_detector:
+                        hit_op._native_detector.load_containers(hit_op._container_data)
 
                     for text_instance in text_op._text_instances:
                         container_id = text_instance.container_id
@@ -2081,6 +2112,7 @@ class XWZ_OT_start_ui(Operator):
                         container_id = input_instance.container_id
                         if container_id in parser_op.text_input_blocks:
                             block = parser_op.text_input_blocks[container_id]
+                            input_instance.clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                             bpy.ops.xwz.update_text_input(
                                 instance_id=input_instance.id,
                                 placeholder=block["placeholder"],
@@ -2103,6 +2135,7 @@ class XWZ_OT_start_ui(Operator):
                         container_id = image_instance.container_id
                         if container_id in parser_op.image_blocks:
                             block = parser_op.image_blocks[container_id]
+                            image_instance.clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                             image_instance.update_all(
                                 image_name=block["image_name"],
                                 pos=[block["x_pos"], block["y_pos"]],
@@ -2148,33 +2181,20 @@ class XWZ_OT_start_ui(Operator):
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
 
-                                # Compute scrolled mask using container's float original position
-                                # (same source as GPU shader) to guarantee perfect pixel sync
-                                orig_pos = _render_data._original_positions.get(idx)
-                                if orig_pos:
-                                    c_size = hit_op._container_data[idx].get("size", [0, 0])
-                                    mask_x = orig_pos[0] - sx
-                                    mask_y = orig_pos[1] - sy
-                                    mask_w = float(c_size[0])
-                                    mask_h = float(c_size[1])
-                                else:
-                                    c = hit_op._container_data[idx]
-                                    c_pos = c.get("position", [0, 0])
-                                    c_size = c.get("size", [0, 0])
-                                    mask_x = float(c_pos[0])
-                                    mask_y = float(c_pos[1])
-                                    mask_w = float(c_size[0])
-                                    mask_h = float(c_size[1])
-
                                 clip = list(scroll_clip) if scroll_clip else None
 
+                                # Mask is the CONTENT box (alignment area) — use the
+                                # block values that _apply_scroll_to_text derived from
+                                # the extractor's content box. Rebuilding it from the
+                                # container border box shifted text in every padded
+                                # container by the padding amount.
                                 text_instance.update_all(
                                     text=block["text"],
                                     font_name=block["font"],
                                     size=block["font_size"],
                                     pos=[block["text_x"], block["text_y"]],
                                     color=block["color"],
-                                    mask=[mask_x, mask_y, mask_w, mask_h],
+                                    mask=[block["mask_x"], block["mask_y"], block["mask_width"], block["mask_height"]],
                                     clip=clip,
                                     align_h=block.get("align_h", "LEFT").upper(),
                                     align_v=block.get("align_v", "CENTER").upper(),
@@ -2201,18 +2221,16 @@ class XWZ_OT_start_ui(Operator):
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
 
-                                mask_x = block["mask_x"]
-                                mask_y = block["mask_y"]
-                                mask_w = block["mask_width"]
-                                mask_h = block["mask_height"]
-                                if scroll_clip:
-                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
-
+                                # Mask = scrolled content box (alignment); the scroll
+                                # area bounds go into clip (scissor). Replacing the
+                                # mask with the scroll bounds re-anchored the image
+                                # to the scroll container's corner.
                                 image_instance.update_all(
                                     image_name=block["image_name"],
                                     pos=[block["x_pos"], block["y_pos"]],
                                     size=[block["width"], block["height"]],
-                                    mask=[mask_x, mask_y, mask_w, mask_h],
+                                    mask=[block["mask_x"], block["mask_y"], block["mask_width"], block["mask_height"]],
+                                    clip=list(scroll_clip) if scroll_clip else None,
                                     aspect_ratio=block["aspect_ratio"],
                                     align_h=block.get("align_h", "LEFT").upper(),
                                     align_v=block.get("align_v", "TOP").upper(),
@@ -2236,15 +2254,10 @@ class XWZ_OT_start_ui(Operator):
                                 if not scroll_clip and sx == 0.0 and sy == 0.0:
                                     continue
 
-                                block = parser_op.text_input_blocks[container_id]
-                                scroll_clip = _render_data._get_scroll_clip_for_container(idx, hit_op._container_data)
-
-                                mask_x = block["mask_x"]
-                                mask_y = block["mask_y"]
-                                mask_w = block["mask_width"]
-                                mask_h = block["mask_height"]
+                                # Mask = scrolled content box (alignment); scroll
+                                # bounds go into the instance clip (scissor).
                                 if scroll_clip:
-                                    mask_x, mask_y, mask_w, mask_h = scroll_clip
+                                    input_instance.clip = list(scroll_clip)
 
                                 bpy.ops.xwz.update_text_input(
                                     instance_id=input_instance.id,
@@ -2254,10 +2267,10 @@ class XWZ_OT_start_ui(Operator):
                                     x_pos=block["x_pos"],
                                     y_pos=block["y_pos"],
                                     color=block["color"],
-                                    mask_x=mask_x,
-                                    mask_y=mask_y,
-                                    mask_width=mask_w,
-                                    mask_height=mask_h,
+                                    mask_x=block["mask_x"],
+                                    mask_y=block["mask_y"],
+                                    mask_width=block["mask_width"],
+                                    mask_height=block["mask_height"],
                                     align_h=block.get("align_h", "LEFT").upper(),
                                     align_v=block.get("align_v", "TOP").upper(),
                                 )
@@ -2316,6 +2329,22 @@ class XWZ_OT_start_ui(Operator):
                             else:
                                 text_instance.clip = None
 
+                        # Same for image and input instances
+                        from . import img_op as _img_op_resize
+                        from . import text_input_op as _tin_op_resize
+
+                        for image_instance in _img_op_resize._image_instances:
+                            cid = image_instance.container_id
+                            block = parser_op.image_blocks.get(cid) if hasattr(parser_op, "image_blocks") else None
+                            image_instance.clip = list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+
+                        for input_instance in _tin_op_resize._text_input_instances:
+                            cid = input_instance.container_id
+                            block = (
+                                parser_op.text_input_blocks.get(cid) if hasattr(parser_op, "text_input_blocks") else None
+                            )
+                            input_instance.clip = list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+
                         # Reapply scroll offsets after resize
                         if _render_data._scroll_offsets:
                             _render_data._apply_scroll_to_containers(new_data)
@@ -2324,6 +2353,12 @@ class XWZ_OT_start_ui(Operator):
                                 _render_data._apply_scroll_to_images(parser_op.image_blocks)
                             if hasattr(parser_op, "text_input_blocks"):
                                 _render_data._apply_scroll_to_text_inputs(parser_op.text_input_blocks)
+
+                        # Reload hit detector — the container list was replaced and
+                        # repositioned, and the native detector still holds the
+                        # pre-resize copy (same sync the hot-reload path does).
+                        if hasattr(hit_op, "_native_detector") and hit_op._native_detector:
+                            hit_op._native_detector.load_containers(new_data)
 
                     from .hit_op import _container_data
 

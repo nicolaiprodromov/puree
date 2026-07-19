@@ -51,7 +51,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
     | [Blender 5.1+](https://www.blender.org/download/) (must be on PATH) |
     | [Make](https://makefiletutorial.com/) / [Just](https://just.systems/man/en/) |
     | [Rust](https://rust-lang.org/tools/install/) |
-    | [Python 3.10+](https://www.python.org/downloads/) |
+    | [Python 3.11+](https://www.python.org/downloads/) |
 
 2. Clone this repository.
 
@@ -111,8 +111,6 @@ just ci
 If CI fails on your PR, check the **Actions** tab on GitHub for details.
 
 Releases are automated: `just release x.y.z` bumps the version, tags, and pushes. GitHub Actions then builds cross-platform wheels, publishes to PyPI, and creates a GitHub Release.
-
-See [CI/CD Guide](tmp/CICD.md) for full details.
 
 ## Contribution Guidelines
 

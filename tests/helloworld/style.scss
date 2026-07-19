@@ -1,55 +1,804 @@
+// ─────────────────────────────────────────────────────────────────────
+//  Puree · hello world — style.scss
+//  Blender-native dark: neutral greys straight from Blender's dark
+//  theme, its selection blue as the single dominant accent, and the
+//  active-object orange only as a rare highlight.
+//  Compiled to CSS by the Rust core (grass), cascaded natively.
+// ─────────────────────────────────────────────────────────────────────
+
+// ── Design tokens ────────────────────────────────────────────────────
+$ink:          #1f1f1f;   // page floor
+$ink-2:        #191919;   // wells, inputs
+$surface:      #2d2d2d;   // resting cards
+$surface-2:    #3a3a3a;   // raised / hovered
+$surface-3:    #464646;   // pressed
+
+$txt:          #e6e6e6;   // primary text
+$txt-dim:      #a5a5a5;   // secondary text
+$txt-mute:     #6f6f6f;   // tertiary text
+
+$accent:       #4772b3;   // Blender selection blue — dominant accent
+$accent-hi:    #5b8bd4;
+$accent-dp:    #3a5f96;
+$accent-ink:   #ffffff;   // text on accent
+$accent-lite:  #85aede;   // accent-tinted text on dark
+
+$orange:       #e87d0d;   // Blender active-object orange — sparingly
+$sky:          #6aa5dc;   // tertiary accent
+
+$line:         rgba(255, 255, 255, 0.08);
+$line-strong:  rgba(255, 255, 255, 0.16);
+
+// Spacing scale — tight in groups, generous between sections
+$space-xs:     4px;
+$space-sm:     8px;
+$space-md:     12px;
+$space-lg:     20px;
+$space-xl:     32px;
+
+$dur-fast:     0.15s;
+$dur-normal:   0.25s;
+
+@mixin center-text {
+    text-align: center;
+    --text-align-v: center;
+}
+
+// ── Shell ────────────────────────────────────────────────────────────
+// .root paints nothing on purpose: the input router only consumes events
+// over drawn pixels, so a transparent fullscreen wrapper lets Blender's
+// own UI (header, toolbar, N-panel) keep working outside the card.
+// flex-start (not center): the card's position is its margin-left/top,
+// which script.py sets — centered on first launch, then wherever you
+// drag it. Centering here would fight the drag math.
 .root {
     display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
     width: 100vw;
     height: 100vh;
-    align-items: center;
-    justify-content: center;
 }
 
-.container_test{
-    display: grid;
-    height:50%;
-    width:50%;
-    background-color: #2c2c2c;
-    grid-template-columns: auto auto auto auto;
-    grid-template-rows: auto auto auto auto;
-    gap: 16px;
-    align-items: center;
-    align-content: center;
-    justify-content: center;
-    justify-items: center;
+// The page is a draggable floating card: a slim grab bar on top and a
+// scrollable body below. The card itself no longer scrolls — it just
+// carries the surface (background, border, shadow) and the two children.
+.page {
+    display: flex;
+    flex-direction: column;
+    width: 86%;
+    max-width: 680px;
+    height: 64%;
+    min-height: 340px;
+    max-height: 620px;
+    background: linear-gradient(180deg, #262626, $ink 60%, #1b1b1b);
+    border: 1px solid $line-strong;
+    border-color: $line-strong;
+    border-radius: 8px;
+    box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.5);
 }
 
-.button {
-    height:50px;
-    width:150px;
+// ── Grab bar — press and drag to move the card ───────────────────────
+.grab_bar {
+    flex-shrink: 0;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: $space-sm;
+    height: 30px;
+    padding: 0px 12px;
+    background-color: #2a2a2a;
+    border-width: 0px 0px 1px 0px;
+    border-color: $line;
+    border-radius: 7px 7px 0px 0px;   // page radius 8px − 1px border
+    transition: background-color $dur-fast ease;
+
+    &:hover  { background-color: #333333; }
+    &:active { background-color: #3a3a3a; }
+}
+
+.grab_grip {
+    width: 40px;
+    height: 4px;
     border-radius: 999px;
-    background-color: #3498db;
-    color: #ffffff;
-    font-size: 15px;
-    transition: background-color 0.2s ease;
-    --text-align-v: center;
-    text-align: center;
-
-    &:hover {
-        background-color: #000000;
-    }
-
+    background-color: $line-strong;
 }
 
-.button_1 {
-    height:150px;
-    width:150px;
-    border-radius: 10px;
-    background-color: #3498db;
-    color: #ffffff;
-    font-size: 15px;
-    transition: background-color 0.2s ease;
+.grab_hint {
+    width: 96px;
+    height: 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-mute;
     --text-align-v: center;
-    text-align: center;
-
-    &:hover {
-        background-color: #000000;
-    }
-
 }
+
+// The scrollable body — `overflow: scroll` (not `overflow-y`) is what the
+// engine keys scrolling, clipping and the scrollbar off.
+.page_body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+    padding: 0px 24px 40px 24px;
+    overflow: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) rgba(255, 255, 255, 0.05);
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────
+.hero {
+    position: relative;
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 24px 4px $space-sm 4px;
+    gap: $space-sm;
+}
+
+.dot {
+    position: absolute;
+    border-radius: 999px;
+    opacity: 0.9;
+}
+.dot_a { width: 12px; height: 12px; top: 30px; right: 18%;  background-color: $orange; }
+.dot_b { width: 7px;  height: 7px;  top: 66px; right: 6%;   background-color: $sky; }
+.dot_c { width: 16px; height: 16px; top: 20px; right: 38%;  background-color: rgba(71, 114, 179, 0.9); }
+.dot_d { width: 5px;  height: 5px;  top: 92px; right: 30%;  background-color: $txt-dim; }
+
+.hero_kicker {
+    height: 14px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-mute;
+}
+
+.hero_title {
+    height: 66px;
+    font-size: 62px;
+    letter-spacing: 2px;
+    line-height: 1.0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt;
+    text-shadow: 3px 3px 0px rgba(71, 114, 179, 0.55);
+}
+
+.hero_tagline {
+    height: 24px;
+    --text-align-v: top;
+    font-size: 16px;
+    line-height: 1.35;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt;
+}
+
+.hero_sub {
+    height: 20px;
+    --text-align-v: top;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-dim;
+}
+
+// Shield-style badges, like the README's
+.badges {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: $space-sm;
+    margin-top: $space-xs;
+}
+
+.badge {
+    flex-direction: row;
+    height: 24px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.badge_key {
+    width: 62px;
+    height: 100%;
+    background-color: #272727;
+    color: $txt-dim;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    @include center-text;
+}
+
+.badge_val {
+    width: 48px;
+    height: 100%;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    @include center-text;
+}
+.val_blue   { background-color: $accent;  color: $accent-ink; }
+.val_orange { background-color: $orange;  color: #241203; }
+.val_sky    { background-color: $sky;     color: #0d2033; }
+.val_grey   { background-color: #9d9d9d;  color: #1f1f1f; }
+
+// ── Sections ─────────────────────────────────────────────────────────
+.section {
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: $space-md;
+    margin-top: $space-xl;
+}
+
+.eyebrow {
+    flex-direction: row;
+    align-items: center;
+    gap: $space-md;
+    height: 20px;
+}
+
+.eyebrow_num {
+    width: 22px;
+    height: 15px;
+    font-size: 12px;
+    color: $accent-lite;
+}
+
+.eyebrow_title {
+    width: 124px;
+    height: 15px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: $txt;
+}
+
+.eyebrow_rule {
+    flex-grow: 1;
+    height: 1px;
+    background-color: $line;
+}
+
+.section_intro {
+    height: 18px;
+    --text-align-v: top;
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-dim;
+}
+
+.caption {
+    height: 38px;
+    --text-align-v: top;
+    font-size: 12px;
+    line-height: 1.55;
+    color: $txt-mute;
+}
+
+// ── 01 · Pipeline ────────────────────────────────────────────────────
+.chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: $space-sm;
+}
+
+.chip {
+    width: 106px;
+    height: 30px;
+    border-radius: 4px;
+    background-color: $surface;
+    border: 1px solid $line;
+    border-color: $line;
+    color: $txt-dim;
+    font-size: 12px;
+    @include center-text;
+    transition: background-color $dur-fast ease;
+
+    &:hover  { background-color: $surface-2; }
+    &:active { background-color: $surface-3; }
+}
+
+.stage_panel {
+    flex-direction: column;
+    gap: $space-xs;
+    padding: 10px 14px;
+    background-color: rgba(45, 45, 45, 0.6);
+    border-radius: 4px;
+    border-width: 0px 0px 0px 3px;
+    border-color: $accent;
+}
+
+.stage_head {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+}
+
+.stage_name {
+    width: 160px;
+    height: 20px;
+    font-size: 15px;
+    color: $txt;
+}
+
+.stage_num {
+    flex-grow: 1;
+    height: 15px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-align: right;
+    color: $txt-mute;
+}
+
+.stage_desc {
+    height: 38px;
+    --text-align-v: top;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $txt-dim;
+}
+
+// ── 02 · Layout ──────────────────────────────────────────────────────
+.layout_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    justify-items: stretch;   // engine defaults to start — stretch fills the tracks
+    gap: $space-sm;
+}
+
+// Grid items stretch to their track; heights are explicit.
+.cell {
+    height: 44px;
+    border-radius: 4px;
+    background-color: $surface;
+    border: 1px solid $line;
+    border-color: $line;
+    padding: $space-sm;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: $txt-dim;
+    --text-align-v: bottom;
+    transition: background-color $dur-normal ease;
+
+    &:hover { background-color: $surface-2; }
+}
+
+.cell_a {
+    grid-column: span 2;
+    background-color: rgba(71, 114, 179, 0.16);
+    border-color: rgba(71, 114, 179, 0.4);
+    color: $accent-lite;
+    &:hover { background-color: rgba(71, 114, 179, 0.28); }
+}
+
+.cell_c {
+    grid-row: span 2;
+    height: 96px;   // two 44px rows + the 8px gap
+    background-color: rgba(106, 165, 220, 0.1);
+    border-color: rgba(106, 165, 220, 0.28);
+    color: $sky;
+    &:hover { background-color: rgba(106, 165, 220, 0.2); }
+}
+
+.cell_e {
+    grid-column: span 2;
+    background-color: rgba(232, 125, 13, 0.1);
+    border-color: rgba(232, 125, 13, 0.3);
+    color: #eda355;
+    &:hover { background-color: rgba(232, 125, 13, 0.2); }
+}
+
+.cell_h { grid-column: span 2; }
+
+// ── 03 · Interaction ─────────────────────────────────────────────────
+.button_row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: $space-sm;
+}
+
+.btn_primary {
+    width: 112px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: $accent;
+    color: $accent-ink;
+    font-size: 13px;
+    @include center-text;
+    transition: background-color $dur-fast ease;
+
+    &:hover  { background-color: $accent-hi; }
+    &:active { background-color: $accent-dp; }
+}
+
+.btn_secondary {
+    width: 112px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: $surface;
+    border: 1px solid $line-strong;
+    border-color: $line-strong;
+    color: $txt;
+    font-size: 13px;
+    @include center-text;
+    transition: background-color $dur-fast ease, border-color $dur-normal ease;
+
+    &:hover  { background-color: $surface-2; border-color: rgba(91, 139, 212, 0.6); }
+    &:active { background-color: $surface-3; }
+}
+
+.btn_ghost {
+    width: 112px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: transparent;
+    color: $txt-dim;
+    font-size: 13px;
+    @include center-text;
+    transition: background-color $dur-fast ease;
+
+    &:hover  { background-color: rgba(255, 255, 255, 0.06); }
+    &:active { background-color: rgba(255, 255, 255, 0.12); }
+}
+
+.action_status {
+    height: 32px;
+    --text-align-v: top;
+    line-height: 1.4;
+    font-size: 12px;
+    color: $txt-mute;
+}
+
+.demo_row {
+    flex-direction: row;
+    align-items: center;
+    gap: $space-md;
+    height: 40px;
+    border-width: 0px 0px 1px 0px;
+    border-color: $line;
+}
+
+.demo_label {
+    width: 122px;
+    height: 17px;
+    font-size: 13px;
+    color: $txt;
+}
+
+.demo_value {
+    flex-grow: 1;
+    height: 14px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-align: right;
+    color: $txt-mute;
+}
+
+.switch_track {
+    flex-direction: row;
+    width: 46px;
+    height: 24px;
+    padding: 3px;
+    border-radius: 999px;
+    background-color: $surface-2;
+    border: 1px solid $line-strong;
+    border-color: $line-strong;
+    transition: background-color $dur-normal ease, border-color $dur-normal ease;
+
+    &:hover { border-color: rgba(91, 139, 212, 0.6); }
+}
+
+.switch_knob {
+    width: 16px;
+    height: 16px;
+    margin-left: 0px;
+    border-radius: 999px;
+    background-color: $txt-dim;
+}
+
+.stepper {
+    flex-direction: row;
+    height: 28px;
+}
+
+.step_btn {
+    width: 34px;
+    height: 28px;
+    background-color: $surface-2;
+    border: 1px solid $line;
+    border-color: $line;
+    color: $txt;
+    font-size: 15px;
+    @include center-text;
+    transition: background-color $dur-fast ease;
+
+    &:hover  { background-color: $surface-3; }
+    &:active { background-color: rgba(71, 114, 179, 0.5); }
+}
+
+.step_minus { border-radius: 4px 0px 0px 4px; }
+.step_plus  { border-radius: 0px 4px 4px 0px; }
+
+.step_value {
+    width: 46px;
+    height: 28px;
+    background-color: $ink-2;
+    border-width: 1px 0px 1px 0px;
+    border-color: $line;
+    color: $accent-lite;
+    font-size: 14px;
+    @include center-text;
+}
+
+// ── 04 · GPU surfaces ────────────────────────────────────────────────
+.surface_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-items: stretch;
+    gap: $space-sm;
+}
+
+.card {
+    height: 84px;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: $space-md;
+    border-radius: 6px;
+}
+
+.card_label {
+    height: 14px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: $txt-dim;
+}
+
+.card_gradient {
+    grid-column: span 2;
+    background: linear-gradient(120deg, #5b8bd4, $accent 55%, #2c4a78);
+}
+.on_gradient { color: #eaf1fb; }
+
+.card_border {
+    background-color: $ink-2;
+    border-width: 1px;
+    border-image: linear-gradient(135deg, $accent, $orange);
+}
+
+.card_shadow {
+    background-color: $surface-2;
+    box-shadow: 0px 10px 22px rgba(0, 0, 0, 0.55);
+    transition: background-color $dur-normal ease;
+    &:hover { background-color: $surface-3; }
+}
+
+.card_radius {
+    background-color: $surface;
+    border: 1px solid rgba(91, 139, 212, 0.45);
+    border-color: rgba(91, 139, 212, 0.45);
+    border-radius: 999px 8px 999px 8px;
+    transition: border-color $dur-normal ease;
+    &:hover { border-color: rgba(91, 139, 212, 0.85); }
+}
+
+// ── 05 · Typography ──────────────────────────────────────────────────
+.spec_light {
+    height: 30px;
+    font-size: 24px;
+    line-height: 1.15;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt;
+}
+
+.spec_bold {
+    height: 19px;
+    font-size: 15px;
+    color: $txt;
+}
+
+.spec_italic {
+    height: 19px;
+    font-size: 15px;
+    color: $txt-dim;
+}
+
+.spec_regular {
+    height: 40px;
+    --text-align-v: top;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $txt-dim;
+}
+
+.spec_caps {
+    height: 15px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $accent-lite;
+}
+
+// ── 06 · Live data ───────────────────────────────────────────────────
+.clock_chip {
+    width: 78px;
+    flex-shrink: 0;
+    height: 20px;
+    border-radius: 4px;
+    background-color: $ink-2;
+    border: 1px solid $line;
+    border-color: $line;
+    color: $accent-lite;
+    font-size: 11px;
+    letter-spacing: 1px;
+    @include center-text;
+}
+
+.input_row {
+    flex-direction: row;
+    gap: $space-sm;
+    height: 32px;
+}
+
+.greet_input {
+    flex-grow: 1;
+    height: 32px;
+    padding: 0px 12px;
+    border-radius: 4px;
+    background-color: $ink-2;
+    border: 1px solid $line-strong;
+    border-color: $line-strong;
+    color: $txt;
+    font-size: 13px;
+    --text-align-v: center;
+    transition: border-color $dur-normal ease;
+
+    &:hover { border-color: rgba(91, 139, 212, 0.6); }
+}
+
+.greet_line {
+    height: 22px;
+    font-size: 15px;
+    color: $accent-lite;
+}
+
+// ── 07 · Markdown (classes consumed by set_markdown) ─────────────────
+.md_body {
+    flex-direction: column;
+    gap: $space-sm;
+    padding: 14px;
+    border-radius: 6px;
+    background-color: rgba(37, 37, 37, 0.8);
+    border: 1px solid $line;
+    border-color: $line;
+}
+
+.md_h1, .md_h2 {
+    height: 22px;
+    font-size: 16px;
+    color: $txt;
+}
+
+.md_h3, .md_heading {
+    height: 19px;
+    font-size: 14px;
+    color: $txt;
+}
+
+.md_paragraph {
+    height: 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    --text-align-v: top;
+    color: $txt-dim;
+}
+
+.md_list_item {
+    height: 20px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    padding-left: $space-xs;
+    color: $txt-dim;
+}
+
+.md_code_block {
+    height: 74px;
+    padding: $space-md;
+    border-radius: 4px;
+    background-color: #161616;
+    white-space: pre;
+    font-size: 12px;
+    line-height: 1.5;
+    color: $accent-lite;
+}
+
+.md_blockquote {
+    height: 20px;
+    --text-align-v: top;
+    padding-left: 10px;
+    border-width: 0px 0px 0px 3px;
+    border-color: $accent;
+    font-size: 13px;
+    color: $txt-dim;
+}
+
+.md_divider {
+    height: 1px;
+    margin: $space-xs 0px;
+    background-color: $line;
+}
+
+.md_inline_row { flex-direction: row; height: 20px; }
+.md_bold, .md_text_span, .md_code_inline { height: 20px; font-size: 13px; color: $txt-dim; }
+
+// ── Footer ───────────────────────────────────────────────────────────
+.footer {
+    flex-shrink: 0;
+    flex-direction: column;
+    margin-top: $space-xl;
+}
+
+.footer_rule {
+    height: 1px;
+    background-color: $line;
+}
+
+.footer_row {
+    flex-direction: row;
+    align-items: center;
+    gap: $space-md;
+    height: 34px;
+    margin-top: $space-md;
+}
+
+.footer_mark {
+    width: 28px;
+    height: 28px;
+    opacity: 0.95;
+}
+
+.footer_lines {
+    flex-direction: column;
+    flex-grow: 1;
+    gap: $space-xs;
+}
+
+.footer_credit {
+    height: 15px;
+    font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-dim;
+}
+
+.footer_license {
+    height: 13px;
+    font-size: 11px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $txt-mute;
+}
+
+.footer_hint {
+    height: 34px;
+    --text-align-v: top;
+    margin-top: $space-sm;
+    font-size: 12px;
+    line-height: 1.5;
+    color: $txt-mute;
+}
+
+// Note: with the current prebuilt core, @media conditions are not evaluated
+// (rules inside @media apply at every viewport size), so this page is sized
+// fluidly instead — percentage widths, flex-grow, flex-wrap and generous
+// text heights carry the responsive behavior.

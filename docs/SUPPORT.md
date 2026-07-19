@@ -3,14 +3,13 @@ layout: page
 title: 7. Support
 ---
 
-<img src="https://img.shields.io/badge/OpenGL%20Backend-ONLY-orange?style=flat-square" alt="OpenGL Only"/>
 <img src="https://img.shields.io/badge/API-UNSTABLE-red?style=flat-square" alt="API Unstable"/>
 
 If you need help with this project, please try the following:
 
 ### Documentation
 
-- Check the [README](README.md) for setup and usage instructions
+- Check the [README](../README.md) for setup and usage instructions
 - Check the [Full Documentation](https://nicolaiprodromov.github.io/puree/) for a deep dive into puree.
 
 ### Issues
@@ -44,10 +43,10 @@ A: Runtime display values must be **UPPERCASE**: `'FLEX'`, `'NONE'`, `'BLOCK'`, 
 A: No. Font selection is done via the YAML `font:` attribute on the container node, not through CSS. Specify the font name without file extension.
 
 **Q: Why doesn't my hover change the width/height?**
-A: Layout properties (`width`, `height`, `padding`, `margin`) are **silently ignored** in `:hover` and `:active` states. Only `background-color`, `border-color`, `opacity`, and `color` can change on hover.
+A: Layout properties (`width`, `height`, `padding`, `margin`) are **silently ignored** in `:hover` and `:active` states. Only paint properties — `background-color` (including gradients), `border-color`, `opacity`, and `color` — can change on hover.
 
 **Q: Does Puree work with Blender's Vulkan/Metal backends?**
-A: No. Puree requires the **OpenGL backend** due to its ModernGL dependency. Blender must be running with OpenGL.
+A: Yes. Puree renders through Blender's native `gpu` module, which abstracts over the active graphics backend, so it is not tied to OpenGL.
 
 **Q: How do I call Blender `bpy` APIs from event handlers?**
 A: Simple `bpy` calls work directly in click/hover handlers since they run on the main thread. For background threads, use `bpy.app.timers.register(fn)` to schedule calls on the main thread. See the [Threading & Blender Safety](DOCS.md#threading--blender-safety) section.

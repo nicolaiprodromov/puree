@@ -9,11 +9,11 @@
 <!--[![CI](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolaiprodromov/puree/actions/workflows/ci.yml) -->
 [![Version](https://img.shields.io/github/v/release/nicolaiprodromov/puree?include_prereleases&style=flat&color=blue)](https://github.com/nicolaiprodromov/puree/releases)
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
-[![ModernGL](https://img.shields.io/badge/ModernGL-5.12.0-blueviolet?style=flat)](https://github.com/moderngl/moderngl)
+[![Rust](https://img.shields.io/badge/Rust-core-blueviolet?style=flat&logo=rust&logoColor=white)](https://github.com/nicolaiprodromov/puree/tree/master/puree/puree_core)
 
 *Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, and markdown rendering; addressing the limitations of Blender's native UI system.
 
-> Puree is built with a **Rust** backend, **ModernGL**, and **Stretchable** to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
+> Puree is built with a **Rust** core, **Blender's native GPU module**, and the **Taffy** layout engine to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
 <img src="https://codeberg.org/nicolaiprodromov/puree/raw/branch/master/docs/images/usage1.gif" alt="Puree UI" width="100%"/>
 
@@ -25,13 +25,15 @@
 
 Blender's native UI excels at tool panels but wasn't designed for complex, stateful interfaces. Puree exists because:
 
-### *GPU API Constraints*
+### *GPU-Native Rendering*
 
-Blender's `gpu` module provides Python bindings for GPU rendering, but with architectural limitations that constrain certain rendering approaches.
+Blender's `bpy.types.UILayout` is immediate-mode and limited to standard widgets — no custom shapes, gradients, animations, or free-form layout. Drawing anything richer means dropping down to the low-level [`gpu`](https://docs.blender.org/api/current/gpu.html) module and hand-writing shaders, batches, and event handling for every addon. Puree does that work once:
 
-- The [`gpu.types.GPUShader`](https://docs.blender.org/api/current/gpu.types.html#gpu.types.GPUShader) API enforces vertex + fragment shader pairs for traditional geometry rendering. This works for drawing meshes but requires additional overhead for UI operations like filling thousands of rectangles per frame.
+- The entire container tree renders in a single batched draw call through Blender's native `gpu` module. A signed-distance-field (SDF) fragment shader evaluates rounded corners, per-side borders, gradients, and box shadows per pixel.
 
-- While Blender's Python API exposes [compute shader support](https://docs.blender.org/api/current/gpu.html#custom-compute-shader-using-image-store-and-vertex-fragment-shader), it currently targets image-based operations using `imageStore()`. Direct binding of Shader Storage Buffer Objects (SSBOs) for custom data-parallel algorithms is not available through the Python API; this technique is needed for efficient UI rendering where container properties (position, color, border radius) must be processed in parallel.
+- Per-container properties (position, color, radius, opacity, ...) are packed into a GPU data texture, so hundreds of containers render with no per-widget Python overhead.
+
+- Because everything goes through Blender's own GPU abstraction, Puree is not tied to a specific graphics backend.
 
 ### *Why Abstraction Matters*
 
@@ -39,7 +41,7 @@ Like browsers evolving from DOM manipulation to high-level frameworks like React
 
 ### *Design Patterns*
 
-Puree replaces Blender's imperative `bpy.types.Panel` approach with declarative component trees using YAML/SCSS separation. Flexbox layouts via **Stretchable** (Rust) and GPU-accelerated hit detection enable real-time interactivity like hover states and smooth transitions.
+Puree replaces Blender's imperative `bpy.types.Panel` approach with declarative component trees using YAML/SCSS separation. Flexbox and grid layouts via **Taffy** (Rust) and native Rust hit detection enable real-time interactivity like hover states and smooth transitions.
 
 ### *Developer Ergonomics*
 
@@ -51,7 +53,7 @@ Imperative UI code couples structure with styling, changing a button's color mea
 
 *From addon user interfaces to complex object-based tracking in screen space, to interactive tutorials, to markdown rendering directly in Blender, to simple drawing anywhere in Blender, in real-time, using the gpu.*
 
-Check the [tests](/tests) folder for detailed examples of what can be accomplished with **Puree**.
+Check the [tests](/tests) folder for a complete example of what can be accomplished with **Puree**.
 
 <div align="center">
 
@@ -83,7 +85,7 @@ Here's a short tutorial to get you started with Puree:
 </video> -->
 
 > [!IMPORTANT]
-> Puree currently works **only** with Blender's OpenGL backend because of the ModernGL dependency.
+> You'll need **Python 3.11+** for the CLI and **Blender 5.1+** available on your system PATH — the CLI drives Blender directly for scaffolding, building, and installing.
 
 1. **Install Puree:**
 
@@ -98,7 +100,7 @@ Here's a short tutorial to get you started with Puree:
     puree init
     ```
 
-    This creates a complete project with all dependencies, a `blender_manifest.toml`, and a starter UI (pink box with "PUREE" in bold blue text).
+    This creates a complete project with all dependencies, a `blender_manifest.toml`, and a starter UI (a pink page with "PUREE" in blue text).
 
 3. **Build the extension:**
 
@@ -106,7 +108,7 @@ Here's a short tutorial to get you started with Puree:
     puree build
     ```
 
-    Requires Blender on your system PATH.
+    The packaged extension zip lands in `dist/`.
 
 4. **Install into Blender:**
 
@@ -128,10 +130,10 @@ Here's a short tutorial to get you started with Puree:
 
 Puree follows a hybrid Rust/Python pipeline optimized for performance:
 
-1. **Parse** - Rust-native parsers process YAML/SCSS into styled container trees
-2. **Layout** - Stretchable flexbox engine computes responsive layouts  
-3. **Flatten** - Rust optimizes container hierarchy into GPU-ready buffers
-4. **Render** - ModernGL compute shaders generate UI texture with full effects
+1. **Parse** - YAML defines the component tree; Rust compiles SCSS and resolves the CSS cascade into styled container trees
+2. **Layout** - The Taffy flexbox/grid engine computes responsive layouts
+3. **Flatten** - Rust optimizes the container hierarchy into GPU-ready buffers, sorted by z-index
+4. **Render** - Blender's native GPU module draws all containers in a single batched pass with an SDF fragment shader
 5. **Interact** - Rust hit detection handles all mouse, scroll, and keyboard events in real-time
 
 <br>
@@ -144,7 +146,7 @@ flowchart LR
         K["Python"]
         M["File Watch"]
   end
- subgraph CPU["CPU - Rust"]
+ subgraph CPU["CPU - Python + Rust"]
         B["Parser"]
         C["Container<br>Tree"]
         D["Layout"]
@@ -154,9 +156,8 @@ flowchart LR
         J["Detector"]
   end
  subgraph GPU["GPU - GLSL"]
-        G1["Compute"]
-        G2["SDF"]
-        G3["Composite"]
+        G1["Data<br>Texture"]
+        G2["SDF<br>Draw"]
   end
     A --> B
     B --> C
@@ -165,13 +166,11 @@ flowchart LR
     D L_D_E_0@--> E
     E L_E_G1_0@--> G1
     G1 --> G2
-    G2 --> G3
-    G3 L_G3_H_0@--> H["Texture"]
-    H L_H_n1_0@==> n1["Display"]
+    G2 L_G2_n1_0@==> n1["Display"]
     I L_I_J_0@--> J
     J L_J_C_0@--> C
     M L_M_B_0@-.-> B
-    H L_H_J_0@-.-> J
+    E L_E_J_0@-.-> J
     n1 L_n1_C_0@--> C
 
     n1@{ shape: display}
@@ -184,10 +183,8 @@ flowchart LR
     style D fill:#00C853,color:#FFFFFF
     style E fill:#000,color:#fff
     style J fill:#FF6D00,color:#fff
-    style G1 fill:#000,color:#fff
+    style G1 fill:#FFD600,color:#000000
     style G2 fill:#000,color:#fff
-    style G3 fill:#000,color:#fff
-    style H fill:#FFD600,color:#000000
     style n1 fill:#D50000,color:#FFFFFF
     style INPUT fill:#0a1929,stroke:#1e3a5f,color:#fff
     style CPU fill:#0a1929,stroke:#1e3a5f,color:#fff
@@ -200,25 +197,22 @@ flowchart LR
     linkStyle 4 stroke:#2962FF,fill:none
     linkStyle 5 stroke:#2962FF,fill:none
     linkStyle 6 stroke:#2962FF,fill:none
-    linkStyle 7 stroke:#2962FF,fill:none
-    linkStyle 8 stroke:#2962FF,fill:none
-    linkStyle 9 stroke:#D50000,fill:none
-    linkStyle 10 stroke:#FF6D00,fill:none
+    linkStyle 7 stroke:#D50000,fill:none
+    linkStyle 8 stroke:#FF6D00,fill:none
+    linkStyle 9 stroke:#FF6D00,fill:none
+    linkStyle 10 stroke:#AA00FF,fill:none
     linkStyle 11 stroke:#FF6D00,fill:none
-    linkStyle 12 stroke:#AA00FF,fill:none
-    linkStyle 13 stroke:#FF6D00,fill:none
-    linkStyle 14 stroke:#D50000,fill:none
+    linkStyle 12 stroke:#D50000,fill:none
 
     L_K_C_0@{ animation: slow } 
     L_C_D_0@{ animation: slow } 
     L_D_E_0@{ animation: slow } 
     L_E_G1_0@{ animation: slow } 
-    L_G3_H_0@{ animation: fast } 
-    L_H_n1_0@{ animation: fast } 
+    L_G2_n1_0@{ animation: fast } 
     L_I_J_0@{ animation: fast } 
     L_J_C_0@{ animation: fast } 
     L_M_B_0@{ animation: slow } 
-    L_H_J_0@{ animation: fast } 
+    L_E_J_0@{ animation: fast } 
     L_n1_C_0@{ animation: slow } 
 
 
@@ -229,7 +223,8 @@ flowchart LR
 This architecture enables:
 
 - **Native performance** - Critical paths run in compiled Rust code
-- **GPU acceleration**   - All rendering & parallel computation happens in shaders
+- **GPU acceleration**   - The whole interface renders in a single batched SDF draw call
+- **Backend agnostic**   - Rendering goes through Blender's own GPU module, not raw OpenGL
 - **Reactive layouts**   - Automatic layout recompute on interactions, viewport resize, etc.
 
 

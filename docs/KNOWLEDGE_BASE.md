@@ -12,7 +12,7 @@ YAML was chosen because Blender's ecosystem is Python-native. YAML is easy to pa
 
 ### Why GPU rendering (not Blender's native UI)?
 
-Blender's built-in UI system (bpy.types.UILayout) is extremely limited — no custom colors, no animation, no flexible layout. Puree bypasses it entirely by rendering to a GPU texture via ModernGL compute shaders, then compositing that texture into the Blender viewport via a draw handler.
+Blender's built-in UI system (bpy.types.UILayout) is extremely limited — no custom colors, no animation, no flexible layout. Puree bypasses it entirely by drawing the container tree itself: all containers render in a single batched draw call through Blender's native `gpu` module, using an SDF (signed distance field) fragment shader in a `POST_PIXEL` draw handler. An earlier ModernGL compute-shader pipeline has been replaced by this native path, which makes rendering backend-agnostic (OpenGL/Vulkan/Metal).
 
 ### Why Taffy/Stretchable for layout?
 
@@ -20,13 +20,13 @@ A proper flexbox/grid layout engine is needed for CSS-like layout. Taffy is a Ru
 
 ### Why Rust for native bindings?
 
-Hit detection and SCSS compilation are performance-critical. Rust gives native speed with memory safety. The `puree_core` Rust crate is compiled per-platform and shipped as `.so` / `.pyd` / `.dylib`.
+Hit detection and SCSS compilation are performance-critical. Rust gives native speed with memory safety. The `puree_core` Rust crate is compiled per-platform and shipped as a prebuilt binary (`.pyd` on Windows, `.so` on Linux/macOS) in `puree/native_binaries/`.
 
 ## Rendering Pipeline — Critical Details
 
 ### Buffer Stride
 
-The single most fragile part of the system. Every container is packed into a flat array of floats, sent to the GPU as an SSBO. The GLSL shader unpacks at fixed offsets. **If the Python buffer packing order doesn't match the GLSL unpacking order, containers render incorrectly or not at all.** There are no runtime checks for this mismatch.
+The single most fragile part of the system. Every container is packed into a flat array of floats (`CONTAINER_STRIDE = 68` floats = 17 RGBA texels per container), uploaded to the GPU as an RGBA32F data texture. The fragment shader (`container_draw.frag`) unpacks at fixed texel offsets. **If the Python packing order doesn't match the GLSL unpacking order, containers render incorrectly or not at all.** There are no runtime checks for this mismatch.
 
 ### Color Space
 
@@ -36,12 +36,12 @@ Blender's viewport works in **linear color space**. All CSS colors (specified in
 
 Origin is **top-left**, Y increases **downward** (screen-space convention, matching CSS). This is opposite to OpenGL's default (bottom-left, Y up). Taffy also outputs top-left Y-down coordinates.
 
-### ModernGL Shared Context
+### GPU Context & State
 
-Puree does NOT create its own OpenGL context. It uses `moderngl.create_context(require=430)` which attaches to Blender's existing GL context. This means:
-- We can't use features above GL 4.3 (Blender's guaranteed minimum)
-- Context operations must be careful not to corrupt Blender's state
-- Shader compilation happens in Blender's GL thread
+Puree does NOT create its own graphics context. All drawing goes through Blender's `gpu` module inside draw handlers, so it shares Blender's context and state machine. This means:
+- Draw handlers must save/restore GPU state they touch (blend mode, depth test, scissor)
+- Shader compilation happens on Blender's draw thread via `gpu.shader.create_from_info`
+- A vestigial ModernGL context is still initialized when available (legacy compute path), but its failure is tolerated and nothing rendered on screen depends on it
 
 ## Parser — How YAML Becomes Containers
 
@@ -85,7 +85,7 @@ Puree only consumes events when the mouse is over a Puree container. This allows
 
 - `PyFileWatcher` (Rust) polls watched directories every ~300ms
 - On file change: full reparse + recompile + relayout + re-render
-- **Known fragility**: Rapid saves (e.g., save-all in editor) can trigger multiple reloads before the first finishes. The ModernGL context can be invalidated mid-reload, causing crashes.
+- **Known fragility**: Rapid saves (e.g., save-all in editor) can trigger multiple reloads before the first finishes, tearing down GPU resources mid-frame and causing crashes.
 - **SCSS cache**: Uses file mtime for invalidation. `git checkout` doesn't always update mtime, so cached SCSS may be stale after branch switches.
 
 ### Dev Reload Server (Python code changes)
@@ -112,7 +112,7 @@ This is a deliberate limitation — layout properties (width, height, padding, m
 
 ## Built-in Modules
 
-Puree ships 9 built-in modules (all implemented, see API.md for full reference):
+Puree ships 10 built-in modules (all implemented, see API.md for full reference):
 
 | Module | Purpose |
 |--------|--------|
@@ -120,11 +120,12 @@ Puree ships 9 built-in modules (all implemented, see API.md for full reference):
 | `puree.timers` | `set_interval()`, `set_timeout()`, `clear()` with auto-cleanup |
 | `puree.net` | HTTP client (`http.get/post`) + SSE streaming (`sse.connect`) |
 | `puree.focus` | Focus management, `focus()`, `blur()`, Tab/Shift+Tab navigation |
-| `puree.keyboard` | Keyboard shortcuts (`keys.bind("CTRL+N", fn)`), global & container-scoped |
+| `puree.keyboard` | Keyboard shortcuts (`keys.bind("CTRL+N", fn)`, zero-arg callbacks), global & container-scoped |
 | `puree.dynamic` | Dynamic container creation/removal (exposed via Container methods) |
 | `puree.markdown` | Markdown rendering into child containers |
 | `puree.virtual_scroll` | Virtual scrolling for large lists |
-| `puree.collapse` | Animated collapse/expand for disclosure sections |
+| `puree.collapse` | Instant collapse/expand for disclosure sections (not animated) |
+| `puree.console` | Browser-style `console.log/warn/error/info` — auto-injected into user scripts, shown in the debug panel's Console tab |
 
 ## Patterns That Work
 
@@ -245,10 +246,10 @@ details.mark_dirty()
 |---------|-------|
 | Blank panel | Is `_try_start_ui()` called? Check `just logs` or `just tail` for errors. |
 | Wrong colors | sRGB→linear conversion. Check if color is doubled or missing. |
-| Container at wrong position | Buffer stride mismatch between Python and GLSL. |
+| Container at wrong position | Data-texture stride mismatch between Python packing and GLSL unpacking. |
 | Hover on wrong element | Hit detection cache stale after resize. |
 | Text not showing | `extract_text.py` — is the text node being found? Font file exists? |
-| Hot reload crash | ModernGL context invalidated. Restart Blender. |
+| Hot reload crash | GPU resources torn down mid-reload (rapid saves). Restart Blender. |
 | CSS not applying | Specificity issue — more specific rule in cascade wins. |
 | Transition jerky | Wrong start value in transition manager. |
 | Component children inaccessible | Use namespaced path: `instance_child_name` |
@@ -259,13 +260,13 @@ details.mark_dirty()
 | Timer leaking on reload | Use `puree.timers` instead of raw `bpy.app.timers` — auto-cleanup |
 | HTTP callback not running | Is the HTTP drain timer registered? Check `just logs` |
 | Virtual scroll empty | Did you call both `set_virtual_data()` and `set_item_renderer()`? |
-| Collapse not animating | Ensure first child acts as header; call `mark_dirty()` after toggle |
+| Collapse not working | Ensure first child acts as header; call `mark_dirty()` after toggle (collapse is instant by design) |
 
 ## Version History Context
 
 - Puree targets Blender 5.1+ (the minimum version enforced in `blender_manifest.toml` and `__init__.py`)
 - The extension format uses `blender_manifest.toml` (Blender's new extension system)
-- Python target: 3.10+ (matching Blender's bundled Python)
+- Python target: 3.11+ for the CLI; wheels ship for Blender's bundled Python (3.13)
 - Rust edition: 2021
 
 ## Development Workflow

@@ -286,6 +286,15 @@ def trigger_ui_reload():
 
         hit_op._container_data = new_data
 
+        # The reparse produced a fresh, UNSCROLLED layout: drop stale scroll
+        # offsets (the view visibly resets to the top) and resync the native
+        # hit detector so hover/click match the fresh positions. Keeping old
+        # offsets desynced the detector and made the first wheel tick jump.
+        render._render_data._scroll_offsets = {}
+        render._render_data._scroll_accumulation = []
+        if hit_op._native_detector:
+            hit_op._native_detector.load_containers(new_data)
+
         # Cache original positions and apply scroll clips
         render._render_data._cache_original_positions(new_data)
         render._render_data._cache_original_text_positions(parser_op.text_blocks)
@@ -306,6 +315,9 @@ def trigger_ui_reload():
             container_id = text_instance.container_id
             if container_id in parser_op.text_blocks:
                 block = parser_op.text_blocks[container_id]
+                # Assign clip directly — update_all(clip=None) would keep the
+                # stale pre-reload clip, but scroll state was just reset.
+                text_instance.clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                 text_instance.update_all(
                     text=block["text"],
                     font_name=block["font"],
@@ -323,6 +335,7 @@ def trigger_ui_reload():
             container_id = input_instance.container_id
             if container_id in parser_op.text_input_blocks:
                 block = parser_op.text_input_blocks[container_id]
+                input_instance.clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                 bpy.ops.xwz.update_text_input(
                     instance_id=input_instance.id,
                     placeholder=block["placeholder"],
@@ -345,6 +358,7 @@ def trigger_ui_reload():
             container_id = image_instance.container_id
             if container_id in parser_op.image_blocks:
                 block = parser_op.image_blocks[container_id]
+                image_instance.clip = list(block["scroll_clip"]) if "scroll_clip" in block else None
                 image_instance.update_all(
                     image_name=block["image_name"],
                     pos=[block["x_pos"], block["y_pos"]],

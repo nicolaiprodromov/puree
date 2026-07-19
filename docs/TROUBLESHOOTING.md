@@ -5,13 +5,13 @@ title : 6. Troubleshooting
 
 ## Linux
 
-- *"Failed to get ModernGL context: libGL.so: cannot open shared object file: No such file or directory*" — `sudo apt install libgl1-mesa-dev`
+- *"Failed to get ModernGL context: libGL.so: cannot open shared object file: No such file or directory*" — Harmless. This comes from the legacy ModernGL path, which is no longer used for rendering; the UI draws through Blender's native `gpu` module regardless. Install `libgl1-mesa-dev` only if you want to silence the log message.
 - *"Can't get over 30fps on linux"* — `__GL_SYNC_TO_VBLANK=0 blender` (start blender from terminal without vsync)
 
 ## Hot Reload
 
 - **Changes not appearing after save** — The SCSS cache uses mtime only. After `git checkout`, touch the file: `touch style.scss`
-- **ModernGL crash on rapid saves** — The GL context is shared with Blender. Rapid file saves during hot reload can crash it. Save once and wait for the reload to finish.
+- **Crash on rapid saves** — Rapid file saves during hot reload can tear down GPU resources mid-frame. Save once and wait for the reload to finish.
 - **Reload server not responding** — Check `just logs` or `puree reload` output. The TCP server on `127.0.0.1:19746` auto-starts with the addon. Restart Blender if it's stuck.
 
 ## Rendering
@@ -27,7 +27,7 @@ title : 6. Troubleshooting
 
 ## Focus & Keyboard
 
-- **`focus()` not working** — The container must have `focusable: true` and `tab_index` set in YAML.
+- **Tab cycling not working** — `container.focus()` works on any container, but Tab/Shift+Tab cycling only visits containers with `focusable: true` and a non-negative `tab_index` in YAML.
 - **Keyboard shortcut not firing** — Check the `when` parameter. Container-scoped shortcuts only fire when that container has focus.
 
 ## Networking
@@ -45,7 +45,7 @@ title : 6. Troubleshooting
 
 ## Collapse
 
-- **Collapse not animating** — The first child of a collapsible container acts as the header (always visible). The remaining children are collapsed. Call `mark_dirty()` after toggle.
+- **Collapse looks abrupt** — Collapse/expand is an instant visibility change by design (not animated). The first child of a collapsible container acts as the header (always visible); the remaining children are hidden. Call `mark_dirty()` after toggle.
 
 ## Debugging Methodology
 
@@ -73,7 +73,7 @@ Look for Python exceptions, SCSS compilation errors, or YAML parse failures.
 ### Step 4: Minimal reproduction
 Strip your UI down to the simplest case that reproduces the issue. This often reveals the problem immediately.
 
-See the [Knowledge Base](KNOWLEDGE_BASE.md#debugging-cheat-sheet) for a comprehensive 18-item debugging cheat sheet.
+See the [Knowledge Base](KNOWLEDGE_BASE.md#debugging-cheat-sheet) for a comprehensive debugging cheat sheet.
 
 ---
 

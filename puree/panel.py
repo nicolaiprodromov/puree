@@ -29,6 +29,8 @@ _event_log = deque(maxlen=_MAX_EVENT_LOG)
 def log_event(action, container_id):
     """Record a UI event. Called from hit_op, transition_manager, etc."""
     _event_log.appendleft((time.monotonic(), action, container_id))
+    if action in ("click", "toggle", "focus"):
+        logger.debug("event: %s %s", action, container_id)
 
 
 def _update_event_log_collection():

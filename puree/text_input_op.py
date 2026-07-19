@@ -53,6 +53,7 @@ class TextInputInstance:
         self.position = pos
         self.color = color
         self.mask = mask
+        self.clip = None  # Separate scissor clip rect [x, y, w, h] for scroll clipping
         self.align_h = align_h
         self.align_v = align_v
         self.cursor_color = cursor_color
@@ -312,11 +313,26 @@ def draw_all_text_inputs():
                 instance.show_cursor = not instance.show_cursor
                 instance.cursor_blink_time = current_time
 
+        clip_rect = None
         if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
-            xmin = instance.mask[0]
-            ymin = viewport_height - instance.mask[1] - instance.mask[3]
-            xmax = instance.mask[0] + instance.mask[2]
-            ymax = viewport_height - instance.mask[1]
+            clip_rect = [float(v) for v in instance.mask]
+        # Intersect with the scroll-area clip (scissor duty) — the mask keeps
+        # its alignment duty at the scrolled content position.
+        if instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0:
+            if clip_rect is None:
+                clip_rect = [float(v) for v in instance.clip]
+            else:
+                ix = max(clip_rect[0], float(instance.clip[0]))
+                iy = max(clip_rect[1], float(instance.clip[1]))
+                ir = min(clip_rect[0] + clip_rect[2], float(instance.clip[0]) + float(instance.clip[2]))
+                ib = min(clip_rect[1] + clip_rect[3], float(instance.clip[1]) + float(instance.clip[3]))
+                clip_rect = [ix, iy, max(0.0, ir - ix), max(0.0, ib - iy)]
+
+        if clip_rect is not None:
+            xmin = clip_rect[0]
+            ymin = viewport_height - clip_rect[1] - clip_rect[3]
+            xmax = clip_rect[0] + clip_rect[2]
+            ymax = viewport_height - clip_rect[1]
             blf.clipping(instance.font_id, xmin, ymin, xmax, ymax)
             blf.enable(instance.font_id, blf.CLIPPING)
 
@@ -433,7 +449,7 @@ def draw_all_text_inputs():
                 shader.uniform_float("color", instance.cursor_color)
                 batch.draw(shader)
 
-        if instance.mask and instance.mask[2] > 0 and instance.mask[3] > 0:
+        if clip_rect is not None:
             blf.disable(instance.font_id, blf.CLIPPING)
 
 
