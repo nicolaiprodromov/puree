@@ -96,7 +96,7 @@ celebration: { style: celebration, lottie: confetti.json }
 
 Scripts drive playback through `container.media` (`play()`, `seek()`, `on("timeupdate", fn)`, …). GIF/SVG decode in the Rust core; the video (PyAV) and Lottie (rlottie) decoders ship bundled with Puree — `video:`/`lottie:` work out of the box, and a missing package still degrades gracefully. See [PUREE_SPEC.md — Media Elements](docs/PUREE_SPEC.md#10-media-elements).
 
-Any container can also take over the whole panel region as a "theater mode" — `container.request_fullscreen()` / `exit_fullscreen()`, with `ESC` and the controls-bar button as exits. The default video controls expose it out of the box. See [PUREE_SPEC.md — Fullscreen](docs/PUREE_SPEC.md#fullscreen---region-presentation-mode).
+Any container can also take over the whole panel region as a "theater mode" — `container.request_fullscreen()` / `exit_fullscreen()`, with `ESC` and the controls-bar button as exits. The default video controls expose it out of the box. See [PUREE_SPEC.md — Fullscreen](docs/PUREE_SPEC.md#fullscreen--region-presentation-mode).
 
 ---
 
