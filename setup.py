@@ -28,6 +28,8 @@ setup(
         "PyYAML==6.0.2",
         "typing-extensions==4.15.0",
         "attrs==25.3.0",
+        "av==18.0.0",
+        "rlottie-python==1.3.8",
     ],
     package_data={
         "puree": [
@@ -38,6 +40,8 @@ setup(
             "native_binaries/*.so",
             "native_binaries/*.pyd",
             "native_binaries/*.dylib",
+            "components/defaults/*.scss",
+            "components/defaults/*.yaml",
         ],
     },
     entry_points={

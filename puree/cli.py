@@ -1006,7 +1006,7 @@ def _print_help():
         f"     {P}{'-V, --version'.ljust(opt_pad)}{R}{G}Show the puree version{R}",
         "",
         f"   {B}{W}Workflow{R}",
-        f"     {D}${R} {P}puree init{R}        {D}start a project in an empty directory{R}",
+        f"     {D}${R} {P}puree init{R}        {D}start a project{R}",
         f"     {D}${R} {P}puree build{R}       {D}produce dist/<addon>.zip{R}",
         f"     {D}${R} {P}puree install{R}     {D}install the zip into Blender{R}",
         f"     {D}${R} {P}puree link{R}        {D}…or develop live with hot reload{R}",

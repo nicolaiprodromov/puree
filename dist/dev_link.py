@@ -28,7 +28,7 @@ from pathlib import Path
 BLENDER_VERSION = os.environ.get("PUREE_BLENDER_VERSION", "5.1")
 PY_TAG = os.environ.get("PUREE_BLENDER_PY", "3.13")
 ADDON_ID = "xwz_puree_ui"
-DEP_MARKERS = ["moderngl", "glcontext", "stretchable", "yaml", "attrs"]
+DEP_MARKERS = ["moderngl", "glcontext", "stretchable", "yaml", "attrs", "av", "rlottie"]
 
 REPO = Path(__file__).resolve().parent.parent
 

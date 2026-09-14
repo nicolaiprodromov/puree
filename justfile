@@ -72,7 +72,7 @@ link:
     SRC="$(pwd)"
     # Ensure wheel dependencies are installed BEFORE creating symlinks
     DEPS_INSTALLED=true
-    for pkg in moderngl glcontext stretchable yaml attrs; do
+    for pkg in moderngl glcontext stretchable yaml attrs av rlottie; do
         if ! ls "{{site_packages}}" 2>/dev/null | grep -qi "$pkg"; then
             DEPS_INSTALLED=false
             break
