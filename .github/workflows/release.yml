@@ -86,6 +86,41 @@ jobs:
         shell: bash
         run: ls -la puree/native_binaries/${{ matrix.platform }}/
 
+      # Building and linking is not enough - import the binary with the Python that
+      # Blender ships (3.13) and run every exported entry point on real assets. This is
+      # the only place the Linux and macOS binaries are ever executed before release.
+      - uses: actions/setup-python@v5
+        if: runner.os != 'Linux'     # the manylinux container has its own 3.13
+        with:
+          python-version: '3.13'
+
+      - name: Smoke-test the freshly built core
+        shell: bash
+        run: |
+          set -euo pipefail
+          PY=python
+          [ -x /opt/python/cp313-cp313/bin/python3 ] && PY=/opt/python/cp313-cp313/bin/python3
+          "$PY" --version
+          "$PY" - <<'EOF'
+          import platform, sys
+          sys.path.insert(0, "puree/native_binaries/${{ matrix.platform }}")
+          import puree_rust_core as core
+
+          w, h, frames, delays, loops = core.decode_gif("assets/demo_munky.gif")
+          assert (w, h, len(frames), len(delays)) == (320, 240, 58, 58), (w, h, len(frames), len(delays))
+          assert all(d >= 20 for d in delays) and loops == 0
+
+          assert core.probe_svg("assets/demo_vector.svg") == (240.0, 180.0)
+          px = core.rasterize_svg("assets/demo_vector.svg", 48, 36, "fonts")
+          assert len(px) == 48 * 36 * 4 and any(px), "svg raster is empty"
+
+          css = core.SCSSCompiler().compile("$w: 12px; .card { width: $w; }", None, None, None)
+          assert "12px" in css, css
+
+          core.HitDetector()
+          print("core OK:", platform.platform(), "| python", sys.version.split()[0], "| ${{ matrix.platform }}")
+          EOF
+
       - uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.platform }}
