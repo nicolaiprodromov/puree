@@ -33,7 +33,7 @@ env:
 jobs:
   build-native:
     strategy:
-      fail-fast: true
+      fail-fast: false   # let every platform report; publish needs all four anyway
       matrix:
         include:
           - os: windows-latest

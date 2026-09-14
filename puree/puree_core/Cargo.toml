@@ -17,6 +17,10 @@ crate-type = ["cdylib"]
 default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
+[build-dependencies]
+# build.rs: `-undefined dynamic_lookup` for macOS extension modules (see build.rs).
+pyo3-build-config = "0.20"
+
 [dependencies]
 pyo3 = { version = "0.20", features = ["abi3-py311"] }
 serde = { version = "1.0", features = ["derive"] }
