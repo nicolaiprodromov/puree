@@ -53,7 +53,7 @@ Read the user's `index.yaml`, `style.scss`, and `script.py` files before checkin
 - [ ] **Component files** — `data: '[name]'` corresponds to `components/name.yaml`
 - [ ] **Component root keys** — YAML root key matches filename
 - [ ] **Font files** — `font:` values match files in `fonts/` (without extension)
-- [ ] **Image files** — `img:` values match files in `assets/` (without extension)
+- [ ] **Image files** — `img:` values match files in `assets/` (with extension, e.g. `my_icon.png`)
 - [ ] **Script paths** — Container paths in script.py match actual YAML hierarchy
 
 ## Step 6: Report

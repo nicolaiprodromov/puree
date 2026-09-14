@@ -27,7 +27,7 @@ button:
   style: "{{btn_style, 'default_button'}}"
   btn_icon:
     style: btn_icon
-    img: "{{btn_icon, 'star_on'}}"
+    img: "{{btn_icon, 'star_on.png'}}"
   btn_label:
     style: btn_label
     text: "{{btn_text, 'Click Me'}}"

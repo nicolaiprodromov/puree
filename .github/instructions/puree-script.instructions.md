@@ -84,6 +84,35 @@ def toggle_panel(container):
 
 Note: runtime `display` values are uppercase strings: `'FLEX'`, `'NONE'`, `'GRID'`, `'BLOCK'`.
 
+## Media Playback — `container.media`
+
+Containers with `video:` / `lottie:` / animated `img:` (GIF) expose an HTMLMediaElement-style
+controller (raises on non-media containers):
+
+```python
+video = app.theme.root.demo_video
+video.media.play()                      # also: pause() / toggle() / seek(sec) / stop()
+video.media.muted = True                # live audio; volume, loop, playback_rate settable too
+print(video.media.current_time, video.media.duration)   # duration is None until metadata
+print(video.media.paused, video.media.ended, video.media.ready_state)
+
+def on_time(m):                         # events: play, pause, ended, seeked,
+    label.text = f"{m.current_time:.0f}s"   # timeupdate (~250 ms), error
+    label.mark_dirty()                  # mark_dirty() ALWAYS after label writes
+
+video.media.on("timeupdate", on_time)   # off(event, fn) to unsubscribe
+```
+
+`muted`/`volume` are no-ops on GIF/Lottie (no audio); on video, `playback_rate != 1.0`
+force-mutes audio. Listeners persist across hot reloads — `off()` retired ones.
+
+## Fullscreen — any container
+
+`container.request_fullscreen()` fills the editor region ("theater mode", one element at a time);
+`container.exit_fullscreen()` / ESC / the video-controls button exit; read-only `container.fullscreen`.
+`container.on_fullscreen_change.append(fn)` fires `fn(container, is_fullscreen)` on every change
+(media containers also get `media.on("fullscreenchange", fn)`); hot reloads force-exit the mode.
+
 ## Container Properties
 
 | Property   | Type              | Description                          |
@@ -93,7 +122,7 @@ Note: runtime `display` values are uppercase strings: `'FLEX'`, `'NONE'`, `'GRID
 | `children` | `List[Container]` | Child containers                     |
 | `style`    | `Style`           | Resolved style object                |
 | `text`     | `str/None`        | Text content                         |
-| `img`      | `str/None`        | Image asset name                     |
+| `img`      | `str/None`        | Image asset filename (with extension) |
 | `font`     | `str/None`        | Font face name                       |
 | `passive`  | `bool`            | Non-interactive flag                 |
 | `_hovered` | `bool`            | Currently hovered (read-only)        |

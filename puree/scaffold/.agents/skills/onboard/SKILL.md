@@ -186,7 +186,7 @@ empty_state:
   style: empty_state_container
   empty_icon:
     style: empty_icon
-    img: 'no_objects'
+    img: 'no_objects.png'
   empty_title:
     style: empty_title
     text: 'No objects found'

@@ -42,7 +42,7 @@ my_addon/
 3. **`style:`** assigns a CSS class (matched as `.classname` in SCSS)
 4. **`class:`** space-separated CSS classes (alternative to `style`)
 5. **`font:`** font face name without extension: `NeueMontreal-Bold`
-6. **`img:`** image name from assets/ without extension: `my_icon`
+6. **`img:`** image filename from assets/ with extension: `my_icon.png` (subfolders allowed: `icons/x.png`)
 7. **Component ref**: `data: '[component_name]'` — square brackets required
 8. **Parameters**: `"{{param_name, 'default_value'}}"` — both quote types, comma required
 9. **Text input**: `data: "<INPUT>|placeholder text"`

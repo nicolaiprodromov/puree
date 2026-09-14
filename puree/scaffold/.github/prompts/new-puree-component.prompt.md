@@ -22,7 +22,7 @@ status_badge:
   style: "{{badge_style, 'status_badge'}}"
   badge_icon:
     style: badge_icon
-    img: "{{badge_icon, 'info'}}"
+    img: "{{badge_icon, 'info.png'}}"
   badge_label:
     style: badge_label
     text: "{{badge_text, 'Status'}}"

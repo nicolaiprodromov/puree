@@ -15,7 +15,12 @@ Puree YAML defines UI hierarchy (like HTML). Each node becomes a GPU-rendered co
 | `class`   | string | Space-separated CSS classes (alternative to `style`)     |
 | `text`    | string | Text content to display                                  |
 | `font`    | string | Font face name without extension: `NeueMontreal-Bold`   |
-| `img`     | string | Image name from `assets/` without extension: `my_icon`   |
+| `img`     | string | Image filename from `assets/` with extension: `my_icon.png` (`.gif` animates, `.svg` rasterizes crisp) |
+| `video`   | string | Video filename with extension: `intro.mp4` (decoded by PyAV, which ships bundled with Puree) |
+| `lottie`  | string | Bodymovin JSON filename: `confetti.json` (decoded by rlottie, which ships bundled with Puree) |
+| `controls`| bool   | Video only: `true` injects the default controls bar |
+| `autoplay` / `loop` / `muted` | bool | Playback flags — video defaults all `false`, **lottie defaults `autoplay`/`loop` to `true`** |
+| `poster` / `preload` / `volume` / `playback_rate` | misc | Video extras: poster image, `none\|metadata\|auto`, 0–1 volume, speed (≠ 1.0 force-mutes audio) |
 | `data`    | string | Component ref `'[component_name]'` or input `"<INPUT>"` |
 | `passive` | bool   | If true, element ignores hover/click                     |
 
@@ -27,7 +32,7 @@ Puree YAML defines UI hierarchy (like HTML). Each node becomes a GPU-rendered co
 4. **Component data uses brackets** — `data: '[card]'` (square brackets required)
 5. **Parameters need both quotes** — `text: "{{param_name, 'default_value'}}"`
 6. **Text input syntax** — `data: "<INPUT>|placeholder text"`
-7. **Font/image names omit extensions** — `font: NeueMontreal-Bold` not `NeueMontreal-Bold.ttf`
+7. **Fonts omit extensions, image/media values include them** — `font: NeueMontreal-Bold` but `img: my_icon.png`, `video: intro.mp4`, `lottie: confetti.json` (extensionless media renders nothing + logs a "did you mean" error)
 
 ## Theme Config Structure
 
@@ -74,6 +79,22 @@ button:
 
 - Parameter format: `"{{name, 'default'}}"` — outer double quotes, inner single quotes, comma separator
 - SCSS `$variables` with matching names are also overridden by params
+
+## Media Example
+
+```yaml
+spinner: { style: spinner, img: loading.gif }      # GIF/SVG ride img: — no new syntax
+demo_video:
+  style: demo_video
+  video: intro.mp4        # assets/intro.mp4
+  controls: true          # default play/seek/mute bar
+  autoplay: true
+  loop: true
+  muted: true             # good etiquette for autoplay
+celebration:
+  style: celebration
+  lottie: confetti.json   # autoplay + loop default TRUE for lottie
+```
 
 ## Minimal Correct Example
 

@@ -83,7 +83,17 @@ Each YAML node can have these properties:
 | `class`      | string | Space-separated CSS class names (alternative to `style`)     |
 | `text`       | string | Text content to display                            |
 | `font`       | string | Font name (without extension): `NeueMontreal-Bold` |
-| `img`        | string | Image name from `assets/` (without extension)      |
+| `img`        | string | Image filename from `assets/`, including extension (e.g. `my_icon.png`; subfolders allowed: `icons/x.png`). Also accepts `.gif` (plays animated) and `.svg` (vector — rasterized crisp at the element's layout size) |
+| `video`      | string | Video filename from `assets/` (`.mp4`, `.webm`, `.mkv`, `.mov`). Decoded by PyAV (`av`), bundled with Puree — see [Media Elements](#10-media-elements) |
+| `lottie`     | string | Lottie/Bodymovin `.json` filename from `assets/`. Decoded by `rlottie-python`, bundled with Puree — see [Media Elements](#10-media-elements) |
+| `poster`     | string | Video only: raster asset shown until the first decoded frame (and if video decode is unavailable). Default `""` |
+| `controls`   | bool   | Video only: `true` injects the default playback controls bar (`[video_controls]`). Default `false` |
+| `autoplay`   | bool   | Start playing on load. Default `false` for `video:`, **`true` for `lottie:`** |
+| `loop`       | bool   | Loop playback. Default `false` for `video:`, **`true` for `lottie:`** |
+| `muted`      | bool   | Video only: start with audio muted. Default `false` (examples still set `muted: true` — good etiquette) |
+| `volume`     | float  | Video only: audio volume `0.0`–`1.0`. Default `1.0` |
+| `playback_rate` | float | Playback speed. Default `1.0`. On video, a rate ≠ `1.0` force-mutes audio (v1 limitation) |
+| `preload`    | enum   | Video only: `none` \| `metadata` (default) \| `auto` |
 | `data`       | string | Component reference: `'[component_name]'`          |
 | `data`       | string | Text input: `'<INPUT> \| placeholder text'` turns the node into an editable text input |
 | `passive`    | bool   | If true, element is non-interactive                |
@@ -92,6 +102,7 @@ Each YAML node can have these properties:
 | `collapsed`  | bool   | If true, container starts in collapsed state       |
 | `virtual`    | bool   | If true, enables virtual scrolling for this container |
 | `item_height` | int\|string | Virtual scroll item height in px, or `'auto'` for variable height |
+| `overlay`    | bool   | Renders this container **and its whole subtree** in the overlay pass, above images/video (used automatically by the injected video controls) |
 
 ### Rules
 - Node names become the element's tag/ID in the tree
@@ -589,7 +600,7 @@ app:
           style: header
           logo:
             style: logo
-            img: my_logo
+            img: my_logo.png
           title:
             style: header_title
             text: "My Application"
@@ -944,7 +955,7 @@ grid_container:
 4. **Component params need defaults**: `"{{name, 'default'}}"` — both quotes required
 5. **Component `data` uses brackets**: `data: '[card]'` — square brackets required
 6. **Font names omit extensions**: `font: NeueMontreal-Bold` (not `.ttf`)
-7. **Image names omit extensions**: `img: my_icon` (not `.png`)
+7. **Image values include the file extension**: `img: my_icon.png` (subfolders allowed: `img: icons/x.png`)
 8. **Colors auto-convert**: sRGB in CSS → linear in Blender (automatic)
 9. **`passive: true`** makes an element completely non-interactive (no hover/click)
 10. **`display: none`** hides an element and removes it from layout
@@ -955,6 +966,7 @@ grid_container:
 12. **Only 3 animatable properties**: `background-color`, `border-color`, `opacity` (`color` changes instantly on hover)
 13. **Draw order**: Containers are drawn in tree order (depth-first), then sorted by CSS `z-index` — higher values draw later/on top. The sort is stable, so tree order is preserved among elements with equal `z-index`. Use CSS `z-index` for stacking. The YAML `layer:` attribute is **deprecated** and has no effect (it is never read by the engine).
 14. **Container `.keys` property**: Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped keyboard shortcuts. See the [Keyboard section in API Reference](API.md#keyboard--pureekeyboard).
+15. **`video:` / `lottie:` decoders ship with Puree**: the PyAV (`av`) and `rlottie-python` wheels are bundled in Puree's own manifest — your addon ships nothing extra. If a package is somehow missing (exotic platform / broken install) the element degrades gracefully (poster / nothing + one logged warning), never a crash. See [Media Elements](#10-media-elements).
 
 ---
 
@@ -1087,6 +1099,151 @@ Key names use Blender conventions but common aliases (`ENTER`, `ESCAPE`, `DELETE
 ### Storage, Timers, HTTP, Focus
 
 See the [API Reference](API.md) for full module documentation on these built-in modules.
+
+---
+
+## 10. Media Elements
+
+Puree plays four media formats natively inside panels — HTML parity: `<img>` for GIF/SVG,
+`<video>` for MP4/WebM, `<lottie-player>` for Bodymovin JSON. Media elements are ordinary
+containers: all layout, radius/border/shadow, `opacity`, `--img-align-h/v` and scroll clipping
+apply. Playback swaps GPU textures only — the layout never recomputes while media plays, and
+paused/ended media costs zero redraws.
+
+**All media values are full filenames with extension** (same rule as `img:`): `video: clips/intro.mp4`,
+`lottie: confetti.json`. Extensionless values render nothing and log a one-time "did you mean" error.
+
+### GIF & SVG — the `img:` attribute
+
+No new syntax. Any `img:` value ending in `.gif` animates automatically (per-frame delays,
+GIF loop count honored); `.svg` rasterizes at the element's **content-box size** and re-rasterizes
+(debounced ~150 ms) when the layout size changes, so vectors stay crisp at any panel size.
+Both work out of the box — the decoders ship in Puree's Rust core.
+
+```yaml
+spinner:
+  style: spinner
+  img: loading.gif          # assets/loading.gif → plays automatically
+
+logo:
+  style: logo
+  img: brand.svg            # assets/brand.svg → crisp at any panel size
+```
+
+### Video — the `video:` attribute
+
+H.264/H.265/VP9/AV1 etc. via PyAV/FFmpeg (`.mp4`, `.webm`, `.mkv`, `.mov`), with audio through
+Blender's built-in `aud` module when the file has an audio track.
+
+```yaml
+demo_video:
+  style: demo_video
+  video: demo_clip.mp4      # assets/demo_clip.mp4
+  controls: true            # inject the default controls bar
+  autoplay: true
+  loop: true
+  muted: true               # good etiquette for autoplay
+  poster: intro_poster.png  # shown until the first frame (and if decode is unavailable)
+  preload: metadata         # none | metadata (default) | auto
+```
+
+- `preload: metadata` (default) probes duration/size only; `auto` also decodes and shows frame 0;
+  `none` does nothing until `play()`/`seek()` (the `poster` shows if set).
+- **Unmuted autoplay is allowed** but sound on panel-open surprises users — default your examples
+  to `muted: true` like browsers force you to.
+- `playback_rate != 1.0` **force-mutes audio** while the rate stays off 1.0 (v1 limitation; the
+  `muted` attribute itself is not flipped — audio returns when the rate returns to `1.0`).
+- `controls: true` injects the `[video_controls]` component as the node's last child — play/pause,
+  drag-to-seek, time labels, mute toggle, hover auto-hide — drawn in the overlay pass **above**
+  the frame. Theming and internals: [COMPONENTS.md](COMPONENTS.md#default-component-video_controls).
+  SPACE toggles playback while the video container is focused (click it first; key dispatch
+  requires at least one text input in the UI — engine constraint).
+
+### Lottie — the `lottie:` attribute
+
+Bodymovin/lottie-web JSON via `rlottie` (`.lottie` zip containers are **not** supported in v1).
+Frames render at the element's content-box size and re-render on resize like SVG.
+
+```yaml
+celebration:
+  style: celebration
+  lottie: confetti.json     # assets/confetti.json
+  # autoplay/loop default TRUE for lottie (lottie-player parity) —
+  # write `autoplay: false` / `loop: false` explicitly to opt out
+  playback_rate: 1.0
+```
+
+- **`autoplay` and `loop` default `true` for `lottie:`** (vs `false` for `video:`).
+- `controls`, `muted`, `volume`, `poster` and `preload` have **no effect** on lottie elements
+  (`controls: true` logs a debug note and is ignored; muted/volume are inert stored values).
+- The `.json` must actually be a Bodymovin document (`v`/`fr`/`w`/`h`/`layers` keys) — anything
+  else renders nothing with one warning per file. `img: anim.json` also plays, but `lottie:` is
+  the canonical surface. Some After Effects features are outside rlottie's coverage — test your
+  export.
+
+### Fullscreen — region presentation mode
+
+**Any container** can present fullscreen — it fills the **editor region** Puree draws in
+("theater mode"; not Blender's area-maximize, not OS fullscreen). Video merely uses it via the
+controls button; lightboxes/focus modes on plain containers work the same way. **One element at
+a time** — entering while another is active swaps (the old one exits first). The main UI tree
+is never touched: fullscreen is a renderer presentation flag with a private region-sized
+relayout of the subtree, so exiting restores everything exactly — and a **hot reload / reparse
+/ UI stop force-exits the mode by design**.
+
+```python
+tile = app.theme.root.media_tile
+
+tile.request_fullscreen()   # -> bool; the subtree re-lays-out at region size
+tile.exit_fullscreen()      # -> bool; only exits when THIS container is the active one
+print(tile.fullscreen)      # read-only property
+
+def on_fs(container, is_fullscreen):
+    console.log(f"{container.id} fullscreen: {is_fullscreen}")
+
+tile.on_fullscreen_change.append(on_fs)   # fires for button/ESC/scripts/swaps too
+```
+
+- **Exits:** `exit_fullscreen()`, the `[video_controls]` fullscreen button (present on every
+  `controls: true` video), and **ESC** (key dispatch needs ≥ 1 text input in the UI — the same
+  engine constraint as SPACE; the button/API always work). There is no `allow_fullscreen` YAML
+  attribute (v1 decision) — hide the button per video from your SCSS via the namespaced class
+  (see [COMPONENTS.md](COMPONENTS.md#default-component-video_controls)).
+- `on_fullscreen_change` handlers fire as `fn(container, is_fullscreen)` after the change
+  commits; a swap fires `False` for the old element, then `True` for the new one. Media
+  containers additionally get `media.on("fullscreenchange", fn)` (the container list fires
+  first).
+- While active: other media keep playing hidden (browser parity), scrolling is disabled, and a
+  scroll-clipped element escapes its ancestor clipping (the private layout has no scroll
+  context). Animated style transitions inside the fullscreen subtree settle without
+  interpolating (v1 limitation).
+
+### Dependencies
+
+GIF and SVG ship built in (Rust core). Video and Lottie decoders **ship bundled with Puree**
+(the `av` and `rlottie-python` wheels are in Puree's own manifest since 2026-07-20) — your
+addon ships **nothing extra**; `video:`/`lottie:` work out of the box:
+
+| Feature | Package | Size | Behavior if the package is missing (exotic platform / broken install) |
+|---------|---------|------|------------------------------------------------------------------------|
+| `video:` | `av` (PyAV, bundles FFmpeg) — **bundled** | ~18–36 MB/platform | element shows its `poster` (or nothing), `media.ready_state == 'unsupported'`, one logged warning |
+| `lottie:` | `rlottie-python` — **bundled** | ~0.4–1 MB/platform | element renders nothing, `ready_state == 'unsupported'`, one logged warning |
+
+The lazy-import degrade path stays as a safety net: a missing package degrades gracefully
+(poster/blank + ONE logged warning) — never a crash. If you see that warning in a normal
+install, refresh/reinstall the Puree extension (Preferences → Extensions) or restart Blender.
+Audio needs nothing extra (`aud` ships with Blender).
+
+### Scripting
+
+Every media container exposes `container.media` — an HTMLMediaElement-flavored controller
+(`play()/pause()/toggle()/seek()/stop()`, `current_time`, `duration`, `paused`, `ended`, events
+via `media.on("play"|"pause"|"ended"|"seeked"|"timeupdate"|"error", fn)`). Full reference:
+[API.md — Media Playback](API.md#media-playback--containermedia).
+
+**Known limitation:** hot-*adding* a new media node (or `controls: true`) via YAML hot reload
+shows containers but not their images/labels until a UI restart — hot reload only updates
+existing GPU instances. Editing attributes of existing media nodes hot-reloads fine.
 
 ---
 

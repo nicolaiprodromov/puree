@@ -32,7 +32,7 @@ Check every YAML file for these issues:
 | **Parameter syntax** | 🔴 Critical | Must be `"{{name, 'default'}}"` — both quote types + comma |
 | **Style paths exist** | 🟡 Warning | Paths in `styles:` and `scripts:` point to real files |
 | **Font names valid** | 🟡 Warning | Font values match files in `fonts/` (no extension) |
-| **Image names valid** | 🟡 Warning | Image values match files in `assets/` (no extension) |
+| **Image names valid** | 🟡 Warning | Image values match files in `assets/` (with extension, e.g. `my_icon.png`) |
 | **Orphan style classes** | 🟢 Info | `style:` values not matched by any `.classname` in SCSS |
 | **Deep nesting** | 🟢 Info | Nesting >8 levels deep (performance concern) |
 | **Component root key** | 🔴 Critical | Root key in component YAML must match filename |

@@ -274,7 +274,7 @@ toolbar_button:
   style: "{{btn_style, 'toolbar_btn'}}"
   btn_icon:
     style: toolbar_btn_icon
-    img: "{{btn_icon, 'default_icon'}}"
+    img: "{{btn_icon, 'default_icon.png'}}"
   btn_label:
     style: toolbar_btn_label
     text: "{{btn_label, 'Action'}}"

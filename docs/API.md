@@ -154,7 +154,12 @@ button = app.theme.root.sidebar.nav_button
 | `parent` | `Container` | Parent container |
 | `children` | `List[Container]` | Child containers |
 | `text` | `str` | Text content |
-| `img` | `str` | Image asset name (no extension) |
+| `img` | `str` | Image asset filename (with extension) — `.gif` plays animated, `.svg` rasterizes at layout size |
+| `video` | `str` | Video asset filename (`.mp4`/`.webm`/`.mkv`/`.mov`) — decoded by PyAV (`av`), bundled with Puree |
+| `lottie` | `str` | Lottie/Bodymovin `.json` asset filename — decoded by `rlottie-python`, bundled with Puree |
+| `poster` / `controls` / `autoplay` / `loop` / `muted` / `volume` / `playback_rate` / `preload` | various | Media playback attributes — types, defaults (video vs lottie differ) and semantics in [PUREE_SPEC.md — Media Elements](PUREE_SPEC.md#10-media-elements) |
+| `media` | `MediaController` | Playback controller for media containers — see [Media Playback](#media-playback--containermedia). Raises `AttributeError` on non-media containers. |
+| `fullscreen` | `bool` | **Read-only.** `True` while this container is the fullscreen element (region "theater mode" — [PUREE_SPEC.md — Fullscreen](PUREE_SPEC.md#fullscreen--region-presentation-mode)). Works on every container. |
 | `font` | `str` | Font face name (no extension) |
 | `data` | `str` | Component reference (`'[component_name]'`) or text-input marker (`'<INPUT> \| placeholder'`) |
 | `classes` | `list` | CSS class names applied to this container |
@@ -173,6 +178,7 @@ button = app.theme.root.sidebar.nav_button
 | `hoverout` | `List` | Hover-out event handler list |
 | `on_focus` | `List` | Focus-in event handler list |
 | `on_blur` | `List` | Focus-out event handler list |
+| `on_fullscreen_change` | `List` | Fullscreen-change handler list — `fn(container, is_fullscreen)`, fired after every enter/exit of THIS container (button, ESC, scripts, swaps, hot-reload force-exits). Handler exceptions are logged and swallowed. |
 | `_toggled` | `bool` | Whether a toggle event fired THIS frame (transient — resets next frame) |
 | `_clicked` | `bool` | Whether currently clicked (read-only) |
 | `_hovered` | `bool` | Whether currently hovered (read-only) |
@@ -201,10 +207,87 @@ button = app.theme.root.sidebar.nav_button
 | `expand()` | `() -> None` | Expand instantly to full height (all children shown). |
 | `toggle_collapse()` | `() -> None` | Toggle between collapsed and expanded states. |
 | `is_collapsed` | `-> bool` | Property — returns `True` if this container is currently collapsed. |
+| `request_fullscreen()` | `() -> bool` | Present this container fullscreen — it fills the editor region ("theater mode"). Works on **any** container; one element at a time (entering while another is active swaps). `False` without a running UI/region. |
+| `exit_fullscreen()` | `() -> bool` | Leave fullscreen **only if this container is the active fullscreen element** — returns `False` when idle or another element is fullscreen (that one stays up). ESC and the controls button exit too. |
 | `set_markdown(text, fonts, classes)` | `(str, dict \| None, dict \| None) -> None` | Render markdown text as child containers. Clears existing children first. `fonts` maps `'regular'` / `'bold'` / `'mono'` to font names; `classes` maps markdown elements to CSS classes. |
 | `keys` | `ContainerKeyProxy` | Property — scoped keyboard shortcut binding. Use `container.keys.bind("SHIFT+ENTER", callback)` for container-scoped shortcuts. |
 | `set_virtual_data(data_list)` | `(list) -> None` | Assign a data list for virtual scrolling. Requires `virtual: true`. |
 | `set_item_renderer(fn)` | `(Callable[[Container, Any, int], None]) -> None` | Set the callback to render each virtual scroll item. The callback receives `(container, item, index)`. |
+
+---
+
+## Media Playback — `container.media`
+
+Every playable media container (`video:`, `lottie:`, animated `img:` GIFs) exposes a
+`MediaController` with pythonic names and HTMLMediaElement semantics:
+
+```python
+video = app.theme.root.demo_video
+
+video.media.play()
+video.media.toggle()
+video.media.seek(12.5)                 # seconds
+video.media.muted = True
+print(video.media.current_time, "/", video.media.duration)
+
+video.media.on("ended", lambda m: console.log("done at", m.current_time))
+```
+
+Accessing `.media` on a container without a media attribute raises
+`AttributeError: container 'x' has no media source - set img: (gif) / video: / lottie: in YAML`.
+Static media (SVG, plain rasters) has no playback controller. Controllers are **id-bound and
+lazy**: obtained in `main()` (which runs before media attaches) they no-op controls with a debug
+log and return safe property defaults, then work once the render pipeline starts — and they stay
+valid across YAML/SCSS hot reloads.
+
+### Methods
+
+| Method | Description |
+|---|---|
+| `play()` | Start/resume playback. After `ended`, replays from 0 (HTML parity). |
+| `pause()` | Pause; the frame stays visible and the UI goes idle (zero redraws). |
+| `toggle()` | `play()` when paused, else `pause()`. |
+| `seek(seconds)` | Jump to a time (clamped to duration). Repaints immediately even while paused. |
+| `stop()` | Pause **and** rewind to 0 — Puree convenience, not an HTML method. |
+
+### Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `current_time` | `float` | Playback position in seconds. |
+| `duration` | `float \| None` | Media duration; `None` until metadata is known (format time labels defensively). Lottie reports `frame_count / fps` — rlottie's frame count includes the last frame, so this can read one frame-time longer than the authoring tool shows. |
+| `paused` | `bool` | `True` when not playing (initial state unless `autoplay`). |
+| `ended` | `bool` | `True` after a non-looping clip finishes (loops never end). |
+| `loop` | `bool` (settable) | Looping state. GIFs may report their file's play count as an `int` (`0` = forever). |
+| `muted` | `bool` (settable) | **Video:** live — audio stops/starts immediately. **GIF/Lottie:** inert stored flag (no audio). |
+| `volume` | `float` (settable) | `0.0`–`1.0`, clamped. **Video:** live on the playing audio handle. **GIF/Lottie:** inert. |
+| `playback_rate` | `float` (settable) | Playback speed. **Video:** a rate ≠ `1.0` force-mutes audio until the rate returns to `1.0` (v1 limitation — `muted` itself is not flipped). |
+| `ready_state` | `str` | `'none'` → nothing loaded (also what a controller reads before its source attaches) · `'metadata'` → duration/size known · `'ready'` → frames decoding · `'unsupported'` → decoder wheel missing or not a playable file · `'error'` → open/decode failure. Disable seek UIs on `unsupported`/`error`. |
+
+### Events — `media.on(event, fn)` / `media.off(event, fn)`
+
+Listeners receive the controller (`fn(media)`) and fire **on the main thread** from the render
+tick — safe to touch containers + `mark_dirty()`. `on()` returns `fn` (handy for `off()`);
+unknown event names raise `ValueError`.
+
+| Event | Fires when |
+|---|---|
+| `play` / `pause` | The paused state edges (button, script, SPACE — any source). |
+| `ended` | A non-looping clip reaches its end. |
+| `seeked` | A seek made **through this controller** completes (source-internal seeks don't fire it). |
+| `timeupdate` | ~every 250 ms while playing (browser-like throttle) — drive time labels from here, not per-frame. |
+| `error` | `ready_state` edges into `'error'`. |
+| `fullscreenchange` | This container enters/leaves fullscreen (button, ESC, script, swap, force-exit). Alias of the container's `on_fullscreen_change` list for media code — **the container list fires first, then this event**; read `media_container.fullscreen` for the new state. All playable formats (video/GIF/lottie) get the alias; non-media containers use the Container API + `on_fullscreen_change` list instead (fullscreen itself works on **all** containers). |
+
+**Gotchas** (by design):
+
+- Listeners persist across YAML/SCSS hot reloads while the source survives (same philosophy as
+  `puree.timers`) — long-lived scripts should `off()` retired listeners or use a stale-root guard
+  (see `tests/helloworld/script.py`).
+- Replaying via `play()` on an ended-but-never-paused clip does not re-fire `play` (no `paused`
+  edge).
+- With `controls: true`, the injected bar owns click/seek/mute interactions — scripts still get
+  every event and can drive the same controller concurrently.
 
 ---
 

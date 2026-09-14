@@ -192,7 +192,7 @@ empty_state:
   class: empty_state
   icon:
     class: empty_icon
-    img: folder_empty
+    img: folder_empty.png
   message:
     class: empty_message
     text: "No projects yet"

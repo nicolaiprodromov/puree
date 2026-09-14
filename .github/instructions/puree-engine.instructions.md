@@ -22,6 +22,23 @@ These files are the Puree framework engine. They run inside Blender's Python env
 | `reload_server.py` | TCP server for `just reload` / `puree reload`, log access (`log_path`, `logs`) | Rendering, parsing, layout |
 | `cli.py` | CLI tool (`puree init/build/install/link/unlink/reload`) | Blender API calls (runs outside Blender) |
 | `native_bindings.py` | Wrap Rust FFI calls | Pure Python implementations of native functions |
+| `media/` | Media decode + playback: `MediaManager`, per-format sources, `MediaClock`, `container.media` controller, default-controls wiring | Layout work, container data-texture rebuilds |
+
+## Media Subsystem (`puree/media/`)
+
+One subsystem owns decode → clock → GPU upload; rendering stays in the existing image overlay
+pass — playback only swaps `ImageInstance.texture`. The `media_manager` singleton is reconciled
+by `attach(image_blocks, instances)` after render creates the image instances (and on hot
+reload), ticked from the render modal's TIMER (`tick()` returns "any texture changed", folded
+into `needs_redraw` — paused/ended media costs zero redraws), and torn down by `shutdown()` on UI
+stop/restart/unregister (joins video decoder threads, stops `aud` audio). Sources are duck-typed
+per format under `decoders/` — adding a format = one source module + one `SOURCE_FACTORIES`
+entry (the asset scan, `is_media_name()` and dispatch all derive from the registry). GIF/SVG
+decode in the Rust core; video (PyAV) and Lottie (rlottie-python) ship bundled with Puree but
+stay lazy-imported as a safety net, degrading to `ready_state 'unsupported'` + one warning. Rules: only the main thread touches `gpu`
+(uploads go through `puree.media.upload.upload_texture`), `bpy`/`gpu` imports live inside
+functions so the package imports cleanly outside Blender, and frames are premultiplied RGBA
+flipped bottom-up.
 
 ## Blender Operator Patterns
 

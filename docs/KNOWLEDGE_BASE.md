@@ -110,9 +110,81 @@ Only 3 properties can be animated via CSS transitions:
 
 This is a deliberate limitation — layout properties (width, height, padding, margin) are computed by Taffy, and re-running Taffy every frame would be too expensive. The transition manager interpolates these 3 properties between states using named easing functions (ease, linear, ease-in, ease-out, ease-in-out). Custom `cubic-bezier()` curves are NOT supported.
 
+## Media Pipeline (GIF / SVG / Video / Lottie)
+
+Media is `puree/media/` (manager, per-format sources, MediaClock, controller) feeding the
+existing image overlay pass: playback = swapping `ImageInstance.texture` per tick. No layout
+work, no container data-texture rebuild, ever. Decoders: Rust `decode_gif`/`rasterize_svg` in
+`puree_core` (built in), PyAV (`av` wheel) for video, `rlottie-python` for Lottie — the Python
+two **ship bundled with Puree core** (in Puree's own manifest/dependency tree since 2026-07-20);
+the lazy-import degrade stays as a safety net: a missing package ⇒ `ready_state 'unsupported'`,
+poster/blank, one logged warning, never a crash (in a normal install that warning means a
+broken/unrefreshed Puree extension). Asset keys are full filenames with extension,
+posix-relative to `assets/` (`icons/play.svg`).
+
+### Overlay pass (containers above images/video)
+
+Needed so the injected controls bar draws on top of the video frame. Design deliberately avoids
+the fragile 68-float stride: `render.py` packs **two data textures with the same packing code**
+— main (non-overlay) and overlay containers — and binds the same shader to each in two handlers.
+Zero GLSL changes. Key facts:
+
+- `overlay: true` is a **subtree flag** propagated at flatten time; the flat container list is
+  never reordered — only the GPU packing filters by flag, so hit detection, scroll offsets,
+  transitions and dirty-sync keep flat indexing untouched.
+- **Handler order** (`POST_PIXEL` handlers fire in registration order): containers →
+  images/video → **overlay containers** → text → text inputs. The image/text handlers
+  self-register lazily on their first operator call; the overlay handler registers between them
+  in `XWZ_OT_start_ui.execute`.
+- **hoverIndex remap discovery**: the fragment shader compares `hoverIndex`/`clickIndex` against
+  each quad's LOCAL index within its pass, so the packer builds flat→local index maps per pass
+  and both draw calls translate the uniforms through them (other-pass containers get `-1`).
+  Forgetting this makes hover highlight the wrong container in the other pass.
+- Hit detection needed no change — the Rust detector reads the full flat container buffer
+  (position-based, not draw-order-based).
+- A UI with zero overlay containers takes the exact pre-overlay path (no second texture/batch).
+
+### Media budgets & idle rule
+
+- **Idle rule (non-negotiable)**: paused/ended/static media triggers zero redraws. The media tick
+  returns "did any visible texture change" and that folds into `needs_redraw` — a 10 fps GIF
+  redraws ~10×/s, a paused video 0×/s.
+- **32 MB per-file budget**: GIFs at/under it pre-upload every frame as GPUTextures (playback =
+  pure swaps); over it they keep CPU frames + a 2-texture upload-on-demand ring. Lottie applies
+  the same rule at the element's current raster size with a progressive per-element cache (first
+  loop renders, later loops swap). Video always streams: decoder thread → bounded queue (6
+  frames, drop-oldest) → 3-texture ring on the main thread.
+- One decoder thread per **playing** video only; pause parks it and after ~2 s grace it exits
+  (play restarts it at the clock position). `MediaManager.shutdown()` joins all threads and stops
+  audio — wired into UI stop/restart, unregister and hot reload, so nothing leaks.
+- SVG is static: rasterized once at content-box size, re-rasterized only after the box changes
+  > 1 px and settles for ~150 ms (drag-resize churn is free).
+- rlottie facts (hard-won): buffers are BGRA, premultiplied, top-down (engine swizzles + flips);
+  its frame count is inclusive (`op - ip + 1`), so `duration = frames/fps` reads one frame-time
+  longer than the authoring tool. Some AE features are outside rlottie's coverage — test exports;
+  ThorVG is the recorded future upgrade path.
+- Audio (video) rides Blender's built-in `aud`: one shared device per session, one handle per
+  playing video; when unmuted at rate 1.0 **audio is the master clock** (video resyncs when drift
+  > 80 ms); muted/rate≠1/no-track falls back to the monotonic clock. `playback_rate != 1.0`
+  force-mutes audio (v1 decision).
+
+### Fullscreen (region "theater mode")
+
+Fullscreen is a **renderer short-circuit, not a document mutation**: while active, the draw
+passes skip the normal document and render only a black backdrop plus the fullscreen subtree —
+the main tree, its layout nodes and data textures stay resident and untouched, so exit is
+instant and byte-exact. The subtree is **re-laid-out in a private Taffy pass** pinned to the
+region box (crisp text, correctly stretched seek bar, valid hit rects — never a geometric scale
+of the old layout), rebuilt on region resize/dirty-sync; hit detection is hot-swapped to the
+subtree rects and ESC is bound for the mode's lifetime. Any container can enter
+(`container.request_fullscreen()`); one element at a time; hot reload/reparse/UI stop
+**force-exit by design** (wired with the `MediaManager.shutdown()` + `unwire_video_controls()`
+teardown trio); controls seek math reads `fullscreen_manager.box_abs(track_id)` while active
+because the main-tree box is stale inside the mode.
+
 ## Built-in Modules
 
-Puree ships 10 built-in modules (all implemented, see API.md for full reference):
+Puree ships 11 built-in modules (all implemented, see API.md for full reference):
 
 | Module | Purpose |
 |--------|--------|
@@ -126,6 +198,7 @@ Puree ships 10 built-in modules (all implemented, see API.md for full reference)
 | `puree.virtual_scroll` | Virtual scrolling for large lists |
 | `puree.collapse` | Instant collapse/expand for disclosure sections (not animated) |
 | `puree.console` | Browser-style `console.log/warn/error/info` — auto-injected into user scripts, shown in the debug panel's Console tab |
+| `puree.media` | GIF/SVG/video/Lottie playback — `MediaManager` singleton, per-format sources, `container.media` controller (play/pause/seek + events), default video controls wiring |
 
 ## Patterns That Work
 
@@ -239,6 +312,15 @@ details.mark_dirty()
 | `transition-timing-function: cubic-bezier(...)` | Custom cubic-bezier not implemented — only named functions |
 | `text-align: justify` | Only `left`, `center`, `right` supported |
 | `visibility: collapse` | Only `visible` and `hidden` supported |
+| `img: my_icon` (extensionless) | **Breaking change (media groundwork, 2026-07)**: `img:` requires the full filename with extension — `img: my_icon.png` (subfolders under `assets/` allowed: `img: icons/x.png`). Extensionless values render nothing and log a one-time "did you mean" error. `font:` keeps its extensionless convention. Same rule for `video:`/`lottie:`. |
+| `transform`/`filter` on a `video:` frame | Media frames are plain image quads — layout size/position, opacity, radius/border on the container apply; no transforms, no filters (same as everywhere else in Puree). |
+| Unmuted autoplay + `playback_rate: 1.5` expecting audio | A rate ≠ 1.0 **force-mutes** video audio until the rate returns to 1.0 (v1 decision). The `muted` attribute is not flipped; the suppression is logged once. |
+| `controls: true` on `lottie:`/`img:` nodes | Controls are a `<video>` feature — injection only happens for `video:` nodes; elsewhere the flag is ignored (debug log). Don't nest another media node inside the injected bar either. |
+| `lottie:` pointing at a non-Bodymovin `.json` | Validated on open (`v`/`fr`/`w`/`h`/`layers` keys required) — config JSONs render nothing with one warning per file. `.lottie` zip containers are not supported (v1). |
+| SPACE to toggle video in a UI with no text input | Key dispatch runs inside the text-input keyboard modal — container-scoped SPACE only works when the UI contains ≥ 1 text input (pre-existing engine constraint). |
+| Comma-grouped selectors in **component** SCSS | The namespacer re-dots only the first selector of a group — `.a, .b {}` leaves `.b` dead. One block per class (share via `@mixin`). |
+| `display: none` in SCSS for a node you'll show later | A node *created* display:none bakes `Display.NONE` into Taffy and never gets a layout box. Create it visible and hide at runtime (`style.display = 'NONE'`), like the controls icon wraps do. |
+| Hot-**adding** a media node / `controls: true` via YAML hot reload | New containers appear but their image/text GPU instances don't exist until UI restart — hot reload only updates existing instances. Attribute edits on existing media nodes reload fine. |
 
 ## Debugging Cheat Sheet
 
@@ -261,6 +343,11 @@ details.mark_dirty()
 | HTTP callback not running | Is the HTTP drain timer registered? Check `just logs` |
 | Virtual scroll empty | Did you call both `set_virtual_data()` and `set_item_renderer()`? |
 | Collapse not working | Ensure first child acts as header; call `mark_dirty()` after toggle (collapse is instant by design) |
+| Video shows only its poster (or nothing) | PyAV (`av`) unavailable even though it ships bundled with Puree (`media.ready_state == 'unsupported'`, one warning in `just logs`) — a broken/unrefreshed Puree install: refresh/reinstall the extension (Preferences → Extensions) or restart Blender. Or `preload: none` without `autoplay` — nothing decodes until `play()`/`seek()`. |
+| Lottie element inert/blank | `rlottie-python` unavailable despite shipping bundled with Puree (one session warning — refresh/reinstall the Puree extension or restart Blender), or the `.json` isn't a Bodymovin document (one warning per file naming it). |
+| Media not animating | Paused/ended media idles **by design** (zero redraws) — check `container.media.paused`/`.ended`. Also: video/lottie default `autoplay` differs (false vs true), and offscreen media keeps its clock running without decoding. |
+| Controls bar invisible | `controls: true` missing on the `video:` node? Bar hot-ADDED via YAML reload (needs UI restart)? Icons blank ⇒ the six `media_*.svg` assets aren't in the addon's `assets/`. Bar renders in the overlay pass — if other overlay content also vanished, check `just logs` for overlay-pass errors. |
+| Fullscreen exits unexpectedly | A reparse/hot reload (any YAML/SCSS save) or UI stop **force-exits fullscreen by design** — the private pass is rebuilt from the parsed tree, so a fresh parse can't stay in the mode. Re-enter via `container.request_fullscreen()` (an `on_fullscreen_change` handler received the `False` event). ESC needs ≥ 1 text input in the UI (key-dispatch constraint) — the controls button and the API always work. |
 
 ## Version History Context
 

@@ -86,7 +86,7 @@ header:
       font: NeueMontreal-Italic
   logo:
     style: header_logo
-    img: loggoui2
+    img: loggoui2.png
 ```
 {% endraw %}
 
@@ -111,7 +111,7 @@ property: "{{param_name, 'default value'}}"
 ```yaml
 text: "{{button_text, 'Submit'}}"      # Text parameter with default
 style: "{{button_style, 'default'}}"     # Style parameter with default
-img: "{{icon_name, 'icon_default'}}"  # Image parameter with default
+img: "{{icon_name, 'icon_default.png'}}"  # Image parameter with default
 ```
 {% endraw %}
 
@@ -332,6 +332,11 @@ $btn-color: #fff !default;
 
 The `!default` flag is key — it allows parent contexts to override these values via component parameters, while providing sensible defaults when no override is given.
 
+> ⚠️ **No comma-grouped selectors in component SCSS.** The namespacer rewrites only the *first*
+> selector of a group, so `.a, .b { ... }` becomes `.ns_a, ns_b { ... }` — the second selector
+> silently stops matching. Write one block per class (use an `@mixin` for shared declarations).
+> This applies to every component's SCSS file, not just the built-ins.
+
 ### Property-Based Access
 
 ```python
@@ -384,6 +389,99 @@ This makes your script code much more readable and maintainable, especially when
 4. **Document Your Components**: Add comments in component files explaining parameters
 5. **Style Separation**: Define component-specific styles in your CSS file, pass style names as parameters
 6. **Avoid Deep Nesting**: Keep component hierarchies shallow for better maintainability
+
+## Default Component: [video_controls]
+
+Puree ships one built-in component in `puree/components/defaults/`: the video controls bar.
+Default components register **after** user components, so a component of the same name in *your*
+`components/` directory shadows the built-in entirely.
+
+### What gets injected
+
+When the parser sees a node with `video:` **and** `controls: true`, it instantiates the
+registered `video_controls` component as the node's **last child**, wrapped in a container named
+`{video_id}_puree_vc`. The wrapper is flagged `overlay: true` (the whole subtree renders in the
+overlay pass, above the video frame) and `passive: true` (hits fall through so the video keeps
+its hover state for auto-hide); the video node itself is marked `focusable` so clicking it arms
+the SPACE shortcut. `puree/media/controls.py` then wires the behavior:
+
+```
+demo_video (your YAML node, video: + controls: true)
+└── demo_video_puree_vc          the bar (absolute, pinned to the video's bottom edge)
+    ├── ..._vc_play              play/pause button (stacked play/pause icon wraps)
+    ├── ..._vc_time              "0:12" position label (updates ~4×/s via timeupdate)
+    ├── ..._vc_track             seek track (full-bar-height hit target)
+    │   └── ..._vc_rail > ..._vc_fill > ..._vc_thumb     progress rail/fill/thumb
+    ├── ..._vc_duration          "1:30" duration label
+    ├── ..._vc_mute              mute button (stacked sound/mute icon wraps)
+    └── ..._vc_fullscreen        fullscreen button (stacked enter/exit icon wraps)
+```
+
+Behavior: play/pause click → `media.toggle()` with event-driven icon swap; drag on the track
+scrubs (throttled ≤ 10 seeks/s, final seek on release — inside fullscreen the seek math reads
+the private fullscreen layout automatically); mute click toggles `media.muted`; fullscreen
+click toggles `container.request_fullscreen()` / `exit_fullscreen()` (region "theater mode" —
+see [PUREE_SPEC.md — Fullscreen](PUREE_SPEC.md#fullscreen--region-presentation-mode)) and its
+icon flips on the `on_fullscreen_change` **event**, so ESC/script exits flip it too;
+**auto-hide** — the bar shows on video hover, fades out (SCSS `opacity` transition, 160 ms
+default) on hover-out while playing, and stays visible while paused/ended (works inside
+fullscreen too); **SPACE** toggles playback while the video is focused (requires at least one
+text input in the UI — engine constraint on key dispatch; ESC-to-exit-fullscreen shares the
+constraint, the button always works). Scripts keep full `container.media` access alongside the
+bar.
+
+### Icon assets
+
+The bar references six icons **by asset name from your addon's `assets/` directory**:
+`media_play.svg`, `media_pause.svg`, `media_sound.svg`, `media_mute.svg`,
+`media_fullscreen.svg`, `media_exit_fullscreen.svg`. They are *not* bundled in the pip package —
+copy them from the Puree repo's `assets/` (or ship your own SVGs under those names). Missing
+icons render nothing and log one "not found" error each.
+
+### Theming
+
+The injected subtree is styled by `video_controls.scss`, compiled **per instance** and namespaced
+to the wrapper: class `.video_controls` becomes `.{video_id}_puree_vc`, and every
+`.video_controls_*` class becomes `.{video_id}_puree_vc_*`. Two supported mechanisms:
+
+1. **Override the namespaced classes** from your own SCSS — defaults are prepended to your
+   styles, so your rules always win by cascade order:
+
+   ```scss
+   // restyle the bar of the video node `demo_video`
+   .demo_video_puree_vc { background-color: rgba(20, 8, 30, 0.9); height: 40px; }
+   .demo_video_puree_vc_fill { background-color: #e87d0d; }
+   ```
+
+2. **Shadow the whole component** — ship your own `components/video_controls.{yaml,scss}`; your
+   copy is injected instead and owns the `!default` variables (`$vc_bar_height`, `$vc_bg`,
+   `$vc_accent`, `$vc_radius`, `$vc_icon_size`, `$vc_btn_size`, `$vc_track_height`,
+   `$vc_thumb_size`, `$vc_text_color`, `$vc_font_size`, `$vc_time_width`, `$vc_fade` — the
+   fullscreen button reuses `$vc_btn_size`/`$vc_icon_size`, no extra variables). Keep the node
+   names (`vc_play`, `vc_time`, `vc_track`, `vc_rail`, `vc_fill`, `vc_duration`, `vc_mute`,
+   `vc_fullscreen`, the `*_ic`/`*_img` icon nodes) if you want the built-in wiring to keep
+   working.
+
+**Hiding the fullscreen button.** There is no `allow_fullscreen` YAML attribute (v1 decision) —
+the button is always injected with `controls: true`. To hide it for one video, set
+`display: none` on the namespaced class from your own SCSS; a node *created* `display: none`
+never gets a layout box, so it neither draws nor hit-tests (permanent hide is exactly the
+baked-`Display.NONE` behavior — verified by test):
+
+```scss
+// hide the fullscreen button on the video node `demo_video`
+.demo_video_puree_vc_fullscreen { display: none; }
+```
+
+> **Why not `!default` overrides directly?** The `!default` variables can't be set as component
+> params at injection time — the injection happens at parse time, before any per-instance param
+> machinery could carry values (unknown YAML attributes never survive onto containers). Override
+> the namespaced classes, or shadow the component and edit the variables in your copy.
+
+Two styling caveats inherited from the engine: no comma-grouped selectors in component SCSS (see
+the warning above), and the icon wraps must not default to `display: none` in SCSS — a node
+created hidden never gets a layout box. The default component starts both icon states visible and
+lets the wiring hide one at startup.
 
 ## Complete Example
 

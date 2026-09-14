@@ -11,7 +11,7 @@
 [![Blender](https://img.shields.io/badge/Blender-5.1%2B-orange?style=flat&logo=blender&logoColor=white)](https://www.blender.org/)
 [![Rust](https://img.shields.io/badge/Rust-core-blueviolet?style=flat&logo=rust&logoColor=white)](https://github.com/nicolaiprodromov/puree/tree/master/puree/puree_core)
 
-*Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, and markdown rendering; addressing the limitations of Blender's native UI system.
+*Puree UI* is an open-source, pip-installable, GPU-accelerated UI framework for Blender extensions. It provides a web-inspired YAML/SCSS/Python stack for building modern, responsive interfaces — with built-in modules for networking, persistence, animation, markdown rendering, and native media playback (GIF, SVG, video, Lottie); addressing the limitations of Blender's native UI system.
 
 > Puree is built with a **Rust** core, **Blender's native GPU module**, and the **Taffy** layout engine to deliver a high-performance, GPU-accelerated UI engine with a familiar web development paradigm.
 
@@ -74,6 +74,29 @@ Check the [tests](/tests) folder for a complete example of what can be accomplis
 [*Scene object tracking example*](https://youtu.be/43_a7iXoEj4?si=DoZpDfxBQ6YlxP_u)
 
 </div>
+
+---
+
+## Media: GIF · SVG · MP4 · Lottie
+
+Puree plays media natively inside panels — animated GIFs and crisp vector SVGs ride the plain `img:` attribute, videos get HTML-style attributes plus a default controls bar, and Lottie/Bodymovin animations loop out of the box:
+
+```yaml
+spinner:  { style: spinner, img: loading.gif }     # animates automatically
+logo:     { style: logo, img: brand.svg }          # crisp at any panel size
+demo_video:
+  style: demo_video
+  video: intro.mp4
+  controls: true          # play/seek/mute bar, auto-hides like a browser
+  autoplay: true
+  loop: true
+  muted: true
+celebration: { style: celebration, lottie: confetti.json }
+```
+
+Scripts drive playback through `container.media` (`play()`, `seek()`, `on("timeupdate", fn)`, …). GIF/SVG decode in the Rust core; the video (PyAV) and Lottie (rlottie) decoders ship bundled with Puree — `video:`/`lottie:` work out of the box, and a missing package still degrades gracefully. See [PUREE_SPEC.md — Media Elements](docs/PUREE_SPEC.md#10-media-elements).
+
+Any container can also take over the whole panel region as a "theater mode" — `container.request_fullscreen()` / `exit_fullscreen()`, with `ESC` and the controls-bar button as exits. The default video controls expose it out of the box. See [PUREE_SPEC.md — Fullscreen](docs/PUREE_SPEC.md#fullscreen---region-presentation-mode).
 
 ---
 

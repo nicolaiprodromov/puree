@@ -205,7 +205,7 @@ A more complete file structure would look like this:
 ```
 puree_project/
     ├── assets/
-    │   └── your images (PNG, SVG)
+    │   └── your images & media (PNG, GIF, SVG, MP4, Lottie JSON)
     ├── fonts/
     │   └── your fonts (.ttf, .otf)
     ├── static/
