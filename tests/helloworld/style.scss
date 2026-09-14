@@ -741,6 +741,115 @@ $dur-normal:   0.25s;
 .md_inline_row { flex-direction: row; height: 20px; }
 .md_bold, .md_text_span, .md_code_inline { height: 20px; font-size: 13px; color: $txt-dim; }
 
+// ── 08 · Media ───────────────────────────────────────────────────────
+.media_frame {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    height: 220px;
+    padding: $space-md;
+    background-color: #161616;
+    border: 1px solid $line;
+    border-color: $line;
+    border-radius: 6px;
+}
+
+// The GIF aspect-fits into this box (320x240 source), centered.
+.media_gif {
+    width: 100%;
+    height: 100%;
+    --img-align-h: center;
+    --img-align-v: center;
+}
+
+.media_meta_row {
+    flex-direction: row;
+    align-items: center;
+    gap: $space-sm;
+    height: 20px;
+}
+
+.media_badge {
+    width: 34px;
+    height: 18px;
+    border-radius: 4px;
+    background-color: rgba(232, 125, 13, 0.16);
+    border: 1px solid rgba(232, 125, 13, 0.4);
+    border-color: rgba(232, 125, 13, 0.4);
+    color: #eda355;
+    font-size: 10px;
+    letter-spacing: 1px;
+    @include center-text;
+}
+
+.media_meta {
+    flex-grow: 1;
+    height: 14px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: $txt-mute;
+}
+
+// The SVG aspect-fits into the same well (240x180 viewBox), centered.
+.media_svg {
+    width: 100%;
+    height: 100%;
+    --img-align-h: center;
+    --img-align-v: center;
+}
+
+// Selection-blue variant of .media_badge for the vector tile.
+.svg_badge {
+    background-color: rgba(71, 114, 179, 0.18);
+    border-color: rgba(71, 114, 179, 0.5);
+    color: $accent-lite;
+}
+
+// The video aspect-fits into its media_frame (854x480 source), centered.
+// Not passive — the engine-injected [video_controls] bar (controls: true)
+// needs the container's hover for auto-hide and its focus for SPACE.
+// Theme the bar by overriding .media_video_puree_vc_* classes here.
+.media_video {
+    width: 100%;
+    height: 100%;
+    --img-align-h: center;
+    --img-align-v: center;
+}
+
+.media_badge_mp4 {
+    width: 34px;
+    height: 18px;
+    border-radius: 4px;
+    background-color: rgba(71, 114, 179, 0.16);
+    border: 1px solid rgba(71, 114, 179, 0.4);
+    border-color: rgba(71, 114, 179, 0.4);
+    color: $accent-hi;
+    font-size: 10px;
+    letter-spacing: 1px;
+    @include center-text;
+}
+
+// The Lottie aspect-fits into its media_frame (800x600 canvas), centered.
+// autoplay/loop are the lottie defaults (lottie-player parity) — the YAML
+// sets neither; rlottie re-rasterizes on panel resize like the SVG tile.
+.media_lottie {
+    width: 100%;
+    height: 100%;
+    --img-align-h: center;
+    --img-align-v: center;
+}
+
+// Neutral wide variant of .media_badge for the lottie tile ("LOTTIE"
+// needs more than the 34px the three-letter badges use).
+.lottie_badge {
+    width: 52px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.24);
+    color: $txt-dim;
+}
+
 // ── Footer ───────────────────────────────────────────────────────────
 .footer {
     flex-shrink: 0;

@@ -265,13 +265,88 @@ app:
               md_body:
                 class: md_body
 
+            # ── 08 · Media ──────────────────────────────────────────
+            section_media:
+              class: section
+              eyebrow_media:
+                class: eyebrow
+                num_media: { class: eyebrow_num, text: "08", passive: true }
+                title_media: { class: eyebrow_title, text: MEDIA, passive: true }
+                rule_media: { class: eyebrow_rule, passive: true }
+              media_intro:
+                class: section_intro
+                text: Animated GIFs ride the img attribute — no new syntax, they just play.
+                passive: true
+              media_frame:
+                class: media_frame
+                media_gif: { class: media_gif, img: demo_munky.gif, passive: true }
+              media_meta_row:
+                class: media_meta_row
+                media_badge: { class: media_badge, text: GIF, font: NeueMontreal-Bold, passive: true }
+                media_meta:
+                  class: media_meta
+                  text: 58 frames · per-frame delays · loops forever
+                  passive: true
+              media_caption:
+                class: caption
+                text: Decoded once in the Rust core, composited to full frames, then played by swapping GPU textures — the layout never recomputes. Click the frame to go fullscreen · ESC exits.
+                passive: true
+              svg_frame:
+                class: media_frame
+                media_svg: { class: media_svg, img: demo_vector.svg, passive: true }
+              svg_meta_row:
+                class: media_meta_row
+                svg_badge: { class: media_badge svg_badge, text: SVG, font: NeueMontreal-Bold, passive: true }
+                svg_meta:
+                  class: media_meta
+                  text: 240×180 viewBox · rasterized at layout size · crisp at any zoom
+                  passive: true
+              svg_caption:
+                class: caption
+                text: Vectors ride img too — resvg rasterizes at the element's content-box size, and a debounced re-raster keeps edges sharp when the panel resizes.
+                passive: true
+              media_video_frame:
+                class: media_frame
+                media_video:
+                  class: media_video
+                  video: demo_video.mp4
+                  controls: true
+                  autoplay: true
+                  loop: true
+                  muted: true
+              media_video_meta_row:
+                class: media_meta_row
+                media_video_badge: { class: media_badge_mp4, text: MP4, font: NeueMontreal-Bold, passive: true }
+                media_video_meta:
+                  class: media_meta
+                  text: MP4 + AAC · unmute me
+                  passive: true
+              media_video_caption:
+                class: caption
+                text: "controls: true injects the default bar — play/pause, drag-to-seek, mute and auto-hide, drawn in the overlay pass above the frame. Unmute it and the AAC track becomes the master clock — frames resync to audio. Sintel trailer © Blender Foundation · CC-BY 3.0."
+                passive: true
+              lottie_frame:
+                class: media_frame
+                media_lottie: { class: media_lottie, lottie: demo_reel.json, passive: true }
+              lottie_meta_row:
+                class: media_meta_row
+                lottie_badge: { class: media_badge lottie_badge, text: LOTTIE, font: NeueMontreal-Bold, passive: true }
+                lottie_meta:
+                  class: media_meta
+                  text: 800×600 Bodymovin · 125 frames at 30 fps · autoplay + loop by default
+                  passive: true
+              lottie_caption:
+                class: caption
+                text: Bodymovin JSON on the lottie attribute — rlottie rasterizes each frame at the element's content-box size, cached per loop under the media budget. The reel is rlottie's own insta_camera sample (MIT) — same container.media API, decoded by the rlottie that ships with Puree.
+                passive: true
+
             # ── Footer ──────────────────────────────────────────────
             footer:
               class: footer
               footer_rule: { class: footer_rule, passive: true }
               footer_row:
                 class: footer_row
-                footer_mark: { class: footer_mark, img: loggoui2, passive: true }
+                footer_mark: { class: footer_mark, img: loggoui2.png, passive: true }
                 footer_lines:
                   class: footer_lines
                   footer_credit:

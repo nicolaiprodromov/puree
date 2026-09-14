@@ -394,5 +394,55 @@ def main(self, app):
     except Exception:
         greet_binding = None  # shortcut is sugar — the Greet button always works
 
+    # ── 08 · Media — default controls own the interaction ─────────────
+    # The video declares `controls: true` in YAML, so the engine injects
+    # the [video_controls] bar (play/pause, drag-seek, mute, auto-hide) and
+    # wires it — the old click-to-toggle demo would double-handle clicks
+    # (a click on the play button also clicks the video container) and was
+    # retired in its favor. container.media stays the script-side API;
+    # this just logs the controls' play/pause events as a demo of on().
+    # Listeners persist across hot reloads while the source survives, so
+    # the stale-root guard unsubscribes retired runs (off() is safe inside
+    # a listener — _emit iterates a copy).
+    media_video = root.media_video
+
+    def on_video_state(m):
+        if _is_stale(root):
+            m.off("play", on_video_state)
+            m.off("pause", on_video_state)
+            return
+        state = "paused" if m.paused else "playing"
+        console.log(f"[media] video {state} @ {m.current_time:.1f}s (ready: {m.ready_state})")
+
+    try:
+        media_video.media.on("play", on_video_state)
+        media_video.media.on("pause", on_video_state)
+    except Exception as e:
+        console.warn(f"[media] video controller unavailable: {e}")
+
+    # ── Fullscreen — any container can do it, not just video ─────────
+    # The video tile already has a fullscreen button in its controls bar.
+    # This demos the same capability on a plain container via the generic
+    # API: click the GIF frame → request_fullscreen() fills the editor
+    # region ("theater mode"); while fullscreen the frame IS the hit
+    # surface, so a second click — or ESC — exits. on_fullscreen_change
+    # fires for every path (click, ESC, hot-reload force-exit).
+    gif_frame = root.media_frame
+
+    def on_gif_click(container):
+        if _is_stale(root):
+            return  # belt: retired tree — leave fullscreen to the new run
+        if gif_frame.fullscreen:
+            gif_frame.exit_fullscreen()
+        else:
+            gif_frame.request_fullscreen()
+
+    def on_gif_fullscreen(container, is_fullscreen):
+        state = "fills the region — click or ESC exits" if is_fullscreen else "back in the page"
+        console.log(f"[fullscreen] gif tile {state}")
+
+    gif_frame.click.append(on_gif_click)
+    gif_frame.on_fullscreen_change.append(on_gif_fullscreen)
+
     console.log("[helloworld] hello, world — page compiled, scripts wired")
     return app
