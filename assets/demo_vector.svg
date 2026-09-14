@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+  <!-- Puree helloworld demo vector: a bezier curve with its control
+       handles, drawn in the demo palette (Blender greys + selection
+       blue + a touch of active-object orange). No text elements, so
+       rendering never depends on any particular font being installed. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="1" stop-color="#191919"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4772b3"/>
+      <stop offset="0.55" stop-color="#5b8bd4"/>
+      <stop offset="1" stop-color="#6aa5dc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.65">
+      <stop offset="0" stop-color="#4772b3" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#4772b3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- card -->
+  <rect x="1.5" y="1.5" width="237" height="177" rx="10" fill="url(#bg)"
+        stroke="#ffffff" stroke-opacity="0.10" stroke-width="1"/>
+
+  <!-- faint grid -->
+  <g stroke="#ffffff" stroke-opacity="0.05" stroke-width="1">
+    <path d="M60 12 V168"/>
+    <path d="M120 12 V168"/>
+    <path d="M180 12 V168"/>
+    <path d="M12 60 H228"/>
+    <path d="M12 120 H228"/>
+  </g>
+
+  <!-- glow under the curve -->
+  <ellipse cx="120" cy="96" rx="96" ry="60" fill="url(#glow)"/>
+
+  <!-- control handles (dashed) -->
+  <g stroke="#6f6f6f" stroke-width="1.5" stroke-dasharray="4 4">
+    <path d="M36 132 L76 44"/>
+    <path d="M204 132 L164 44"/>
+  </g>
+
+  <!-- the curve -->
+  <path d="M36 132 C 76 44, 164 44, 204 132" fill="none"
+        stroke="url(#stroke)" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- handle endpoints -->
+  <circle cx="76" cy="44" r="5" fill="none" stroke="#85aede" stroke-width="2"/>
+  <circle cx="164" cy="44" r="5" fill="none" stroke="#85aede" stroke-width="2"/>
+
+  <!-- anchor points -->
+  <g fill="#e87d0d" stroke="#1f1f1f" stroke-width="2">
+    <rect x="30" y="126" width="12" height="12" rx="2.5"/>
+    <rect x="198" y="126" width="12" height="12" rx="2.5"/>
+  </g>
+
+  <!-- apex marker on the curve -->
+  <circle cx="120" cy="66" r="4.5" fill="#e6e6e6"/>
+</svg>
