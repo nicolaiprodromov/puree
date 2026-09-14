@@ -1,0 +1,92 @@
+# Puree default video controls - [video_controls]
+# ------------------------------------------------
+# Instantiated automatically by the parser as the LAST child of any node
+# with `video:` + `controls: true` (MEDIA_PLAN section 7.2); the injected
+# wrapper is named `puree_vc`, so the subtree namespaces to
+# {video_id}_puree_vc / {video_id}_puree_vc_vc_play / ... . The whole
+# subtree is flagged overlay=True by the injector so it renders in the
+# overlay container pass, ABOVE the video frame.
+#
+# Interaction contract (wired by puree/media/controls.py):
+#   - the wrapper and every decorative node are passive (hits fall through
+#     to the video container, which keeps its hover state for auto-hide);
+#   - vc_play / vc_mute / vc_track / vc_fullscreen are the only non-passive
+#     hit targets;
+#   - the paired *_ic icon wraps swap via style.display FLEX/NONE (their
+#     img child also gets style.opacity 0/1 - see controls.py); the
+#     fullscreen pair flips on the on_fullscreen_change EVENT (so ESC and
+#     script exits flip it too), never on the click itself;
+#   - labels carry initial text so their text instances exist at startup.
+#
+# A user component named `video_controls` shadows this file entirely
+# (defaults register after user components - Phase 0 contract).
+video_controls:
+  class: video_controls
+  passive: true
+  vc_play:
+    class: video_controls_play
+    vc_play_ic:
+      class: video_controls_play_ic
+      passive: true
+      vc_play_img:
+        class: video_controls_icon
+        img: media_play.svg
+        passive: true
+    vc_pause_ic:
+      class: video_controls_pause_ic
+      passive: true
+      vc_pause_img:
+        class: video_controls_icon
+        img: media_pause.svg
+        passive: true
+  vc_time:
+    class: video_controls_time
+    text: "0:00"
+    passive: true
+  vc_track:
+    class: video_controls_track
+    vc_rail:
+      class: video_controls_rail
+      passive: true
+      vc_fill:
+        class: video_controls_fill
+        passive: true
+        vc_thumb:
+          class: video_controls_thumb
+          passive: true
+  vc_duration:
+    class: video_controls_duration
+    text: "0:00"
+    passive: true
+  vc_mute:
+    class: video_controls_mute
+    vc_sound_ic:
+      class: video_controls_sound_ic
+      passive: true
+      vc_sound_img:
+        class: video_controls_icon
+        img: media_sound.svg
+        passive: true
+    vc_mute_ic:
+      class: video_controls_mute_ic
+      passive: true
+      vc_mute_img:
+        class: video_controls_icon
+        img: media_mute.svg
+        passive: true
+  vc_fullscreen:
+    class: video_controls_fullscreen
+    vc_fs_ic:
+      class: video_controls_fs_ic
+      passive: true
+      vc_fs_img:
+        class: video_controls_icon
+        img: media_fullscreen.svg
+        passive: true
+    vc_exit_fs_ic:
+      class: video_controls_exit_fs_ic
+      passive: true
+      vc_exit_fs_img:
+        class: video_controls_icon
+        img: media_exit_fullscreen.svg
+        passive: true

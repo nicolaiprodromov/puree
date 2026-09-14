@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Puree default video controls: muted glyph -->
+  <path d="M4 9.5 L4 14.5 L8 14.5 L13 18.5 L13 5.5 L8 9.5 Z" fill="#ffffff"/>
+  <path d="M15.2 9.5 L20.2 14.5 M20.2 9.5 L15.2 14.5" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

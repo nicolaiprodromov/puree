@@ -1,0 +1,175 @@
+// ─── Puree default video controls ────────────────────────────────────
+// Styles for the [video_controls] component (video_controls.yaml),
+// injected under nodes with `video:` + `controls: true`. Compiled twice:
+//   1. per instance, namespaced to {video_id}_puree_vc_* (the compile
+//      that actually styles the injected subtree);
+//   2. un-namespaced by the defaults prepend (get_default_scss) - those
+//      plain .video_controls_* selectors match nothing and are inert.
+// Theming: override the namespaced classes from your own SCSS (user
+// styles always win by cascade order), or shadow the whole component by
+// shipping your own components/video_controls.{yaml,scss} - your copy
+// then also owns these !default variables.
+//
+// The bar is ANCHORED WITH position:absolute inside the video node
+// (Puree supports absolute + top/right/bottom/left insets - PUREE_SPEC
+// "position"): left/right/bottom 0 pins a full-width bar to the video's
+// bottom edge. opacity carries a transition so the auto-hide fade in
+// controls.py animates through the engine's TransitionManager (opacity
+// is one of the three transition-animatable properties).
+//
+// NOTE: no comma-grouped selectors here - the component namespacer
+// re-dots only the first selector of a group, so grouped classes are
+// expressed as @mixin + one block per class.
+
+$vc_bar_height: 32px !default;
+$vc_bg: rgba(12, 12, 14, 0.85) !default;
+$vc_accent: #4772b3 !default;
+$vc_radius: 4px !default;
+$vc_icon_size: 14px !default;
+$vc_btn_size: 22px !default;
+$vc_track_height: 4px !default;
+$vc_thumb_size: 8px !default;
+$vc_text_color: rgba(255, 255, 255, 0.92) !default;
+$vc_font_size: 10px !default;
+$vc_time_width: 34px !default;
+$vc_fade: 160ms !default;
+
+@mixin vc_button {
+  width: $vc_btn_size;
+  height: $vc_btn_size;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+// Stacked icon wraps: both states occupy the same spot (absolute within
+// the button); controls.py toggles style.display FLEX/NONE on them. They
+// must NOT default to display:none here - a node created display:none
+// never gets a layout box, so the engine could not show it later.
+@mixin vc_icon_wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin vc_time_label {
+  width: $vc_time_width;
+  height: 14px;
+  flex-shrink: 0;
+  font-size: $vc_font_size;
+  letter-spacing: 0.5px;
+  color: $vc_text_color;
+  text-align: center;
+}
+
+// Wrapper == the bar (subtree root; auto-hide animates ITS opacity, and
+// accumulated opacity fades every descendant container with it).
+.video_controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: $vc_bar_height;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0px 10px;
+  background-color: $vc_bg;
+  border-radius: $vc_radius;
+  transition: opacity $vc_fade ease;
+}
+
+// Play/pause + mute + fullscreen buttons (the only non-passive nodes
+// besides the track). Hide the fullscreen button per video from user SCSS
+// via the namespaced class: .{video_id}_puree_vc_fullscreen { display: none; }
+.video_controls_play {
+  @include vc_button;
+}
+.video_controls_play:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.video_controls_mute {
+  @include vc_button;
+}
+.video_controls_mute:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.video_controls_fullscreen {
+  @include vc_button;
+}
+.video_controls_fullscreen:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.video_controls_play_ic {
+  @include vc_icon_wrap;
+}
+.video_controls_pause_ic {
+  @include vc_icon_wrap;
+}
+.video_controls_sound_ic {
+  @include vc_icon_wrap;
+}
+.video_controls_mute_ic {
+  @include vc_icon_wrap;
+}
+.video_controls_fs_ic {
+  @include vc_icon_wrap;
+}
+.video_controls_exit_fs_ic {
+  @include vc_icon_wrap;
+}
+
+.video_controls_icon {
+  width: $vc_icon_size;
+  height: $vc_icon_size;
+  flex-shrink: 0;
+  --img-align-h: center;
+  --img-align-v: center;
+}
+
+.video_controls_time {
+  @include vc_time_label;
+}
+.video_controls_duration {
+  @include vc_time_label;
+}
+
+// Seek track: full bar height = a fat hit target; the visible rail is a
+// thin centered strip inside it.
+.video_controls_track {
+  flex-grow: 1;
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
+}
+
+.video_controls_rail {
+  width: 100%;
+  height: $vc_track_height;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+// Progress fill - width is driven at runtime (set_property("width", "N%")).
+.video_controls_fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 2px;
+  background-color: $vc_accent;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.video_controls_thumb {
+  width: $vc_thumb_size;
+  height: $vc_thumb_size;
+  border-radius: $vc_thumb_size * 0.5;
+  margin-right: $vc_thumb_size * -0.5;
+  flex-shrink: 0;
+  background-color: #ffffff;
+}
