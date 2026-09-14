@@ -7,6 +7,7 @@ mod config_parser;
 mod css;
 mod file_watcher;
 mod hit_detection;
+mod media;
 mod space_mapper;
 mod types;
 
@@ -18,6 +19,7 @@ use config_parser::{ConfigParseResult, ConfigParser, SpaceValidationResult, Them
 use css::{CSSCascade, CSSParser, SCSSCompiler};
 use file_watcher::PyFileWatcher;
 use hit_detection::{ContainerProcessor, HitDetector};
+use media::{decode_gif, probe_svg, rasterize_svg};
 
 #[pymodule]
 fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -40,6 +42,9 @@ fn puree_rust_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_color_py, m)?)?;
     m.add_function(wrap_pyfunction!(interpolate_color_py, m)?)?;
     m.add_function(wrap_pyfunction!(rotate_gradient_py, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_gif, m)?)?;
+    m.add_function(wrap_pyfunction!(probe_svg, m)?)?;
+    m.add_function(wrap_pyfunction!(rasterize_svg, m)?)?;
     Ok(())
 }
 

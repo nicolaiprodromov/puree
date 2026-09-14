@@ -22,6 +22,9 @@ csscolorparser = "0.7"
 palette = "0.7"
 notify = "6.1"
 crossbeam-channel = "0.5"
+image = { version = "0.25", default-features = false, features = ["gif"] }
+gif = "0.13"
+resvg = "0.47"
 
 [profile.release]
 opt-level = 3

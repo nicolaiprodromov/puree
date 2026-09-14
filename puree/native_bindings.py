@@ -303,3 +303,37 @@ class CSSCascade:
 
     def resolve(self, containers: list, state: str = "normal", viewport=None) -> Dict[str, Dict[str, str]]:
         return self._cascade.resolve(containers, state, viewport)
+
+
+def decode_gif(path: str):
+    """Decode a GIF into fully composited frames (Rust core).
+
+    Returns ``(width, height, frames, delays_ms, loop_count)`` where
+    ``frames`` is a list of premultiplied RGBA8 ``bytes`` (bottom-up
+    scanlines, ``width * height * 4`` each), ``delays_ms`` the per-frame
+    delays with the browser <20ms -> 100ms clamp applied, and
+    ``loop_count`` 0 for loop-forever else the total play count.
+    """
+    return puree_rust_core.decode_gif(path)
+
+
+def probe_svg(path: str):
+    """Intrinsic ``(width, height)`` of an SVG document (Rust core).
+
+    Resolved by usvg from the width/height attributes with a viewBox
+    fallback - lets aspect-ratio fitting run before the first raster.
+    """
+    return puree_rust_core.probe_svg(path)
+
+
+def rasterize_svg(path: str, width: int, height: int, fonts_dir: str = None):
+    """Rasterize an SVG to exactly ``width x height`` (Rust core).
+
+    Returns premultiplied RGBA8 ``bytes`` in bottom-up scanline order
+    (``width * height * 4`` total), ready for GPUTexture upload. The
+    caller derives ``width x height`` from ``probe_svg`` to preserve the
+    intrinsic aspect. ``fonts_dir`` (e.g. the addon's ``fonts/``) is
+    merged into the shared system-font database on first sight so
+    ``<text>`` elements resolve bundled fonts.
+    """
+    return puree_rust_core.rasterize_svg(path, width, height, fonts_dir)
