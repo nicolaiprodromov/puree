@@ -51,9 +51,9 @@ build:
 build:
     @{{python}} -c "import sys; sys.path.insert(0, '.'); from puree.cli import cmd_build; cmd_build(None)"
 
+# Fetch dependency wheels for EVERY manifest platform, rebuild the puree_ui wheel, rewrite the manifest
 wheels:
-    @{{python}} -m pip download --only-binary=:all: --python-version 3.13 --dest wheels puree-ui
-    @{{python}} dist/update_wheels.py
+    @{{python}} dist/fetch_wheels.py
 
 # ── Development workflow ─────────────────────────────────────────────
 

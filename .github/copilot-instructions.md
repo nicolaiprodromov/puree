@@ -134,7 +134,7 @@ just deploy           # Link + reload (quick dev cycle)
 just install          # Install puree CLI locally for testing (creates .venv)
 just venv             # Create venv and install CLI in editable mode
 just install-deps     # Install wheel dependencies into Blender site-packages
-just wheels           # Download Python dependency wheels
+just wheels           # Fetch dependency wheels for all platforms + rebuild puree_ui wheel + rewrite manifest
 just ci               # Run all CI checks locally (lint, format, clippy, test)
 just bump x.y.z       # Version bump everywhere
 just release x.y.z    # Bump, tag, push — GitHub Actions builds & publishes

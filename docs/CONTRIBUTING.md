@@ -86,7 +86,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 | `just install` | Install puree CLI locally for testing (creates .venv) |
 | `just venv` | Create venv and install CLI in editable mode |
 | `just install-deps` | Install wheel dependencies into Blender’s extension site-packages |
-| `just wheels` | Download platform-specific dependency wheels |
+| `just wheels` | Download dependency wheels for every manifest platform, rebuild the `puree_ui` wheel, rewrite the manifest |
 | `just bump x.y.z` | Update version across all project files and rebuild |
 | `just release x.y.z` | Bump, commit, tag, and push — GitHub Actions handles build & publish |
 | `just ci` | Run all CI checks locally (Python lint/format, Rust build/clippy/test/fmt) |

@@ -51,8 +51,7 @@ build:
 	if [ -f "$$OUTPUT" ]; then echo "Build successful: $$OUTPUT"; else echo "Build failed!"; exit 1; fi
 
 wheels:
-	@pip download --only-binary=:all: --python-version 3.13 --dest wheels puree-ui
-	@$(PYTHON) dist/update_wheels.py
+	@$(PYTHON) dist/fetch_wheels.py
 
 # ── Development workflow ─────────────────────────────────────────────
 
