@@ -159,9 +159,12 @@ jobs:
           MAJOR_MINOR="${BLENDER_VERSION%.*}"
           URL="https://download.blender.org/release/Blender${MAJOR_MINOR}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           echo "$URL"
-          curl -fsSL "$URL" -o blender.tar.xz
+          # Download and unpack OUTSIDE the workspace: `extension build` packs the whole
+          # source dir, and the manifest's paths_exclude_pattern would not catch a stray
+          # tarball (dry run #2 shipped a 378 MB blender.tar.xz inside every zip).
           mkdir -p "$RUNNER_TEMP/blender"
-          tar -xJf blender.tar.xz -C "$RUNNER_TEMP/blender" --strip-components=1
+          curl -fsSL "$URL" -o "$RUNNER_TEMP/blender.tar.xz"
+          tar -xJf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP/blender" --strip-components=1
           "$RUNNER_TEMP/blender/blender" --version | head -1
 
       - name: Build extension zips (one per platform)
@@ -175,6 +178,12 @@ jobs:
             --verbose
           ls -la release_out/
           test "$(ls release_out/*.zip | wc -l)" -eq 4
+          # Size guard: a platform zip is ~50-70 MB (its own wheels + assets + source).
+          # Anything much bigger means a stray file got packed from the workspace.
+          for z in release_out/*.zip; do
+            size=$(stat -c%s "$z")
+            test "$size" -lt 157286400 || { echo "::error::$z is $size bytes (>150 MB) - something extra got packed into the extension"; exit 1; }
+          done
 
       - name: Render release notes
         run: |
