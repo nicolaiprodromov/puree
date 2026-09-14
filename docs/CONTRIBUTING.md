@@ -110,6 +110,8 @@ just ci
 
 If CI fails on your PR, check the **Actions** tab on GitHub for details.
 
+Toolchains are pinned so that "passes locally" means "passes in CI": **ruff 0.9.10** (`ci.yml` and the `justfile`) and **Rust 1.90.0** (`puree/puree_core/rust-toolchain.toml`, which rustup applies locally and both workflows read). `Cargo.lock` is committed and CI builds with `--locked`. To upgrade a toolchain, bump the pin, run the checks, fix what the new version flags, and commit it all together.
+
 Releases are automated: `just release x.y.z` bumps the version, tags, and pushes. GitHub Actions then builds the native core on all four platforms, packs them into one `puree-ui` wheel, fetches the dependency wheels, builds one extension zip per platform, publishes `puree-ui` to PyPI, and creates a GitHub Release with the zips. To test the pipeline without publishing, trigger the **Release** workflow manually from the Actions tab — a manual run builds everything and uploads the results as an artifact instead.
 
 Native binaries are never committed: `just build_core` writes `puree/native_binaries/<platform>/` for your machine (`windows-x64`, `linux-x64`, `macos-arm64`, `macos-x64`), and the release wheel carries all four.

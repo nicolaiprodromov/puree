@@ -53,7 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Same compiler as local builds and ci.yml: read from rust-toolchain.toml.
+      - name: Read pinned Rust version
+        id: rust
+        shell: bash
+        run: echo "version=$(sed -nE 's/^channel *= *"([^"]+)".*/\1/p' puree/puree_core/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.rust.outputs.version }}
 
       - uses: Swatinem/rust-cache@v2
         with:

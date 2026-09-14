@@ -16,8 +16,10 @@ jobs:
         with:
           python-version: '3.13'
 
+      # ruff is pinned to the version the repo is formatted with (also pinned in the
+      # justfile). Bumping it = bump both pins, run `ruff format`, commit together.
       - name: Install dependencies
-        run: pip install ruff pyyaml build
+        run: pip install ruff==0.9.10 pyyaml build
 
       - name: Lint
         run: ruff check puree/ __init__.py tests/ dist/ setup.py
@@ -50,25 +52,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      # The Rust version lives in puree/puree_core/rust-toolchain.toml (single source of
+      # truth for local builds and CI) - never track a moving `stable` here.
+      - name: Read pinned Rust version
+        id: rust
+        run: echo "version=$(sed -nE 's/^channel *= *"([^"]+)".*/\1/p' puree/puree_core/rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ steps.rust.outputs.version }}
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: puree/puree_core
 
+      # --locked: Cargo.lock is committed; fail loudly if it is out of date instead of
+      # silently re-resolving dependencies to versions nobody tested.
       - name: Build
         working-directory: puree/puree_core
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: Clippy
         working-directory: puree/puree_core
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --locked -- -D warnings
 
       - name: Test
         working-directory: puree/puree_core
-        run: cargo test
+        run: cargo test --locked
 
       - name: Format check
         working-directory: puree/puree_core

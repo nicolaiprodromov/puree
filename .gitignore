@@ -47,7 +47,9 @@ __pycache__/
 /puree/puree_core/target/
 /puree/native_binaries/
 **/*.rs.bk
-Cargo.lock
 
 .ruff_cache/
 .devcontainer/
+
+
+youtube/

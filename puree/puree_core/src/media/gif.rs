@@ -31,7 +31,9 @@ fn clamp_delay_ms(delay_ms: u32) -> u16 {
 /// (img_op.draw_all_images), matching `bpy.data.images` uploads which use
 /// `alpha_mode = "PREMUL"` - so decoded frames must be premultiplied too.
 fn premultiply_rgba_in_place(pixels: &mut [u8]) {
-    for px in pixels.chunks_exact_mut(4) {
+    // `as_chunks_mut` (stable since 1.88) gives `&mut [u8; 4]` per pixel; the
+    // remainder is empty for w*h*4 buffers, exactly like chunks_exact_mut(4).
+    for px in pixels.as_chunks_mut::<4>().0 {
         let a = px[3] as u32;
         if a == 255 {
             continue;
@@ -134,7 +136,7 @@ pub fn decode_gif(py: Python, path: &str) -> PyResult<DecodedGif> {
         })?;
 
         let (num_ms, den_ms) = frame.delay().numer_denom_ms();
-        let raw_ms = if den_ms == 0 { 0 } else { num_ms / den_ms };
+        let raw_ms = num_ms.checked_div(den_ms).unwrap_or(0);
         let delay = if raw_ms == 0 {
             DEFAULT_DELAY_MS
         } else {

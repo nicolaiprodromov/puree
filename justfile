@@ -307,10 +307,8 @@ ci:
         exit 1
     fi
     RUFF="$VENV/bin/ruff"
-    if [ ! -f "$RUFF" ]; then
-        echo "Installing ruff into .venv..."
-        "$VENV/bin/pip" install ruff --quiet
-    fi
+    # pinned - same version as ci.yml; bump both together and reformat
+    "$VENV/bin/pip" install "ruff==0.9.10" --quiet
     TARGETS="puree/ __init__.py tests/ dist/ setup.py"
     echo "── Python format (auto-fix) ──"
     "$RUFF" format $TARGETS
@@ -343,10 +341,8 @@ fix:
         exit 1
     fi
     RUFF="$VENV/bin/ruff"
-    if [ ! -f "$RUFF" ]; then
-        echo "Installing ruff into .venv..."
-        "$VENV/bin/pip" install ruff --quiet
-    fi
+    # pinned - same version as ci.yml; bump both together and reformat
+    "$VENV/bin/pip" install "ruff==0.9.10" --quiet
     TARGETS="puree/ __init__.py tests/ dist/ setup.py"
     echo "── Python lint fix ──"
     "$RUFF" check --fix $TARGETS || true
@@ -383,10 +379,8 @@ format:
         exit 1
     fi
     RUFF="$VENV/bin/ruff"
-    if [ ! -f "$RUFF" ]; then
-        echo "Installing ruff into .venv..."
-        "$VENV/bin/pip" install ruff --quiet
-    fi
+    # pinned - same version as ci.yml; bump both together and reformat
+    "$VENV/bin/pip" install "ruff==0.9.10" --quiet
     echo "── Stripping Python comments ──"
     {{python}} dist/format_python.py puree/ __init__.py tests/ dist/ setup.py
     echo "── Formatting Python (ruff) ──"

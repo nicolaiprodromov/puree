@@ -1,0 +1,10 @@
+# Pinned Rust toolchain for puree_core - the single source of truth for local builds
+# (rustup reads this file) AND for CI (ci.yml / release.yml read `channel` from it).
+#
+# Why pinned: `-D warnings` clippy gains new lints with every Rust release, and the
+# shipped binaries should be built by the same compiler that was tested. To upgrade,
+# bump `channel`, run `cargo clippy -- -D warnings` + `cargo test`, fix what appears,
+# and commit everything together.
+[toolchain]
+channel = "1.90.0"
+components = ["clippy", "rustfmt"]
