@@ -2731,14 +2731,20 @@ class XWZ_OT_start_ui(Operator):
                         for image_instance in _img_op_resize._image_instances:
                             cid = image_instance.container_id
                             block = parser_op.image_blocks.get(cid) if hasattr(parser_op, "image_blocks") else None
-                            image_instance.clip = list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+                            image_instance.clip = (
+                                list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+                            )
 
                         for input_instance in _tin_op_resize._text_input_instances:
                             cid = input_instance.container_id
                             block = (
-                                parser_op.text_input_blocks.get(cid) if hasattr(parser_op, "text_input_blocks") else None
+                                parser_op.text_input_blocks.get(cid)
+                                if hasattr(parser_op, "text_input_blocks")
+                                else None
                             )
-                            input_instance.clip = list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+                            input_instance.clip = (
+                                list(block["scroll_clip"]) if block and "scroll_clip" in block else None
+                            )
 
                         # Reapply scroll offsets after resize
                         if _render_data._scroll_offsets:
