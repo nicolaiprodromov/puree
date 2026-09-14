@@ -343,6 +343,39 @@ class UI:
                         except Exception as e:
                             logger.warning(f"Failed to pre-register component '{comp_key}': {e}")
 
+        # Register built-in default components (puree/components/defaults/) so
+        # engine and user code can add_child("[name]") them. Registered AFTER
+        # user components — a user component of the same name always wins.
+        from .components.defaults import get_default_component_paths
+
+        for comp_key, fpath in get_default_component_paths().items():
+            if comp_key in self._component_registry:
+                logger.warning(
+                    f"Default component '{comp_key}' is shadowed by a user component of the same name — user wins"
+                )
+                continue
+            dirpath = os.path.dirname(fpath)
+            scss_path = os.path.join(dirpath, f"{comp_key}.scss")
+            try:
+                with open(fpath, "r") as f:
+                    comp_data = yaml.safe_load(f)
+                self._component_registry[comp_key] = {
+                    "yaml_data": comp_data,
+                    "scss_path": scss_path if os.path.exists(scss_path) else None,
+                    "base_name": comp_key,
+                    "base_dir": dirpath,
+                }
+            except Exception as e:
+                logger.warning(f"Failed to register default component '{comp_key}': {e}")
+
+        # Default video controls (MEDIA_PLAN section 7.2): every video: node
+        # with controls: true gets [video_controls] as its LAST child. Must
+        # run AFTER the registry is complete (a user component of the same
+        # name shadows the default and is injected instead) and BEFORE
+        # parse_css()/create_node_tree() so the injected subtree cascades
+        # and lays out like any hand-written component instance.
+        self._inject_video_controls()
+
     def parse_container_props_from_style(self, attr_name, attr_value):
         attr_name = attr_name.replace("-", "_")
 
@@ -637,14 +670,11 @@ class UI:
         # Collect component CSS too
         style_str += self._component_css
 
-        # Prepend built-in markdown defaults so user styles override them
-        _md_defaults_path = os.path.join(os.path.dirname(__file__), "markdown_defaults.scss")
-        if os.path.exists(_md_defaults_path):
-            try:
-                _md_scss = SCSSCompiler()
-                style_str = _md_scss.compile_file(_md_defaults_path) + style_str
-            except Exception as _md_err:
-                logger.warning("Failed to compile markdown_defaults.scss: %s", _md_err)
+        # Prepend built-in defaults (components/defaults/*.scss) so user styles
+        # override them via cascade order
+        from .components.defaults import get_default_scss
+
+        style_str = get_default_scss() + style_str
 
         # Cache for dynamic re-use (add_child / remove_child rebuilds)
         self._compiled_css_str = style_str
@@ -750,7 +780,6 @@ class UI:
         return flat
 
     def _find_container(self, container_id):
-
         def search(container):
             if container.id == container_id:
                 return container
@@ -915,6 +944,131 @@ class UI:
 
         load_comp(yaml_data, root_container)
 
+    def _inject_video_controls(self):
+        """Instantiate [video_controls] under every ``video:`` + ``controls: true`` node.
+
+        Runs at the end of parse_toml(): hot reload is a full reparse through
+        XWZ_OT_ui_parser, so re-injection is automatic; the subtree lives in
+        the ordinary Container tree, so CSS cascade, layout, flatten,
+        sync_dirty_containers and dynamic rebuilds treat it like any
+        hand-written component instance. The injected wrapper is flagged
+        overlay=True (rendered in the overlay pass, above the video frame -
+        MEDIA_PLAN section 4.3); behavior is wired later by
+        puree.media.controls.
+        """
+        video_nodes = []
+
+        def walk(container):
+            for child in container.children:
+                walk(child)
+            if getattr(container, "video", "") and getattr(container, "controls", False):
+                video_nodes.append(container)
+
+        walk(self.theme.root)
+        if not video_nodes:
+            return
+
+        template = self._component_registry.get("video_controls")
+        if template is None:
+            logger.warning("controls: true is set but no 'video_controls' component is registered - controls skipped")
+            return
+
+        for node in video_nodes:
+            try:
+                self._instantiate_video_controls_into(node, template)
+            except Exception:
+                logger.error(f"Failed to inject video controls into '{node.id}'", exc_info=True)
+
+    def _instantiate_video_controls_into(self, video_node, template):
+        """Build the ``{video_id}_puree_vc`` wrapper and load the component into it.
+
+        Mirrors the inline ``data: '[x]'`` machinery from load_container
+        (namespaced classes/ids, ``{{param, 'default'}}`` defaults, per-
+        instance SCSS compile) with two deliberate differences: the compiled
+        CSS goes to ``_component_css`` so the FIRST parse_css() cascade sees
+        it (``_dynamic_css`` only joins post-parse rebuilds), and the
+        template subtree is normalized out of the whole-doc registry shape
+        used by auto/default-registered components.
+        """
+        import re as _re
+
+        wrapper_id = f"{video_node.id}_puree_vc"
+        for existing in video_node.children:
+            if getattr(existing, "id", "") == wrapper_id:
+                return  # already injected (parse_toml runs once per UI instance)
+
+        base_name = template["base_name"]
+
+        wrapper = Container()
+        wrapper.id = wrapper_id
+        wrapper.classes = ["puree_vc"]
+        wrapper.parent = video_node
+        video_node.children.append(wrapper)  # LAST child -> last in flat/draw order
+
+        scss_path = template.get("scss_path")
+        if scss_path and os.path.exists(scss_path):
+            scss_compiler = SCSSCompiler()
+            compiled_css = scss_compiler.compile_file(
+                scss_path,
+                namespace=wrapper.id,
+                param_overrides={},
+                component_name=base_name,
+            )
+            compiled_css = _re.sub(r"^([a-zA-Z_][\w]*)([\s:{])", r".\1\2", compiled_css, flags=_re.MULTILINE)
+            self._component_css += compiled_css
+
+        yaml_data = template["yaml_data"]
+        # Auto/default-registered templates store the WHOLE parsed doc
+        # ({name: subtree}); inline-registered ones store the subtree itself
+        # (Phase 0 registry note). Normalize to the subtree.
+        if isinstance(yaml_data, dict) and list(yaml_data.keys()) == [base_name]:
+            yaml_data = yaml_data[base_name]
+
+        param_pattern = r'\{\{(\w+)\s*,\s*["\']([^"\']*?)["\']\}\}'
+
+        def substitute(value):
+            # No instance params - {{name, 'default'}} resolves to its default.
+            if not isinstance(value, str):
+                return value
+            return _re.sub(param_pattern, lambda m: str(m.group(2)), value)
+
+        def namespace_cls(value):
+            if value == base_name:
+                return wrapper.id
+            if value.startswith(base_name + "_"):
+                return value.replace(base_name, wrapper.id, 1)
+            return value
+
+        def load_comp(comp_data, parent):
+            for attr_name, attr_value in comp_data.items():
+                if isinstance(attr_value, dict):
+                    child = Container()
+                    child.id = f"{parent.id}_{attr_name}"
+                    child.parent = parent
+                    parent.children.append(child)
+                    for k, v in attr_value.items():
+                        if not isinstance(v, dict):
+                            sub = substitute(v)
+                            if k in ("class", "style") and isinstance(sub, str):
+                                child.classes = [namespace_cls(sub)]
+                            elif hasattr(child, k):
+                                setattr(child, k.replace("-", "_"), sub)
+                    load_comp(attr_value, child)
+                else:
+                    sub = substitute(attr_value)
+                    if attr_name in ("class", "style") and isinstance(sub, str):
+                        parent.classes = [namespace_cls(sub)]
+                    elif hasattr(parent, attr_name):
+                        setattr(parent, attr_name.replace("-", "_"), sub)
+
+        load_comp(yaml_data, wrapper)
+
+        # Engine-enforced flags - set AFTER load_comp so they win over
+        # anything a (user-shadowed) template YAML may have set:
+        wrapper.overlay = True  # whole subtree renders above the video frame
+        wrapper.passive = True  # hits fall through (video keeps hover for auto-hide)
+        video_node.focusable = True  # click focuses the video -> container-scoped SPACE binding
+
     def _rebuild_after_structural_change(self):
         # Re-apply CSS to all containers (picks up newly added containers)
         self._apply_css_from_cache()
@@ -997,561 +1151,14 @@ class UI:
 
             return
 
-        # Viewport and font-size context for CSS units
-        vw_unit = canvas_size[0] / 100.0  # 1vw = 1% of viewport width
-        vh_unit = canvas_size[1] / 100.0  # 1vh = 1% of viewport height
-        vmin_unit = min(canvas_size[0], canvas_size[1]) / 100.0  # 1vmin = 1% of smaller dimension
-        vmax_unit = max(canvas_size[0], canvas_size[1]) / 100.0  # 1vmax = 1% of larger dimension
         root_font_size = 16.0  # default root font-size (rem base)
         if hasattr(self.theme, "root") and self.theme.root.style:
             root_font_size = float(self.theme.root.style.font_size or 16.0)
 
-        import re
-
-        _calc_re = re.compile(r"calc\((.+)\)")
-        _unit_re = re.compile(r"(-?[\d.]+)\s*(px|%|rem|em|vmin|vmax|vw|vh)?")
-
-        def resolve_units(value_str, parent_font_size=16.0):
-            value_str = value_str.strip().lower()
-            # calc() — evaluate simple expressions
-            m = _calc_re.match(value_str)
-            if m:
-                expr = m.group(1)
-                # Tokenize and resolve each term
-                tokens = re.split(r"(\s*[+\-]\s*)", expr)
-                total = 0.0
-                op = "+"
-                for token in tokens:
-                    token = token.strip()
-                    if token in ("+", "-"):
-                        op = token
-                        continue
-                    if not token:
-                        continue
-                    px_val, is_pct, pct_val = resolve_units(token, parent_font_size)
-                    val = px_val
-                    if op == "-":
-                        total -= val
-                    else:
-                        total += val
-                return (total, False, 0.0)
-
-            um = _unit_re.match(value_str)
-            if um:
-                num = float(um.group(1))
-                unit = um.group(2) or "px"
-                if unit == "px":
-                    return (num, False, 0.0)
-                elif unit == "%":
-                    return (0.0, True, num)
-                elif unit == "rem":
-                    return (num * root_font_size, False, 0.0)
-                elif unit == "em":
-                    return (num * parent_font_size, False, 0.0)
-                elif unit == "vw":
-                    return (num * vw_unit, False, 0.0)
-                elif unit == "vh":
-                    return (num * vh_unit, False, 0.0)
-                elif unit == "vmin":
-                    return (num * vmin_unit, False, 0.0)
-                elif unit == "vmax":
-                    return (num * vmax_unit, False, 0.0)
-            return (0.0, False, 0.0)
-
-        def parse_css_value(value_str):
-            # Style() defaults unset dimensions to float 0.0 — treat as AUTO (size-to-content)
-            if not isinstance(value_str, str):
-                if value_str == 0:
-                    return AUTO
-                return LengthPointsPercent.from_any(float(value_str) * PT)
-            value_str = value_str.lower().strip()
-            if value_str in ("auto", ""):
-                return AUTO
-            # Handle calc(), rem, em, vw, vh, vmin, vmax
-            if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
-                px_val, is_pct, pct_val = resolve_units(value_str)
-                if is_pct:
-                    return LengthPointsPercent.from_any(pct_val * PCT)
-                return LengthPointsPercent.from_any(px_val * PT)
-            if "px" in value_str:
-                return LengthPointsPercent.from_any(float(value_str.replace("px", "")) * PT)
-            if "%" in value_str:
-                return LengthPointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
-            try:
-                num = float(value_str)
-                if num == 0:
-                    return LengthPointsPercent.from_any(0 * PT)
-                return LengthPointsPercent.from_any(num * PT)
-            except (ValueError, TypeError):
-                return LengthPointsPercent.from_any(0 * PT)
-
-        def parse_css_value_auto(value_str):
-            # Style() defaults unset dimensions to float 0.0 — treat as AUTO
-            if not isinstance(value_str, str):
-                if value_str == 0:
-                    return LengthPointsPercentAuto.from_any(AUTO)
-                return LengthPointsPercentAuto.from_any(float(value_str) * PT)
-            value_str = value_str.lower().strip()
-            if value_str in ("auto", ""):
-                return LengthPointsPercentAuto.from_any(AUTO)
-            if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
-                px_val, is_pct, pct_val = resolve_units(value_str)
-                if is_pct:
-                    return LengthPointsPercentAuto.from_any(pct_val * PCT)
-                return LengthPointsPercentAuto.from_any(px_val * PT)
-            if "px" in value_str:
-                return LengthPointsPercentAuto.from_any(float(value_str.replace("px", "")) * PT)
-            if "%" in value_str:
-                return LengthPointsPercentAuto.from_any(float(value_str.replace("%", "")) * PCT)
-            try:
-                num = float(value_str)
-                if num == 0:
-                    return LengthPointsPercentAuto.from_any(0 * PT)
-                return LengthPointsPercentAuto.from_any(num * PT)
-            except (ValueError, TypeError):
-                return LengthPointsPercentAuto.from_any(0 * PT)
-
-        def parse_padding_values(container):
-            top = right = bottom = left = LengthPointsPercent.from_any(0 * PT)
-            if hasattr(container.style, "padding_top"):
-                top = parse_css_value(container.style.padding_top)
-            if hasattr(container.style, "padding_right"):
-                right = parse_css_value(container.style.padding_right)
-            if hasattr(container.style, "padding_bottom"):
-                bottom = parse_css_value(container.style.padding_bottom)
-            if hasattr(container.style, "padding_left"):
-                left = parse_css_value(container.style.padding_left)
-            if hasattr(container.style, "padding") and isinstance(container.style.padding, str):
-                padding_str = container.style.padding.strip().lower()
-                if "calc(" not in padding_str:
-                    values = padding_str.split()
-                    if len(values) == 1:
-                        val = parse_css_value(values[0])
-                        top = right = bottom = left = val
-                    elif len(values) == 2:
-                        vertical = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        top = bottom = vertical
-                        right = left = horizontal
-                    elif len(values) == 3:
-                        top = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        bottom = parse_css_value(values[2])
-                        right = left = horizontal
-                    elif len(values) == 4:
-                        top = parse_css_value(values[0])
-                        right = parse_css_value(values[1])
-                        bottom = parse_css_value(values[2])
-                        left = parse_css_value(values[3])
-            return RectPointsPercent.from_any([top, right, bottom, left])
-
-        def parse_margin_values(container):
-            top = right = bottom = left = LengthPointsPercent.from_any(0 * PT)
-            if hasattr(container.style, "margin_top"):
-                top = parse_css_value(container.style.margin_top)
-            if hasattr(container.style, "margin_right"):
-                right = parse_css_value(container.style.margin_right)
-            if hasattr(container.style, "margin_bottom"):
-                bottom = parse_css_value(container.style.margin_bottom)
-            if hasattr(container.style, "margin_left"):
-                left = parse_css_value(container.style.margin_left)
-            if hasattr(container.style, "margin") and isinstance(container.style.margin, str):
-                margin_str = container.style.margin.strip().lower()
-                if "calc(" not in margin_str:
-                    values = margin_str.split()
-
-                    if len(values) == 1:
-                        val = parse_css_value(values[0])
-                        top = right = bottom = left = val
-                    elif len(values) == 2:
-                        vertical = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        top = bottom = vertical
-                        right = left = horizontal
-                    elif len(values) == 3:
-                        top = parse_css_value(values[0])
-                        horizontal = parse_css_value(values[1])
-                        bottom = parse_css_value(values[2])
-                        right = left = horizontal
-                    elif len(values) == 4:
-                        top = parse_css_value(values[0])
-                        right = parse_css_value(values[1])
-                        bottom = parse_css_value(values[2])
-                        left = parse_css_value(values[3])
-            return RectPointsPercent.from_any([top, right, bottom, left])
-
-        def parse_border_values(container):
-            width_top = width_right = width_bottom = width_left = LengthPointsPercent.from_any(0 * PT)
-
-            bw = getattr(container.style, "border_width", None)
-            if bw is not None:
-                if isinstance(bw, (int, float)):
-                    val = LengthPointsPercent.from_any(int(bw) * PT)
-                    width_top = width_right = width_bottom = width_left = val
-                elif isinstance(bw, str):
-                    border_width_str = bw.strip().lower()
-                    if "calc(" not in border_width_str:
-                        values = border_width_str.split()
-                        if len(values) == 1:
-                            val = parse_css_value(values[0])
-                            width_top = width_right = width_bottom = width_left = val
-                        elif len(values) == 2:
-                            vertical = parse_css_value(values[0])
-                            horizontal = parse_css_value(values[1])
-                            width_top = width_bottom = vertical
-                            width_right = width_left = horizontal
-                        elif len(values) == 3:
-                            width_top = parse_css_value(values[0])
-                            horizontal = parse_css_value(values[1])
-                            width_bottom = parse_css_value(values[2])
-                            width_right = width_left = horizontal
-                        elif len(values) == 4:
-                            width_top = parse_css_value(values[0])
-                            width_right = parse_css_value(values[1])
-                            width_bottom = parse_css_value(values[2])
-                            width_left = parse_css_value(values[3])
-
-            if hasattr(container.style, "border") and isinstance(container.style.border, str):
-                border_str = container.style.border.strip().lower()
-                if "calc(" not in border_str:
-                    # Split on whitespace - this handles multiple spaces correctly
-                    parts = border_str.split()
-                    for part in parts:
-                        if "px" in part or "%" in part:
-                            val = parse_css_value(part)
-                            width_top = width_right = width_bottom = width_left = val
-                        elif part.startswith("#") or part in ["red", "blue", "green", "black", "white", "transparent"]:
-                            setattr(container.style, "border_color_css", part)
-
-            if hasattr(container.style, "border_color") and isinstance(container.style.border_color, str):
-                setattr(container.style, "border_color_css", container.style.border_color.lower())
-
-            return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
-
-        def parse_align_items(val_str):
-            m = {
-                "start": AlignItems.START,
-                "end": AlignItems.END,
-                "flex_start": AlignItems.FLEX_START,
-                "flex_end": AlignItems.FLEX_END,
-                "center": AlignItems.CENTER,
-                "baseline": AlignItems.BASELINE,
-                "stretch": AlignItems.STRETCH,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_align_self(val_str):
-            m = {
-                "start": AlignSelf.START,
-                "end": AlignSelf.END,
-                "flex_start": AlignSelf.FLEX_START,
-                "flex_end": AlignSelf.FLEX_END,
-                "center": AlignSelf.CENTER,
-                "baseline": AlignSelf.BASELINE,
-                "stretch": AlignSelf.STRETCH,
-                "auto": None,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_align_content(val_str):
-            m = {
-                "start": AlignContent.START,
-                "end": AlignContent.END,
-                "flex_start": AlignContent.FLEX_START,
-                "flex_end": AlignContent.FLEX_END,
-                "center": AlignContent.CENTER,
-                "stretch": AlignContent.STRETCH,
-                "space_between": AlignContent.SPACE_BETWEEN,
-                "space_evenly": AlignContent.SPACE_EVENLY,
-                "space_around": AlignContent.SPACE_AROUND,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_justify_content(val_str):
-            m = {
-                "start": JustifyContent.START,
-                "end": JustifyContent.END,
-                "flex_start": JustifyContent.FLEX_START,
-                "flex_end": JustifyContent.FLEX_END,
-                "center": JustifyContent.CENTER,
-                "stretch": JustifyContent.STRETCH,
-                "space_between": JustifyContent.SPACE_BETWEEN,
-                "space_evenly": JustifyContent.SPACE_EVENLY,
-                "space_around": JustifyContent.SPACE_AROUND,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_justify_items(val_str):
-            m = {
-                "start": JustifyItems.START,
-                "end": JustifyItems.END,
-                "flex_start": JustifyItems.FLEX_START,
-                "flex_end": JustifyItems.FLEX_END,
-                "center": JustifyItems.CENTER,
-                "baseline": JustifyItems.BASELINE,
-                "stretch": JustifyItems.STRETCH,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_justify_self(val_str):
-            m = {
-                "start": JustifySelf.START,
-                "end": JustifySelf.END,
-                "flex_start": JustifySelf.FLEX_START,
-                "flex_end": JustifySelf.FLEX_END,
-                "center": JustifySelf.CENTER,
-                "baseline": JustifySelf.BASELINE,
-                "stretch": JustifySelf.STRETCH,
-                "auto": None,
-            }
-            return m.get(val_str.lower().replace("-", "_"), None)
-
-        def parse_gap_value(value_str):
-            """Parse gap value into SizePointsPercent."""
-            value_str = str(value_str).lower().strip()
-            if not value_str or value_str == "0" or value_str == "0px":
-                return SizePointsPercent.from_any(0 * PT)
-            if "px" in value_str:
-                return SizePointsPercent.from_any(float(value_str.replace("px", "")) * PT)
-            if "%" in value_str:
-                return SizePointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
-            try:
-                return SizePointsPercent.from_any(float(value_str) * PT)
-            except (ValueError, TypeError):
-                return SizePointsPercent.from_any(0 * PT)
-
-        def create_node(container, parent_overflow="VISIBLE"):
-            if container.style is None:
-                default_style = Style()
-                setattr(default_style, "width", "100%")
-                setattr(default_style, "height", "100%")
-                container.style = default_style
-
-            s = container.style
-
-            # Display
-            disp_str = s.display.lower()
-            display_val = {
-                "none": Display.NONE,
-                "flex": Display.FLEX,
-                "grid": Display.GRID,
-                "block": Display.BLOCK,
-            }.get(disp_str, Display.FLEX)
-
-            # Position
-            pos_str = s.position.lower()
-            position_val = Position.ABSOLUTE if pos_str in ("absolute", "fixed") else Position.RELATIVE
-
-            # Overflow (support separate overflow-x / overflow-y)
-            overflow_map = {
-                "visible": Overflow.VISIBLE,
-                "hidden": Overflow.HIDDEN,
-                "scroll": Overflow.SCROLL,
-                "auto": Overflow.SCROLL,
-                "clip": Overflow.CLIP,
-            }
-            overflow_x_str = (s.overflow_x if hasattr(s, "overflow_x") and s.overflow_x else s.overflow).lower()
-            overflow_y_str = (s.overflow_y if hasattr(s, "overflow_y") and s.overflow_y else s.overflow).lower()
-            overflow_x_val = overflow_map.get(overflow_x_str, Overflow.VISIBLE)
-            overflow_y_val = overflow_map.get(overflow_y_str, Overflow.VISIBLE)
-
-            # Size
-            width_pct = parse_css_value(s.width)
-            height_pct = parse_css_value(s.height)
-
-            # Min/max size
-            min_w = (
-                parse_css_value_auto(s.min_width) if hasattr(s, "min_width") else LengthPointsPercentAuto.from_any(AUTO)
-            )
-            min_h = (
-                parse_css_value_auto(s.min_height)
-                if hasattr(s, "min_height")
-                else LengthPointsPercentAuto.from_any(AUTO)
-            )
-            max_w = (
-                parse_css_value_auto(s.max_width) if hasattr(s, "max_width") else LengthPointsPercentAuto.from_any(AUTO)
-            )
-            max_h = (
-                parse_css_value_auto(s.max_height)
-                if hasattr(s, "max_height")
-                else LengthPointsPercentAuto.from_any(AUTO)
-            )
-
-            # Inset (top, right, bottom, left) for position:absolute
-            inset_top = parse_css_value_auto(s.top) if hasattr(s, "top") else LengthPointsPercentAuto.from_any(AUTO)
-            inset_right = (
-                parse_css_value_auto(s.right) if hasattr(s, "right") else LengthPointsPercentAuto.from_any(AUTO)
-            )
-            inset_bottom = (
-                parse_css_value_auto(s.bottom) if hasattr(s, "bottom") else LengthPointsPercentAuto.from_any(AUTO)
-            )
-            inset_left = parse_css_value_auto(s.left) if hasattr(s, "left") else LengthPointsPercentAuto.from_any(AUTO)
-
-            # Spacing
-            padding_val = parse_padding_values(container)
-            margin_val = parse_margin_values(container)
-            border_val = parse_border_values(container)
-
-            # Flex direction
-            flex_dir_str = s.flex_direction.lower().replace("-", "_")
-            flex_direction_map = {
-                "row": FlexDirection.ROW,
-                "column": FlexDirection.COLUMN,
-                "row_reverse": FlexDirection.ROW_REVERSE,
-                "column_reverse": FlexDirection.COLUMN_REVERSE,
-            }
-            flex_direction_val = flex_direction_map.get(flex_dir_str, FlexDirection.ROW)
-
-            # Flex wrap
-            flex_wrap_str = s.flex_wrap.lower().replace("-", "_")
-            flex_wrap_map = {
-                "no_wrap": FlexWrap.NO_WRAP,
-                "nowrap": FlexWrap.NO_WRAP,
-                "wrap": FlexWrap.WRAP,
-                "wrap_reverse": FlexWrap.WRAP_REVERSE,
-            }
-            flex_wrap_val = flex_wrap_map.get(flex_wrap_str, FlexWrap.NO_WRAP)
-
-            # Flex item properties
-            flex_grow_val = float(s.flex_grow) if s.flex_grow else 0.0
-            flex_shrink_val = float(s.flex_shrink) if s.flex_shrink else 1.0
-            flex_basis_str = str(s.flex_basis).lower().strip()
-            flex_basis_val = parse_css_value_auto(flex_basis_str)
-
-            # CSS parity: children of overflow:scroll/auto containers don't shrink.
-            # Browsers treat scroll containers as having unbounded space in the
-            # scroll direction, so flex-shrink never triggers. Taffy doesn't do
-            # this automatically, so we force flex_shrink=0 for direct children.
-            if parent_overflow in ("SCROLL", "AUTO"):
-                flex_shrink_val = 0.0
-
-            # Alignment
-            align_items_val = parse_align_items(s.align_items) if s.align_items else None
-            align_self_val = parse_align_self(s.align_self) if s.align_self else None
-            align_content_val = parse_align_content(s.align_content) if s.align_content else None
-            justify_content_val = parse_justify_content(s.justify_content) if s.justify_content else None
-            justify_items_val = parse_justify_items(s.justify_items) if s.justify_items else None
-            justify_self_val = parse_justify_self(s.justify_self) if s.justify_self else None
-
-            # Gap
-            gap_val = parse_gap_value(s.gap) if hasattr(s, "gap") else SizePointsPercent.from_any(0 * PT)
-            if hasattr(s, "row_gap") and s.row_gap:
-                row_gap = parse_css_value(s.row_gap)
-                col_gap_str = s.column_gap if hasattr(s, "column_gap") and s.column_gap else s.gap
-                col_gap = parse_css_value(col_gap_str)
-                gap_val = SizePointsPercent(width=col_gap, height=row_gap)
-            elif hasattr(s, "column_gap") and s.column_gap:
-                col_gap = parse_css_value(s.column_gap)
-                row_gap_str = s.row_gap if hasattr(s, "row_gap") and s.row_gap else s.gap
-                row_gap = parse_css_value(row_gap_str)
-                gap_val = SizePointsPercent(width=col_gap, height=row_gap)
-
-            # Grid properties
-            grid_kwargs = {}
-            if disp_str == "grid":
-                grid_auto_flow_str = (
-                    s.grid_auto_flow.lower().replace("-", "_")
-                    if hasattr(s, "grid_auto_flow") and s.grid_auto_flow
-                    else "row"
-                )
-                grid_auto_flow_map = {
-                    "row": GridAutoFlow.ROW,
-                    "column": GridAutoFlow.COLUMN,
-                    "row_dense": GridAutoFlow.ROW_DENSE,
-                    "column_dense": GridAutoFlow.COLUMN_DENSE,
-                }
-                grid_kwargs["grid_auto_flow"] = grid_auto_flow_map.get(grid_auto_flow_str, GridAutoFlow.ROW)
-
-                if hasattr(s, "grid_template_rows") and s.grid_template_rows:
-                    val = s.grid_template_rows
-                    if isinstance(val, str):
-                        # Split CSS value "1fr 1fr 1fr" into individual tracks
-                        # but preserve "repeat(...)" and "minmax(...)" as single tokens
-                        tracks = re.split(r"\s+(?![^(]*\))", val.strip())
-                        grid_kwargs["grid_template_rows"] = [t for t in tracks if t]
-                    else:
-                        grid_kwargs["grid_template_rows"] = val
-                if hasattr(s, "grid_template_columns") and s.grid_template_columns:
-                    val = s.grid_template_columns
-                    if isinstance(val, str):
-                        tracks = re.split(r"\s+(?![^(]*\))", val.strip())
-                        grid_kwargs["grid_template_columns"] = [t for t in tracks if t]
-                    else:
-                        grid_kwargs["grid_template_columns"] = val
-                if hasattr(s, "grid_auto_rows") and s.grid_auto_rows:
-                    val = s.grid_auto_rows
-                    if isinstance(val, str):
-                        tracks = re.split(r"\s+(?![^(]*\))", val.strip())
-                        grid_kwargs["grid_auto_rows"] = [t for t in tracks if t]
-                    else:
-                        grid_kwargs["grid_auto_rows"] = val
-                if hasattr(s, "grid_auto_columns") and s.grid_auto_columns:
-                    val = s.grid_auto_columns
-                    if isinstance(val, str):
-                        tracks = re.split(r"\s+(?![^(]*\))", val.strip())
-                        grid_kwargs["grid_auto_columns"] = [t for t in tracks if t]
-                    else:
-                        grid_kwargs["grid_auto_columns"] = val
-
-            # Grid child placement
-            if hasattr(s, "grid_row") and s.grid_row and s.grid_row != "AUTO":
-                grid_kwargs["grid_row"] = s.grid_row
-            if hasattr(s, "grid_column") and s.grid_column and s.grid_column != "AUTO":
-                grid_kwargs["grid_column"] = s.grid_column
-
-            # Aspect ratio
-            aspect_ratio_val = None
-            if hasattr(s, "aspect_ratio") and s.aspect_ratio and s.aspect_ratio is not True:
-                try:
-                    aspect_ratio_val = float(s.aspect_ratio)
-                except (ValueError, TypeError):
-                    pass
-
-            # Box sizing
-            box_sizing_str = s.box_sizing.lower() if hasattr(s, "box_sizing") and s.box_sizing else "border-box"
-            box_sizing_val = BoxSizing.CONTENT if box_sizing_str in ("content_box", "content-box") else BoxSizing.BORDER
-
-            node = Node(
-                display=display_val,
-                position=position_val,
-                box_sizing=box_sizing_val,
-                overflow_x=overflow_x_val,
-                overflow_y=overflow_y_val,
-                scrollbar_width=float(s.scrollbar_width)
-                if hasattr(s, "scrollbar_width") and s.scrollbar_width
-                else 0.0,
-                inset=RectPointsPercentAuto(top=inset_top, right=inset_right, bottom=inset_bottom, left=inset_left),
-                flex_direction=flex_direction_val,
-                flex_wrap=flex_wrap_val,
-                flex_grow=flex_grow_val,
-                flex_shrink=flex_shrink_val,
-                flex_basis=flex_basis_val,
-                align_items=align_items_val,
-                align_self=align_self_val,
-                align_content=align_content_val,
-                justify_content=justify_content_val,
-                justify_items=justify_items_val,
-                justify_self=justify_self_val,
-                gap=gap_val,
-                key=container.id,
-                size=(width_pct, height_pct),
-                min_size=SizePointsPercentAuto(width=min_w, height=min_h),
-                max_size=SizePointsPercentAuto(width=max_w, height=max_h),
-                aspect_ratio=aspect_ratio_val,
-                padding=padding_val,
-                margin=margin_val,
-                border=border_val,
-                **grid_kwargs,
-            )
-
-            # Determine this container's overflow for passing to children
-            this_overflow = s.overflow.upper() if hasattr(s, "overflow") and s.overflow else "VISIBLE"
-
-            for child in container.children:
-                child_node = create_node(child, parent_overflow=this_overflow)
-                node.add(child_node)
-
-            return node
+        # The Container -> Node translation lives in the module-level factory
+        # (make_layout_node_builder) so the fullscreen private subtree pass
+        # builds its temporary tree through the exact same construction.
+        create_node = make_layout_node_builder(canvas_size, root_font_size)
 
         self.root_node = create_node(self.theme.root)
         self.root_node.compute_layout(canvas_size)
@@ -1621,12 +1228,26 @@ class UI:
         return self.abs_json_data
 
     def flatten_node_tree(self):
+        self.json_data = self._flatten_containers(self.theme.root, node_flat)
+        self.abs_json_data = self._flatten_containers(self.theme.root, node_flat_abs)
+
+    def _flatten_containers(self, root_container, positions):
+        """Flatten *root_container*'s subtree against *positions* (an
+        ``id -> {x, y, width, height}`` box dict) into the flat container
+        dict list, including the style-derived props the Rust flattener
+        does not carry (visibility/opacity/z-index/overlay/focusable/...).
+
+        Extracted from flatten_node_tree so the fullscreen private pass
+        (puree.fullscreen) reuses the exact same flatten + injection + z-sort
+        construction for its subtree. Pure with respect to the container
+        tree; each call uses a throwaway ContainerProcessor and returns new
+        dicts.
+        """
         container_processor = ContainerProcessor()
 
-        container_dict = self._container_to_dict(self.theme.root)
+        container_dict = self._container_to_dict(root_container)
 
-        self.json_data = container_processor.flatten_tree(container_dict, node_flat)
-        self.abs_json_data = container_processor.flatten_tree(container_dict, node_flat_abs)
+        data = container_processor.flatten_tree(container_dict, positions)
 
         # Post-process: add visibility, opacity, z-index, overflow_type from Style (not in Rust struct)
         visibility_map = {}
@@ -1638,14 +1259,30 @@ class UI:
         scrollbar_width_map = {}
         scrollbar_thumb_map = {}
         scrollbar_track_map = {}
+        overlay_map = {}
+        focusable_map = {}
+        focus_handler_map = {}
 
-        def collect_style_props(container):
+        def collect_style_props(container, parent_overlay=False):
             if hasattr(container.style, "visibility"):
                 visibility_map[container.id] = container.style.visibility
             opacity_map[container.id] = float(container.style.opacity)
             zindex_map[container.id] = int(container.style.z_index)
             overflow_type_map[container.id] = container.style.overflow
             position_type_map[container.id] = container.style.position
+            # overlay is a SUBTREE flag (MEDIA_PLAN section 4.3): flagging a
+            # container lifts it AND every descendant into the overlay draw
+            # pass (rendered above images/video). Propagated here, at flatten
+            # time, so hot reloads and dynamic rebuilds pick it up for free.
+            effective_overlay = parent_overlay or bool(getattr(container, "overlay", False))
+            overlay_map[container.id] = effective_overlay
+            # focusable/on_focus/on_blur are not part of the Rust flatten
+            # output - hit_op reads them from the flat dicts to focus a
+            # container on click (video nodes with controls rely on this
+            # for the container-scoped SPACE binding).
+            if getattr(container, "focusable", False):
+                focusable_map[container.id] = True
+                focus_handler_map[container.id] = (container.on_focus, container.on_blur)
             if hasattr(container.style, "transitions") and container.style.transitions:
                 transition_map[container.id] = container.style.transitions
             elif hasattr(container.style, "transition_property") and container.style.transition_duration > 0:
@@ -1664,9 +1301,9 @@ class UI:
             if hasattr(container.style, "scrollbar_track_color"):
                 scrollbar_track_map[container.id] = container.style.scrollbar_track_color
             for child in container.children:
-                collect_style_props(child)
+                collect_style_props(child, effective_overlay)
 
-        collect_style_props(self.theme.root)
+        collect_style_props(root_container)
 
         def inject_and_sort(data_list):
             for c in data_list:
@@ -1676,6 +1313,10 @@ class UI:
                 c["z_index"] = zindex_map.get(cid, 0)
                 c["overflow_type"] = overflow_type_map.get(cid, "VISIBLE")
                 c["position_type"] = position_type_map.get(cid, "RELATIVE")
+                c["overlay"] = overlay_map.get(cid, False)
+                if cid in focusable_map:
+                    c["focusable"] = True
+                    c["on_focus"], c["on_blur"] = focus_handler_map[cid]
                 c["scrollbar_width"] = scrollbar_width_map.get(cid, None)
                 if cid in scrollbar_thumb_map:
                     c["scrollbar_thumb_color"] = scrollbar_thumb_map[cid]
@@ -1704,8 +1345,76 @@ class UI:
                 result.append(c)
             return result
 
-        self.json_data = inject_and_sort(self.json_data)
-        self.abs_json_data = inject_and_sort(self.abs_json_data)
+        return inject_and_sort(data)
+
+    def compute_subtree_layout(self, container, size):
+        """PRIVATE layout pass: lay out *container*'s subtree as its own root
+        at exactly *size* px (FULLSCREEN_PLAN, refinement to B).
+
+        Builds a TEMPORARY stretchable/Taffy tree through the same
+        construction as the main document (make_layout_node_builder), with
+        the pass root pinned to ``(0, 0, size[0], size[1])`` so the element
+        fills the region regardless of its authored geometry, and returns
+
+            (boxes, content_boxes)
+
+        - ``boxes``: id -> border box (the node_flat_abs shape, feeds
+          UI._flatten_containers)
+        - ``content_boxes``: id -> content box (feeds the extractors)
+
+        The MAIN tree is untouched: no ``node_flat``/``node_flat_abs``
+        globals, no ``_layout_node``/``_content_box_abs`` writes, and the
+        temporary node tree is dropped on return. Children of display:none
+        nodes zero out exactly like the main pass. The pass root uses the
+        default ``parent_overflow="VISIBLE"``, so the subtree escapes any
+        ancestor scroll context by design (no scroll offsets exist here).
+        """
+        root_font_size = 16.0  # rem base rides the MAIN document root
+        if hasattr(self.theme, "root") and self.theme.root.style:
+            root_font_size = float(self.theme.root.style.font_size or 16.0)
+
+        create_node = make_layout_node_builder(size, root_font_size)
+        root_node = create_node(container, _force_root_box=(float(size[0]), float(size[1])))
+        root_node.compute_layout(size)
+
+        boxes = {}
+        content_boxes = {}
+
+        def _zero_subtree(c):
+            zero = {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+            boxes[c.id] = zero
+            content_boxes[c.id] = zero.copy()
+            for child in c.children:
+                _zero_subtree(child)
+
+        def collect(c, node):
+            border_box_abs = node.get_box(Edge.BORDER, relative=False)
+            content_box_abs = node.get_box(Edge.CONTENT, relative=False)
+
+            boxes[c.id] = {
+                "x": border_box_abs.x,
+                "y": border_box_abs.y,
+                "width": border_box_abs.width,
+                "height": border_box_abs.height,
+            }
+            content_boxes[c.id] = {
+                "x": content_box_abs.x,
+                "y": content_box_abs.y,
+                "width": content_box_abs.width,
+                "height": content_box_abs.height,
+            }
+
+            # Taffy/Stretchable skips layout for children of display:none nodes
+            if c.style and c.style.display.upper() == "NONE":
+                for child in c.children:
+                    _zero_subtree(child)
+                return
+
+            for i, child in enumerate(c.children):
+                collect(child, node[i])
+
+        collect(container, root_node)
+        return boxes, content_boxes
 
     def _container_to_dict(self, container):
         def ensure_string(val):
@@ -1794,3 +1503,577 @@ class UI:
             "children": [self._container_to_dict(child) for child in container.children],
         }
         return container_dict
+
+
+def make_layout_node_builder(canvas_size, root_font_size=16.0):
+    """Build the Container -> stretchable.Node constructor for one layout pass.
+
+    Extracted verbatim from UI.create_node_tree so the fullscreen private
+    subtree pass (puree.fullscreen -> UI.compute_subtree_layout) constructs
+    its TEMPORARY layout tree through the exact same style->Taffy translation
+    as the main document. Pure: reads container styles only (plus the same
+    idempotent border_color_css normalization the main pass applies).
+
+    Returns ``create_node(container, parent_overflow="VISIBLE",
+    _force_root_box=None)``; ``_force_root_box=(w, h)`` pins the pass root to
+    an exact pixel box (fullscreen private pass only - the main pass never
+    sets it).
+    """
+    # Viewport and font-size context for CSS units
+    vw_unit = canvas_size[0] / 100.0  # 1vw = 1% of viewport width
+    vh_unit = canvas_size[1] / 100.0  # 1vh = 1% of viewport height
+    vmin_unit = min(canvas_size[0], canvas_size[1]) / 100.0  # 1vmin = 1% of smaller dimension
+    vmax_unit = max(canvas_size[0], canvas_size[1]) / 100.0  # 1vmax = 1% of larger dimension
+
+    import re
+
+    _calc_re = re.compile(r"calc\((.+)\)")
+    _unit_re = re.compile(r"(-?[\d.]+)\s*(px|%|rem|em|vmin|vmax|vw|vh)?")
+
+    def resolve_units(value_str, parent_font_size=16.0):
+        value_str = value_str.strip().lower()
+        # calc() — evaluate simple expressions
+        m = _calc_re.match(value_str)
+        if m:
+            expr = m.group(1)
+            # Tokenize and resolve each term
+            tokens = re.split(r"(\s*[+\-]\s*)", expr)
+            total = 0.0
+            op = "+"
+            for token in tokens:
+                token = token.strip()
+                if token in ("+", "-"):
+                    op = token
+                    continue
+                if not token:
+                    continue
+                px_val, is_pct, pct_val = resolve_units(token, parent_font_size)
+                val = px_val
+                if op == "-":
+                    total -= val
+                else:
+                    total += val
+            return (total, False, 0.0)
+
+        um = _unit_re.match(value_str)
+        if um:
+            num = float(um.group(1))
+            unit = um.group(2) or "px"
+            if unit == "px":
+                return (num, False, 0.0)
+            elif unit == "%":
+                return (0.0, True, num)
+            elif unit == "rem":
+                return (num * root_font_size, False, 0.0)
+            elif unit == "em":
+                return (num * parent_font_size, False, 0.0)
+            elif unit == "vw":
+                return (num * vw_unit, False, 0.0)
+            elif unit == "vh":
+                return (num * vh_unit, False, 0.0)
+            elif unit == "vmin":
+                return (num * vmin_unit, False, 0.0)
+            elif unit == "vmax":
+                return (num * vmax_unit, False, 0.0)
+        return (0.0, False, 0.0)
+
+    def parse_css_value(value_str):
+        # Style() defaults unset dimensions to float 0.0 — treat as AUTO (size-to-content)
+        if not isinstance(value_str, str):
+            if value_str == 0:
+                return AUTO
+            return LengthPointsPercent.from_any(float(value_str) * PT)
+        value_str = value_str.lower().strip()
+        if value_str in ("auto", ""):
+            return AUTO
+        # Handle calc(), rem, em, vw, vh, vmin, vmax
+        if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
+            px_val, is_pct, pct_val = resolve_units(value_str)
+            if is_pct:
+                return LengthPointsPercent.from_any(pct_val * PCT)
+            return LengthPointsPercent.from_any(px_val * PT)
+        if "px" in value_str:
+            return LengthPointsPercent.from_any(float(value_str.replace("px", "")) * PT)
+        if "%" in value_str:
+            return LengthPointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
+        try:
+            num = float(value_str)
+            if num == 0:
+                return LengthPointsPercent.from_any(0 * PT)
+            return LengthPointsPercent.from_any(num * PT)
+        except (ValueError, TypeError):
+            return LengthPointsPercent.from_any(0 * PT)
+
+    def parse_css_value_auto(value_str):
+        # Style() defaults unset dimensions to float 0.0 — treat as AUTO
+        if not isinstance(value_str, str):
+            if value_str == 0:
+                return LengthPointsPercentAuto.from_any(AUTO)
+            return LengthPointsPercentAuto.from_any(float(value_str) * PT)
+        value_str = value_str.lower().strip()
+        if value_str in ("auto", ""):
+            return LengthPointsPercentAuto.from_any(AUTO)
+        if any(u in value_str for u in ("calc(", "rem", "em", "vw", "vh", "vmin", "vmax")):
+            px_val, is_pct, pct_val = resolve_units(value_str)
+            if is_pct:
+                return LengthPointsPercentAuto.from_any(pct_val * PCT)
+            return LengthPointsPercentAuto.from_any(px_val * PT)
+        if "px" in value_str:
+            return LengthPointsPercentAuto.from_any(float(value_str.replace("px", "")) * PT)
+        if "%" in value_str:
+            return LengthPointsPercentAuto.from_any(float(value_str.replace("%", "")) * PCT)
+        try:
+            num = float(value_str)
+            if num == 0:
+                return LengthPointsPercentAuto.from_any(0 * PT)
+            return LengthPointsPercentAuto.from_any(num * PT)
+        except (ValueError, TypeError):
+            return LengthPointsPercentAuto.from_any(0 * PT)
+
+    def parse_padding_values(container):
+        top = right = bottom = left = LengthPointsPercent.from_any(0 * PT)
+        if hasattr(container.style, "padding_top"):
+            top = parse_css_value(container.style.padding_top)
+        if hasattr(container.style, "padding_right"):
+            right = parse_css_value(container.style.padding_right)
+        if hasattr(container.style, "padding_bottom"):
+            bottom = parse_css_value(container.style.padding_bottom)
+        if hasattr(container.style, "padding_left"):
+            left = parse_css_value(container.style.padding_left)
+        if hasattr(container.style, "padding") and isinstance(container.style.padding, str):
+            padding_str = container.style.padding.strip().lower()
+            if "calc(" not in padding_str:
+                values = padding_str.split()
+                if len(values) == 1:
+                    val = parse_css_value(values[0])
+                    top = right = bottom = left = val
+                elif len(values) == 2:
+                    vertical = parse_css_value(values[0])
+                    horizontal = parse_css_value(values[1])
+                    top = bottom = vertical
+                    right = left = horizontal
+                elif len(values) == 3:
+                    top = parse_css_value(values[0])
+                    horizontal = parse_css_value(values[1])
+                    bottom = parse_css_value(values[2])
+                    right = left = horizontal
+                elif len(values) == 4:
+                    top = parse_css_value(values[0])
+                    right = parse_css_value(values[1])
+                    bottom = parse_css_value(values[2])
+                    left = parse_css_value(values[3])
+        return RectPointsPercent.from_any([top, right, bottom, left])
+
+    def parse_margin_values(container):
+        top = right = bottom = left = LengthPointsPercent.from_any(0 * PT)
+        if hasattr(container.style, "margin_top"):
+            top = parse_css_value(container.style.margin_top)
+        if hasattr(container.style, "margin_right"):
+            right = parse_css_value(container.style.margin_right)
+        if hasattr(container.style, "margin_bottom"):
+            bottom = parse_css_value(container.style.margin_bottom)
+        if hasattr(container.style, "margin_left"):
+            left = parse_css_value(container.style.margin_left)
+        if hasattr(container.style, "margin") and isinstance(container.style.margin, str):
+            margin_str = container.style.margin.strip().lower()
+            if "calc(" not in margin_str:
+                values = margin_str.split()
+
+                if len(values) == 1:
+                    val = parse_css_value(values[0])
+                    top = right = bottom = left = val
+                elif len(values) == 2:
+                    vertical = parse_css_value(values[0])
+                    horizontal = parse_css_value(values[1])
+                    top = bottom = vertical
+                    right = left = horizontal
+                elif len(values) == 3:
+                    top = parse_css_value(values[0])
+                    horizontal = parse_css_value(values[1])
+                    bottom = parse_css_value(values[2])
+                    right = left = horizontal
+                elif len(values) == 4:
+                    top = parse_css_value(values[0])
+                    right = parse_css_value(values[1])
+                    bottom = parse_css_value(values[2])
+                    left = parse_css_value(values[3])
+        return RectPointsPercent.from_any([top, right, bottom, left])
+
+    def parse_border_values(container):
+        width_top = width_right = width_bottom = width_left = LengthPointsPercent.from_any(0 * PT)
+
+        bw = getattr(container.style, "border_width", None)
+        if bw is not None:
+            if isinstance(bw, (int, float)):
+                val = LengthPointsPercent.from_any(int(bw) * PT)
+                width_top = width_right = width_bottom = width_left = val
+            elif isinstance(bw, str):
+                border_width_str = bw.strip().lower()
+                if "calc(" not in border_width_str:
+                    values = border_width_str.split()
+                    if len(values) == 1:
+                        val = parse_css_value(values[0])
+                        width_top = width_right = width_bottom = width_left = val
+                    elif len(values) == 2:
+                        vertical = parse_css_value(values[0])
+                        horizontal = parse_css_value(values[1])
+                        width_top = width_bottom = vertical
+                        width_right = width_left = horizontal
+                    elif len(values) == 3:
+                        width_top = parse_css_value(values[0])
+                        horizontal = parse_css_value(values[1])
+                        width_bottom = parse_css_value(values[2])
+                        width_right = width_left = horizontal
+                    elif len(values) == 4:
+                        width_top = parse_css_value(values[0])
+                        width_right = parse_css_value(values[1])
+                        width_bottom = parse_css_value(values[2])
+                        width_left = parse_css_value(values[3])
+
+        if hasattr(container.style, "border") and isinstance(container.style.border, str):
+            border_str = container.style.border.strip().lower()
+            if "calc(" not in border_str:
+                # Split on whitespace - this handles multiple spaces correctly
+                parts = border_str.split()
+                for part in parts:
+                    if "px" in part or "%" in part:
+                        val = parse_css_value(part)
+                        width_top = width_right = width_bottom = width_left = val
+                    elif part.startswith("#") or part in ["red", "blue", "green", "black", "white", "transparent"]:
+                        setattr(container.style, "border_color_css", part)
+
+        if hasattr(container.style, "border_color") and isinstance(container.style.border_color, str):
+            setattr(container.style, "border_color_css", container.style.border_color.lower())
+
+        return RectPointsPercent.from_any([width_top, width_right, width_bottom, width_left])
+
+    def parse_align_items(val_str):
+        m = {
+            "start": AlignItems.START,
+            "end": AlignItems.END,
+            "flex_start": AlignItems.FLEX_START,
+            "flex_end": AlignItems.FLEX_END,
+            "center": AlignItems.CENTER,
+            "baseline": AlignItems.BASELINE,
+            "stretch": AlignItems.STRETCH,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_align_self(val_str):
+        m = {
+            "start": AlignSelf.START,
+            "end": AlignSelf.END,
+            "flex_start": AlignSelf.FLEX_START,
+            "flex_end": AlignSelf.FLEX_END,
+            "center": AlignSelf.CENTER,
+            "baseline": AlignSelf.BASELINE,
+            "stretch": AlignSelf.STRETCH,
+            "auto": None,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_align_content(val_str):
+        m = {
+            "start": AlignContent.START,
+            "end": AlignContent.END,
+            "flex_start": AlignContent.FLEX_START,
+            "flex_end": AlignContent.FLEX_END,
+            "center": AlignContent.CENTER,
+            "stretch": AlignContent.STRETCH,
+            "space_between": AlignContent.SPACE_BETWEEN,
+            "space_evenly": AlignContent.SPACE_EVENLY,
+            "space_around": AlignContent.SPACE_AROUND,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_justify_content(val_str):
+        m = {
+            "start": JustifyContent.START,
+            "end": JustifyContent.END,
+            "flex_start": JustifyContent.FLEX_START,
+            "flex_end": JustifyContent.FLEX_END,
+            "center": JustifyContent.CENTER,
+            "stretch": JustifyContent.STRETCH,
+            "space_between": JustifyContent.SPACE_BETWEEN,
+            "space_evenly": JustifyContent.SPACE_EVENLY,
+            "space_around": JustifyContent.SPACE_AROUND,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_justify_items(val_str):
+        m = {
+            "start": JustifyItems.START,
+            "end": JustifyItems.END,
+            "flex_start": JustifyItems.FLEX_START,
+            "flex_end": JustifyItems.FLEX_END,
+            "center": JustifyItems.CENTER,
+            "baseline": JustifyItems.BASELINE,
+            "stretch": JustifyItems.STRETCH,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_justify_self(val_str):
+        m = {
+            "start": JustifySelf.START,
+            "end": JustifySelf.END,
+            "flex_start": JustifySelf.FLEX_START,
+            "flex_end": JustifySelf.FLEX_END,
+            "center": JustifySelf.CENTER,
+            "baseline": JustifySelf.BASELINE,
+            "stretch": JustifySelf.STRETCH,
+            "auto": None,
+        }
+        return m.get(val_str.lower().replace("-", "_"), None)
+
+    def parse_gap_value(value_str):
+        """Parse gap value into SizePointsPercent."""
+        value_str = str(value_str).lower().strip()
+        if not value_str or value_str == "0" or value_str == "0px":
+            return SizePointsPercent.from_any(0 * PT)
+        if "px" in value_str:
+            return SizePointsPercent.from_any(float(value_str.replace("px", "")) * PT)
+        if "%" in value_str:
+            return SizePointsPercent.from_any(float(value_str.replace("%", "")) * PCT)
+        try:
+            return SizePointsPercent.from_any(float(value_str) * PT)
+        except (ValueError, TypeError):
+            return SizePointsPercent.from_any(0 * PT)
+
+    def create_node(container, parent_overflow="VISIBLE", _force_root_box=None):
+        if container.style is None:
+            default_style = Style()
+            setattr(default_style, "width", "100%")
+            setattr(default_style, "height", "100%")
+            container.style = default_style
+
+        s = container.style
+
+        # Display
+        disp_str = s.display.lower()
+        display_val = {
+            "none": Display.NONE,
+            "flex": Display.FLEX,
+            "grid": Display.GRID,
+            "block": Display.BLOCK,
+        }.get(disp_str, Display.FLEX)
+
+        # Position
+        pos_str = s.position.lower()
+        position_val = Position.ABSOLUTE if pos_str in ("absolute", "fixed") else Position.RELATIVE
+
+        # Overflow (support separate overflow-x / overflow-y)
+        overflow_map = {
+            "visible": Overflow.VISIBLE,
+            "hidden": Overflow.HIDDEN,
+            "scroll": Overflow.SCROLL,
+            "auto": Overflow.SCROLL,
+            "clip": Overflow.CLIP,
+        }
+        overflow_x_str = (s.overflow_x if hasattr(s, "overflow_x") and s.overflow_x else s.overflow).lower()
+        overflow_y_str = (s.overflow_y if hasattr(s, "overflow_y") and s.overflow_y else s.overflow).lower()
+        overflow_x_val = overflow_map.get(overflow_x_str, Overflow.VISIBLE)
+        overflow_y_val = overflow_map.get(overflow_y_str, Overflow.VISIBLE)
+
+        # Size
+        width_pct = parse_css_value(s.width)
+        height_pct = parse_css_value(s.height)
+
+        # Min/max size
+        min_w = parse_css_value_auto(s.min_width) if hasattr(s, "min_width") else LengthPointsPercentAuto.from_any(AUTO)
+        min_h = (
+            parse_css_value_auto(s.min_height) if hasattr(s, "min_height") else LengthPointsPercentAuto.from_any(AUTO)
+        )
+        max_w = parse_css_value_auto(s.max_width) if hasattr(s, "max_width") else LengthPointsPercentAuto.from_any(AUTO)
+        max_h = (
+            parse_css_value_auto(s.max_height) if hasattr(s, "max_height") else LengthPointsPercentAuto.from_any(AUTO)
+        )
+
+        # Inset (top, right, bottom, left) for position:absolute
+        inset_top = parse_css_value_auto(s.top) if hasattr(s, "top") else LengthPointsPercentAuto.from_any(AUTO)
+        inset_right = parse_css_value_auto(s.right) if hasattr(s, "right") else LengthPointsPercentAuto.from_any(AUTO)
+        inset_bottom = (
+            parse_css_value_auto(s.bottom) if hasattr(s, "bottom") else LengthPointsPercentAuto.from_any(AUTO)
+        )
+        inset_left = parse_css_value_auto(s.left) if hasattr(s, "left") else LengthPointsPercentAuto.from_any(AUTO)
+
+        # Spacing
+        padding_val = parse_padding_values(container)
+        margin_val = parse_margin_values(container)
+        border_val = parse_border_values(container)
+
+        # Flex direction
+        flex_dir_str = s.flex_direction.lower().replace("-", "_")
+        flex_direction_map = {
+            "row": FlexDirection.ROW,
+            "column": FlexDirection.COLUMN,
+            "row_reverse": FlexDirection.ROW_REVERSE,
+            "column_reverse": FlexDirection.COLUMN_REVERSE,
+        }
+        flex_direction_val = flex_direction_map.get(flex_dir_str, FlexDirection.ROW)
+
+        # Flex wrap
+        flex_wrap_str = s.flex_wrap.lower().replace("-", "_")
+        flex_wrap_map = {
+            "no_wrap": FlexWrap.NO_WRAP,
+            "nowrap": FlexWrap.NO_WRAP,
+            "wrap": FlexWrap.WRAP,
+            "wrap_reverse": FlexWrap.WRAP_REVERSE,
+        }
+        flex_wrap_val = flex_wrap_map.get(flex_wrap_str, FlexWrap.NO_WRAP)
+
+        # Flex item properties
+        flex_grow_val = float(s.flex_grow) if s.flex_grow else 0.0
+        flex_shrink_val = float(s.flex_shrink) if s.flex_shrink else 1.0
+        flex_basis_str = str(s.flex_basis).lower().strip()
+        flex_basis_val = parse_css_value_auto(flex_basis_str)
+
+        # CSS parity: children of overflow:scroll/auto containers don't shrink.
+        # Browsers treat scroll containers as having unbounded space in the
+        # scroll direction, so flex-shrink never triggers. Taffy doesn't do
+        # this automatically, so we force flex_shrink=0 for direct children.
+        if parent_overflow in ("SCROLL", "AUTO"):
+            flex_shrink_val = 0.0
+
+        # Alignment
+        align_items_val = parse_align_items(s.align_items) if s.align_items else None
+        align_self_val = parse_align_self(s.align_self) if s.align_self else None
+        align_content_val = parse_align_content(s.align_content) if s.align_content else None
+        justify_content_val = parse_justify_content(s.justify_content) if s.justify_content else None
+        justify_items_val = parse_justify_items(s.justify_items) if s.justify_items else None
+        justify_self_val = parse_justify_self(s.justify_self) if s.justify_self else None
+
+        # Gap
+        gap_val = parse_gap_value(s.gap) if hasattr(s, "gap") else SizePointsPercent.from_any(0 * PT)
+        if hasattr(s, "row_gap") and s.row_gap:
+            row_gap = parse_css_value(s.row_gap)
+            col_gap_str = s.column_gap if hasattr(s, "column_gap") and s.column_gap else s.gap
+            col_gap = parse_css_value(col_gap_str)
+            gap_val = SizePointsPercent(width=col_gap, height=row_gap)
+        elif hasattr(s, "column_gap") and s.column_gap:
+            col_gap = parse_css_value(s.column_gap)
+            row_gap_str = s.row_gap if hasattr(s, "row_gap") and s.row_gap else s.gap
+            row_gap = parse_css_value(row_gap_str)
+            gap_val = SizePointsPercent(width=col_gap, height=row_gap)
+
+        # Grid properties
+        grid_kwargs = {}
+        if disp_str == "grid":
+            grid_auto_flow_str = (
+                s.grid_auto_flow.lower().replace("-", "_")
+                if hasattr(s, "grid_auto_flow") and s.grid_auto_flow
+                else "row"
+            )
+            grid_auto_flow_map = {
+                "row": GridAutoFlow.ROW,
+                "column": GridAutoFlow.COLUMN,
+                "row_dense": GridAutoFlow.ROW_DENSE,
+                "column_dense": GridAutoFlow.COLUMN_DENSE,
+            }
+            grid_kwargs["grid_auto_flow"] = grid_auto_flow_map.get(grid_auto_flow_str, GridAutoFlow.ROW)
+
+            if hasattr(s, "grid_template_rows") and s.grid_template_rows:
+                val = s.grid_template_rows
+                if isinstance(val, str):
+                    # Split CSS value "1fr 1fr 1fr" into individual tracks
+                    # but preserve "repeat(...)" and "minmax(...)" as single tokens
+                    tracks = re.split(r"\s+(?![^(]*\))", val.strip())
+                    grid_kwargs["grid_template_rows"] = [t for t in tracks if t]
+                else:
+                    grid_kwargs["grid_template_rows"] = val
+            if hasattr(s, "grid_template_columns") and s.grid_template_columns:
+                val = s.grid_template_columns
+                if isinstance(val, str):
+                    tracks = re.split(r"\s+(?![^(]*\))", val.strip())
+                    grid_kwargs["grid_template_columns"] = [t for t in tracks if t]
+                else:
+                    grid_kwargs["grid_template_columns"] = val
+            if hasattr(s, "grid_auto_rows") and s.grid_auto_rows:
+                val = s.grid_auto_rows
+                if isinstance(val, str):
+                    tracks = re.split(r"\s+(?![^(]*\))", val.strip())
+                    grid_kwargs["grid_auto_rows"] = [t for t in tracks if t]
+                else:
+                    grid_kwargs["grid_auto_rows"] = val
+            if hasattr(s, "grid_auto_columns") and s.grid_auto_columns:
+                val = s.grid_auto_columns
+                if isinstance(val, str):
+                    tracks = re.split(r"\s+(?![^(]*\))", val.strip())
+                    grid_kwargs["grid_auto_columns"] = [t for t in tracks if t]
+                else:
+                    grid_kwargs["grid_auto_columns"] = val
+
+        # Grid child placement
+        if hasattr(s, "grid_row") and s.grid_row and s.grid_row != "AUTO":
+            grid_kwargs["grid_row"] = s.grid_row
+        if hasattr(s, "grid_column") and s.grid_column and s.grid_column != "AUTO":
+            grid_kwargs["grid_column"] = s.grid_column
+
+        # Aspect ratio
+        aspect_ratio_val = None
+        if hasattr(s, "aspect_ratio") and s.aspect_ratio and s.aspect_ratio is not True:
+            try:
+                aspect_ratio_val = float(s.aspect_ratio)
+            except (ValueError, TypeError):
+                pass
+
+        # Box sizing
+        box_sizing_str = s.box_sizing.lower() if hasattr(s, "box_sizing") and s.box_sizing else "border-box"
+        box_sizing_val = BoxSizing.CONTENT if box_sizing_str in ("content_box", "content-box") else BoxSizing.BORDER
+
+        # Fullscreen private layout only (UI.compute_subtree_layout): pin the
+        # PASS ROOT to an exact pixel box at the origin - definite size, static
+        # position, no margins/insets/min-max clamps and no aspect-ratio fight,
+        # so the element fills the region regardless of its authored geometry.
+        # Never set by the main document pass (create_node_tree) and never
+        # propagated to children (the recursive call below does not pass it),
+        # so main-tree layout behavior is untouched.
+        if _force_root_box is not None:
+            width_pct = LengthPointsPercent.from_any(float(_force_root_box[0]) * PT)
+            height_pct = LengthPointsPercent.from_any(float(_force_root_box[1]) * PT)
+            position_val = Position.RELATIVE
+            inset_top = inset_right = inset_bottom = inset_left = LengthPointsPercentAuto.from_any(AUTO)
+            margin_val = RectPointsPercent.from_any([LengthPointsPercent.from_any(0 * PT)] * 4)
+            min_w = min_h = max_w = max_h = LengthPointsPercentAuto.from_any(AUTO)
+            aspect_ratio_val = None
+
+        node = Node(
+            display=display_val,
+            position=position_val,
+            box_sizing=box_sizing_val,
+            overflow_x=overflow_x_val,
+            overflow_y=overflow_y_val,
+            scrollbar_width=float(s.scrollbar_width) if hasattr(s, "scrollbar_width") and s.scrollbar_width else 0.0,
+            inset=RectPointsPercentAuto(top=inset_top, right=inset_right, bottom=inset_bottom, left=inset_left),
+            flex_direction=flex_direction_val,
+            flex_wrap=flex_wrap_val,
+            flex_grow=flex_grow_val,
+            flex_shrink=flex_shrink_val,
+            flex_basis=flex_basis_val,
+            align_items=align_items_val,
+            align_self=align_self_val,
+            align_content=align_content_val,
+            justify_content=justify_content_val,
+            justify_items=justify_items_val,
+            justify_self=justify_self_val,
+            gap=gap_val,
+            key=container.id,
+            size=(width_pct, height_pct),
+            min_size=SizePointsPercentAuto(width=min_w, height=min_h),
+            max_size=SizePointsPercentAuto(width=max_w, height=max_h),
+            aspect_ratio=aspect_ratio_val,
+            padding=padding_val,
+            margin=margin_val,
+            border=border_val,
+            **grid_kwargs,
+        )
+
+        # Determine this container's overflow for passing to children
+        this_overflow = s.overflow.upper() if hasattr(s, "overflow") and s.overflow else "VISIBLE"
+
+        for child in container.children:
+            child_node = create_node(child, parent_overflow=this_overflow)
+            node.add(child_node)
+
+        return node
+
+    return create_node

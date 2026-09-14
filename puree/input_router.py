@@ -46,6 +46,11 @@ class InputRouter:
         # Capture mode — when a press starts on UI we hold capture until release
         self._captured = False
 
+        # Fullscreen presentation mode (puree.fullscreen): the whole region
+        # is covered by the backdrop, so EVERY event over it is over-UI.
+        # Set on enter, cleared on exit/force_exit and by reset().
+        self._fullscreen_capture = False
+
     # ------------------------------------------------------------------
     # State updates (called from hit_op after detection)
     # ------------------------------------------------------------------
@@ -113,6 +118,15 @@ class InputRouter:
 
         return False
 
+    def set_fullscreen_capture(self, active: bool):
+        """While True (fullscreen presentation mode), the region-sized
+        backdrop makes the whole region a drawn Puree surface - hover state
+        and event consumption treat everything over the region as over-UI.
+        Cleared on fullscreen exit and by reset()."""
+        self._fullscreen_capture = bool(active)
+        if self._fullscreen_capture:
+            self.is_over_ui = True
+
     def update_hover_state(self, any_hit: bool):
         """Called every frame by hit_op with the result of hit detection.
 
@@ -120,7 +134,7 @@ class InputRouter:
             any_hit: True if any non-passive, displayed, *drawn* container
                      is hovered.
         """
-        self.is_over_ui = any_hit
+        self.is_over_ui = bool(any_hit) or self._fullscreen_capture
 
     def notify_press(self):
         """Called when a mouse press occurs while over UI.
@@ -149,6 +163,8 @@ class InputRouter:
                         for future per-type overrides.
         """
         if self._captured:
+            return True
+        if self._fullscreen_capture:
             return True
         return self.is_over_ui
 

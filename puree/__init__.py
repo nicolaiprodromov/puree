@@ -319,6 +319,34 @@ def unregister():
     except Exception as e:
         logger.warning(f"Error during forced cleanup: {e}")
 
+    # Fullscreen force-exit rides the media/controls teardown trio below
+    # (FULLSCREEN_PLAN: the lifecycle sites stay together; idempotent)
+    try:
+        from .fullscreen import fullscreen_manager
+
+        fullscreen_manager.force_exit()
+    except Exception as e:
+        logger.warning(f"Fullscreen cleanup warning: {e}")
+
+    # Stop media playback and free its GPU textures (idempotent — render
+    # unregister below also calls this, but the forced-cleanup path above
+    # can run without it when render unregister fails)
+    try:
+        from .media import media_manager
+
+        media_manager.shutdown()
+    except Exception as e:
+        logger.warning(f"Media cleanup warning: {e}")
+
+    # Release the video-controls wiring alongside the media shutdown
+    # (controller listeners / mouse callback / SPACE binding; idempotent)
+    try:
+        from .media.controls import unwire_video_controls
+
+        unwire_video_controls()
+    except Exception as e:
+        logger.warning(f"Media controls unwire warning: {e}")
+
     # Stop the reload server
     global _reload_server
     if _reload_server:

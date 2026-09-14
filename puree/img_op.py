@@ -8,6 +8,7 @@
 # ║   ██ ██   ██  ██  ██   ██       ║
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
+import difflib
 import os
 
 import bpy
@@ -16,12 +17,32 @@ from gpu_extras.batch import batch_for_shader
 from mathutils import Matrix
 
 from .log import get_logger
+from .media import MEDIA_EXTENSIONS
 
 logger = get_logger(__name__)
 
 _image_instances = []
 _draw_handle = None
 _cached_viewport_height = None
+
+# Raster formats, loaded eagerly through bpy.data.images + gpu.texture.from_image.
+IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tga", ".webp")
+# Full asset-scan whitelist: rasters + every registered media format
+# (puree.media MEDIA_EXTENSIONS, derived from the decoder registry:
+# .gif/.svg on img:, .mp4/.webm/.mkv/.mov on video:). Media formats never
+# load through bpy.data.images - the scan registers them as stubs and
+# MediaManager supplies their textures per frame.
+SCAN_EXTENSIONS = tuple(dict.fromkeys(IMAGE_EXTENSIONS + MEDIA_EXTENSIONS))
+
+
+def _same_filepath(filepath_a, filepath_b):
+    """True when two image filepaths point at the same file on disk."""
+    try:
+        a = os.path.normcase(os.path.normpath(bpy.path.abspath(filepath_a)))
+        b = os.path.normcase(os.path.normpath(bpy.path.abspath(filepath_b)))
+        return a == b
+    except Exception:
+        return False
 
 
 class ImageManager:
@@ -37,6 +58,9 @@ class ImageManager:
         if not self._initialized:
             self.images = {}
             self.textures = {}
+            self._bpy_images = {}  # image key -> bpy.types.Image datablock
+            self._media_keys = set()  # keys registered as media stubs (.gif/.svg/video, ...)
+            self._warned_missing = set()  # names already reported by resolve()
             self._try_load_images()
             self._initialized = True
 
@@ -61,42 +85,123 @@ class ImageManager:
         from . import get_addon_root
 
         addon_assets_path = os.path.join(get_addon_root(), "assets")
-        if os.path.exists(addon_assets_path):
-            for image_file in os.listdir(addon_assets_path):
-                if image_file.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tga", ".webp")):
-                    image_path = os.path.join(addon_assets_path, image_file)
-                    try:
-                        if image_file not in bpy.data.images:
-                            bpy_image = bpy.data.images.load(image_path)
+        if not os.path.isdir(addon_assets_path):
+            return
+        for dirpath, _dirs, filenames in os.walk(addon_assets_path):
+            for image_file in sorted(filenames):
+                if not image_file.lower().endswith(SCAN_EXTENSIONS):
+                    continue
+                image_path = os.path.join(dirpath, image_file)
+                # Key by path relative to assets/, posix-style, WITH extension:
+                # "loggoui2.png", "icons/play.png"
+                image_key = os.path.relpath(image_path, addon_assets_path).replace(os.sep, "/")
+
+                # Media formats (gif/svg/video, ...) can't go through
+                # bpy.data.images - register a stub so resolve()/
+                # get_available_images()/operator enums know the asset;
+                # MediaManager supplies the texture.
+                if os.path.splitext(image_file)[1].lower() in MEDIA_EXTENSIONS:
+                    self.images[image_key] = image_path
+                    self.textures[image_key] = None
+                    self._media_keys.add(image_key)
+                    continue
+
+                try:
+                    # Reuse the datablock we already loaded for this key, if alive
+                    bpy_image = self._bpy_images.get(image_key)
+                    if bpy_image is not None:
+                        try:
+                            _ = bpy_image.name
+                        except ReferenceError:
+                            bpy_image = None
+                    if bpy_image is None:
+                        existing = bpy.data.images.get(image_file)
+                        if existing is not None and _same_filepath(existing.filepath, image_path):
+                            bpy_image = existing
                         else:
-                            bpy_image = bpy.data.images[image_file]
+                            # New file — or a subdir file whose basename collides
+                            # with an already-loaded image; load() auto-uniquifies
+                            # the datablock name, so keep the returned reference.
+                            bpy_image = bpy.data.images.load(image_path)
 
-                        bpy_image.alpha_mode = "PREMUL"
+                    bpy_image.alpha_mode = "PREMUL"
 
-                        texture = gpu.texture.from_image(bpy_image)
-                        image_name = os.path.splitext(image_file)[0]
-                        self.images[image_name] = image_path
-                        self.textures[image_name] = texture
-                    except Exception as e:
-                        logger.error(f"Failed to load image {image_file}: {e}")
+                    texture = gpu.texture.from_image(bpy_image)
+                    self.images[image_key] = image_path
+                    self.textures[image_key] = texture
+                    self._bpy_images[image_key] = bpy_image
+                except Exception as e:
+                    logger.error(f"Failed to load image {image_key}: {e}")
 
     def get_texture(self, image_name):
         return self.textures.get(image_name, None)
+
+    def resolve(self, image_name):
+        """Resolve an ``img:`` value (full filename incl. extension) to a texture.
+
+        Returns the GPUTexture, or None on a miss. Each unique missing name is
+        reported once with an actionable error (extension hint or close-match
+        suggestions) — never per frame. Registered media assets (.gif/.svg/
+        video, ...) return None silently: they are stubs whose texture
+        arrives per-frame through MediaManager, not missing assets.
+        """
+        if not image_name:
+            return None
+        image_key = str(image_name).replace("\\", "/")
+        if image_key in self.textures:
+            return self.textures[image_key]
+        if image_key not in self._warned_missing:
+            self._warned_missing.add(image_key)
+            logger.error(self._miss_message(image_key))
+        return None
+
+    def is_media(self, image_name):
+        """True when the name is a registered media asset (texture via MediaManager)."""
+        if not image_name:
+            return False
+        return str(image_name).replace("\\", "/") in self._media_keys
+
+    def _miss_message(self, image_key):
+        known = sorted(self.textures.keys())
+
+        def _or_join(names):
+            return " or ".join(names)
+
+        if not os.path.splitext(image_key)[1]:
+            stem_matches = [
+                k
+                for k in known
+                if os.path.splitext(k)[0] == image_key or os.path.splitext(os.path.basename(k))[0] == image_key
+            ]
+            if stem_matches:
+                return (
+                    f"img: '{image_key}' has no extension - did you mean {_or_join(stem_matches)}? "
+                    f"(img: values require the full filename, e.g. img: logo.png)"
+                )
+        close = difflib.get_close_matches(image_key, known, n=3, cutoff=0.5)
+        if close:
+            return f"img: '{image_key}' not found in assets/ - did you mean {_or_join(close)}?"
+        return f"img: '{image_key}' not found in assets/ - available: {', '.join(known) if known else 'none'}"
 
     def get_available_images(self):
         return list(self.images.keys())
 
     def unload_images(self):
-        for image_name, image_path in self.images.items():
+        for image_name in list(self.images.keys()):
             try:
-                image_file = os.path.basename(image_path)
-                if image_file in bpy.data.images:
-                    bpy.data.images.remove(bpy.data.images[image_file])
+                # Remove by datablock reference — names may have been
+                # auto-uniquified on basename collisions (e.g. "play.png.001")
+                bpy_image = self._bpy_images.get(image_name)
+                if bpy_image is not None:
+                    bpy.data.images.remove(bpy_image)
             except Exception as e:
                 logger.error(f"Failed to remove image {image_name}: {e}")
 
         self.textures.clear()
         self.images.clear()
+        self._bpy_images.clear()
+        self._media_keys.clear()
+        self._warned_missing.clear()
 
     def reload_images(self):
         """Reload all images - used when addon is re-enabled without Blender restart"""
@@ -175,7 +280,7 @@ class ImageInstance:
         self.id = len(_image_instances)
         self.container_id = container_id
         self.image_name = image_name
-        self.texture = image_manager.get_texture(self.image_name) if self.image_name else None
+        self.texture = image_manager.resolve(self.image_name) if self.image_name else None
         self.position = pos
         self.size = size
         self.mask = mask
@@ -305,11 +410,21 @@ def draw_all_images():
 
     viewport_height = _cached_viewport_height or 0
 
+    # Fullscreen presentation mode (FULLSCREEN_PLAN Phase A): only the
+    # active subtree's instances draw (the manager retargeted them to the
+    # private layout); everything else stays hidden behind the backdrop.
+    # None = inactive = the zero-cost pre-fullscreen path.
+    from .fullscreen import fullscreen_manager
+
+    fs_visible = fullscreen_manager.visible_instance_ids()
+
     saved_blend = gpu.state.blend_get()
     gpu.state.blend_set("ALPHA_PREMULT")
 
     for instance in _image_instances:
         if not instance.texture or not instance.batch:
+            continue
+        if fs_visible is not None and instance.container_id not in fs_visible:
             continue
 
         scissor_rect = None

@@ -85,6 +85,41 @@ class RenderPipeline:
         self._data_needs_update = True
         self._hot_reload_frame_counter = 0
 
+        # Overlay container pass (MEDIA_PLAN section 4.3): containers whose
+        # flat dict carries overlay=True are packed into a SECOND data
+        # texture and drawn by a second POST_PIXEL handler registered after
+        # the image pass (see XWZ_OT_start_ui.execute). Same shader, same
+        # packing code - all None/0 (zero overhead) while no overlay
+        # containers exist. The flat container list stays the single source
+        # of truth for hit detection/scroll/transitions; only GPU packing
+        # filters, and the index maps remap flat hover/click indices to each
+        # pass's local texture indices.
+        self.overlay_data_texture = None
+        self.overlay_batch = None
+        self.overlay_container_count = 0
+        self.overlay_draw_handler = None
+        self._main_index_map = None
+        self._overlay_index_map = None
+
+        # Fullscreen presentation pass (FULLSCREEN_PLAN Phase A): while
+        # fs_active, draw_texture paints an opaque backdrop + the PRIVATE
+        # subtree's main-split texture and draw_overlay_texture paints its
+        # overlay split (e.g. video controls) - the resident main/overlay
+        # textures above are untouched (exit = instant). Packed by
+        # set_fullscreen_pass() from the flat list puree.fullscreen builds;
+        # index maps remap the FULL-list hover/click indices to
+        # fullscreen-local slots (hit results stay id-keyed on hit_op's
+        # main dicts).
+        self.fs_active = False
+        self.fs_data_texture = None
+        self.fs_batch = None
+        self.fs_container_count = 0
+        self.fs_overlay_texture = None
+        self.fs_overlay_batch = None
+        self.fs_overlay_count = 0
+        self._fs_main_index_map = None
+        self._fs_overlay_index_map = None
+
         from .transition_manager import TransitionManager
 
         self.transitions = TransitionManager()
@@ -251,9 +286,12 @@ class RenderPipeline:
             logger.error("Failed to create native shader", exc_info=True)
             return False
 
-    def create_container_batch(self, count):
+    def _build_quad_batch(self, count):
+        """One quad (2 tris) per packed container. containerIdx is the LOCAL
+        index into whichever data texture the pass binds - flat indices never
+        reach the GPU. Returns the batch, or None on failure/empty count."""
         if not self.native_shader or count <= 0:
-            return False
+            return None
 
         try:
             vertices_idx = []
@@ -272,27 +310,58 @@ class RenderPipeline:
                     ]
                 )
 
-            self.native_batch = batch_for_shader(
+            return batch_for_shader(
                 self.native_shader,
                 "TRIS",
                 {"containerIdx": vertices_idx, "quadCorner": vertices_corner},
                 indices=indices,
             )
-            self.container_count = count
-            return True
         except Exception:
             logger.error("Failed to create container batch", exc_info=True)
+            return None
+
+    def create_container_batch(self, count):
+        batch = self._build_quad_batch(count)
+        if batch is None:
             return False
+        self.native_batch = batch
+        self.container_count = count
+        return True
 
-    def _pack_container_data_texture(self, containers):
-        n = len(containers)
-        data = np.zeros(n * 68, dtype=np.float32)
+    @staticmethod
+    def _split_overlay_indices(containers):
+        """Flat indices per GPU pass: (main, overlay), both in flat order.
 
-        self._vis_clips = self._precompute_visibility_and_clips(containers)
-
+        Only the GPU packing filters on the overlay flag - the flat list
+        itself is never reordered or renumbered (hit detection, scroll
+        offsets, transitions and dirty-sync all key on flat indices)."""
+        main_indices = []
+        overlay_indices = []
         for i, container in enumerate(containers):
-            struct = self._build_container_struct(container)
-            v, cx, cy, cw, ch, acc_opacity = self._vis_clips[i]
+            if container.get("overlay", False):
+                overlay_indices.append(i)
+            else:
+                main_indices.append(i)
+        return main_indices, overlay_indices
+
+    def _pack_container_data_texture(self, containers, indices=None, vis_clips=None):
+        # `containers` is always the FULL flat list; `indices` selects the
+        # subset packed into this texture (None = all, the pre-overlay
+        # behavior). Visibility/clip/opacity precompute always runs on the
+        # full list so _vis_clips keeps FLAT indexing (_draw_scrollbars and
+        # the overlay pass share it); pass vis_clips to reuse the precompute
+        # across the two packs of one rebuild.
+        if vis_clips is None:
+            self._vis_clips = self._precompute_visibility_and_clips(containers)
+            vis_clips = self._vis_clips
+        if indices is None:
+            indices = range(len(containers))
+
+        data = np.zeros(len(indices) * 68, dtype=np.float32)
+
+        for slot, i in enumerate(indices):
+            struct = self._build_container_struct(containers[i])
+            v, cx, cy, cw, ch, acc_opacity = vis_clips[i]
             struct[54] = v
             struct[55] = cx
             struct[56] = cy
@@ -300,10 +369,23 @@ class RenderPipeline:
             struct[58] = ch
             struct[59] = acc_opacity
 
-            offset = i * 68
+            offset = slot * 68
             data[offset : offset + 68] = struct
 
         return data
+
+    @staticmethod
+    def _texture_from_packed(data):
+        """RGBA32F 1-row data texture from a packed float array (17 texels
+        per container - stride and layout unchanged from the single-pass
+        design; see container_draw.frag)."""
+        tex_width = (len(data) // 68) * 17
+        buf = gpu.types.Buffer("FLOAT", len(data), data)
+        return gpu.types.GPUTexture(
+            (tex_width, 1),
+            format="RGBA32F",
+            data=buf,
+        )
 
     def create_data_texture(self, containers):
         n = len(containers)
@@ -313,15 +395,36 @@ class RenderPipeline:
         try:
             self._build_gradient_texture(containers)
 
-            data = self._pack_container_data_texture(containers)
-            tex_width = n * 17
+            # MEDIA_PLAN section 4.3: split the flat list into the main and
+            # overlay draw passes. UIs without overlay containers take the
+            # exact pre-overlay path (main == full list, identity index map,
+            # no overlay texture => zero extra work).
+            main_indices, overlay_indices = self._split_overlay_indices(containers)
+            self._main_index_map = {flat: local for local, flat in enumerate(main_indices)}
+            self._overlay_index_map = {flat: local for local, flat in enumerate(overlay_indices)}
 
-            buf = gpu.types.Buffer("FLOAT", len(data), data)
-            self.data_texture = gpu.types.GPUTexture(
-                (tex_width, 1),
-                format="RGBA32F",
-                data=buf,
-            )
+            data = self._pack_container_data_texture(containers, indices=main_indices)
+            self.data_texture = self._texture_from_packed(data) if main_indices else None
+            if len(main_indices) != self.container_count:
+                if main_indices:
+                    self.create_container_batch(len(main_indices))
+                else:
+                    self.native_batch = None
+                    self.container_count = 0
+
+            if overlay_indices:
+                overlay_data = self._pack_container_data_texture(
+                    containers, indices=overlay_indices, vis_clips=self._vis_clips
+                )
+                self.overlay_data_texture = self._texture_from_packed(overlay_data)
+                if len(overlay_indices) != self.overlay_container_count:
+                    self.overlay_batch = self._build_quad_batch(len(overlay_indices))
+                    self.overlay_container_count = len(overlay_indices) if self.overlay_batch else 0
+            else:
+                self.overlay_data_texture = None
+                self.overlay_batch = None
+                self.overlay_container_count = 0
+
             self._data_needs_update = False
             return True
         except Exception:
@@ -329,18 +432,107 @@ class RenderPipeline:
             return False
 
     def update_data_texture(self, containers):
+        # Drop BOTH pass textures - create_data_texture rebuilds them (and
+        # resizes either quad batch when its pass's container count changed).
         if self.data_texture:
             try:
                 del self.data_texture
             except Exception:
                 pass
             self.data_texture = None
-
-        n = len(containers)
-        if n != self.container_count:
-            self.create_container_batch(n)
+        if self.overlay_data_texture:
+            try:
+                del self.overlay_data_texture
+            except Exception:
+                pass
+            self.overlay_data_texture = None
 
         return self.create_data_texture(containers)
+
+    def set_fullscreen_pass(self, containers):
+        """Pack the PRIVATE fullscreen flat list (built by puree.fullscreen)
+        into the dedicated fullscreen data textures using the exact Phase 5
+        machinery: _split_overlay_indices + _pack_container_data_texture +
+        _texture_from_packed + _build_quad_batch, 68-float stride unchanged.
+
+        Deliberately does NOT touch the resident main/overlay textures,
+        self._vis_clips (still flat-indexed for scrollbars) or the gradient
+        atlas (_build_container_struct resolves the subtree's stops against
+        the full-list rows, which include them). The private visibility/clip
+        precompute runs on the private list, so subtree overflow parents
+        still clip while main-tree scroll ancestors cannot (the private
+        layout escaped them). Index maps translate the FULL flat hover/click
+        indices (hit detection applies results by id to the main dicts) to
+        each fullscreen texture's LOCAL slots."""
+        try:
+            main_indices, overlay_indices = self._split_overlay_indices(containers)
+            fs_vis_clips = self._precompute_visibility_and_clips(containers)
+            id_to_full = self._container_id_to_index or {}
+
+            def remap(indices):
+                index_map = {}
+                for local, i in enumerate(indices):
+                    full = id_to_full.get(containers[i].get("id", ""), -1)
+                    if full >= 0:
+                        index_map[full] = local
+                return index_map
+
+            self._fs_main_index_map = remap(main_indices)
+            self._fs_overlay_index_map = remap(overlay_indices)
+
+            if main_indices:
+                data = self._pack_container_data_texture(containers, indices=main_indices, vis_clips=fs_vis_clips)
+                self.fs_data_texture = self._texture_from_packed(data)
+                if len(main_indices) != self.fs_container_count:
+                    self.fs_batch = self._build_quad_batch(len(main_indices))
+                    self.fs_container_count = len(main_indices) if self.fs_batch else 0
+            else:
+                self.fs_data_texture = None
+                self.fs_batch = None
+                self.fs_container_count = 0
+
+            if overlay_indices:
+                overlay_data = self._pack_container_data_texture(
+                    containers, indices=overlay_indices, vis_clips=fs_vis_clips
+                )
+                self.fs_overlay_texture = self._texture_from_packed(overlay_data)
+                if len(overlay_indices) != self.fs_overlay_count:
+                    self.fs_overlay_batch = self._build_quad_batch(len(overlay_indices))
+                    self.fs_overlay_count = len(overlay_indices) if self.fs_overlay_batch else 0
+            else:
+                self.fs_overlay_texture = None
+                self.fs_overlay_batch = None
+                self.fs_overlay_count = 0
+
+            self.fs_active = True
+            return True
+        except Exception:
+            logger.error("Failed to build fullscreen data textures", exc_info=True)
+            self.clear_fullscreen_pass()
+            return False
+
+    def clear_fullscreen_pass(self):
+        """Drop the fullscreen textures/batches/maps and leave the mode
+        (exit path + cleanup teardown symmetry). Idempotent."""
+        self.fs_active = False
+        if self.fs_data_texture:
+            try:
+                del self.fs_data_texture
+            except Exception:
+                pass
+            self.fs_data_texture = None
+        if self.fs_overlay_texture:
+            try:
+                del self.fs_overlay_texture
+            except Exception:
+                pass
+            self.fs_overlay_texture = None
+        self.fs_batch = None
+        self.fs_container_count = 0
+        self.fs_overlay_batch = None
+        self.fs_overlay_count = 0
+        self._fs_main_index_map = None
+        self._fs_overlay_index_map = None
 
     def update_mouse_position(self, mouse_x, mouse_y):
         self.mouse_pos[0] = max(0.0, min(1.0, mouse_x))
@@ -398,6 +590,17 @@ class RenderPipeline:
 
     def on_scroll(self, delta, absolute_value):
         from . import hit_op
+
+        # Fullscreen presentation mode consumes the wheel: the hidden main
+        # tree must not scroll underneath (stale hover flags would pick a
+        # main-tree scroll area) and the detector hot-sync below would
+        # clobber the fullscreen hit set. The private layout has no scroll
+        # offsets by design (Phase A).
+        from .fullscreen import fullscreen_manager
+
+        if fullscreen_manager.is_active():
+            self.write_mouse_buffer()
+            return
 
         containers = hit_op._container_data
         if not containers:
@@ -599,6 +802,37 @@ class RenderPipeline:
             space_class = bpy.types.SpaceView3D
 
         self.draw_handler = space_class.draw_handler_add(self.draw_texture, (), "WINDOW", "POST_PIXEL")
+
+    def add_overlay_drawing_callback(self):
+        """Register the overlay container pass (MEDIA_PLAN section 4.3).
+
+        Called from XWZ_OT_start_ui.execute - deliberately NOT from
+        initialize() - because POST_PIXEL handlers fire in registration
+        order and the image/text handlers self-register lazily on their
+        first operator call. Registering between the draw_image loop and
+        the draw_text loop yields the effective order:
+
+            containers (initialize)            - main pass
+            images/video (first xwz.draw_image)
+            overlay containers (this handler)  - e.g. video controls
+            text (first xwz.draw_text)
+            text inputs (first xwz.create_text_input)
+
+        A UI with no images never registers the image handler, which keeps
+        the same relative order; new image instances are only created in
+        execute() (hot reload updates existing ones), so the image handler
+        cannot register after this one mid-session.
+        """
+        if self.overlay_draw_handler is not None:
+            return
+
+        from .space_config import get_space_class
+
+        space_class = get_space_class()
+        if not space_class:
+            space_class = bpy.types.SpaceView3D
+
+        self.overlay_draw_handler = space_class.draw_handler_add(self.draw_overlay_texture, (), "WINDOW", "POST_PIXEL")
 
     def _draw_scrollbars(self):
         from . import hit_op
@@ -835,6 +1069,65 @@ class RenderPipeline:
 
         gpu.state.blend_set(saved_blend)
 
+    def _bind_gradient_uniforms(self, shader):
+        """Bind the shared gradient texture (or the 1x1 dummy) - the rows are
+        built from the FULL container list, so both passes share it."""
+        if self.gradient_texture:
+            shader.uniform_sampler("gradientTex", self.gradient_texture)
+            shader.uniform_float("gradTexHeight", float(self.gradient_texture.height))
+        else:
+            if not hasattr(self, "_dummy_grad_tex") or self._dummy_grad_tex is None:
+                dummy = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+                dbuf = gpu.types.Buffer("FLOAT", 4, dummy)
+                self._dummy_grad_tex = gpu.types.GPUTexture((1, 1), format="RGBA32F", data=dbuf)
+            shader.uniform_sampler("gradientTex", self._dummy_grad_tex)
+            shader.uniform_float("gradTexHeight", 1.0)
+
+    def _pass_state_indices(self, index_map):
+        """Remap the FLAT hover/click indices to one pass's LOCAL indices.
+
+        The fragment shader compares hoverIndex/clickIndex against the
+        quad's containerIdx, which is local to the bound data texture. With
+        no overlay containers the main map is the identity, and a container
+        that lives in the other pass remaps to -1 (no highlight here)."""
+        if index_map is None:  # before the first packing - identity
+            return float(self._current_hover_index), float(self._current_click_index)
+        return (
+            float(index_map.get(self._current_hover_index, -1)),
+            float(index_map.get(self._current_click_index, -1)),
+        )
+
+    def _draw_pass(self, data_texture, batch, index_map):
+        """Bind the shared container shader to ONE pass's data texture and
+        draw its quad batch. Extracted from draw_texture/draw_overlay_texture
+        (identical GL sequence) so the fullscreen passes reuse it instead of
+        a third copy. Caller owns blend/depth state and error handling."""
+        self.native_shader.bind()
+        self.native_shader.uniform_sampler("containerData", data_texture)
+        self._bind_gradient_uniforms(self.native_shader)
+        self.native_shader.uniform_float("viewportWidth", float(self.region_size[0]))
+        self.native_shader.uniform_float("viewportHeight", float(self.region_size[1]))
+        hover_idx, click_idx = self._pass_state_indices(index_map)
+        self.native_shader.uniform_float("hoverIndex", hover_idx)
+        self.native_shader.uniform_float("clickIndex", click_idx)
+
+        gpu.matrix.push()
+        gpu.matrix.load_identity()
+
+        batch.draw(self.native_shader)
+        gpu.matrix.pop()
+
+    def _draw_fullscreen_backdrop(self):
+        """Opaque black region rect under the fullscreen subtree - the plain
+        gpu primitive convention the scrollbars/debug overlay already use."""
+        vw = float(self.region_size[0])
+        vh = float(self.region_size[1])
+        shader = gpu.shader.from_builtin("UNIFORM_COLOR")
+        shader.bind()
+        shader.uniform_float("color", (0.0, 0.0, 0.0, 1.0))
+        verts = [(0.0, 0.0), (vw, 0.0), (vw, vh), (0.0, vh)]
+        batch_for_shader(shader, "TRI_FAN", {"pos": verts}).draw(shader)
+
     def draw_texture(self):
         if not (self.running and self.native_shader and self.native_batch and self.data_texture):
             return
@@ -842,32 +1135,30 @@ class RenderPipeline:
         saved_blend = gpu.state.blend_get()
         saved_depth = gpu.state.depth_test_get()
 
+        if self.fs_active:
+            # Fullscreen short-circuit (FULLSCREEN_PLAN Phase A): opaque
+            # backdrop + the private subtree's main split. The normal pass
+            # below is skipped but its textures stay resident (exit is
+            # instant); scrollbars + debug overlay are hidden-tree chrome
+            # and are skipped with it.
+            try:
+                gpu.state.blend_set("ALPHA_PREMULT")
+                gpu.state.depth_test_set("NONE")
+                self._draw_fullscreen_backdrop()
+                if self.fs_batch and self.fs_data_texture:
+                    self._draw_pass(self.fs_data_texture, self.fs_batch, self._fs_main_index_map)
+            except Exception:
+                logger.error("Error drawing fullscreen containers", exc_info=True)
+
+            gpu.state.blend_set(saved_blend)
+            gpu.state.depth_test_set(saved_depth)
+            return
+
         try:
             gpu.state.blend_set("ALPHA_PREMULT")
             gpu.state.depth_test_set("NONE")
 
-            self.native_shader.bind()
-            self.native_shader.uniform_sampler("containerData", self.data_texture)
-            if self.gradient_texture:
-                self.native_shader.uniform_sampler("gradientTex", self.gradient_texture)
-                self.native_shader.uniform_float("gradTexHeight", float(self.gradient_texture.height))
-            else:
-                if not hasattr(self, "_dummy_grad_tex") or self._dummy_grad_tex is None:
-                    dummy = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
-                    dbuf = gpu.types.Buffer("FLOAT", 4, dummy)
-                    self._dummy_grad_tex = gpu.types.GPUTexture((1, 1), format="RGBA32F", data=dbuf)
-                self.native_shader.uniform_sampler("gradientTex", self._dummy_grad_tex)
-                self.native_shader.uniform_float("gradTexHeight", 1.0)
-            self.native_shader.uniform_float("viewportWidth", float(self.region_size[0]))
-            self.native_shader.uniform_float("viewportHeight", float(self.region_size[1]))
-            self.native_shader.uniform_float("hoverIndex", float(self._current_hover_index))
-            self.native_shader.uniform_float("clickIndex", float(self._current_click_index))
-
-            gpu.matrix.push()
-            gpu.matrix.load_identity()
-
-            self.native_batch.draw(self.native_shader)
-            gpu.matrix.pop()
+            self._draw_pass(self.data_texture, self.native_batch, self._main_index_map)
         except Exception:
             logger.error("Error drawing containers", exc_info=True)
 
@@ -884,6 +1175,54 @@ class RenderPipeline:
         gpu.state.blend_set(saved_blend)
         gpu.state.depth_test_set(saved_depth)
 
+    def draw_overlay_texture(self):
+        """Second container pass: overlay-flagged containers, drawn ABOVE the
+        image/video pass (handler order - see add_overlay_drawing_callback).
+        Same shader and packing as draw_texture, bound to the smaller
+        overlay data texture. No-op (cheap early return) when the UI has no
+        overlay containers. Scrollbars/debug stay in the main pass.
+
+        While fullscreen is active this handler draws the PRIVATE subtree's
+        overlay split instead (e.g. the video controls above the fullscreen
+        video) - the normal overlay texture stays resident but undrawn."""
+        if not (self.running and self.native_shader):
+            return
+
+        if self.fs_active:
+            if not (self.fs_overlay_batch and self.fs_overlay_texture):
+                return
+
+            saved_blend = gpu.state.blend_get()
+            saved_depth = gpu.state.depth_test_get()
+
+            try:
+                gpu.state.blend_set("ALPHA_PREMULT")
+                gpu.state.depth_test_set("NONE")
+                self._draw_pass(self.fs_overlay_texture, self.fs_overlay_batch, self._fs_overlay_index_map)
+            except Exception:
+                logger.error("Error drawing fullscreen overlay containers", exc_info=True)
+
+            gpu.state.blend_set(saved_blend)
+            gpu.state.depth_test_set(saved_depth)
+            return
+
+        if not (self.overlay_batch and self.overlay_data_texture):
+            return
+
+        saved_blend = gpu.state.blend_get()
+        saved_depth = gpu.state.depth_test_get()
+
+        try:
+            gpu.state.blend_set("ALPHA_PREMULT")
+            gpu.state.depth_test_set("NONE")
+
+            self._draw_pass(self.overlay_data_texture, self.overlay_batch, self._overlay_index_map)
+        except Exception:
+            logger.error("Error drawing overlay containers", exc_info=True)
+
+        gpu.state.blend_set(saved_blend)
+        gpu.state.depth_test_set(saved_depth)
+
     def cleanup(self):
         self.running = False
 
@@ -896,6 +1235,20 @@ class RenderPipeline:
 
             space_class.draw_handler_remove(self.draw_handler, "WINDOW")
             self.draw_handler = None
+
+        # Overlay pass teardown - symmetrical with the main handler above.
+        if self.overlay_draw_handler:
+            from .space_config import get_space_class
+
+            space_class = get_space_class()
+            if not space_class:
+                space_class = bpy.types.SpaceView3D
+
+            try:
+                space_class.draw_handler_remove(self.overlay_draw_handler, "WINDOW")
+            except Exception:
+                logger.debug("Failed to remove overlay draw handler", exc_info=True)
+            self.overlay_draw_handler = None
 
         self.needs_texture_update = True
         self.last_mouse_pos = [0.5, 0.5]
@@ -958,9 +1311,23 @@ class RenderPipeline:
             except Exception:
                 logger.debug("Failed to delete data texture", exc_info=True)
             self.data_texture = None
+        if self.overlay_data_texture:
+            try:
+                del self.overlay_data_texture
+            except Exception:
+                logger.debug("Failed to delete overlay data texture", exc_info=True)
+            self.overlay_data_texture = None
+        # Fullscreen pass teardown - symmetric with the two passes above
+        # (fullscreen_manager.force_exit() already ran on every cleanup
+        # path; this is the belt for a pipeline torn down mid-mode).
+        self.clear_fullscreen_pass()
         self.native_shader = None
         self.native_batch = None
         self.container_count = 0
+        self.overlay_batch = None
+        self.overlay_container_count = 0
+        self._main_index_map = None
+        self._overlay_index_map = None
 
     def _parse_gradient_stops(self, stops_str):
         if not stops_str or not stops_str.strip():
@@ -1692,8 +2059,17 @@ class XWZ_OT_start_ui(Operator):
             parser_op.text_input_blocks if hasattr(parser_op, "text_input_blocks") else None,
         )
 
+        from .img_op import image_manager
+
         for _container_id in parser_op.image_blocks:
             block = parser_op.image_blocks[_container_id]
+            if image_manager.resolve(block["image_name"]) is None and not image_manager.is_media(block["image_name"]):
+                # resolve() already logged an actionable error (missing
+                # extension / did-you-mean). Skip so the invalid name cannot
+                # blow up the operator's EnumProperty conversion. Media assets
+                # (gif, ...) resolve to None by design - their instances are
+                # created with a stub texture and animated by MediaManager.
+                continue
             bpy.ops.xwz.draw_image(
                 container_id=_container_id,
                 image_name=block["image_name"],
@@ -1710,6 +2086,16 @@ class XWZ_OT_start_ui(Operator):
                 align_v=block.get("align_v", "TOP").upper(),
                 opacity=block.get("opacity", 1.0),
             )
+
+        # Overlay container pass handler (MEDIA_PLAN section 4.3): MUST be
+        # registered exactly here - AFTER the draw_image loop above and
+        # BEFORE the draw_text loop below. POST_PIXEL handlers fire in
+        # registration order, and the image/text handlers self-register
+        # lazily on their first operator call, so the effective order is:
+        # containers (initialize) -> images/video (first xwz.draw_image) ->
+        # overlay containers (this) -> text (first xwz.draw_text) -> inputs.
+        # See RenderPipeline.add_overlay_drawing_callback for the full proof.
+        _render_data.add_overlay_drawing_callback()
 
         for _container_id in parser_op.text_blocks:
             block = parser_op.text_blocks[_container_id]
@@ -1759,6 +2145,13 @@ class XWZ_OT_start_ui(Operator):
             block = parser_op.image_blocks.get(cid) if hasattr(parser_op, "image_blocks") else None
             if block and "scroll_clip" in block:
                 image_instance.clip = list(block["scroll_clip"])
+
+        # Wire media elements (img: *.gif, ...) to their fresh instances -
+        # decodes on first use, seeds the first frame (so aspect-ratio fit is
+        # correct before the first draw) and autoplays animated sources.
+        from .media import media_manager
+
+        media_manager.attach(parser_op.image_blocks, img_op_mod._image_instances)
 
         for _container_id in parser_op.text_input_blocks:
             block = parser_op.text_input_blocks[_container_id]
@@ -1877,6 +2270,8 @@ class XWZ_OT_start_ui(Operator):
             size_changed = False
             transitions_active = False
             hover_changed = False
+            media_changed = False
+            fullscreen_changed = False
 
             if target_area and target_region:
                 # Throttle hot reload checks to every N frames instead of every frame
@@ -2365,6 +2760,28 @@ class XWZ_OT_start_ui(Operator):
                     if _container_data:
                         _render_data.update_container_buffer_full(_container_data)
 
+                # Fullscreen presentation mode (FULLSCREEN_PLAN Phase A):
+                # the dirty-sync/scroll/resize paths above retarget the
+                # instances and the hit detector from MAIN-tree blocks -
+                # while active, the manager re-asserts the private pass in
+                # the SAME tick (nothing draws in between) and recomputes
+                # its layout when the region changed. No-op when inactive.
+                from .fullscreen import fullscreen_manager
+
+                fullscreen_changed = fullscreen_manager.on_render_tick(
+                    dirty_synced=state_synced or scroll_changed, size_changed=size_changed
+                )
+
+                # Tick media playback (GIF, ...) — swaps ImageInstance textures
+                # when a frame is due. Runs AFTER the dirty-sync/scroll/resize
+                # update_all() calls above so a media texture they reset to the
+                # stub is restored before this tick's draw. Mirrors the
+                # transitions pattern: no media (or all paused) => no redraw,
+                # near-zero work.
+                from .media import media_manager
+
+                media_changed = media_manager.tick(time.monotonic())
+
             # Conditional tag_redraw — only redraw when something actually changed
             # hover_changed only needs tag_redraw (push constants update), no data texture rebuild
             needs_redraw = (
@@ -2372,6 +2789,8 @@ class XWZ_OT_start_ui(Operator):
                 or size_changed
                 or hover_changed
                 or transitions_active
+                or media_changed
+                or fullscreen_changed
                 or _render_data.force_initial_draw
             )
             if _render_data.force_initial_draw:
@@ -2399,6 +2818,33 @@ class XWZ_OT_start_ui(Operator):
             context.window_manager.event_timer_remove(_modal_timer)
             _modal_timer = None
 
+        # Fullscreen force-exit FIRST (while the instances it retargeted are
+        # still alive), then the media/controls teardown pair - the trio
+        # stays together on every teardown path (FULLSCREEN_PLAN). Idempotent.
+        try:
+            from .fullscreen import fullscreen_manager
+
+            fullscreen_manager.force_exit()
+        except Exception:
+            logger.debug("Fullscreen force-exit failed during cancel", exc_info=True)
+
+        # Stop media playback before instances/textures go away (idempotent)
+        from .media import media_manager
+
+        media_manager.shutdown()
+
+        # Release the controls wiring that outlives the container tree
+        # (controller listeners / mouse callback / SPACE binding) - keeps
+        # the wiring lifecycle aligned with the media shutdown above.
+        # Idempotent; the next parse re-wires. Guarded: teardown must not
+        # break if the controls module cannot load.
+        try:
+            from .media.controls import unwire_video_controls
+
+            unwire_video_controls()
+        except Exception:
+            logger.debug("Video controls unwire failed during cancel", exc_info=True)
+
         if _render_data:
             _render_data.cleanup()
             _render_data = None
@@ -2420,6 +2866,29 @@ class XWZ_OT_stop_ui(Operator):
         if _modal_timer:
             context.window_manager.event_timer_remove(_modal_timer)
             _modal_timer = None
+
+        # Fullscreen force-exit rides the media/controls teardown trio
+        # (see XWZ_OT_start_ui.cancel for the rationale; idempotent).
+        try:
+            from .fullscreen import fullscreen_manager
+
+            fullscreen_manager.force_exit()
+        except Exception:
+            logger.debug("Fullscreen force-exit failed during stop", exc_info=True)
+
+        # Stop media playback before the image instances are cleared below
+        from .media import media_manager
+
+        media_manager.shutdown()
+
+        # Release the controls wiring alongside the media shutdown (see
+        # XWZ_OT_start_ui.cancel for the rationale; idempotent).
+        try:
+            from .media.controls import unwire_video_controls
+
+            unwire_video_controls()
+        except Exception:
+            logger.debug("Video controls unwire failed during stop", exc_info=True)
 
         if _render_data:
             _render_data.cleanup()
@@ -2484,6 +2953,30 @@ def unregister():
         except Exception:
             pass
         _modal_timer = None
+
+    # Fullscreen force-exit rides the media/controls teardown trio below
+    # (FULLSCREEN_PLAN: the lifecycle sites stay together; idempotent).
+    try:
+        from .fullscreen import fullscreen_manager
+
+        fullscreen_manager.force_exit()
+    except Exception:
+        pass
+
+    try:
+        from .media import media_manager
+
+        media_manager.shutdown()
+    except Exception:
+        pass
+
+    # Controls wiring teardown, mirrored with the media shutdown above.
+    try:
+        from .media.controls import unwire_video_controls
+
+        unwire_video_controls()
+    except Exception:
+        pass
 
     if _render_data:
         _render_data.cleanup()

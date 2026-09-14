@@ -119,6 +119,17 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
 
         addon_dir = get_addon_root()
 
+        # A reparse (initial start AND every hot reload) rebuilds the whole
+        # container tree - force-exit fullscreen BEFORE the old tree goes
+        # away, alongside the media/controls lifecycle (FULLSCREEN_PLAN:
+        # keep the teardown trio together). Idempotent; no-op when inactive.
+        try:
+            from .fullscreen import fullscreen_manager
+
+            fullscreen_manager.force_exit()
+        except Exception:
+            logger.debug("Fullscreen force-exit failed during reparse", exc_info=True)
+
         self.ui = UI(os.path.join(addon_dir, self.conf_path), addon_dir, canvas_size=region_size)
         # Wire dynamic container manager before compile so user scripts can use add/remove/clear_children
         from .dynamic import dynamic_manager
@@ -126,6 +137,20 @@ class XWZ_OT_ui_parser(bpy.types.Operator):
         dynamic_manager.set_ui(self.ui)
         self.compiler = Compiler(self.ui)
         self.ui = self.compiler.compile()
+
+        # Wire default video controls (MEDIA_PLAN section 7.2) right after
+        # user scripts and BEFORE the extractors, so the initial icon/label
+        # state lands in the first text/image extraction. Hot reload re-runs
+        # this operator (hot_reload.trigger_ui_reload), so rewiring is
+        # automatic; wire_video_controls() is idempotent (it unwires the
+        # previous run's controller listeners / mouse callback / SPACE
+        # binding first). Guarded: controls wiring must never break a parse.
+        try:
+            from .media.controls import wire_video_controls
+
+            wire_video_controls(self.ui)
+        except Exception:
+            logger.error("Video controls wiring failed", exc_info=True)
 
         self.image_extractor = ImageExtractor(self.ui, self.ui.abs_json_data)
         self.text_extractor = TextExtractor(self.ui, self.ui.abs_json_data)

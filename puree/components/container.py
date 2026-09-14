@@ -139,6 +139,47 @@ def _apply_linear_gradient(style, value_str):
     return True
 
 
+# ── media attribute coercion ─────────────────────────────────────────
+# yaml.safe_load hands real bools/floats, but component param substitution
+# stringifies every param ("True", "true", "1.0") and scripts may pass
+# anything - media attributes coerce robustly at assignment time so the
+# engine (extract_images, MediaManager) always sees clean types.
+
+_TRUE_STRINGS = {"true", "1", "yes", "on"}
+_FALSE_STRINGS = {"false", "0", "no", "off", "", "none", "null"}
+
+# bool media attrs -> coerced via coerce_bool in __setattr__
+_MEDIA_BOOL_ATTRS = {"controls", "autoplay", "loop", "muted"}
+# float media attrs -> coerced via coerce_float, with per-attr fallback
+_MEDIA_FLOAT_DEFAULTS = {"volume": 1.0, "playback_rate": 1.0}
+# other bool attrs coerced at assignment (overlay rides the media plan's
+# overlay container pass - MEDIA_PLAN section 4.3)
+_COERCED_BOOL_ATTRS = _MEDIA_BOOL_ATTRS | {"overlay"}
+
+
+def coerce_bool(value, default=False):
+    """Coerce a YAML/param/script value to a real bool ('true'/'1'/1 -> True)."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in _TRUE_STRINGS:
+            return True
+        if v in _FALSE_STRINGS:
+            return False
+    return default
+
+
+def coerce_float(value, default=0.0):
+    """Coerce a YAML/param/script value to float, falling back to *default*."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 class Container:
     def __init__(self):
         self.id: str = ""
@@ -152,8 +193,44 @@ class Container:
         self.text: Optional[str] = ""
         self.font: Optional[str] = ""
 
+        # ── media attributes (video:/lottie: nodes; HTML parity) ──────
+        # muted defaults to False (unmuted autoplay is allowed per plan
+        # section 12 decision 2) - YAML authors set `muted: true` explicitly;
+        # docs/scaffold examples always do, as good practice. muted/volume
+        # drive real audio (aud) when the file has an audio track; a
+        # playback_rate != 1.0 force-mutes audio (plan decision 4, v1).
+        # NOTE: lottie: elements default autoplay/loop to TRUE
+        # (lottie-player parity, plan section 5.4) - the False defaults here
+        # are the HTML <video> ones; extract_images applies the lottie
+        # defaults to attrs the author never assigned (see
+        # _authored_media_attrs below).
+        self.video: str = ""  # asset filename, e.g. "clips/intro.mp4"
+        self.lottie: str = ""  # Bodymovin asset filename, e.g. "confetti.json"
+        self.poster: str = ""  # raster asset shown until the first frame
+        self.controls: bool = False  # default controls UI (Phase 5; video only)
+        self.autoplay: bool = False
+        self.loop: bool = False
+        self.muted: bool = False
+        self.volume: float = 1.0
+        self.playback_rate: float = 1.0
+        self.preload: str = "metadata"  # none | metadata | auto
+        # Which media attrs the author explicitly assigned (YAML, component
+        # params, scripts). Created AFTER the defaults above so construction
+        # records nothing; __setattr__ adds to it from then on. Lets
+        # extract_images apply per-kind defaults (lottie: autoplay/loop
+        # default true) only to attrs the author never touched.
+        self._authored_media_attrs = set()
+
         self.layer: int = 0
         self.passive: bool = False
+
+        # Overlay container pass (MEDIA_PLAN section 4.3): containers flagged
+        # overlay render in a second draw pass ABOVE the image/video overlay
+        # (containers -> images -> overlay containers -> text). The flag is a
+        # SUBTREE flag - flatten_node_tree propagates it to all descendants -
+        # so setting it on a subtree root (e.g. the injected video-controls
+        # bar) lifts the whole subtree above the media frame.
+        self.overlay: bool = False
 
         self.click: List = []
         self.toggle: List = []
@@ -162,6 +239,11 @@ class Container:
         self.hoverout: List = []
         self.on_focus: List = []
         self.on_blur: List = []
+        # Fullscreen-change handlers (FULLSCREEN_PLAN Phase B): fired by
+        # puree.fullscreen as fn(container, is_fullscreen) on every
+        # enter/exit of THIS container (button, ESC, scripts, swaps,
+        # hot-reload force-exits) - same list convention as click/hover.
+        self.on_fullscreen_change: List = []
         self.tab_index: int = -1
         self.focusable: bool = False
 
@@ -208,6 +290,18 @@ class Container:
         except AttributeError:
             pass
 
+        if name == "media":
+            # The media property getter raised (no media attribute) and no
+            # child is named "media" - surface the actionable message the
+            # property produced instead of the generic one below.
+            try:
+                container_id = object.__getattribute__(self, "id")
+            except AttributeError:
+                container_id = "?"
+            raise AttributeError(
+                f"container '{container_id}' has no media source - set img: (gif) / video: / lottie: in YAML"
+            )
+
         raise AttributeError(f"'Container' object has no attribute or child named '{name}'")
 
     @staticmethod
@@ -232,8 +326,20 @@ class Container:
             "img",
             "text",
             "font",
+            "video",
+            "lottie",
+            "poster",
+            "controls",
+            "autoplay",
+            "loop",
+            "muted",
+            "volume",
+            "playback_rate",
+            "preload",
+            "_authored_media_attrs",
             "layer",
             "passive",
+            "overlay",
             "click",
             "toggle",
             "scroll",
@@ -241,6 +347,7 @@ class Container:
             "hoverout",
             "on_focus",
             "on_blur",
+            "on_fullscreen_change",
             "tab_index",
             "focusable",
             "_toggle_value",
@@ -259,6 +366,20 @@ class Container:
             "_virtual_scroll",
         }
 
+        # Media attributes coerce at assignment (YAML bools arrive real, but
+        # component params arrive stringified - see coerce_bool/coerce_float).
+        # Post-construction assignments are recorded in _authored_media_attrs
+        # (the set does not exist yet while __init__ writes the defaults) so
+        # extract_images can tell an authored False from the default False
+        # when applying per-kind defaults (lottie: autoplay/loop true).
+        if name in _COERCED_BOOL_ATTRS:
+            value = coerce_bool(value)
+            if name in _MEDIA_BOOL_ATTRS:
+                self._note_media_attr(name)
+        elif name in _MEDIA_FLOAT_DEFAULTS:
+            value = coerce_float(value, _MEDIA_FLOAT_DEFAULTS[name])
+            self._note_media_attr(name)
+
         if name in container_attrs:
             object.__setattr__(self, name, value)
         else:
@@ -270,6 +391,13 @@ class Container:
                     object.__setattr__(self, name, value)
             except AttributeError:
                 object.__setattr__(self, name, value)
+
+    def _note_media_attr(self, name):
+        """Record an author-assigned media attribute (no-op during __init__,
+        where _authored_media_attrs does not exist yet)."""
+        authored = self.__dict__.get("_authored_media_attrs")
+        if authored is not None:
+            authored.add(name)
 
     def mark_dirty(self):
         self._dirty = True
@@ -376,6 +504,64 @@ class Container:
         from ..keyboard import ContainerKeyProxy
 
         return ContainerKeyProxy(self.id)
+
+    # -------------------------------------------------------------------------
+    # Media playback (MEDIA_PLAN section 6.3)
+    # -------------------------------------------------------------------------
+
+    @property
+    def media(self):
+        """Playback controller for this container's media (``video:``/``lottie:``/animated ``img:``).
+
+        HTMLMediaElement-flavored surface: ``play()``, ``pause()``,
+        ``toggle()``, ``seek(seconds)``, ``stop()``; ``current_time``,
+        ``duration`` (None until known), ``paused``, ``ended``, ``loop``,
+        ``muted``, ``volume``, ``playback_rate``, ``ready_state``; plus
+        ``on(event, fn)`` / ``off(event, fn)`` for ``play``, ``pause``,
+        ``ended``, ``seeked``, ``timeupdate`` (throttled ~250 ms) and
+        ``error``. ``muted``/``volume`` are inert no-ops on audio-less
+        media (gif/lottie). Raises on containers without a media attribute.
+        """
+        from ..media import is_media_name, media_manager
+
+        if not (getattr(self, "video", "") or getattr(self, "lottie", "") or is_media_name(getattr(self, "img", ""))):
+            raise AttributeError(
+                f"container '{self.id}' has no media source - set img: (gif) / video: / lottie: in YAML"
+            )
+        return media_manager.controller_for(self.id)
+
+    # -------------------------------------------------------------------------
+    # Fullscreen presentation mode (FULLSCREEN_PLAN Phase B)
+    # -------------------------------------------------------------------------
+
+    def request_fullscreen(self) -> bool:
+        """Present this container fullscreen - it fills the editor region
+        Puree draws in ("theater mode"). Works on ANY container, not just
+        media. One element at a time: entering while another is active
+        swaps. Returns True on success (False without a running UI/region).
+        Exit via :meth:`exit_fullscreen`, the controls button or ESC;
+        ``on_fullscreen_change`` handlers fire on every change."""
+        from ..fullscreen import fullscreen_manager
+
+        return fullscreen_manager.enter(self.id)
+
+    def exit_fullscreen(self) -> bool:
+        """Leave fullscreen **only if THIS container is the active
+        fullscreen element**. Returns True when it exited, False when idle
+        or another element is fullscreen (that one stays up)."""
+        from ..fullscreen import fullscreen_manager
+
+        if fullscreen_manager.active_id != self.id:
+            return False
+        return fullscreen_manager.exit()
+
+    @property
+    def fullscreen(self) -> bool:
+        """Read-only: True while this container is the fullscreen element
+        (``fullscreen_manager.active_id == self.id``)."""
+        from ..fullscreen import fullscreen_manager
+
+        return fullscreen_manager.active_id == self.id
 
     # -------------------------------------------------------------------------
     # Collapse / expand (Feature 7)
@@ -655,6 +841,7 @@ class ContainerDefault:
         self.hoverout = []
         self.on_focus = []
         self.on_blur = []
+        self.on_fullscreen_change = []
         self.tab_index = -1
         self.focusable = False
         self._toggle_value = False

@@ -473,7 +473,16 @@ def draw_all_text():
 
     viewport_height = _cached_viewport_height or 0
 
+    # Fullscreen presentation mode (FULLSCREEN_PLAN Phase A): only the
+    # active subtree's text draws (retargeted to the private layout);
+    # None = inactive = the zero-cost pre-fullscreen path.
+    from .fullscreen import fullscreen_manager
+
+    fs_visible = fullscreen_manager.visible_instance_ids()
+
     for instance in _text_instances:
+        if fs_visible is not None and instance.container_id not in fs_visible:
+            continue
         use_scissor = instance.clip is not None and instance.clip[2] > 0 and instance.clip[3] > 0
 
         # GPU scissor for true pixel-level clipping (scroll containers)

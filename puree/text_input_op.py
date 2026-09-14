@@ -307,7 +307,17 @@ def draw_all_text_inputs():
 
     current_time = time.time()
 
+    # Fullscreen presentation mode (FULLSCREEN_PLAN Phase A): non-subtree
+    # inputs must not draw over the backdrop. (Subtree inputs draw at their
+    # MAIN-tree position - inputs are not retargeted in Phase A; documented
+    # limitation.) None = inactive = the zero-cost pre-fullscreen path.
+    from .fullscreen import fullscreen_manager
+
+    fs_visible = fullscreen_manager.visible_instance_ids()
+
     for instance in _text_input_instances:
+        if fs_visible is not None and instance.container_id not in fs_visible:
+            continue
         if instance.is_focused:
             if current_time - instance.cursor_blink_time > 0.5:
                 instance.show_cursor = not instance.show_cursor
@@ -940,9 +950,14 @@ class UpdateTextInputOP(bpy.types.Operator):
 
                 if updated_props:
                     instance._request_refresh()
-                    logger.info(f"Updated text input #{self.instance_id}: {', '.join(updated_props)}")
+                    # DEBUG, not INFO: sync_dirty_containers re-runs this
+                    # operator for EVERY text input whenever ANY container is
+                    # dirty (a 1 Hz clock label, media-controls timeupdate,
+                    # set_property, ...) - at INFO this floods the log at
+                    # timer rate (observed live: ~2 lines/s forever).
+                    logger.debug(f"Updated text input #{self.instance_id}: {', '.join(updated_props)}")
                 else:
-                    logger.info(f"No properties specified to update for text input #{self.instance_id}")
+                    logger.debug(f"No properties specified to update for text input #{self.instance_id}")
 
                 return {"FINISHED"}
 

@@ -370,6 +370,13 @@ def trigger_ui_reload():
                     opacity=block.get("opacity", 1.0),
                 )
 
+        # Reconcile media sources with the reparsed blocks: unchanged media
+        # keeps its clock (playback position survives the reload), swapped
+        # or removed media is released, new media starts playing.
+        from .media import media_manager
+
+        media_manager.attach(parser_op.image_blocks, img_op._image_instances)
+
         render._render_data.update_container_buffer_full(hit_op._container_data)
 
         render._render_data.needs_texture_update = True

@@ -9,12 +9,25 @@
 # ║  ██   ██   ████████   ████████  ║
 # ╚═════════════════════════════════╝
 class TextExtractor:
-    def __init__(self, ui, json_data):
+    # root/content_boxes (both default None = the pre-fullscreen behavior)
+    # let the fullscreen private pass (puree.fullscreen) re-extract ONE
+    # subtree against its private layout: root scopes the walk, and
+    # content_boxes (id -> {x, y, width, height}) overrides the live
+    # container._content_box_abs, which always belongs to the MAIN layout.
+    def __init__(self, ui, json_data, root=None, content_boxes=None):
         self.ui = ui
         self.json_data = json_data
+        self.content_boxes = content_boxes
         self.text_blocks = {}
         self.flat_index = 0
-        self._extract_texts(self.ui.theme.root)
+        self._extract_texts(root if root is not None else self.ui.theme.root)
+
+    def _resolve_content_box(self, container):
+        if self.content_boxes is not None:
+            box = self.content_boxes.get(container.id)
+            if box is not None:
+                return box
+        return getattr(container, "_content_box_abs", None)
 
     def _extract_texts(self, container):
         if container.text != "":
@@ -28,7 +41,7 @@ class TextExtractor:
                 text = text.title()
 
             # Use content box (inside padding+border) for text positioning
-            content_box = getattr(container, "_content_box_abs", None)
+            content_box = self._resolve_content_box(container)
             if content_box and content_box["width"] > 0:
                 text_origin_x = content_box["x"]
                 text_origin_y = content_box["y"]
