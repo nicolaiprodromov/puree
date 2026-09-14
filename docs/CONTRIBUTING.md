@@ -100,7 +100,7 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 
 CI runs automatically on every push to `master` and on all pull requests. It checks:
 - **Python**: `ruff check` (lint) + `ruff format --check` (formatting) + YAML validation + package build
-- **Rust**: `cargo build --release` + `cargo clippy` + `cargo test` + `cargo fmt --check`
+- **Rust**: `cargo build --release` + `cargo clippy` + `cargo test --no-default-features` + `cargo fmt --check` (tests drop pyo3's `extension-module` feature so the test binary can link libpython — see `Cargo.toml`)
 
 Run the same checks locally before pushing:
 

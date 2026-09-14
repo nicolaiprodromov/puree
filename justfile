@@ -320,7 +320,7 @@ ci:
     pushd puree/puree_core > /dev/null
     cargo build --release
     cargo clippy -- -D warnings
-    cargo test
+    cargo test --no-default-features
     cargo fmt
     popd > /dev/null
     echo "✓ All checks passed"

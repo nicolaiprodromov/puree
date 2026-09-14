@@ -7,8 +7,18 @@ edition = "2021"
 name = "puree_rust_core"
 crate-type = ["cdylib"]
 
+# `extension-module` must NOT be linked into the `cargo test` binary: the feature tells
+# the linker to leave the Python C-API unresolved (the host Python provides it when the
+# .so is imported), so a standalone test executable fails to link on Linux/macOS.
+# Shipped builds (build.sh/build.bat, `cargo build`) use the default = extension module;
+# tests run with `cargo test --no-default-features` and link libpython instead.
+# https://pyo3.rs/v0.20.3/faq#i-cant-run-cargo-test-or-i-cant-build-in-a-cargo-workspace-im-having-linker-issues-like-symbol-not-found-or-undefined-reference-to-_pyexc_systemerror
+[features]
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module", "abi3-py311"] }
+pyo3 = { version = "0.20", features = ["abi3-py311"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"

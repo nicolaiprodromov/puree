@@ -77,9 +77,15 @@ jobs:
         working-directory: puree/puree_core
         run: cargo clippy --locked -- -D warnings
 
+      # --no-default-features: drop pyo3's `extension-module` so the test executable links
+      # against libpython (see the [features] note in Cargo.toml). Needs a Python on PATH.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Test
         working-directory: puree/puree_core
-        run: cargo test --locked
+        run: cargo test --locked --no-default-features
 
       - name: Format check
         working-directory: puree/puree_core
