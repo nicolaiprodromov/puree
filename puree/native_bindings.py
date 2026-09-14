@@ -21,11 +21,36 @@ except Exception:
 
     logger = logging.getLogger(__name__)
 
+
+def native_platform_id() -> str:
+    """Platform id in blender_manifest.toml spelling: windows-x64, linux-x64, macos-arm64, macos-x64."""
+    import platform
+
+    machine = platform.machine().lower()
+    arch = "arm64" if machine in ("arm64", "aarch64") else "x64"
+    if sys.platform.startswith("win"):
+        os_name = "windows"
+    elif sys.platform == "darwin":
+        os_name = "macos"
+    else:
+        os_name = "linux"
+    return f"{os_name}-{arch}"
+
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 native_binaries_dir = os.path.join(current_dir, "native_binaries")
 
-if native_binaries_dir not in sys.path:
-    sys.path.insert(0, native_binaries_dir)
+# The release wheel ships one binary per platform under native_binaries/<platform id>/
+# (Linux and macOS both use the `.so` suffix, so they cannot share one folder).
+# `just build_core` writes the same layout locally; the flat folder is kept as a
+# fallback for older local builds.
+_native_search_dirs = [
+    d for d in (os.path.join(native_binaries_dir, native_platform_id()), native_binaries_dir) if os.path.isdir(d)
+]
+
+for _d in reversed(_native_search_dirs):
+    if _d not in sys.path:
+        sys.path.insert(0, _d)
 
 try:
     import puree_rust_core
@@ -34,8 +59,9 @@ except ImportError as e:
     raise RuntimeError("Puree requires the core modules") from e
 
 finally:
-    if native_binaries_dir in sys.path:
-        sys.path.remove(native_binaries_dir)
+    for _d in _native_search_dirs:
+        if _d in sys.path:
+            sys.path.remove(_d)
 
 
 class HitDetector:

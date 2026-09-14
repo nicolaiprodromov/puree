@@ -32,8 +32,24 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DIR = REPO_ROOT / "puree" / "native_binaries"
-PYD = NATIVE_DIR / ("puree_rust_core.pyd" if sys.platform == "win32" else "puree_rust_core.so")
+_PYD_NAME = "puree_rust_core.pyd" if sys.platform == "win32" else "puree_rust_core.so"
+
+
+def _native_dir():
+    """Same lookup as puree.native_bindings: native_binaries/<platform id>/ first, then the flat legacy folder."""
+    import platform
+
+    arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
+    os_name = "windows" if sys.platform.startswith("win") else ("macos" if sys.platform == "darwin" else "linux")
+    root = REPO_ROOT / "puree" / "native_binaries"
+    for candidate in (root / f"{os_name}-{arch}", root):
+        if (candidate / _PYD_NAME).exists():
+            return candidate
+    return root / f"{os_name}-{arch}"
+
+
+NATIVE_DIR = _native_dir()
+PYD = NATIVE_DIR / _PYD_NAME
 MEDIA_DIR = REPO_ROOT / "puree" / "media"
 
 DEMO_SVG = REPO_ROOT / "assets" / "demo_vector.svg"

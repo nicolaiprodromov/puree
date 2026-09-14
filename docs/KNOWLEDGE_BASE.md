@@ -20,7 +20,7 @@ A proper flexbox/grid layout engine is needed for CSS-like layout. Taffy is a Ru
 
 ### Why Rust for native bindings?
 
-Hit detection and SCSS compilation are performance-critical. Rust gives native speed with memory safety. The `puree_core` Rust crate is compiled per-platform and shipped as a prebuilt binary (`.pyd` on Windows, `.so` on Linux/macOS) in `puree/native_binaries/`.
+Hit detection and SCSS compilation are performance-critical. Rust gives native speed with memory safety. The `puree_core` Rust crate is compiled per-platform and shipped as a prebuilt binary (`.pyd` on Windows, `.so` on Linux/macOS) under `puree/native_binaries/<platform>/` — one folder per manifest platform, because Linux and macOS share the `.so` suffix. `native_bindings.py` loads the folder matching the running platform.
 
 ## Rendering Pipeline — Critical Details
 

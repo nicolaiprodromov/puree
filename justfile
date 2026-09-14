@@ -440,7 +440,7 @@ bump VERSION:
 release VERSION:
     @echo "Releasing v{{VERSION}}..."
     just bump {{VERSION}}
-    git add blender_manifest.toml __init__.py setup.py pyproject.toml
+    git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
     git commit -m "Release v{{VERSION}}"
     git tag v{{VERSION}}
     git push origin master --tags

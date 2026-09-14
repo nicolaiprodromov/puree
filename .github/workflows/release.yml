@@ -1,52 +1,88 @@
+# Release pipeline.
+#
+#   build-native (4 runners)  ->  publish (ubuntu)
+#     cargo build --release          collect native_binaries/<platform>/ from all four
+#     via puree_core/build.sh|bat    dist/fetch_wheels.py     -> puree_ui wheel (all 4 binaries inside)
+#                                                                + dependency wheels for every platform
+#                                    blender extension build  -> one zip per platform (--split-platforms)
+#                                    twine upload to PyPI (puree-ui) + GitHub release (zips + wheel)
+#
+# Triggers:
+#   * push of a `v*` tag            -> full run, publishes to PyPI and GitHub
+#   * "Run workflow" button         -> DRY RUN: builds everything, uploads the results as a
+#     (workflow_dispatch)              workflow artifact, publishes NOTHING. Use it to test.
+#
+# The native binaries must live in per-platform folders because Linux and macOS both
+# produce `puree_rust_core.so` (see puree/native_bindings.py).
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  PYTHON_VERSION: '3.13'
+  # Used only to run `extension build`; must be >= blender_version_min in the manifest.
+  BLENDER_VERSION: '5.1.0'
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' }}
+
 jobs:
   build-native:
     strategy:
+      fail-fast: true
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            wheel_plat: manylinux_2_17_x86_64
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            wheel_plat: win_amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            wheel_plat: macosx_11_0_arm64
-          - os: macos-13
-            target: x86_64-apple-darwin
-            wheel_plat: macosx_10_12_x86_64
+            platform: windows-x64
+          - os: ubuntu-latest
+            platform: linux-x64
+            # Build inside manylinux_2_28 so the .so links against glibc 2.28 - the same
+            # baseline as Blender's own Linux builds and the bundled av wheel. A plain
+            # runner build would require the runner's (much newer) glibc at load time.
+            container: quay.io/pypa/manylinux_2_28_x86_64
+          - os: macos-latest        # Apple Silicon
+            platform: macos-arm64
+          - os: macos-15-intel      # last x86_64 image GitHub provides (macos-13 was retired Dec 2025)
+            platform: macos-x64
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
         with:
-          targets: ${{ matrix.target }}
+          workspaces: puree/puree_core
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Build wheel
+      - name: Build native core (unix)
+        if: runner.os != 'Windows'
         working-directory: puree/puree_core
-        run: maturin build --release --target ${{ matrix.target }} --out ../../dist
+        env:
+          # abi3 extension modules need no interpreter at build time (and the manylinux
+          # container has no `python3` on PATH for pyo3 to probe).
+          PYO3_NO_PYTHON: '1'
+        run: ./build.sh
+
+      - name: Build native core (windows)
+        if: runner.os == 'Windows'
+        working-directory: puree/puree_core
+        shell: cmd
+        run: build.bat
+
+      - name: Check output
+        shell: bash
+        run: ls -la puree/native_binaries/${{ matrix.platform }}/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheel-${{ matrix.target }}
-          path: dist/*.whl
+          name: native-${{ matrix.platform }}
+          path: puree/native_binaries/${{ matrix.platform }}/
+          if-no-files-found: error
 
   publish:
     needs: build-native
@@ -54,23 +90,128 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          path: dist
-          pattern: wheel-*
-          merge-multiple: true
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: List wheels
-        run: ls -la dist/*.whl
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Collect native binaries
+        uses: actions/download-artifact@v4
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: dist/
+          path: puree/native_binaries
+          pattern: native-*
+
+      # download-artifact restores each artifact into a folder named after the ARTIFACT
+      # (native-linux-x64/...); the loader expects the manifest platform id (linux-x64/...).
+      - name: Rename artifact folders to platform ids
+        run: |
+          set -euo pipefail
+          cd puree/native_binaries
+          for d in native-*; do mv "$d" "${d#native-}"; done
+          find . -type f | sort
+          test "$(find . -type f | wc -l)" -eq 4
+
+      - name: Resolve version (tag must match the manifest on a real release)
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version\s*=' blender_manifest.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "dry run - manifest version is $VERSION, nothing will be published"
+            exit 0
+          fi
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "tag=$TAG manifest=$VERSION"
+          test "$TAG" = "$VERSION" || { echo "::error::tag v$TAG does not match manifest version $VERSION - run 'just bump $TAG' first"; exit 1; }
+
+      - name: Install packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel build twine
+
+      - name: Build puree_ui wheel (all four native binaries inside) and fetch dependency wheels
+        run: python dist/fetch_wheels.py
+
+      - name: Inspect wheel + manifest
+        run: |
+          set -euo pipefail
+          python - <<'EOF'
+          import glob, zipfile
+          whl = glob.glob("wheels/puree_ui-*.whl")[0]
+          names = [n for n in zipfile.ZipFile(whl).namelist() if "native_binaries/" in n]
+          print(whl); print("\n".join(sorted(names)))
+          assert len(names) == 4, f"expected 4 native binaries in the wheel, found {len(names)}"
+          EOF
+          grep -c './wheels/' blender_manifest.toml
+          git diff --stat -- blender_manifest.toml
+
+      - name: Download Blender (for `extension build`)
+        run: |
+          set -euo pipefail
+          # shared libraries the Blender binary links at load time, even in --background
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0 libsm6 libice6 > /dev/null
+          MAJOR_MINOR="${BLENDER_VERSION%.*}"
+          URL="https://download.blender.org/release/Blender${MAJOR_MINOR}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          echo "$URL"
+          curl -fsSL "$URL" -o blender.tar.xz
+          mkdir -p "$RUNNER_TEMP/blender"
+          tar -xJf blender.tar.xz -C "$RUNNER_TEMP/blender" --strip-components=1
+          "$RUNNER_TEMP/blender/blender" --version | head -1
+
+      - name: Build extension zips (one per platform)
+        run: |
+          set -euo pipefail
+          mkdir -p release_out
+          "$RUNNER_TEMP/blender/blender" --background --command extension build \
+            --source-dir "$GITHUB_WORKSPACE" \
+            --output-dir "$GITHUB_WORKSPACE/release_out" \
+            --split-platforms \
+            --verbose
+          ls -la release_out/
+          test "$(ls release_out/*.zip | wc -l)" -eq 4
+
+      - name: Render release notes
+        run: |
+          set -euo pipefail
+          git fetch --tags --quiet || true
+          PREV=$(git tag --sort=-v:refname | grep -v "^v${VERSION}$" | head -1 || true)
+          PREV="${PREV:-v0.0.0}"
+          python - "$VERSION" "${PREV#v}" <<'EOF'
+          import pathlib, sys
+          version, previous = sys.argv[1], sys.argv[2]
+          text = pathlib.Path("docs/.release_note.md").read_text(encoding="utf-8")
+          text = text.replace("{version}", version).replace("{previous_version}", previous)
+          pathlib.Path("release_notes.md").write_text(text, encoding="utf-8")
+          EOF
+          cat release_notes.md
+
+      - name: Check the wheel before publishing
+        run: twine check wheels/puree_ui-*.whl
+
+      # ---- dry run (workflow_dispatch): keep the results, publish nothing ----
+      - name: Upload dry-run artifacts
+        if: env.DRY_RUN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dry-run-${{ env.VERSION }}
+          path: |
+            release_out/*.zip
+            wheels/puree_ui-*.whl
+            release_notes.md
+            blender_manifest.toml
+
+      # ---- real release (tag push) ----
+      - name: Publish puree-ui to PyPI
+        if: env.DRY_RUN != 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload --non-interactive wheels/puree_ui-*.whl
 
       - name: GitHub Release
+        if: env.DRY_RUN != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.whl
-          generate_release_notes: true
+          name: Puree UI ${{ env.VERSION }}
+          body_path: release_notes.md
+          files: |
+            release_out/*.zip
+            wheels/puree_ui-*.whl

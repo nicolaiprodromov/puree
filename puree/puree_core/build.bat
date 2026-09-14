@@ -17,14 +17,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist ..\native_binaries mkdir ..\native_binaries
+@REM One folder per platform (same layout as the release wheel; see native_bindings.py).
+set OUT=..\native_binaries\windows-x64
+if not exist %OUT% mkdir %OUT%
 
-copy /Y target\release\puree_rust_core.dll ..\native_binaries\puree_rust_core.pyd
+copy /Y target\release\puree_rust_core.dll %OUT%\puree_rust_core.pyd
 if errorlevel 1 (
     echo Failed to copy binary!
     exit /b 1
 )
 
-echo Build complete! Binary copied to ..\native_binaries\
+echo Build complete! Binary copied to %OUT%\
 
 endlocal

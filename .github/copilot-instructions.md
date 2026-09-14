@@ -38,7 +38,7 @@ puree/
 ├── dist/                     # ← BUILD SCRIPTS & TOOLS
 │   ├── dev_reload.py         # Triggers reload in running Blender
 │   ├── build.sh / build.bat  # Platform build scripts
-│   └── release.py            # Release automation
+│   └── fetch_wheels.py       # Dependency wheels for every platform + manifest rewrite
 ├── static/                   # ← BUILT-IN UI (example/default panel)
 │   ├── index.yaml
 │   ├── style.scss

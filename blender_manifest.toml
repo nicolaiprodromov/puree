@@ -74,4 +74,5 @@ paths_exclude_pattern = [
   "requirements.txt",
   "setup.py",
   "puree/puree_core/",
+  "puree/native_binaries/",
 ]

@@ -236,7 +236,7 @@ ifeq ($(OS),Windows_NT)
 	@if not defined VERSION (echo Error: VERSION argument required. Usage: make release VERSION=0.0.3 && exit /b 1)
 	@echo Releasing v$(VERSION)...
 	@$(MAKE) bump VERSION=$(VERSION)
-	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
+	@git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
 	@git commit -m "Release v$(VERSION)"
 	@git tag v$(VERSION)
 	@git push origin master --tags
@@ -245,7 +245,7 @@ else
 	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make release VERSION=0.0.3"; exit 1; fi
 	@echo "Releasing v$(VERSION)..."
 	@$(MAKE) bump VERSION=$(VERSION)
-	@git add blender_manifest.toml __init__.py setup.py pyproject.toml
+	@git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
 	@git commit -m "Release v$(VERSION)"
 	@git tag v$(VERSION)
 	@git push origin master --tags
