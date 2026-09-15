@@ -43,7 +43,8 @@ except ImportError:  # pragma: no cover - numpy is optional
     pass
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CLIP = REPO_ROOT / "assets" / "demo_clip.mp4"
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
+CLIP = ADDON_DIR / "assets" / "demo_clip.mp4"
 
 
 def _ensure_puree_package():
@@ -63,7 +64,7 @@ from puree.media.decoders.video import VideoSource, flip_rgba  # noqa: E402
 
 HAS_AV = importlib.util.find_spec("av") is not None
 requires_av = pytest.mark.skipif(not HAS_AV, reason="PyAV not installed in this dev env (python -m pip install av)")
-requires_clip = pytest.mark.skipif(not CLIP.exists(), reason="assets/demo_clip.mp4 missing")
+requires_clip = pytest.mark.skipif(not CLIP.exists(), reason="tests/helloworld/assets/demo_clip.mp4 missing")
 
 # ── harness ──────────────────────────────────────────────────────────
 

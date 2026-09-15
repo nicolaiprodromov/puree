@@ -5,6 +5,10 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import addon_paths  # sibling dist script
+
 from puree.log import setup_cli_logging
 
 logger = setup_cli_logging(os.path.splitext(os.path.basename(__file__))[0])
@@ -37,7 +41,9 @@ def main():
     python_cmd = "python" if sys.platform == "win32" else "python3"
     run_command(f"{python_cmd} setup.py sdist --dist-dir {out_dir} bdist_wheel --dist-dir {out_dir}")
 
-    wheels_dir = os.path.join(project_root, "wheels")
+    # The freshly built wheel goes into the development addon's wheels/ so the
+    # extension bundles the current source (dist/addon_paths.py picks the addon).
+    wheels_dir = str(addon_paths.WHEELS_DIR)
     os.makedirs(wheels_dir, exist_ok=True)
 
     for old_wheel in glob.glob(os.path.join(wheels_dir, "puree_ui-*.whl")):
@@ -47,7 +53,7 @@ def main():
     for wheel in glob.glob(os.path.join(out_dir, "puree_ui-*.whl")):
         dest = os.path.join(wheels_dir, os.path.basename(wheel))
         shutil.copy2(wheel, dest)
-        logger.info(f"Copied {os.path.basename(wheel)} to wheels/")
+        logger.info(f"Copied {os.path.basename(wheel)} to {os.path.relpath(wheels_dir, project_root)}/")
 
     if os.path.exists("build"):
         shutil.rmtree("build")

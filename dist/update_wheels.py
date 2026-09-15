@@ -4,17 +4,25 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import addon_paths  # sibling dist script
+
 from puree.log import setup_cli_logging
 
 logger = setup_cli_logging(os.path.splitext(os.path.basename(__file__))[0])
 
 
-def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
-    """Update the wheels list in blender_manifest.toml."""
+def update_wheels_in_manifest(manifest_path=None, wheels_dir=None):
+    """Rewrite the manifest's wheels[] from the .whl files sitting next to it.
 
-    wheels_dir = Path("wheels")
+    Defaults to the development addon (dist/addon_paths.py); both paths can be
+    overridden to run against any Puree project.
+    """
+    manifest_path = Path(manifest_path) if manifest_path else addon_paths.MANIFEST
+    wheels_dir = Path(wheels_dir) if wheels_dir else manifest_path.parent / "wheels"
     if not wheels_dir.exists():
-        logger.error("Error: wheels/ directory not found")
+        logger.error(f"Error: wheels directory not found: {wheels_dir}")
         sys.exit(1)
 
     wheel_files = sorted([f"./wheels/{f.name}" for f in wheels_dir.glob("*.whl")])
@@ -27,12 +35,12 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
     for whl in wheel_files:
         logger.info(f"  - {whl}")
 
-    manifest = Path(manifest_path)
+    manifest = manifest_path
     if not manifest.exists():
         logger.error(f"Error: {manifest_path} not found")
         sys.exit(1)
 
-    content = manifest.read_text()
+    content = manifest.read_text(encoding="utf-8")
 
     wheels_start = content.find("wheels = [")
     if wheels_start == -1:
@@ -66,7 +74,7 @@ def update_wheels_in_manifest(manifest_path="blender_manifest.toml"):
 
     new_content = content[:wheels_start] + new_wheels_section + content[wheels_end:]
 
-    manifest.write_text(new_content)
+    manifest.write_text(new_content, encoding="utf-8")
 
     logger.info(f"\n✓ Updated {manifest_path} with {len(wheel_files)} wheels")
 

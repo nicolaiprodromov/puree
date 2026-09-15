@@ -8,16 +8,17 @@ blender/
 *.ai
 *.psd
 *.aep
-assets/*.svg
-# demo asset for img: SVG support (helloworld + unit tests need it)
-!assets/demo_vector.svg
-# default video-controls icons ([video_controls] component ships them)
-!assets/media_play.svg
-!assets/media_pause.svg
-!assets/media_mute.svg
-!assets/media_sound.svg
-!assets/media_fullscreen.svg
-!assets/media_exit_fullscreen.svg
+# SVG design sources in any test addon's assets/ are ignored (like *.ai/*.psd) ...
+tests/*/assets/*.svg
+# ... except the demo asset for img: SVG support (helloworld + unit tests need it)
+!tests/helloworld/assets/demo_vector.svg
+# ... and the default video-controls icons ([video_controls] component ships them)
+!tests/helloworld/assets/media_play.svg
+!tests/helloworld/assets/media_pause.svg
+!tests/helloworld/assets/media_mute.svg
+!tests/helloworld/assets/media_sound.svg
+!tests/helloworld/assets/media_fullscreen.svg
+!tests/helloworld/assets/media_exit_fullscreen.svg
 docs.aep_AME/
 docs/.bgpu.md
 .puree_reload

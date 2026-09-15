@@ -26,6 +26,9 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.13'
+  # The Blender extension that ships: a complete Puree project under tests/ (see dist/addon_paths.py).
+  ADDON_DIR: tests/helloworld
+  PUREE_ADDON_DIR: tests/helloworld
   # Used only to run `extension build`; must be >= blender_version_min in the manifest.
   BLENDER_VERSION: '5.1.0'
   DRY_RUN: ${{ github.event_name == 'workflow_dispatch' }}
@@ -106,12 +109,12 @@ jobs:
           sys.path.insert(0, "puree/native_binaries/${{ matrix.platform }}")
           import puree_rust_core as core
 
-          w, h, frames, delays, loops = core.decode_gif("assets/demo_munky.gif")
+          w, h, frames, delays, loops = core.decode_gif("${{ env.ADDON_DIR }}/assets/demo_munky.gif")
           assert (w, h, len(frames), len(delays)) == (320, 240, 58, 58), (w, h, len(frames), len(delays))
           assert all(d >= 20 for d in delays) and loops == 0
 
-          assert core.probe_svg("assets/demo_vector.svg") == (240.0, 180.0)
-          px = core.rasterize_svg("assets/demo_vector.svg", 48, 36, "fonts")
+          assert core.probe_svg("${{ env.ADDON_DIR }}/assets/demo_vector.svg") == (240.0, 180.0)
+          px = core.rasterize_svg("${{ env.ADDON_DIR }}/assets/demo_vector.svg", 48, 36, "${{ env.ADDON_DIR }}/fonts")
           assert len(px) == 48 * 36 * 4 and any(px), "svg raster is empty"
 
           css = core.SCSSCompiler().compile("$w: 12px; .card { width: $w; }", None, None, None)
@@ -156,7 +159,7 @@ jobs:
       - name: Resolve version (tag must match the manifest on a real release)
         run: |
           set -euo pipefail
-          VERSION=$(grep -E '^version\s*=' blender_manifest.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          VERSION=$(grep -E '^version\s*=' "$ADDON_DIR/blender_manifest.toml" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           if [ "$DRY_RUN" = "true" ]; then
             echo "dry run - manifest version is $VERSION, nothing will be published"
@@ -177,13 +180,13 @@ jobs:
           set -euo pipefail
           python - <<'EOF'
           import glob, zipfile
-          whl = glob.glob("wheels/puree_ui-*.whl")[0]
+          whl = glob.glob("${{ env.ADDON_DIR }}/wheels/puree_ui-*.whl")[0]
           names = [n for n in zipfile.ZipFile(whl).namelist() if "native_binaries/" in n]
           print(whl); print("\n".join(sorted(names)))
           assert len(names) == 4, f"expected 4 native binaries in the wheel, found {len(names)}"
           EOF
-          grep -c './wheels/' blender_manifest.toml
-          git diff --stat -- blender_manifest.toml
+          grep -c './wheels/' "$ADDON_DIR/blender_manifest.toml"
+          git diff --stat -- "$ADDON_DIR/blender_manifest.toml"
 
       - name: Download Blender (for `extension build`)
         run: |
@@ -207,7 +210,7 @@ jobs:
           set -euo pipefail
           mkdir -p release_out
           "$RUNNER_TEMP/blender/blender" --background --command extension build \
-            --source-dir "$GITHUB_WORKSPACE" \
+            --source-dir "$GITHUB_WORKSPACE/$ADDON_DIR" \
             --output-dir "$GITHUB_WORKSPACE/release_out" \
             --split-platforms \
             --verbose
@@ -236,7 +239,7 @@ jobs:
           cat release_notes.md
 
       - name: Check the wheel before publishing
-        run: twine check wheels/puree_ui-*.whl
+        run: twine check "$ADDON_DIR"/wheels/puree_ui-*.whl
 
       # ---- dry run (workflow_dispatch): keep the results, publish nothing ----
       - name: Upload dry-run artifacts
@@ -246,9 +249,9 @@ jobs:
           name: release-dry-run-${{ env.VERSION }}
           path: |
             release_out/*.zip
-            wheels/puree_ui-*.whl
+            ${{ env.ADDON_DIR }}/wheels/puree_ui-*.whl
             release_notes.md
-            blender_manifest.toml
+            ${{ env.ADDON_DIR }}/blender_manifest.toml
 
       # ---- real release (tag push) ----
       - name: Publish puree-ui to PyPI
@@ -256,7 +259,7 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload --non-interactive wheels/puree_ui-*.whl
+        run: twine upload --non-interactive "$ADDON_DIR"/wheels/puree_ui-*.whl
 
       - name: GitHub Release
         if: env.DRY_RUN != 'true'
@@ -266,4 +269,4 @@ jobs:
           body_path: release_notes.md
           files: |
             release_out/*.zip
-            wheels/puree_ui-*.whl
+            ${{ env.ADDON_DIR }}/wheels/puree_ui-*.whl

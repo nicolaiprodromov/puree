@@ -3,24 +3,32 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import addon_paths  # sibling dist script
+
 from puree.log import setup_cli_logging
 
 logger = setup_cli_logging(os.path.splitext(os.path.basename(__file__))[0])
 
 
 def update_version(version):
-    manifest_path = "blender_manifest.toml"
-    init_path = "__init__.py"
-    setup_path = "setup.py"
-    pyproject_path = "pyproject.toml"
-    cargo_toml_path = "puree/puree_core/Cargo.toml"
+    root = addon_paths.PROJECT_ROOT
+    # The addon (manifest + bl_info) lives under tests/, the package metadata at the root.
+    manifest_path = str(addon_paths.MANIFEST)
+    init_path = str(addon_paths.ADDON_INIT)
+    setup_path = str(root / "setup.py")
+    pyproject_path = str(root / "pyproject.toml")
+    cargo_toml_path = str(root / "puree" / "puree_core" / "Cargo.toml")
 
     with open(manifest_path, "r", encoding="utf-8") as f:
         manifest_content = f.read()
 
+    # Every substitution keeps the file's own spacing (capture group 1) so a bump
+    # never produces a diff that `ruff format --check` rejects in CI.
     manifest_content = re.sub(
-        r'^version\s*=\s*"[^"]*"',
-        f'version    = "{version}"',
+        r'^(version\s*=\s*)"[^"]*"',
+        rf'\g<1>"{version}"',
         manifest_content,
         flags=re.MULTILINE,
     )
@@ -38,7 +46,7 @@ def update_version(version):
         init_content = f.read()
 
     version_tuple = "(" + ", ".join(version.split(".")) + ")"
-    init_content = re.sub(r'"version"\s*:\s*\([^)]*\)', f'"version"    : {version_tuple}', init_content)
+    init_content = re.sub(r'("version"\s*:\s*)\([^)]*\)', rf"\g<1>{version_tuple}", init_content)
 
     with open(init_path, "w", encoding="utf-8") as f:
         f.write(init_content)
@@ -47,8 +55,8 @@ def update_version(version):
         setup_content = f.read()
 
     setup_content = re.sub(
-        r'version\s*=\s*"[^"]*"',
-        f'version                       = "{version}"',
+        r'(version\s*=\s*)"[^"]*"',
+        rf'\g<1>"{version}"',
         setup_content,
     )
 
@@ -59,8 +67,8 @@ def update_version(version):
         pyproject_content = f.read()
 
     pyproject_content = re.sub(
-        r'^version\s*=\s*"[^"]*"',
-        f'version = "{version}"',
+        r'^(version\s*=\s*)"[^"]*"',
+        rf'\g<1>"{version}"',
         pyproject_content,
         flags=re.MULTILINE,
     )
@@ -72,8 +80,8 @@ def update_version(version):
         cargo_content = f.read()
 
     cargo_content = re.sub(
-        r'^version\s*=\s*"[^"]*"',
-        f'version = "{version}"',
+        r'^(version\s*=\s*)"[^"]*"',
+        rf'\g<1>"{version}"',
         cargo_content,
         flags=re.MULTILINE,
     )

@@ -32,6 +32,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
 _PYD_NAME = "puree_rust_core.pyd" if sys.platform == "win32" else "puree_rust_core.so"
 
 
@@ -52,7 +53,7 @@ NATIVE_DIR = _native_dir()
 PYD = NATIVE_DIR / _PYD_NAME
 MEDIA_DIR = REPO_ROOT / "puree" / "media"
 
-DEMO_SVG = REPO_ROOT / "assets" / "demo_vector.svg"
+DEMO_SVG = ADDON_DIR / "assets" / "demo_vector.svg"
 
 pytestmark = pytest.mark.skipif(
     not PYD.exists(),

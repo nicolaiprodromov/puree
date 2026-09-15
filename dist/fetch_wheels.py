@@ -31,6 +31,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import addon_paths  # sibling dist script
 import build_package  # sibling dist script
 import update_wheels  # sibling dist script
 
@@ -82,7 +83,7 @@ def read_pins() -> list[tuple[str, str]]:
 
 
 def read_platforms() -> list[str]:
-    with open(PROJECT_ROOT / "blender_manifest.toml", "rb") as f:
+    with open(addon_paths.MANIFEST, "rb") as f:
         platforms = tomllib.load(f).get("platforms", [])
     unknown = [p for p in platforms if p not in PLATFORM_TAGS]
     if unknown:
@@ -154,7 +155,9 @@ def main() -> None:
     args = parser.parse_args()
 
     os.chdir(PROJECT_ROOT)
-    wheels_dir = PROJECT_ROOT / "wheels"
+    addon_paths.require_addon()
+    wheels_dir = addon_paths.WHEELS_DIR
+    logger.info(f"Addon: {addon_paths.ADDON_DIR.relative_to(PROJECT_ROOT)}")
 
     pins = read_pins()
     platforms = read_platforms()
@@ -179,7 +182,7 @@ def main() -> None:
         logger.error("No puree_ui wheel in wheels/ - refusing to rewrite the manifest without it")
         sys.exit(1)
 
-    update_wheels.update_wheels_in_manifest()
+    update_wheels.update_wheels_in_manifest(addon_paths.MANIFEST, wheels_dir)
     logger.info(f"wheels/ now holds {len(list(wheels_dir.glob('*.whl')))} wheels")
 
 

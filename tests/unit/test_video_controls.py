@@ -32,6 +32,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
 _PYD_NAME = "puree_rust_core.pyd" if sys.platform == "win32" else "puree_rust_core.so"
 
 
@@ -739,7 +740,7 @@ def test_icon_assets_exist_and_rasterize():
         "media_fullscreen.svg",
         "media_exit_fullscreen.svg",
     ):
-        path = REPO_ROOT / "assets" / name
+        path = ADDON_DIR / "assets" / name
         assert path.exists(), name
         data = core.rasterize_svg(str(path), 16, 16)
         assert len(data) == 16 * 16 * 4

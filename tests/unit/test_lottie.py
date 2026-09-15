@@ -40,7 +40,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEMO = REPO_ROOT / "assets" / "demo_lottie.json"
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
+DEMO = ADDON_DIR / "assets" / "demo_lottie.json"
 MEDIA_DIR = REPO_ROOT / "puree" / "media"
 
 
@@ -67,7 +68,7 @@ HAS_RLOTTIE = importlib.util.find_spec("rlottie_python") is not None
 requires_rlottie = pytest.mark.skipif(
     not HAS_RLOTTIE, reason="rlottie-python not installed in this dev env (python -m pip install rlottie-python)"
 )
-requires_demo = pytest.mark.skipif(not DEMO.exists(), reason="assets/demo_lottie.json missing")
+requires_demo = pytest.mark.skipif(not DEMO.exists(), reason="tests/helloworld/assets/demo_lottie.json missing")
 
 # ── harness ──────────────────────────────────────────────────────────
 

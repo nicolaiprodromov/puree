@@ -62,11 +62,13 @@ Puree uses **Make** or **Just** for build automation. Both systems provide ident
 
 3. Run `just wheels` or `make wheels` to download the python dependencies and add them automatically to the manifest file
 4. Run `just build_core` to build the core binaries
-5. Run `just link` to symlink the source into Blender's extensions directory (auto-installs wheel dependencies)
+5. Run `just link` to symlink the dev addon and the framework source into Blender's extensions directory (auto-installs wheel dependencies)
 6. Open Blender — the addon is live. A built-in reload server (TCP on port 19746) starts automatically with the addon.
     - Use `just reload` (or `puree reload`) after making code changes (triggers reload via the TCP server).
     - Use `just tail` to live-follow the log, or `just logs` to see the last 50 lines.
     - Or use `just deploy` as a shortcut for `just link && just reload`.
+
+**Repository layout.** The root is the framework: the `puree/` package (Python + Rust core), the CLI and the docs. The Blender extension that exercises it is a complete, self-contained Puree project — exactly the shape `puree init` produces — under `tests/helloworld/` (`__init__.py`, `blender_manifest.toml`, the UI files, `assets/`, `fonts/`, `wheels/`). `just link` symlinks *that* folder into Blender as the extension and `puree/` into its site-packages, so edits to either are live. More test addons can sit side by side in `tests/`; all recipes target one at a time: `just --set addon_dir tests/<name> link` (or `make ADDON=tests/<name> link`, or `PUREE_ADDON_DIR=tests/<name>` for the `dist/` scripts). Puree registers one addon root per Blender session, so link one at a time.
 
 ### Available Commands
 

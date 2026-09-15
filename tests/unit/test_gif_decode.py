@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
 _PYD_NAME = "puree_rust_core.pyd" if sys.platform == "win32" else "puree_rust_core.so"
 
 
@@ -42,7 +43,7 @@ NATIVE_DIR = _native_dir()
 PYD = NATIVE_DIR / _PYD_NAME
 
 GIF_MUNKY = REPO_ROOT / "docs" / "images" / "munky.gif"
-GIF_ASSET = REPO_ROOT / "assets" / "demo_munky.gif"
+GIF_ASSET = ADDON_DIR / "assets" / "demo_munky.gif"
 
 pytestmark = pytest.mark.skipif(
     not PYD.exists(),
@@ -121,4 +122,4 @@ def test_missing_file_raises_ioerror(core):
 
 def test_non_gif_raises_valueerror(core):
     with pytest.raises(ValueError):
-        core.decode_gif(str(REPO_ROOT / "assets" / "loggoui2.png"))
+        core.decode_gif(str(ADDON_DIR / "assets" / "loggoui2.png"))

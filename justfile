@@ -11,6 +11,10 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 python := if os() == "windows" { "python" } else { "python3" }
+# The Blender extension that exercises the framework - a complete Puree project under tests/.
+# Point the tooling at another test addon with:  just --set addon_dir tests/<name> <recipe>
+addon_dir := "tests/helloworld"
+export PUREE_ADDON_DIR := addon_dir
 build_core_cmd := if os() == "windows" { "./build.bat" } else { "./build.sh" }
 timeout_cmd := if os() == "windows" { "timeout /t 1 /nobreak" } else { "sleep 1" }
 
@@ -22,34 +26,9 @@ build_core:
 build_package:
     @cd dist; {{python}} build_package.py
 
-[unix]
-build:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    BLENDER=$(which blender 2>/dev/null || true)
-    if [ -z "$BLENDER" ]; then
-        echo "Error: 'blender' not found on PATH"
-        exit 1
-    fi
-    ADDON_DIR="$(pwd)"
-    ADDON_NAME=$(grep '^name' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "' | tr ' ' '_')
-    VERSION=$(grep '^version' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "')
-    mkdir -p "$ADDON_DIR/dist/out"
-    rm -f "$ADDON_DIR/dist/out"/*.zip
-    OUTPUT="$ADDON_DIR/dist/out/${ADDON_NAME}_${VERSION}.zip"
-    echo "Building $ADDON_NAME v$VERSION..."
-    "$BLENDER" --background --command extension build --source-dir "$ADDON_DIR" --output-filepath "$OUTPUT"
-    if [ -f "$OUTPUT" ]; then
-        echo "Build successful: $OUTPUT"
-    else
-        echo "Build failed!"
-        exit 1
-    fi
-
-# Build the extension zip (uses `puree build` logic via Blender on PATH)
-[windows]
-build:
-    @{{python}} -c "import sys; sys.path.insert(0, '.'); from puree.cli import cmd_build; cmd_build(None)"
+# Build the extension zip from {{addon_dir}} with the Blender on PATH (-> dist/out/); pass --split-platforms for per-platform zips
+build *ARGS:
+    @{{python}} dist/build_extension.py {{ARGS}}
 
 # Fetch dependency wheels for EVERY manifest platform, rebuild the puree_ui wheel, rewrite the manifest
 wheels:
@@ -67,9 +46,11 @@ site_packages := blender_config / blender_version / "extensions/.local/lib/pytho
 link:
     #!/usr/bin/env bash
     set -euo pipefail
-    EXT_DIR="{{ext_dir}}/xwz_puree_ui"
+    ADDON_ID=$(grep '^id' "{{addon_dir}}/blender_manifest.toml" | cut -d'=' -f2 | tr -d ' "')
+    EXT_DIR="{{ext_dir}}/$ADDON_ID"
     SITE_PUREE="{{site_packages}}/puree"
     SRC="$(pwd)"
+    ADDON_SRC="$(pwd)/{{addon_dir}}"
     # Ensure wheel dependencies are installed BEFORE creating symlinks
     DEPS_INSTALLED=true
     for pkg in moderngl glcontext stretchable yaml attrs av rlottie; do
@@ -90,8 +71,8 @@ link:
         echo "Removing installed extension copy..."
         rm -rf "$EXT_DIR"
     fi
-    ln -s "$SRC" "$EXT_DIR"
-    echo "✓ Linked extension: $EXT_DIR → $SRC"
+    ln -s "$ADDON_SRC" "$EXT_DIR"
+    echo "✓ Linked extension: $EXT_DIR → $ADDON_SRC"
     # Site-packages puree: remove wheel-installed copy, symlink source
     if [ -L "$SITE_PUREE" ]; then
         rm "$SITE_PUREE"
@@ -115,7 +96,8 @@ link:
 unlink:
     #!/usr/bin/env bash
     set -euo pipefail
-    EXT_DIR="{{ext_dir}}/xwz_puree_ui"
+    ADDON_ID=$(grep '^id' "{{addon_dir}}/blender_manifest.toml" | cut -d'=' -f2 | tr -d ' "')
+    EXT_DIR="{{ext_dir}}/$ADDON_ID"
     SITE_PUREE="{{site_packages}}/puree"
     if [ -L "$EXT_DIR" ]; then
         rm "$EXT_DIR"
@@ -145,7 +127,7 @@ reload:
 tail:
     #!/usr/bin/env bash
     set -euo pipefail
-    LOG="logs/puree.log"
+    LOG="{{addon_dir}}/logs/puree.log"
     if [ ! -f "$LOG" ]; then
         echo "No log file at $LOG — is Blender running with Puree loaded?"
         exit 1
@@ -157,14 +139,14 @@ tail:
 # Live-follow the Puree log file (requires Blender running with addon loaded)
 [windows]
 tail:
-    @Get-Content logs/puree.log -Tail 10 -Wait
+    @Get-Content {{addon_dir}}/logs/puree.log -Tail 10 -Wait
 
 # Print last N lines of the Puree log (default 50)
 [unix]
 logs N="50":
     #!/usr/bin/env bash
     set -euo pipefail
-    LOG="logs/puree.log"
+    LOG="{{addon_dir}}/logs/puree.log"
     if [ ! -f "$LOG" ]; then
         echo "No log file at $LOG — is Blender running with Puree loaded?"
         exit 1
@@ -174,20 +156,20 @@ logs N="50":
 # Print last N lines of the Puree log (default 50)
 [windows]
 logs N="50":
-    @Get-Content logs/puree.log -Tail {{N}}
+    @Get-Content {{addon_dir}}/logs/puree.log -Tail {{N}}
 
 # Delete all log files
 [unix]
 clear-logs:
     #!/usr/bin/env bash
     set -euo pipefail
-    rm -f logs/puree.log logs/puree.log.*
+    rm -f {{addon_dir}}/logs/puree.log {{addon_dir}}/logs/puree.log.*
     echo "✓ Logs cleared"
 
 # Delete all log files
 [windows]
 clear-logs:
-    @Remove-Item logs/puree.log* -ErrorAction SilentlyContinue; Write-Output "logs cleared"
+    @Remove-Item {{addon_dir}}/logs/puree.log* -ErrorAction SilentlyContinue; Write-Output "logs cleared"
 
 # Install wheel dependencies into Blender's extension site-packages
 [unix]
@@ -201,7 +183,7 @@ install-deps:
         echo "Warning: Blender's Python not found, falling back to system python3"
     fi
     echo "Installing wheel dependencies to $SITE (using $BLENDER_PY)"
-    for whl in wheels/*.whl; do
+    for whl in {{addon_dir}}/wheels/*.whl; do
         base=$(basename "$whl")
         if [[ "$base" == puree_ui-* ]]; then
             echo "  skip $base (using source symlink)"
@@ -223,7 +205,7 @@ refresh TARGET:
     #!/usr/bin/env bash
     set -euo pipefail
     TARGET="{{TARGET}}"
-    SRC_WHEELS="$(pwd)/wheels"
+    SRC_WHEELS="$(pwd)/{{addon_dir}}/wheels"
     DST_WHEELS="$TARGET/wheels"
 
     # Validate source
@@ -309,7 +291,7 @@ ci:
     RUFF="$VENV/bin/ruff"
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
-    TARGETS="puree/ __init__.py tests/ dist/ setup.py"
+    TARGETS="puree/ tests/ dist/ setup.py"
     echo "── Python format (auto-fix) ──"
     "$RUFF" format $TARGETS
     echo "── Python lint (auto-fix) ──"
@@ -343,7 +325,7 @@ fix:
     RUFF="$VENV/bin/ruff"
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
-    TARGETS="puree/ __init__.py tests/ dist/ setup.py"
+    TARGETS="puree/ tests/ dist/ setup.py"
     echo "── Python lint fix ──"
     "$RUFF" check --fix $TARGETS || true
     echo "── Python format ──"
@@ -382,9 +364,9 @@ format:
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
     echo "── Stripping Python comments ──"
-    {{python}} dist/format_python.py puree/ __init__.py tests/ dist/ setup.py
+    {{python}} dist/format_python.py puree/ tests/ dist/ setup.py
     echo "── Formatting Python (ruff) ──"
-    "$RUFF" format puree/ __init__.py tests/ dist/ setup.py 2>/dev/null || true
+    "$RUFF" format puree/ tests/ dist/ setup.py 2>/dev/null || true
     echo "── Stripping Rust comments ──"
     {{python}} dist/format_rust.py puree/puree_core/src/
     echo "── Formatting Rust (rustfmt) ──"
@@ -434,7 +416,7 @@ bump VERSION:
 release VERSION:
     @echo "Releasing v{{VERSION}}..."
     just bump {{VERSION}}
-    git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
+    git add {{addon_dir}}/blender_manifest.toml {{addon_dir}}/__init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
     git commit -m "Release v{{VERSION}}"
     git tag v{{VERSION}}
     git push origin master --tags

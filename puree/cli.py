@@ -211,7 +211,9 @@ def _find_local_wheels_dir():
     try:
         import puree as _puree_pkg
 
-        candidate = Path(_puree_pkg.__file__).parent.parent / "wheels"
+        # In a source checkout the wheels live with the development addon
+        # (tests/helloworld/wheels); a pip-installed puree has no such dir.
+        candidate = Path(_puree_pkg.__file__).parent.parent / "tests" / "helloworld" / "wheels"
         if not candidate.is_dir():
             return None
         if not list(candidate.glob("puree_ui-*.whl")):

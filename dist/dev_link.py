@@ -20,17 +20,24 @@ Usage:
 import argparse
 import ctypes
 import os
+import re
 import subprocess
 import sys
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import addon_paths  # sibling dist script
+
 BLENDER_VERSION = os.environ.get("PUREE_BLENDER_VERSION", "5.1")
 PY_TAG = os.environ.get("PUREE_BLENDER_PY", "3.13")
-ADDON_ID = "xwz_puree_ui"
 DEP_MARKERS = ["moderngl", "glcontext", "stretchable", "yaml", "attrs", "av", "rlottie"]
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = addon_paths.PROJECT_ROOT
+# The extension that gets linked into Blender is the dev addon under tests/;
+# the `puree` package linked into site-packages is always the framework source.
+ADDON = addon_paths.require_addon()
+ADDON_ID = re.search(r'^id\s*=\s*"([^"]+)"', addon_paths.MANIFEST.read_text(encoding="utf-8"), re.M).group(1)
 
 
 def _blender_base():
@@ -90,9 +97,9 @@ def _deps_installed(site: Path) -> bool:
 def cmd_install_deps():
     site = _site_packages()
     site.mkdir(parents=True, exist_ok=True)
-    wheels = sorted((REPO / "wheels").glob("*.whl"))
+    wheels = sorted(addon_paths.WHEELS_DIR.glob("*.whl"))
     if not wheels:
-        print("Error: no wheels in wheels/ — run 'just wheels' first.")
+        print(f"Error: no wheels in {addon_paths.WHEELS_DIR} — run 'just wheels' first.")
         sys.exit(1)
     print(f"Installing wheel dependencies to {site}")
     count = 0
@@ -128,8 +135,8 @@ def cmd_link():
         import shutil
 
         shutil.rmtree(ext_link)
-    _make_junction(ext_link, REPO)
-    print(f"+ Linked extension: {ext_link} -> {REPO}")
+    _make_junction(ext_link, ADDON)
+    print(f"+ Linked extension: {ext_link} -> {ADDON}")
 
     # Site-packages puree: replace wheel-installed copy with junction
     if _is_link(site_puree):

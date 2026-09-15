@@ -11,8 +11,12 @@
 .PHONY: build build_core build_package wheels link unlink reload tail logs clear-logs refresh deploy format install install-deps venv bump release ci
 
 BLENDER_VERSION := 5.1
-ADDON_DIR       := $(CURDIR)
-ADDON_ID        := xwz_puree_ui
+# The Blender extension that exercises the framework - a complete Puree project under tests/.
+# Target another test addon with:  make ADDON=tests/<name> <target>
+ADDON           ?= tests/helloworld
+ADDON_DIR       := $(CURDIR)/$(ADDON)
+ADDON_ID        := $(shell sed -nE 's/^id *= *"([^"]+)".*/\1/p' $(ADDON_DIR)/blender_manifest.toml)
+export PUREE_ADDON_DIR := $(ADDON)
 
 ifeq ($(OS),Windows_NT)
 PYTHON       := python
@@ -39,16 +43,7 @@ build_package:
 	@cd dist && $(PYTHON) build_package.py
 
 build:
-	@BLENDER=$$(which blender 2>/dev/null); \
-	if [ -z "$$BLENDER" ]; then echo "Error: 'blender' not found on PATH"; exit 1; fi; \
-	ADDON_NAME=$$(grep '^name' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "' | tr ' ' '_'); \
-	VERSION=$$(grep '^version' blender_manifest.toml | cut -d'=' -f2 | tr -d ' "'); \
-	mkdir -p "$(ADDON_DIR)/dist/out"; \
-	rm -f "$(ADDON_DIR)/dist/out"/*.zip; \
-	OUTPUT="$(ADDON_DIR)/dist/out/$${ADDON_NAME}_$${VERSION}.zip"; \
-	echo "Building $$ADDON_NAME v$$VERSION..."; \
-	"$$BLENDER" --background --command extension build --source-dir "$(ADDON_DIR)" --output-filepath "$$OUTPUT"; \
-	if [ -f "$$OUTPUT" ]; then echo "Build successful: $$OUTPUT"; else echo "Build failed!"; exit 1; fi
+	@$(PYTHON) dist/build_extension.py
 
 wheels:
 	@$(PYTHON) dist/fetch_wheels.py
@@ -74,8 +69,8 @@ link:
 		rm -rf "$$SITE_PUREE"; \
 		rm -rf "$(SITE_PACKAGES)/puree_ui-"*.dist-info; \
 	fi; \
-	ln -s "$(ADDON_DIR)/puree" "$$SITE_PUREE"; \
-	echo "✓ Linked package:   $$SITE_PUREE → $(ADDON_DIR)/puree"; \
+	ln -s "$(CURDIR)/puree" "$$SITE_PUREE"; \
+	echo "✓ Linked package:   $$SITE_PUREE → $(CURDIR)/puree"; \
 	echo ""; \
 	echo "Dev mode active. Use 'make reload' after code changes."
 
@@ -100,7 +95,7 @@ reload:
 	@$(PYTHON) dist/dev_reload.py
 
 tail:
-	@LOG="logs/puree.log"; \
+	@LOG="$(ADDON_DIR)/logs/puree.log"; \
 	if [ ! -f "$$LOG" ]; then \
 		echo "No log file at $$LOG — is Blender running with Puree loaded?"; \
 		exit 1; \
@@ -111,7 +106,7 @@ tail:
 
 logs:
 	@N=$${N:-50}; \
-	LOG="logs/puree.log"; \
+	LOG="$(ADDON_DIR)/logs/puree.log"; \
 	if [ ! -f "$$LOG" ]; then \
 		echo "No log file at $$LOG — is Blender running with Puree loaded?"; \
 		exit 1; \
@@ -119,7 +114,7 @@ logs:
 	tail -n $$N "$$LOG"
 
 clear-logs:
-	@rm -f logs/puree.log logs/puree.log.*
+	@rm -f $(ADDON_DIR)/logs/puree.log $(ADDON_DIR)/logs/puree.log.*
 	@echo "✓ Logs cleared"
 
 install-deps:
@@ -129,7 +124,7 @@ install-deps:
 		BLENDER_PY=$$(which python3); \
 		echo "Warning: Blender's Python not found, falling back to system python3"; \
 	fi; \
-	for whl in wheels/*.whl; do \
+	for whl in $(ADDON_DIR)/wheels/*.whl; do \
 		base=$$(basename "$$whl"); \
 		case "$$base" in puree_ui-*) echo "  skip $$base (using source symlink)"; continue;; esac; \
 		"$$BLENDER_PY" -m pip install --target "$(SITE_PACKAGES)" --no-deps --force-reinstall --quiet "$$whl" 2>/dev/null || true; \
@@ -138,8 +133,8 @@ install-deps:
 
 refresh:
 	@if [ -z "$(TARGET)" ]; then echo "Error: TARGET required. Usage: make refresh TARGET=/path/to/project"; exit 1; fi
-	@SRC_WHL=$$(ls wheels/puree_ui-*.whl 2>/dev/null | head -1); \
-	if [ -z "$$SRC_WHL" ]; then echo "Error: No puree_ui wheel in wheels/. Run 'make build_package' first."; exit 1; fi; \
+	@SRC_WHL=$$(ls $(ADDON_DIR)/wheels/puree_ui-*.whl 2>/dev/null | head -1); \
+	if [ -z "$$SRC_WHL" ]; then echo "Error: No puree_ui wheel in $(ADDON)/wheels/. Run 'make build_package' first."; exit 1; fi; \
 	if [ ! -f "$(TARGET)/blender_manifest.toml" ]; then echo "Error: No blender_manifest.toml in $(TARGET)"; exit 1; fi; \
 	if [ ! -d "$(TARGET)/wheels" ]; then echo "Error: No wheels/ directory in $(TARGET)"; exit 1; fi; \
 	rm -f "$(TARGET)/wheels"/puree_ui-*.whl; \
@@ -180,11 +175,11 @@ deploy: link reload
 
 format:
 	@if [ ! -d .venv ]; then echo "Error: .venv not found. Run 'make venv' first."; exit 1; fi
-	@if [ ! -f .venv/bin/ruff ]; then echo "Installing ruff into .venv..."; .venv/bin/pip install ruff --quiet; fi
+	@if [ ! -f .venv/bin/ruff ]; then echo "Installing ruff into .venv..."; .venv/bin/pip install "ruff==0.9.10" --quiet; fi
 	@echo "── Stripping Python comments ──"
-	@$(PYTHON) dist/format_python.py puree/ __init__.py tests/ dist/ setup.py
+	@$(PYTHON) dist/format_python.py puree/ tests/ dist/ setup.py
 	@echo "── Formatting Python (ruff) ──"
-	@.venv/bin/ruff format puree/ __init__.py tests/ dist/ setup.py 2>/dev/null || true
+	@.venv/bin/ruff format puree/ tests/ dist/ setup.py 2>/dev/null || true
 	@echo "── Stripping Rust comments ──"
 	@$(PYTHON) dist/format_rust.py puree/puree_core/src/
 	@echo "── Formatting Rust (rustfmt) ──"
@@ -211,13 +206,13 @@ ci:
 	@VENV=".venv"; \
 	if [ ! -d "$$VENV" ]; then echo "Error: .venv not found. Run 'make venv' first."; exit 1; fi; \
 	RUFF="$$VENV/bin/ruff"; \
-	if [ ! -f "$$RUFF" ]; then echo "Installing ruff into .venv..."; "$$VENV/bin/pip" install ruff --quiet; fi; \
+	if [ ! -f "$$RUFF" ]; then echo "Installing ruff into .venv..."; "$$VENV/bin/pip" install "ruff==0.9.10" --quiet; fi; \
 	echo "── Python lint ──"; \
-	"$$RUFF" check puree/ __init__.py tests/ dist/ setup.py; \
+	"$$RUFF" check puree/ tests/ dist/ setup.py; \
 	echo "── Python format ──"; \
-	"$$RUFF" format --check puree/ __init__.py tests/ dist/ setup.py; \
+	"$$RUFF" format --check puree/ tests/ dist/ setup.py; \
 	echo "── Rust checks ──"; \
-	cd puree/puree_core && cargo build --release && cargo clippy -- -D warnings && cargo test && cargo fmt -- --check; \
+	cd puree/puree_core && cargo build --release --locked && cargo clippy --locked -- -D warnings && cargo test --locked --no-default-features && cargo fmt -- --check; \
 	echo "✓ All checks passed"
 # ── Release workflow ─────────────────────────────────────────────────
 
@@ -236,7 +231,7 @@ ifeq ($(OS),Windows_NT)
 	@if not defined VERSION (echo Error: VERSION argument required. Usage: make release VERSION=0.0.3 && exit /b 1)
 	@echo Releasing v$(VERSION)...
 	@$(MAKE) bump VERSION=$(VERSION)
-	@git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
+	@git add $(ADDON)/blender_manifest.toml $(ADDON)/__init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
 	@git commit -m "Release v$(VERSION)"
 	@git tag v$(VERSION)
 	@git push origin master --tags
@@ -245,7 +240,7 @@ else
 	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make release VERSION=0.0.3"; exit 1; fi
 	@echo "Releasing v$(VERSION)..."
 	@$(MAKE) bump VERSION=$(VERSION)
-	@git add blender_manifest.toml __init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
+	@git add $(ADDON)/blender_manifest.toml $(ADDON)/__init__.py setup.py pyproject.toml puree/puree_core/Cargo.toml
 	@git commit -m "Release v$(VERSION)"
 	@git tag v$(VERSION)
 	@git push origin master --tags

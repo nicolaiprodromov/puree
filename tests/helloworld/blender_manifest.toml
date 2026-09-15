@@ -55,45 +55,17 @@ wheels = [
 ]
 
 [build]
+# This folder IS the addon, so only things that can appear inside it need excluding:
+# runtime artifacts written next to the addon (logs, reload sentinel, caches) and
+# anything a `just build` might have left here.
 paths_exclude_pattern = [
   "__pycache__/",
-  "*.zip",
   "*.pyc",
-  ".puree_reload",
-  
-  ".git/",
-  "dist/",
-  "docs/",
-  ".gitignore",
-  ".blender_manifest.example.toml",
-  "justfile",
-  "Makefile",
-  "MANIFEST.in",
-  "Pipfile",
-  "Pipfile.lock",
-  "requirements.txt",
-  "setup.py",
-  "pyproject.toml",
-  "puree/puree_core/",
-  "puree/native_binaries/",
-  # dev-only: AI agent config, editor/tooling caches, virtualenv, logs, unit tests
-  ".agents/",
-  ".github/",
-  ".devcontainer/",
-  ".vscode/",
-  ".gitattributes",
-  ".venv/",
-  ".ruff_cache/",
-  ".pytest_cache/",
-  "build/",
-  "*.egg-info/",
-  "logs/",
+  "*.zip",
   "*.log",
+  "logs/",
+  ".puree_reload",
+  ".gitkeep",
   "*.blend",
   "*.blend1",
-  "blender/",
-  "docs.aep_AME/",
-  "youtube/",
-  "tests/unit/",
-  "tests/pytest.ini",
 ]

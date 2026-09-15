@@ -46,7 +46,8 @@ except ImportError:  # pragma: no cover - numpy is optional
     pass
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEMO_CLIP = REPO_ROOT / "assets" / "demo_clip.mp4"
+ADDON_DIR = REPO_ROOT / "tests" / "helloworld"  # the dev addon (assets/, fonts/, wheels/)
+DEMO_CLIP = ADDON_DIR / "assets" / "demo_clip.mp4"
 
 
 def _ensure_puree_package():
@@ -67,7 +68,7 @@ from puree.media.decoders.video import VideoSource  # noqa: E402
 
 HAS_AV = find_spec("av") is not None
 requires_av = pytest.mark.skipif(not HAS_AV, reason="PyAV not installed in this dev env (python -m pip install av)")
-requires_demo_clip = pytest.mark.skipif(not DEMO_CLIP.exists(), reason="assets/demo_clip.mp4 missing")
+requires_demo_clip = pytest.mark.skipif(not DEMO_CLIP.exists(), reason="tests/helloworld/assets/demo_clip.mp4 missing")
 
 # ── FakeAud (the sys.modules-injected stand-in for Blender's aud) ────
 

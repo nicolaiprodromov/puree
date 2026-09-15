@@ -36,24 +36,29 @@ puree/
 │   ├── puree_core/           # Rust source (compiled → native_binaries/)
 │   └── shaders/              # GLSL compute/vertex/fragment shaders
 ├── dist/                     # ← BUILD SCRIPTS & TOOLS
-│   ├── dev_reload.py         # Triggers reload in running Blender
-│   ├── build.sh / build.bat  # Platform build scripts
-│   └── fetch_wheels.py       # Dependency wheels for every platform + manifest rewrite
-├── static/                   # ← BUILT-IN UI (example/default panel)
-│   ├── index.yaml
-│   ├── style.scss
-│   ├── script.py
-│   └── components/
-├── examples/                 # ← EXAMPLE PANELS
+│   ├── addon_paths.py        # Which test addon the tooling targets (default tests/helloworld)
+│   ├── build_extension.py    # Extension zip via the Blender on PATH → dist/out/
+│   ├── fetch_wheels.py       # Dependency wheels for every platform + manifest rewrite
+│   ├── build_package.py      # puree_ui wheel → the addon's wheels/
+│   ├── update_version.py     # Version bump across manifest, bl_info, setup.py, pyproject, Cargo.toml
+│   ├── dev_link.py           # Windows junction-based `just link`
+│   └── dev_reload.py         # Triggers reload in running Blender
+├── tests/
+│   ├── unit/                 # pytest suite (no bpy)
+│   └── helloworld/           # ← THE DEV ADDON: a complete Puree project, like `puree init` makes
+│       ├── __init__.py       #    Blender extension entry point (bl_info, register/unregister)
+│       ├── blender_manifest.toml
+│       ├── index.yaml / style.scss / script.py
+│       ├── assets/           #    Images & media for this addon
+│       ├── fonts/            #    Fonts for this addon (NeueMontreal family)
+│       └── wheels/           #    Dependency wheels (gitignored; `just wheels`)
 ├── docs/                     # ← DOCUMENTATION
 │   ├── PUREE_SPEC.md         # Full framework specification
 │   ├── PUREE_VS_CSS.md       # CSS compatibility reference
 │   ├── API.md                # Python API reference
 │   └── COMPONENTS.md         # Component system docs
-├── assets/                   # Images (PNG, SVG)
-├── fonts/                    # Font files (.ttf, .otf) — NeueMontreal family
-├── __init__.py               # Blender addon entry point + reload server lifecycle
-└── blender_manifest.toml     # Blender extension manifest
+├── pyproject.toml / setup.py # puree-ui pip package
+└── justfile / Makefile       # Dev recipes (`addon_dir` / `ADDON` select the test addon)
 ```
 
 ## Two Kinds of Work
