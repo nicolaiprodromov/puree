@@ -14,10 +14,10 @@ app:
       space: VIEW_3D
       default_font: NeueMontreal-Regular
       styles:
-        - tests/helloworld/style.scss
+        - style.scss
       scripts:
-        - tests/helloworld/script.py
-      components: tests/helloworld/components/
+        - script.py
+      components: components/
 
       root:
         class: root
@@ -359,6 +359,6 @@ app:
                     passive: true
               footer_hint:
                 class: footer_hint
-                text: "Try it: edit tests/helloworld/style.scss and save — hot reload repaints this page in place."
+                text: "Try it: edit style.scss and save — hot reload repaints this page in place."
                 font: NeueMontreal-Italic
                 passive: true
