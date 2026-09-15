@@ -77,29 +77,6 @@ Check the [tests](/tests) folder for a complete example of what can be accomplis
 
 ---
 
-## Media: GIF · SVG · MP4 · Lottie
-
-Puree plays media natively inside panels — animated GIFs and crisp vector SVGs ride the plain `img:` attribute, videos get HTML-style attributes plus a default controls bar, and Lottie/Bodymovin animations loop out of the box:
-
-```yaml
-spinner:  { style: spinner, img: loading.gif }     # animates automatically
-logo:     { style: logo, img: brand.svg }          # crisp at any panel size
-demo_video:
-  style: demo_video
-  video: intro.mp4
-  controls: true          # play/seek/mute bar, auto-hides like a browser
-  autoplay: true
-  loop: true
-  muted: true
-celebration: { style: celebration, lottie: confetti.json }
-```
-
-Scripts drive playback through `container.media` (`play()`, `seek()`, `on("timeupdate", fn)`, …). GIF/SVG decode in the Rust core; the video (PyAV) and Lottie (rlottie) decoders ship bundled with Puree — `video:`/`lottie:` work out of the box, and a missing package still degrades gracefully. See [PUREE_SPEC.md — Media Elements](docs/PUREE_SPEC.md#10-media-elements).
-
-Any container can also take over the whole panel region as a "theater mode" — `container.request_fullscreen()` / `exit_fullscreen()`, with `ESC` and the controls-bar button as exits. The default video controls expose it out of the box. See [PUREE_SPEC.md — Fullscreen](docs/PUREE_SPEC.md#fullscreen--region-presentation-mode).
-
----
-
 ## Quick Start
 <!-- 
 Here's a short tutorial to get you started with Puree:
