@@ -94,6 +94,12 @@ def _deps_installed(site: Path) -> bool:
     return all(any(marker in n for n in names) for marker in DEP_MARKERS)
 
 
+def _wheel_fits_this_machine(name: str) -> bool:
+    """wheels/ holds every manifest platform; only pure-Python and win_amd64 wheels belong here."""
+    tag = name[:-4].split("-")[-1]  # platform tag is the last dash-separated part
+    return tag == "any" or tag == "win_amd64"
+
+
 def cmd_install_deps():
     site = _site_packages()
     site.mkdir(parents=True, exist_ok=True)
@@ -107,6 +113,8 @@ def cmd_install_deps():
         if whl.name.startswith("puree_ui-"):
             print(f"  skip {whl.name} (using source junction)")
             continue
+        if not _wheel_fits_this_machine(whl.name):
+            continue  # linux/macos wheel - Blender picks those from the manifest on those platforms
         with zipfile.ZipFile(whl, "r") as zf:
             zf.extractall(site)
         count += 1
