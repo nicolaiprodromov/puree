@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 RELOAD_PORT = 19746
 # Puree watches for the sentinel next to the ADDON's __init__.py (get_addon_root()).

@@ -1,4 +1,4 @@
-"""Where the development addon lives - the ONE place the dist scripts learn it from.
+"""Where the development addon lives - the ONE place the tools/ scripts learn it from.
 
 The repository root is the framework (`puree/`), the CLI and the Rust core. The Blender
 extension that exercises them is a complete, self-contained Puree project under

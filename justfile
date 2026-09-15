@@ -24,15 +24,15 @@ build_core:
     @cd puree/puree_core; {{build_core_cmd}}
 
 build_package:
-    @cd dist; {{python}} build_package.py
+    @cd tools; {{python}} build_package.py
 
-# Build the extension zip from {{addon_dir}} with the Blender on PATH (-> dist/out/); pass --split-platforms for per-platform zips
+# Build the extension zip from {{addon_dir}} with the Blender on PATH (-> dist/); pass --split-platforms for per-platform zips
 build *ARGS:
-    @{{python}} dist/build_extension.py {{ARGS}}
+    @{{python}} tools/build_extension.py {{ARGS}}
 
 # Fetch dependency wheels for EVERY manifest platform, rebuild the puree_ui wheel, rewrite the manifest
 wheels:
-    @{{python}} dist/fetch_wheels.py
+    @{{python}} tools/fetch_wheels.py
 
 # ── Development workflow ─────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ link:
 # Junction source into Blender extensions (no admin needed, unlike symlinks)
 [windows]
 link:
-    @{{python}} dist/dev_link.py link
+    @{{python}} tools/dev_link.py link
 
 # Remove dev symlinks
 [unix]
@@ -116,11 +116,11 @@ unlink:
 # Remove dev junctions
 [windows]
 unlink:
-    @{{python}} dist/dev_link.py unlink
+    @{{python}} tools/dev_link.py unlink
 
 # Reload the addon in a running Blender instance
 reload:
-    @{{python}} dist/dev_reload.py
+    @{{python}} tools/dev_reload.py
 
 # Live-follow the Puree log file (requires Blender running with addon loaded)
 [unix]
@@ -196,7 +196,7 @@ install-deps:
 # Install wheel dependencies into Blender's extension site-packages
 [windows]
 install-deps:
-    @{{python}} dist/dev_link.py install-deps
+    @{{python}} tools/dev_link.py install-deps
 
 # Refresh puree_ui wheel in a target project folder (fixes stale wheels after engine changes)
 # Usage: just refresh /path/to/my-addon
@@ -291,7 +291,7 @@ ci:
     RUFF="$VENV/bin/ruff"
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
-    TARGETS="puree/ tests/ dist/ setup.py"
+    TARGETS="puree/ tests/ tools/ setup.py"
     echo "── Python format (auto-fix) ──"
     "$RUFF" format $TARGETS
     echo "── Python lint (auto-fix) ──"
@@ -325,7 +325,7 @@ fix:
     RUFF="$VENV/bin/ruff"
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
-    TARGETS="puree/ tests/ dist/ setup.py"
+    TARGETS="puree/ tests/ tools/ setup.py"
     echo "── Python lint fix ──"
     "$RUFF" check --fix $TARGETS || true
     echo "── Python format ──"
@@ -364,11 +364,11 @@ format:
     # pinned - same version as ci.yml; bump both together and reformat
     "$VENV/bin/pip" install "ruff==0.9.10" --quiet
     echo "── Stripping Python comments ──"
-    {{python}} dist/format_python.py puree/ tests/ dist/ setup.py
+    {{python}} tools/format_python.py puree/ tests/ tools/ setup.py
     echo "── Formatting Python (ruff) ──"
-    "$RUFF" format puree/ tests/ dist/ setup.py 2>/dev/null || true
+    "$RUFF" format puree/ tests/ tools/ setup.py 2>/dev/null || true
     echo "── Stripping Rust comments ──"
-    {{python}} dist/format_rust.py puree/puree_core/src/
+    {{python}} tools/format_rust.py puree/puree_core/src/
     echo "── Formatting Rust (rustfmt) ──"
     find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
     echo "✓ Format complete"
@@ -409,7 +409,7 @@ install VENV_PATH=".venv": build_package (venv VENV_PATH)
 # ── Release workflow ─────────────────────────────────────────────────
 
 bump VERSION:
-    @{{python}} dist/update_version.py {{VERSION}}
+    @{{python}} tools/update_version.py {{VERSION}}
     just build_package
     just build
 

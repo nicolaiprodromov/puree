@@ -109,7 +109,7 @@ File change on disk
 ### Dev Reload Flow (`just reload` / `puree reload`)
 
 ```
-dist/dev_reload.py (or puree reload CLI) runs
+tools/dev_reload.py (or puree reload CLI) runs
   → Primary: TCP connect to 127.0.0.1:19746 (ReloadServer)
   → Sends "reload" command → server responds "ok"
   → ReloadServer schedules reload via bpy.app.timers

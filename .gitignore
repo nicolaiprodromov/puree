@@ -32,6 +32,8 @@ tests/unit/fixtures/
 *.log
 
 build/
+# build output: extension zips (tools/build_extension.py), puree_ui wheel + sdist (tools/build_package.py)
+/dist/
 *.whl
 
 __pycache__/

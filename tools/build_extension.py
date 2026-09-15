@@ -2,8 +2,8 @@
 """Build the development addon into an extension zip with the Blender on PATH.
 
 Replaces the bash/PowerShell `build` recipes: one implementation for every OS,
-and it builds the addon under tests/ (dist/addon_paths.py) rather than the cwd.
-Output: dist/out/<Name>_<version>.zip  (one multi-platform zip, like before;
+and it builds the addon under tests/ (tools/addon_paths.py) rather than the cwd.
+Output: dist/<Name>_<version>.zip  (one multi-platform zip, like before;
 pass --split-platforms for one zip per platform, as the release workflow does).
 """
 
@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 from puree.log import setup_cli_logging
 
@@ -27,7 +27,7 @@ logger = setup_cli_logging(Path(__file__).stem)
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--split-platforms", action="store_true", help="one zip per manifest platform")
-    parser.add_argument("--out", default=str(addon_paths.PROJECT_ROOT / "dist" / "out"), help="output directory")
+    parser.add_argument("--out", default=str(addon_paths.PROJECT_ROOT / "dist"), help="output directory")
     args = parser.parse_args()
 
     blender = shutil.which("blender")

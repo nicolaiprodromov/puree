@@ -155,7 +155,7 @@ def capture_output(source: str = "user"):
 
 
 def setup_cli_logging(name: str) -> logging.Logger:
-    """Configure logging for standalone CLI scripts (dist/).
+    """Configure logging for standalone CLI scripts (tools/).
 
     Returns a logger with clean console output (INFO+) and file logging.
     """

@@ -94,7 +94,7 @@ For Python code changes (which need a full module purge + re-register), Puree ha
 
 1. **ReloadServer** (`puree/reload_server.py`) — listens on `127.0.0.1:19746`, accepts `reload`, `ping`, `log_path`, and `logs [N]` commands
 2. **Auto-starts** with the addon — no manual activation needed. Starts in `__init__.py register()`, stops in `unregister()`.
-3. **Triggered by** `just reload` / `make reload` / `puree reload` → runs `dist/dev_reload.py` (or CLI equivalent)
+3. **Triggered by** `just reload` / `make reload` / `puree reload` → runs `tools/dev_reload.py` (or CLI equivalent)
 4. **Reload flow**: Stop server → unregister addon → purge all `puree.*` modules from `sys.modules` → clear `__pycache__` → re-import + re-register (fresh server starts)
 5. **Sentinel fallback**: If TCP isn't reachable, `dev_reload.py` writes `.puree_reload` file. A Blender timer (`_check_reload_sentinel`, 2s interval) picks it up.
 6. **Thread-safe**: Server runs in a daemon thread; reload is scheduled via `bpy.app.timers.register()` on Blender's main thread.

@@ -2,7 +2,7 @@
 """Make wheels/ complete for EVERY platform in blender_manifest.toml, then rewrite the manifest.
 
 Why this exists: `pip download` only fetches wheels for the machine it runs on, and
-dist/update_wheels.py rewrites the manifest's wheels[] from whatever sits in wheels/.
+tools/update_wheels.py rewrites the manifest's wheels[] from whatever sits in wheels/.
 The old `just wheels` (one pip download) therefore deleted every OTHER platform's wheels
 from the manifest whenever it ran on a single machine. This script:
 
@@ -12,8 +12,8 @@ from the manifest whenever it ran on a single machine. This script:
   4. runs one `pip download --no-deps --platform ...` per (package, platform). Per package,
      because pip aborts the whole call when a single package has no wheel for a tag
      (av ships manylinux_2_28, rlottie manylinux_2_17), and we pass every accepted linux tag
-  5. rebuilds the puree_ui wheel into wheels/ (dist/build_package.py)
-  6. rewrites the manifest (dist/update_wheels.py) - only reached when 1-5 succeeded
+  5. rebuilds the puree_ui wheel into wheels/ (tools/build_package.py)
+  6. rewrites the manifest (tools/update_wheels.py) - only reached when 1-5 succeeded
 
 Run via `just wheels` on any OS. Options: --python-version, --only PLATFORM, --fetch-only,
 --skip-package. The manifest is never rewritten without a puree_ui wheel on disk.
@@ -31,9 +31,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import addon_paths  # sibling dist script
-import build_package  # sibling dist script
-import update_wheels  # sibling dist script
+import addon_paths  # sibling tools script
+import build_package  # sibling tools script
+import update_wheels  # sibling tools script
 
 from puree.log import setup_cli_logging
 

@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 from puree.log import setup_cli_logging
 

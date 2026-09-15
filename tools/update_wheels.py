@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 from puree.log import setup_cli_logging
 
@@ -16,7 +16,7 @@ logger = setup_cli_logging(os.path.splitext(os.path.basename(__file__))[0])
 def update_wheels_in_manifest(manifest_path=None, wheels_dir=None):
     """Rewrite the manifest's wheels[] from the .whl files sitting next to it.
 
-    Defaults to the development addon (dist/addon_paths.py); both paths can be
+    Defaults to the development addon (tools/addon_paths.py); both paths can be
     overridden to run against any Puree project.
     """
     manifest_path = Path(manifest_path) if manifest_path else addon_paths.MANIFEST

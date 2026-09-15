@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 from puree.log import setup_cli_logging
 
@@ -28,7 +28,7 @@ def main():
 
     logger.info("\nBuilding Python package")
 
-    out_dir = os.path.join("dist", "out")
+    out_dir = "dist"  # build output (gitignored)
     os.makedirs(out_dir, exist_ok=True)
 
     for tarball in glob.glob(os.path.join(out_dir, "*.tar.gz")):
@@ -42,7 +42,7 @@ def main():
     run_command(f"{python_cmd} setup.py sdist --dist-dir {out_dir} bdist_wheel --dist-dir {out_dir}")
 
     # The freshly built wheel goes into the development addon's wheels/ so the
-    # extension bundles the current source (dist/addon_paths.py picks the addon).
+    # extension bundles the current source (tools/addon_paths.py picks the addon).
     wheels_dir = str(addon_paths.WHEELS_DIR)
     os.makedirs(wheels_dir, exist_ok=True)
 

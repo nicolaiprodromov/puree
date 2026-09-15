@@ -12,9 +12,9 @@ Blender 5.x on Windows keeps extension data under:
   %APPDATA%/Blender Foundation/Blender/<ver>/extensions/.local/lib/python3.13/site-packages
 
 Usage:
-  python dist/dev_link.py link
-  python dist/dev_link.py unlink
-  python dist/dev_link.py install-deps
+  python tools/dev_link.py link
+  python tools/dev_link.py unlink
+  python tools/dev_link.py install-deps
 """
 
 import argparse
@@ -27,7 +27,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import addon_paths  # sibling dist script
+import addon_paths  # sibling tools script
 
 BLENDER_VERSION = os.environ.get("PUREE_BLENDER_VERSION", "5.1")
 PY_TAG = os.environ.get("PUREE_BLENDER_PY", "3.13")

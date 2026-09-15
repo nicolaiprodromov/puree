@@ -22,10 +22,10 @@ jobs:
         run: pip install ruff==0.9.10 pyyaml build
 
       - name: Lint
-        run: ruff check puree/ tests/ dist/ setup.py
+        run: ruff check puree/ tests/ tools/ setup.py
 
       - name: Format check
-        run: ruff format --check puree/ tests/ dist/ setup.py
+        run: ruff format --check puree/ tests/ tools/ setup.py
 
       - name: YAML validation
         run: |

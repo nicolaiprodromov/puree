@@ -40,13 +40,13 @@ build_core:
 	@cd puree/puree_core && $(BUILD_CORE)
 
 build_package:
-	@cd dist && $(PYTHON) build_package.py
+	@cd tools && $(PYTHON) build_package.py
 
 build:
-	@$(PYTHON) dist/build_extension.py
+	@$(PYTHON) tools/build_extension.py
 
 wheels:
-	@$(PYTHON) dist/fetch_wheels.py
+	@$(PYTHON) tools/fetch_wheels.py
 
 # ── Development workflow ─────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ unlink:
 	echo "Dev mode deactivated."
 
 reload:
-	@$(PYTHON) dist/dev_reload.py
+	@$(PYTHON) tools/dev_reload.py
 
 tail:
 	@LOG="$(ADDON_DIR)/logs/puree.log"; \
@@ -177,11 +177,11 @@ format:
 	@if [ ! -d .venv ]; then echo "Error: .venv not found. Run 'make venv' first."; exit 1; fi
 	@if [ ! -f .venv/bin/ruff ]; then echo "Installing ruff into .venv..."; .venv/bin/pip install "ruff==0.9.10" --quiet; fi
 	@echo "── Stripping Python comments ──"
-	@$(PYTHON) dist/format_python.py puree/ tests/ dist/ setup.py
+	@$(PYTHON) tools/format_python.py puree/ tests/ tools/ setup.py
 	@echo "── Formatting Python (ruff) ──"
-	@.venv/bin/ruff format puree/ tests/ dist/ setup.py 2>/dev/null || true
+	@.venv/bin/ruff format puree/ tests/ tools/ setup.py 2>/dev/null || true
 	@echo "── Stripping Rust comments ──"
-	@$(PYTHON) dist/format_rust.py puree/puree_core/src/
+	@$(PYTHON) tools/format_rust.py puree/puree_core/src/
 	@echo "── Formatting Rust (rustfmt) ──"
 	@find puree/puree_core/src -name '*.rs' -exec rustfmt {} +
 	@echo "✓ Format complete"
@@ -208,9 +208,9 @@ ci:
 	RUFF="$$VENV/bin/ruff"; \
 	if [ ! -f "$$RUFF" ]; then echo "Installing ruff into .venv..."; "$$VENV/bin/pip" install "ruff==0.9.10" --quiet; fi; \
 	echo "── Python lint ──"; \
-	"$$RUFF" check puree/ tests/ dist/ setup.py; \
+	"$$RUFF" check puree/ tests/ tools/ setup.py; \
 	echo "── Python format ──"; \
-	"$$RUFF" format --check puree/ tests/ dist/ setup.py; \
+	"$$RUFF" format --check puree/ tests/ tools/ setup.py; \
 	echo "── Rust checks ──"; \
 	cd puree/puree_core && cargo build --release --locked && cargo clippy --locked -- -D warnings && cargo test --locked --no-default-features && cargo fmt -- --check; \
 	echo "✓ All checks passed"
@@ -222,7 +222,7 @@ ifeq ($(OS),Windows_NT)
 else
 	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION argument required. Usage: make bump VERSION=0.0.3"; exit 1; fi
 endif
-	@$(PYTHON) dist/update_version.py $(VERSION)
+	@$(PYTHON) tools/update_version.py $(VERSION)
 	@$(MAKE) build_package
 	@$(MAKE) build
 

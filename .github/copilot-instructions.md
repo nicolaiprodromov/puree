@@ -35,9 +35,9 @@ puree/
 │   ├── components/           # Container class, Style class, defaults
 │   ├── puree_core/           # Rust source (compiled → native_binaries/)
 │   └── shaders/              # GLSL compute/vertex/fragment shaders
-├── dist/                     # ← BUILD SCRIPTS & TOOLS
+├── tools/                    # ← BUILD SCRIPTS & TOOLS (dist/ = gitignored build output)
 │   ├── addon_paths.py        # Which test addon the tooling targets (default tests/helloworld)
-│   ├── build_extension.py    # Extension zip via the Blender on PATH → dist/out/
+│   ├── build_extension.py    # Extension zip via the Blender on PATH → dist/
 │   ├── fetch_wheels.py       # Dependency wheels for every platform + manifest rewrite
 │   ├── build_package.py      # puree_ui wheel → the addon's wheels/
 │   ├── update_version.py     # Version bump across manifest, bl_info, setup.py, pyproject, Cargo.toml
